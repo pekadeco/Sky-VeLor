@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "pekaclient",
+    "name": "Sky VeLor",
+    "description": "Sky VeLor: an Apple-inspired, translucent settings hub, HUD editor and tools for Minecraft 1.8.9. Built for desktop Java. Android launchers are not tested.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["Arena"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
