@@ -1,14 +1,18 @@
-# Sky VeLor, Beta-0.10.5v
+# Sky VeLor, 10.5.5
 
 Forge client mod for Minecraft 1.8.9 (Forge 11.15.1.2318). Java 8 is the target. Android launchers such as PojavLauncher are **not tested**.
 
-## Changes in Beta-0.10.5v
+## Changes in 10.5.5
 
-- **Reference-matched Spirit Leap cards:** four large horizontal cards in a balanced 2×2 grid, with a prominent teammate head on the left, colored name and lighter class label on the right. Flat charcoal fills and restrained borders replace the old panel/header/footer treatment; the world remains visible behind the cards.
-- **Responsive geometry:** card, head, gap, and row sizes are calculated from Minecraft's scaled GUI dimensions. Complete usernames are fitted inside the card; a long rank prefix gives way to the canonical username before any horizontal text scaling.
-- **Hover/selection:** the focused card gets a subtly lighter charcoal fill and brighter thin outline. Card click, arrow/Enter selection, and the server's existing window-click action are unchanged.
-- **Preview:** the existing hub option uses this same renderer. Four test cards remain visible; N/P cycles through samples covering Archer, Berserk, Mage, Tank, and Healer. The preview is labelled TEST DATA, uses no live container/cache or skin lookup, sends no packet, and Escape returns to the hub.
-- **Regression boundary:** the scoreboard parser, identity matching, class cache, skin lookup/UV renderer, and live Spirit Leap data flow are not rewritten for this visual change. No global entity rendering or unrelated HUD code is changed.
+- **Compact card group:** the 2×2 layout keeps consistent card dimensions but substantially reduces horizontal and vertical gaps. Positions and spacing are calculated from Minecraft's scaled GUI dimensions, and the complete group remains centered.
+- **Opaque charcoal cards:** normal cards use solid `#252525`; hover/selection uses solid `#353535`. Thin gray borders are aligned to the card edges, with a modestly brighter selected border. The world is not dimmed.
+- **Readable text:** player names render at an enlarged 1.6× font scale and class labels at 1.25×. Matrix state is pushed and restored locally; long strings are fitted within the text slot. Names retain available rank formatting, while detected class labels use distinct green/red/blue/dark-green/light-purple colors.
+- **Functionality retained:** class detection, identity matching, cache state, skin loading/UVs, and the server's existing window-click selection path are unchanged. Unknown classes use a neutral label color.
+- **Preview:** the hub's isolated preview uses the same renderer, retains four cards in 2×2, and cycles test samples for all five classes with N/P. It is labelled TEST DATA, sends no gameplay action, and Escape returns to the hub.
+
+## Retained from Beta-0.10.5v
+
+The prior release added the reference-based card layout, responsive sizing, exact identity matching, and isolated preview. Those working data and interaction paths are retained; this release only polishes their visual presentation.
 
 ## Changes in Beta-0.10v
 
@@ -42,7 +46,7 @@ Requires JDK 8, Gradle 2.14.1, and ForgeGradle 2.1 for Minecraft 1.8.9 / Forge 1
 - **In-game:** not verified in this environment; no working Minecraft 1.8.9 runtime was available. Do not treat the preview source path or layout tests as a screenshot or live-server test.
 - **Platforms:** desktop Java 8 is the build target. Pojav/Android compatibility is not verified.
 
-Release files: `dist/SkyVeLor-1.8.9-Beta-0.10.5v.jar` and `dist/SkyVeLor-1.8.9-Beta-0.10.5v-source.zip`.
+Release files: `dist/SkyVeLor-1.8.9-10.5.5.jar` and `dist/SkyVeLor-1.8.9-10.5.5-source.zip`.
 
 ## Previous release notes (Beta-0.9v)
 

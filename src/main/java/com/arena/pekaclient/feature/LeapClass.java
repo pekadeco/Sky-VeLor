@@ -10,11 +10,11 @@ import java.util.Locale;
  * class as unknown. Nothing is guessed from a partial match.
  */
 public enum LeapClass {
-    ARCHER("Archer", 0xFFFFD84D),
+    ARCHER("Archer", 0xFF57D68D),
     BERSERK("Berserk", 0xFFFF5A5A),
-    MAGE("Mage", 0xFF5AC8FA),
-    TANK("Tank", 0xFF5CD65C),
-    HEALER("Healer", 0xFFFFB6D9);
+    MAGE("Mage", 0xFF5AAEFF),
+    TANK("Tank", 0xFF43A96F),
+    HEALER("Healer", 0xFFD5A2FF);
 
     /** Colour for a teammate whose class is missing or not one of the five. */
     public static final int UNKNOWN_COLOR = 0xFF8E8E93;

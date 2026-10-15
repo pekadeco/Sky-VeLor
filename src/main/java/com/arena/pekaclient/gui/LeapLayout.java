@@ -3,16 +3,16 @@ package com.arena.pekaclient.gui;
 /**
  * Responsive geometry for the Spirit Leap card overlay.
  *
- * The proportions follow the supplied 2-by-2 reference: cards occupy about 36.5% of the viewport width,
- * the column gap about 12.5%, and the player head about a quarter of each card's width. All values are derived
- * from the scaled Minecraft GUI dimensions, not a screenshot-sized coordinate set.
+ * The polished grid keeps two equal columns but uses a compact gap (about 3.6% of the viewport width) and a
+ * prominent head (about a quarter of the card width). All values are derived from Minecraft's scaled GUI
+ * dimensions, not screenshot-sized coordinates.
  */
 public final class LeapLayout {
 
     public static final int COLS = 2;
 
     private static final int MIN_SIDE_MARGIN = 6;
-    private static final int MIN_COLUMN_GAP = 8;
+    private static final int MIN_COLUMN_GAP = 6;
     private static final int MIN_ROW_GAP = 6;
     private static final int MIN_VERTICAL_MARGIN = 6;
     private static final int HEAD_BOTTOM_TOP_SPACE = 12;
@@ -25,21 +25,21 @@ public final class LeapLayout {
         return Math.max(MIN_SIDE_MARGIN, Math.max(0, screenWidth) / 14);
     }
 
-    /** Space between the two columns: approximately 12.5% of the scaled viewport. */
+    /** Compact space between columns: approximately 3.6% of the scaled viewport. */
     public static int horizontalGap(int screenWidth) {
-        return Math.max(MIN_COLUMN_GAP, Math.max(0, screenWidth) / 8);
+        return Math.max(MIN_COLUMN_GAP, Math.max(0, screenWidth) / 28);
     }
 
     /**
-     * Card width for the current scaled viewport. The height-based cap preserves the reference's wide-card shape
-     * on unusually wide, short windows while keeping the grid inside the screen.
+     * Card width for the current scaled viewport. The height-based cap avoids excessively wide cards on unusually
+     * wide, short windows while keeping the compact group inside the screen.
      */
     public static int cardWidth(int screenWidth, int screenHeight) {
         int width = Math.max(0, screenWidth);
         int height = Math.max(0, screenHeight);
         int availableWidth = width - 2 * horizontalMargin(width) - horizontalGap(width);
         int widthLimited = Math.max(1, availableWidth / COLS);
-        int heightLimited = Math.max(1, height * 72 / 100);
+        int heightLimited = Math.max(1, height * 64 / 100);
         return Math.min(widthLimited, heightLimited);
     }
 
@@ -48,12 +48,12 @@ public final class LeapLayout {
         return Math.max(MIN_VERTICAL_MARGIN, Math.max(0, screenHeight) / 16);
     }
 
-    /** Space between teammate rows: approximately one sixth of the scaled viewport height. */
+    /** Compact space between teammate rows: approximately 6.25% of the scaled viewport height. */
     public static int verticalGap(int screenHeight, int rows) {
         if (rows <= 1) {
             return 0;
         }
-        return Math.max(MIN_ROW_GAP, Math.max(0, screenHeight) / 6);
+        return Math.max(MIN_ROW_GAP, Math.max(0, screenHeight) / 16);
     }
 
     /**
@@ -99,12 +99,12 @@ public final class LeapLayout {
                 - headGap(cardWidth) - textRight(cardWidth));
     }
 
-    /** Horizontal scale that keeps the complete rendered string inside its text slot instead of clipping it. */
-    public static float fitScale(int measuredTextWidth, int availableWidth) {
-        if (measuredTextWidth <= 0 || availableWidth <= 0) {
+    /** Horizontal scale that applies the requested font enlargement without clipping the complete string. */
+    public static float fittedScale(int measuredTextWidth, int availableWidth, float requestedScale) {
+        if (measuredTextWidth <= 0 || availableWidth <= 0 || requestedScale <= 0f) {
             return 0f;
         }
-        return Math.min(1f, availableWidth / (float) measuredTextWidth);
+        return Math.min(requestedScale, availableWidth / (float) measuredTextWidth);
     }
 
     public static int gridWidth(int cardWidth, int columns, int gap) {

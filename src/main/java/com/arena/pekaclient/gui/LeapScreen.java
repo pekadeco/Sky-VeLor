@@ -66,15 +66,18 @@ public final class LeapScreen extends GuiScreen {
     private static final long SKIN_RETRY_MS = 15000L;
 
     private static final int TEST_LABEL_HEIGHT = 18;
-    private static final int NAME_PAIR_HEIGHT = 21;
+    private static final int TEXT_BLOCK_HEIGHT = 28;
+    private static final int CLASS_TEXT_Y_OFFSET = 16;
+    private static final float NAME_SCALE = 1.6f;
+    private static final float CLASS_SCALE = 1.25f;
 
-    private static final int CARD_FILL = 0xE0121212;
-    private static final int CARD_HOVER = 0xE8202020;
-    private static final int CARD_EDGE = 0xFF383838;
-    private static final int CARD_SELECT_EDGE = 0xFFD2D2D2;
+    private static final int CARD_FILL = LeapPalette.CARD_BACKGROUND;
+    private static final int CARD_HOVER = LeapPalette.CARD_HOVER_BACKGROUND;
+    private static final int CARD_EDGE = LeapPalette.CARD_BORDER;
+    private static final int CARD_SELECT_EDGE = LeapPalette.CARD_HOVER_BORDER;
     private static final int HEAD_LETTER = 0xFF2C3E5C;
     private static final int TEXT = 0xFFFFFFFF;
-    private static final int TEXT_DIM = 0xFFD0D0D0;
+    private static final int TEXT_DIM = 0xFFE0E0E0;
 
     /** Head states: unavailable skins immediately use a named fallback tile; ready skins use the real texture. */
     private static final int SKIN_UNAVAILABLE = 0;
@@ -778,45 +781,46 @@ public final class LeapScreen extends GuiScreen {
             int textX = c.x + LeapLayout.headLeft(cardW) + headSize + LeapLayout.headGap(cardW);
             String fallbackName = c.owner == null || c.owner.isEmpty() ? "Unknown" : c.owner;
             String name = c.name == null || LeapText.normalize(c.name).isEmpty() ? fallbackName : c.name;
-            // Prefer the canonical username over a long rank prefix, then horizontally fit the complete name.
-            if (fr.getStringWidth(name) > maxW) {
+            // Prefer the canonical username over a long rank prefix when the enlarged rendering needs the room.
+            if (fr.getStringWidth(name) * NAME_SCALE > maxW) {
                 String canonical = LeapIdentity.canonicalUsername(c.owner);
                 if (canonical != null) {
                     name = canonical;
                 }
             }
-            int nameY = c.y + Math.max(0, (cardH - NAME_PAIR_HEIGHT) / 2);
+            int nameY = c.y + Math.max(0, (cardH - TEXT_BLOCK_HEIGHT) / 2);
             int nameColor = c.cls == null ? TEXT : c.clsColor;
             drawFittedName(fr, name, textX, nameY, nameColor, maxW);
 
             String classText = c.clsText == null || c.clsText.isEmpty() ? "Unknown class" : c.clsText;
-            drawSmallerFittedText(fr, classText, textX, nameY + 12, TEXT_DIM, maxW);
+            int classColor = c.cls == null ? TEXT_DIM : c.clsColor;
+            drawLargerFittedClass(fr, classText, textX, nameY + CLASS_TEXT_Y_OFFSET, classColor, maxW);
         }
     }
 
-    /** Scales horizontally only when needed so even a 16-character username stays visible inside its card. */
+    /** Enlarges names uniformly; long strings scale down only as much as needed to remain inside the card. */
     private static void drawFittedName(FontRenderer fr, String name, int x, int y, int color, int maxWidth) {
         int naturalWidth = fr.getStringWidth(name);
         if (naturalWidth <= 0 || maxWidth <= 0) {
             return;
         }
-        float scaleX = LeapLayout.fitScale(naturalWidth, maxWidth);
+        float scale = LeapLayout.fittedScale(naturalWidth, maxWidth, NAME_SCALE);
         GlStateManager.pushMatrix();
-        GlStateManager.scale(scaleX, 1f, 1f);
-        fr.drawStringWithShadow(name, Math.round(x / scaleX), y, color);
+        GlStateManager.scale(scale, scale, 1f);
+        fr.drawString(name, Math.round(x / scale), Math.round(y / scale), color);
         GlStateManager.popMatrix();
     }
 
-    /** Slightly smaller class text, with an additional fit scale only for unusually long unknown labels. */
-    private static void drawSmallerFittedText(FontRenderer fr, String text, int x, int y, int color, int maxWidth) {
+    /** Enlarges the detected class label while keeping it smaller than the player name and inside the card. */
+    private static void drawLargerFittedClass(FontRenderer fr, String text, int x, int y, int color, int maxWidth) {
         int naturalWidth = fr.getStringWidth(text);
         if (naturalWidth <= 0 || maxWidth <= 0) {
             return;
         }
-        float scale = Math.min(0.88f, LeapLayout.fitScale(naturalWidth, maxWidth));
+        float scaleX = LeapLayout.fittedScale(naturalWidth, maxWidth, CLASS_SCALE);
         GlStateManager.pushMatrix();
-        GlStateManager.scale(scale, scale, 1f);
-        fr.drawStringWithShadow(text, Math.round(x / scale), Math.round(y / scale), color);
+        GlStateManager.scale(scaleX, CLASS_SCALE, 1f);
+        fr.drawString(text, Math.round(x / scaleX), Math.round(y / CLASS_SCALE), color);
         GlStateManager.popMatrix();
     }
 

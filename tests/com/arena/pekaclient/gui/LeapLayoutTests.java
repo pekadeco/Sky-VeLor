@@ -38,13 +38,17 @@ public final class LeapLayoutTests {
         int head = LeapLayout.headSize(cardWidth, cardHeight);
         int gridWidth = LeapLayout.gridWidth(cardWidth, 2, LeapLayout.horizontalGap(width));
         int gridHeight = LeapLayout.gridHeight(cardHeight, 2, LeapLayout.verticalGap(height, 2));
-        check("reference card width", cardWidth >= 420 && cardWidth <= 435, "card=" + cardWidth);
-        check("reference card height", cardHeight >= 155 && cardHeight <= 170, "card=" + cardHeight);
-        check("reference head size", head >= 100 && head <= 110, "head=" + head);
-        check("reference grid is balanced", gridWidth >= width * 84 / 100 && gridWidth <= width * 88 / 100,
-                "grid=" + gridWidth);
-        check("reference two-row group", gridHeight >= height * 69 / 100 && gridHeight <= height * 73 / 100,
-                "grid=" + gridHeight);
+        check("compact reference card width", cardWidth >= 375 && cardWidth <= 390, "card=" + cardWidth);
+        check("compact reference card height", cardHeight >= 139 && cardHeight <= 149, "card=" + cardHeight);
+        check("head remains prominent", head >= 90 && head <= 100, "head=" + head);
+        check("card group is compact and centered", gridWidth >= width * 67 / 100
+                && gridWidth <= width * 71 / 100, "grid=" + gridWidth);
+        check("two-row group is compact", gridHeight >= height * 52 / 100
+                && gridHeight <= height * 56 / 100, "grid=" + gridHeight);
+        check("column gap is substantially reduced", LeapLayout.horizontalGap(width) <= width / 20,
+                "gap=" + LeapLayout.horizontalGap(width));
+        check("row gap is substantially reduced", LeapLayout.verticalGap(height, 2) <= height / 12,
+                "gap=" + LeapLayout.verticalGap(height, 2));
     }
 
     private static void twoColumnGridFitsAcrossResolutions() {
@@ -103,21 +107,24 @@ public final class LeapLayoutTests {
 
     private static void completeNamesFitWithoutClipping() {
         int widestUsername = 16 * 8;
+        float requestedScale = 1.6f;
         for (int textWidth = 40; textWidth <= 240; textWidth += 10) {
-            float scale = LeapLayout.fitScale(widestUsername, textWidth);
-            check("positive name scale at text width " + textWidth, scale > 0f && scale <= 1f,
-                    "scale=" + scale);
+            float scaleX = LeapLayout.fittedScale(widestUsername, textWidth, requestedScale);
+            check("positive name scale at text width " + textWidth,
+                    scaleX > 0f && scaleX <= requestedScale, "scale=" + scaleX);
             check("full name stays within text slot at " + textWidth,
-                    widestUsername * scale <= textWidth + 0.01f,
-                    "scaled=" + widestUsername * scale);
-            if (textWidth < widestUsername) {
-                check("long name shrinks rather than clips at " + textWidth, scale < 1f, "scale=" + scale);
+                    widestUsername * scaleX <= textWidth + 0.01f,
+                    "scaled=" + widestUsername * scaleX);
+            if (textWidth < widestUsername * requestedScale) {
+                check("long name fits horizontally at " + textWidth, scaleX < requestedScale,
+                        "scale=" + scaleX);
             } else {
-                check("normal name is not shrunk at " + textWidth, scale == 1f, "scale=" + scale);
+                check("name keeps the requested larger scale at " + textWidth,
+                        scaleX == requestedScale, "scale=" + scaleX);
             }
         }
-        check("empty text has no scale", LeapLayout.fitScale(0, 100) == 0f, "");
-        check("zero-width slot has no scale", LeapLayout.fitScale(100, 0) == 0f, "");
+        check("empty text has no scale", LeapLayout.fittedScale(0, 100, requestedScale) == 0f, "");
+        check("zero-width slot has no scale", LeapLayout.fittedScale(100, 0, requestedScale) == 0f, "");
     }
 
     private static void rowsForFourTeammates() {

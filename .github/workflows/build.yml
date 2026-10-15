@@ -1,4 +1,4 @@
-name: Build Sky VeLor Beta-0.10.5v
+name: Build Sky VeLor 10.5.5
 
 on:
   push:
@@ -15,15 +15,15 @@ permissions:
 
 jobs:
   build:
-    name: Build, test, and verify Beta-0.10.5v
+    name: Build, test, and verify 10.5.5
     runs-on: ubuntu-22.04
     timeout-minutes: 120
 
     env:
       GRADLE_VERSION: '2.14.1'
-      JAR_NAME: SkyVeLor-1.8.9-Beta-0.10.5v.jar
-      ZIP_NAME: SkyVeLor-1.8.9-Beta-0.10.5v-source.zip
-      EXPECTED_VERSION: Beta-0.10.5v
+      JAR_NAME: SkyVeLor-1.8.9-10.5.5.jar
+      ZIP_NAME: SkyVeLor-1.8.9-10.5.5-source.zip
+      EXPECTED_VERSION: 10.5.5
       GRADLE_OPTS: '-Xmx2560m -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8'
 
     steps:
@@ -109,7 +109,7 @@ jobs:
           unzip -q "dist/${JAR_NAME}" -d "$work"
           mcmod="$work/mcmod.info"
           test -f "$mcmod"
-          grep -Eq '"version"[[:space:]]*:[[:space:]]*"Beta-0\.10\.5v"' "$mcmod"
+          grep -Eq '"version"[[:space:]]*:[[:space:]]*"10\.5\.5"' "$mcmod"
           grep -Eq '"mcversion"[[:space:]]*:[[:space:]]*"1\.8\.9"' "$mcmod"
           classes=$(find "$work" -name '*.class' | wc -l)
           test "$classes" -gt 40
@@ -118,6 +118,7 @@ jobs:
           test -f "$work/com/arena/pekaclient/feature/LeapDiagnostics.class"
           test -f "$work/com/arena/pekaclient/gui/LeapScreen.class"
           test -f "$work/com/arena/pekaclient/gui/LeapPreviewData.class"
+          test -f "$work/com/arena/pekaclient/gui/LeapPalette.class"
 
           cat $(find "$work" -name '*.class') > /tmp/all.class 2>/dev/null || true
           srg_names=$(grep -a -o -E '(func|field)_[0-9]+_[A-Za-z]+' /tmp/all.class | sort -u | wc -l || true)
@@ -130,6 +131,7 @@ jobs:
           unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^src/main/java/com/arena/pekaclient/gui/LeapScreen.java$'
           unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^tests/com/arena/pekaclient/feature/LeapClassCacheTests.java$'
           unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^tests/com/arena/pekaclient/gui/LeapPreviewDataTests.java$'
+          unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^tests/com/arena/pekaclient/gui/LeapPaletteTests.java$'
           git archive --format=tar HEAD | tar -tf - | grep -v '/$' | sort > /tmp/archive-tree.txt
           unzip -Z1 "dist/${ZIP_NAME}" | grep -v '/$' | sort > /tmp/zip-tree.txt
           diff -u /tmp/archive-tree.txt /tmp/zip-tree.txt
@@ -216,7 +218,7 @@ jobs:
           git config user.name "arena-agent"
           git add -f dist
           if ! git diff --cached --quiet; then
-            git commit -m "CI: attach Beta-0.10.5v release and verification files [skip ci]"
+            git commit -m "CI: attach 10.5.5 release and verification files [skip ci]"
             git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
           fi
 
@@ -224,7 +226,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sky-velor-beta-0.10.5v-release
+          name: sky-velor-10.5.5-release
           if-no-files-found: warn
           path: |
             dist/${{ env.JAR_NAME }}

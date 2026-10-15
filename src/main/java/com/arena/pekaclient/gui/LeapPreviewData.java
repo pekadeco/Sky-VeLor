@@ -16,10 +16,10 @@ public final class LeapPreviewData {
             "AmberArcher", "BerserkBee", "MossMage", "TurtleTank", "SuiHealer"
     };
     private static final String[] DISPLAY_NAMES = {
-            "\u00a76[MVP+] \u00a76AmberArcher",
+            "\u00a76[MVP+] \u00a7aAmberArcher",
             "\u00a7a[VIP] \u00a7cBerserkBee",
-            "\u00a7d[MVP++] \u00a7bMossMage",
-            "\u00a73[VIP+] \u00a7aTurtleTank",
+            "\u00a7d[MVP++] \u00a79MossMage",
+            "\u00a73[VIP+] \u00a72TurtleTank",
             "\u00a75[MVP++] \u00a7dSuiHealer"
     };
     private static final LeapClass[] CLASSES = {
