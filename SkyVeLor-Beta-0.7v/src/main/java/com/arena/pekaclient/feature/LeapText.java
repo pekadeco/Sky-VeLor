@@ -93,27 +93,12 @@ public final class LeapText {
      * such as "[MVP+] [B] amito", are skipped. Spacing may be absent: "[T]player4" is valid. Formatting codes are
      * removed first. Returns the class, or null when no marker sits in front of this owner. Nothing is guessed from
      * the name itself, and a marker that is not one of A, B, M, T or H is ignored.
+     *
+     * Kept as the name the rest of the mod already uses; the parsing itself lives in {@link LeapName}, which also
+     * strips the marker and the rank tags out of the text it reads.
      */
     public static LeapClass classFromPrefix(String entryText, String owner) {
-        if (entryText == null || owner == null || owner.trim().isEmpty()) {
-            return null;
-        }
-        String t = strip(entryText);
-        String name = owner.trim();
-        int from = 0;
-        while (true) {
-            int at = t.indexOf(name, from);
-            if (at < 0) {
-                return null;
-            }
-            int end = at + name.length();
-            boolean wholeWord = (at == 0 || !isNameChar(t.charAt(at - 1)))
-                    && (end >= t.length() || !isNameChar(t.charAt(end)));
-            if (wholeWord) {
-                return markerBefore(t, at);
-            }
-            from = at + 1;
-        }
+        return LeapName.classFromText(entryText, owner);
     }
 
     /**
@@ -124,35 +109,7 @@ public final class LeapText {
      * otherwise. Nothing is guessed from the kept text beyond that check.
      */
     public static LeapClass classFromTruncated(String entryText, String owner, Collection<String> knownNames) {
-        if (entryText == null || owner == null || knownNames == null) {
-            return null;
-        }
-        String full = owner.trim();
-        String body = strip(entryText).trim();
-        if (body.endsWith("\u2026")) {
-            body = body.substring(0, body.length() - 1);
-        } else if (body.endsWith("...")) {
-            body = body.substring(0, body.length() - 3);
-        } else {
-            return null;
-        }
-        body = body.trim();
-        int end = body.length();
-        int start = end;
-        while (start > 0 && isNameChar(body.charAt(start - 1))) {
-            start--;
-        }
-        String kept = body.substring(start, end);
-        if (kept.length() < 3 || kept.length() >= full.length() || !full.startsWith(kept)) {
-            return null;
-        }
-        if (start > 0 && body.charAt(start - 1) != ' ' && body.charAt(start - 1) != ']') {
-            return null;
-        }
-        if (!isUniqueStart(kept, full, knownNames)) {
-            return null;
-        }
-        return markerBefore(body, start);
+        return LeapName.classFromTruncated(entryText, owner, knownNames);
     }
 
     /** Name equality for matching a skull owner to a scoreboard or tab-list name: trimmed, case-insensitive. */
@@ -163,54 +120,6 @@ public final class LeapText {
         String x = strip(a).trim();
         String y = strip(b).trim();
         return !x.isEmpty() && x.equalsIgnoreCase(y);
-    }
-
-    /** True when exactly one name in {@code names} starts with {@code kept}, and that name is {@code owner}. */
-    static boolean isUniqueStart(String kept, String owner, Collection<String> names) {
-        int hits = 0;
-        boolean ownerHit = false;
-        for (String n : names) {
-            if (n == null) {
-                continue;
-            }
-            String name = n.trim();
-            if (name.startsWith(kept)) {
-                hits++;
-                ownerHit = name.equals(owner);
-            }
-        }
-        return hits == 1 && ownerHit;
-    }
-
-    /**
-     * Walks back from {@code nameStart} over bracketed tokens and spaces. Returns the first bracket whose content is a
-     * single class letter. Stops at any other character, so text that is not a prefix is never read.
-     */
-    static LeapClass markerBefore(String t, int nameStart) {
-        int i = nameStart;
-        while (i > 0) {
-            char c = t.charAt(i - 1);
-            if (c == ' ') {
-                i--;
-                continue;
-            }
-            if (c != ']') {
-                return null;
-            }
-            int open = t.lastIndexOf('[', i - 1);
-            if (open < 0) {
-                return null;
-            }
-            String inside = t.substring(open + 1, i - 1).trim();
-            if (inside.length() == 1) {
-                LeapClass cls = LeapClass.fromMarker(inside.charAt(0));
-                if (cls != null) {
-                    return cls;
-                }
-            }
-            i = open;
-        }
-        return null;
     }
 
     /** True when {@code word} appears in {@code text} with no name character on either side. */

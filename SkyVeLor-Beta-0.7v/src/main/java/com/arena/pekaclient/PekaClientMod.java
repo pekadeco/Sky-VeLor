@@ -33,6 +33,8 @@ import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.lwjgl.input.Keyboard;
 
 /**
@@ -50,6 +52,8 @@ import org.lwjgl.input.Keyboard;
         acceptedMinecraftVersions = "[1.8.9]",
         clientSideOnly = true)
 public class PekaClientMod {
+
+    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
 
     /** The modid stays as it was. It names the asset folder and the keybind ids, so changing it would break them. */
     public static final String MODID = "pekaclient";
@@ -74,14 +78,22 @@ public class PekaClientMod {
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
-        // Settings are read here so the first screen has them. The loading screen runs the rest.
+        // Startup: read the settings once, then run Sky VeLor's own work immediately instead of one task per
+        // tick. Two things used to cost time here for no reason:
+        //  - Theme.refresh() ran twice (here and again as a queued task), so the theme was computed two times,
+        //  - the queued work was deferred to the loading screen, which held the main menu for a tick per task and
+        //    is what made Sky VeLor's screen appear only after the game had finished starting.
+        // The early screen is now Forge's own splash, rebranded by SkyVeLorLoadingPlugin before Minecraft starts.
+        long t0 = System.nanoTime();
         AppleSettings.load();
         Theme.refresh();
         ClientRegistry.registerKeyBinding(OPEN_KEY);
         ClientRegistry.registerKeyBinding(LEAP_KEY);
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
-        StartupTasks.add("Applying the theme", Theme::refresh);
+        StartupTasks.runAll();
         MinecraftForge.EVENT_BUS.register(this);
+        long ms = (System.nanoTime() - t0) / 1000000L;
+        LOG.info("Sky VeLor init finished in " + ms + " ms (settings, theme, keybinds, HUD layout)");
     }
 
     @SubscribeEvent

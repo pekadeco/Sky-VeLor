@@ -48,6 +48,40 @@ minecraft {
     mappings = "stable_22"
 }
 
+// The early loading hook. Forge reads the FMLCorePlugin attribute while launching and calls it before
+// Minecraft starts, which is the only moment at which the loading screen can still be changed: Forge's own
+// splash reads config/splash.properties at the start of Minecraft.startGame(). The plugin does no bytecode
+// transformation at all - it only writes the splash config and the wordmark - and FMLCorePluginContainsFMLMod
+// keeps this jar loading as an ordinary mod as well.
+jar {
+    manifest {
+        attributes(
+                'FMLCorePlugin': 'com.arena.pekaclient.startup.SkyVeLorLoadingPlugin',
+                'FMLCorePluginContainsFMLMod': 'true',
+                'Implementation-Title': 'Sky VeLor',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'Arena'
+        )
+    }
+}
+
+// Writes the compile+run classpath (the deobfuscated Minecraft jar, Forge, log4j, gson and the rest) to a file
+// so the tests can be compiled and run against exactly the same jars this build used, instead of guessing paths
+// inside the Gradle cache. `gradle build dumpTestClasspath` then `sh tests/run-tests.sh` with TEST_CP set.
+task dumpTestClasspath {
+    dependsOn 'classes'
+    doLast {
+        def files = (sourceSets.main.runtimeClasspath.files + sourceSets.main.compileClasspath.files)
+                .findAll { it != null }
+                .collect { it.absolutePath }
+                .unique()
+        def out = file("$buildDir/test-classpath.txt")
+        out.parentFile.mkdirs()
+        out.text = files.join(File.pathSeparator)
+        println "wrote ${out} with ${files.size()} entries"
+    }
+}
+
 processResources {
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version

@@ -80,6 +80,28 @@ public final class StartupTasks {
     }
 
     /**
+     * Runs every queued task now, in order, on the calling thread.
+     *
+     * Sky VeLor's own startup work is small (reading two small properties files and refreshing the theme), and
+     * running it one task per game tick used to hold the main menu behind the loading screen for a tick per task.
+     * Running it here, during mod initialization, means the menu is never delayed and nothing is left pending by
+     * the time the first screen appears. The one-task-per-tick path ({@link #runNext()}) stays for the loading
+     * screen, which is still the fallback when the Forge splash could not be rebranded.
+     *
+     * Returns the number of tasks that ran.
+     */
+    public static int runAll() {
+        int ran = 0;
+        while (runNext()) {
+            ran++;
+            if (failed()) {
+                break;
+            }
+        }
+        return ran;
+    }
+
+    /**
      * Runs the next task. Returns true when a task ran (successfully or not).
      * A task that throws is logged, and the failure is kept. The task is not counted as finished.
      */

@@ -291,6 +291,15 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     /** Expands a HUD group in place and switches to the HUD tab. */
+    /**
+     * Opens the Spirit Leap picker as a test preview, with sample teammates and no container behind it. It is the
+     * real screen: the same cards, the same layout and the same parsing, so the preview shows what a dungeon would
+     * show. Closing it comes back to this hub.
+     */
+    private void openLeapPreview() {
+        Minecraft.getMinecraft().displayGuiScreen(LeapScreen.preview(this));
+    }
+
     private void openHud(int index) {
         expanded.add(HUD_NAMES[index]);
         openDropdown = null;
@@ -318,6 +327,10 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.leapMenu, v -> AppleSettings.leapMenu = v)));
         rows.add(Row.item("Use Spirit Leap key",
                 "Unbound by default. Set it in Controls, Sky VeLor. Hold a Spirit Leap item first", null));
+        rows.add(Row.item("Spirit Leap preview",
+                "Opens the real picker with four sample teammates: two columns, two rows, different classes and a "
+                        + "rank tag. Test data only - no dungeon, no server, nothing is sent",
+                new AppleButton("Open preview", 130f, 26f, false, this::openLeapPreview)));
 
         rows.add(Row.header("Mob highlights"));
         rows.add(Row.item("Outline dungeon mobs",

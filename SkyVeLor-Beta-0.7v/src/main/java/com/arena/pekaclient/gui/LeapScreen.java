@@ -1,6 +1,7 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.feature.LeapClass;
+import com.arena.pekaclient.feature.LeapName;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.render.SkinHead;
@@ -17,6 +18,8 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTUtil;
+import net.minecraft.scoreboard.Score;
+import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.util.IChatComponent;
@@ -33,20 +36,26 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Spirit Leap teammate picker. It replaces only the server-opened leap chest, and it is a plain flat screen:
- * a dark translucent panel, a grid of rectangular teammate cards, and a square player head on the left of each
- * card with the name beside it and the class label beneath the name. There are no rounded cards and no window
- * controls, and the Sky VeLor hub layout is not used.
+ * a dark translucent panel, a grid of rectangular cards two columns wide, and a square player head on the left of
+ * each card with the name beside it and the class label beneath. Four teammates therefore make two rows.
  *
  * Every click is the server's own window click on the teammate's slot, the same as a left click in the vanilla
  * menu. Sky VeLor sends no packet and no command of its own. After a pick the screen waits for the server, so a
  * double click or a held Enter cannot send a second leap.
  *
+ * The same screen also serves the preview from the hub's Dungeon page
+ * ({@link #preview(GuiScreen)}). In preview mode there is no container, the cards come from
+ * {@link LeapPreviewData}, nothing can be clicked through to the server, and the panel is labelled as test data.
+ * The drawing code is shared, so the preview shows the real screen rather than a mock-up.
+ *
+ * Classes: a teammate's class is read from the text the client already has, in this order - the leap item's own
+ * display name, the scoreboard team prefix/suffix, the sidebar scoreboard lines, the tab-list entry - and the
+ * item's "Class:" lore line last. See {@link LeapName}. A class that cannot be read stays unknown; it is never
+ * guessed from a name and one player's class is never given to another.
+ *
  * Heads: the skin is requested with {@code getLocationSkin()}, which starts the download. The real skin is drawn
  * only once {@code hasLocationSkin()} reports it has arrived. While it loads, a dark placeholder with a pulse is
  * drawn. The first letter is drawn only when the player is not in the tab list or the skin never arrived.
- *
- * Classes: read from the scoreboard team prefix and the tab-list entry, matched to the owner by name. See
- * {@link LeapText#classFromPrefix}. Unknown data shows as \"Unknown class\".
  */
 public final class LeapScreen extends GuiScreen {
 
@@ -72,6 +81,7 @@ public final class LeapScreen extends GuiScreen {
     private static final int HEAD_LETTER = 0xFF2C3E5C;
     private static final int TEXT = 0xFFFFFFFF;
     private static final int TEXT_DIM = 0xFFA0A0A0;
+    private static final int TEST_BANNER = 0xFFFFC46B;
 
     /** Head states. Only UNAVAILABLE shows a letter. LOADING shows a placeholder, never a generic face. */
     private static final int SKIN_UNAVAILABLE = 0;
@@ -87,11 +97,15 @@ public final class LeapScreen extends GuiScreen {
     private static final class Card {
         final int slot;
         ItemStack stack;
+        /** The clean name shown on the card: no formatting codes, no class marker and no rank tag. */
         String name = "";
+        /** The owner name from the skull's NBT, or the display name when the skull has no owner tag. */
         String owner = "";
-        /** The item's own \"Class: X\" lore line, or null. Used only when no prefix gives a class. */
+        /** The class read from the leap item's own display name, or null. */
+        LeapClass nameClass;
+        /** The item's own "Class: X" lore line, or null. Used only when nothing else gives a class. */
         String loreClass;
-        /** The class read from the scoreboard or tab-list prefix, or null when not reliable. */
+        /** The class read from the scoreboard or the tab list, or null when not reliable. */
         LeapClass cls;
         /** Debug: the raw scoreboard and tab-list texts this card was matched from, and where the class came from. */
         String rawBoard;
@@ -108,6 +122,8 @@ public final class LeapScreen extends GuiScreen {
         long skinSinceNs;
         int x;
         int y;
+        /** Fill used by the letter fallback in preview mode, where no skin can ever arrive. */
+        int headFill = HEAD_LETTER;
 
         Card(int slot) {
             this.slot = slot;
@@ -115,9 +131,15 @@ public final class LeapScreen extends GuiScreen {
     }
 
     private final Container container;
+    /** Where the preview returns to, or null on the real screen. */
+    private final GuiScreen returnTo;
+    /** True when this is the hub's test preview: no container, no server, no clicks. */
+    private final boolean preview;
     private final List<Card> previous = new ArrayList<Card>();
     private final List<Card> cards = new ArrayList<Card>();
     private final List<Slot> slotBuffer = new ArrayList<Slot>();
+    /** The sidebar lines for this frame, read once per refresh instead of once per card. */
+    private final List<String> sidebar = new ArrayList<String>();
 
     private int highlight;
     private int cols = LeapLayout.COLS;
@@ -134,12 +156,37 @@ public final class LeapScreen extends GuiScreen {
 
     public LeapScreen(Container container) {
         this.container = container;
+        this.returnTo = null;
+        this.preview = false;
+    }
+
+    private LeapScreen(GuiScreen returnTo) {
+        this.container = null;
+        this.returnTo = returnTo;
+        this.preview = true;
+    }
+
+    /**
+     * The test preview: the real screen, with sample teammates and no container behind it. Clicking a card does
+     * nothing, and nothing is ever sent to a server.
+     */
+    public static LeapScreen preview(GuiScreen returnTo) {
+        return new LeapScreen(returnTo);
+    }
+
+    /** True when this screen is the hub's preview. */
+    public boolean isPreview() {
+        return preview;
     }
 
     @Override
     public void initGui() {
         super.initGui();
         Keyboard.enableRepeatEvents(true);
+        if (preview) {
+            buildPreviewCards();
+            return;
+        }
         // The chest the server opened was swapped before its own initGui ran, so make this container the
         // player's open container here. Otherwise the server's window updates would not reach this menu.
         Minecraft mc = Minecraft.getMinecraft();
@@ -152,14 +199,20 @@ public final class LeapScreen extends GuiScreen {
     public void onGuiClosed() {
         super.onGuiClosed();
         Keyboard.enableRepeatEvents(false);
+        if (preview) {
+            return;
+        }
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null) {
             container.onContainerClosed(mc.thePlayer);
         }
     }
 
-    /** True while the server still has this menu open for the player. */
+    /** True while the server still has this menu open for the player. Always true in preview mode. */
     private boolean stillOpen() {
+        if (preview) {
+            return true;
+        }
         EntityPlayerSP p = Minecraft.getMinecraft().thePlayer;
         return p != null && p.openContainer == container;
     }
@@ -172,12 +225,42 @@ public final class LeapScreen extends GuiScreen {
         }
     }
 
+    /** Builds the four sample cards through the same parse path the real cards use. */
+    private void buildPreviewCards() {
+        cards.clear();
+        previous.clear();
+        LeapPreviewData.Sample[] samples = LeapPreviewData.samples();
+        for (int i = 0; i < samples.length; i++) {
+            Card c = new Card(i);
+            LeapName.Parsed parsed = LeapName.parse(samples[i].text);
+            c.name = parsed.name.isEmpty() ? "Unknown" : parsed.name;
+            c.owner = c.name;
+            c.nameClass = parsed.cls;
+            c.headFill = samples[i].headFill;
+            c.cls = parsed.cls;
+            c.clsText = c.cls == null ? LeapClass.displayText(null) : c.cls.label();
+            c.clsColor = c.cls == null ? LeapClass.UNKNOWN_COLOR : c.cls.color();
+            c.source = c.cls == null ? "none (Unknown class)" : "preview";
+            c.rawBoard = samples[i].text;
+            c.rawTab = null;
+            // No account behind a sample name, so there is no skin to fetch: the letter fallback is the real
+            // fallback path the live screen uses when a head never arrives, drawn by the same code.
+            c.skinState = SKIN_UNAVAILABLE;
+            cards.add(c);
+        }
+        highlight = 0;
+    }
+
     /**
      * Reads the teammates from the open menu. Cards are matched to the previous frame by slot number, so the
      * hover state survives. Item details are re-read only when the item in a slot changes. The scoreboard and
      * tab-list class is re-read every frame, so a change there shows up at once.
      */
     private void refresh() {
+        if (preview) {
+            // Sample data never changes, so the cards built in initGui are reused as they are.
+            return;
+        }
         SpiritLeap.teammateSlots(container, slotBuffer);
         previous.clear();
         previous.addAll(cards);
@@ -204,6 +287,7 @@ public final class LeapScreen extends GuiScreen {
         }
         // Names are known only after every card has read its owner, so the class pass runs second.
         Collection<String> names = knownNames();
+        readSidebar();
         for (Card c : cards) {
             resolve(c, now, names);
         }
@@ -217,9 +301,14 @@ public final class LeapScreen extends GuiScreen {
             c.name = "";
             c.owner = "";
             c.loreClass = null;
+            c.nameClass = null;
             return;
         }
-        c.name = LeapText.strip(stack.getDisplayName()).trim();
+        // The item's own name is client-visible and belongs to exactly this teammate, so it is read first:
+        // it carries the class marker ("[B]") and the rank tags ("[VIP]") that used to end up in the drawn name.
+        LeapName.Parsed parsed = LeapName.parse(stack.getDisplayName());
+        c.nameClass = parsed.cls;
+        c.name = parsed.name;
         c.owner = ownerName(stack, c.name);
         c.profile = skullProfile(stack);
         List<String> lore = stack.getTooltip(Minecraft.getMinecraft().thePlayer, false);
@@ -240,12 +329,43 @@ public final class LeapScreen extends GuiScreen {
         }
     }
 
+    /** The sidebar lines, formatted the way the sidebar shows them, read once per refresh. */
+    private void readSidebar() {
+        sidebar.clear();
+        Minecraft mc = Minecraft.getMinecraft();
+        Scoreboard board = mc.theWorld == null ? null : mc.theWorld.getScoreboard();
+        if (board == null) {
+            return;
+        }
+        try {
+            for (ScoreObjective objective : board.getObjectives()) {
+                for (Score score : board.getSortedScores(objective)) {
+                    String member = score.getPlayerName();
+                    if (member == null) {
+                        continue;
+                    }
+                    ScorePlayerTeam team = board.getPlayersTeam(member);
+                    String line = team == null ? member : ScorePlayerTeam.formatPlayerName(team, member);
+                    if (line != null) {
+                        sidebar.add(line);
+                    }
+                }
+            }
+        } catch (RuntimeException ignored) {
+            // A scoreboard that changes while it is being read must never bring the screen down.
+        }
+    }
+
     /**
-     * Works out a teammate's head state and class. The class comes from the scoreboard team prefix and the
-     * tab-list entry, both matched to the owner's name. If the two disagree, the class is unknown. If neither
-     * gives one, the item's own \"Class:\" lore line is used when it names one of the five classes exactly.
+     * Works out a teammate's head state and class.
+     *
+     * The class comes from the leap item's own display name first, because that text belongs to this exact
+     * teammate. If it says nothing, the scoreboard team prefix/suffix is used, then the sidebar lines when the
+     * name is cut short, then the tab-list entry; when the scoreboard and the tab list both name a class and
+     * disagree, the class stays unknown rather than picking one. The item's own "Class:" lore line is the last
+     * resort. Nothing is guessed: every step needs the class marker in text that names this teammate.
      */
-    private static void resolve(Card c, long now, Collection<String> names) {
+    private void resolve(Card c, long now, Collection<String> names) {
         Minecraft mc = Minecraft.getMinecraft();
         NetworkPlayerInfo info = null;
         if (!c.owner.isEmpty() && mc.getNetHandler() != null) {
@@ -263,15 +383,31 @@ public final class LeapScreen extends GuiScreen {
         LeapClass fromTab = info == null ? null : classFrom(tabRaw, tabName, names);
 
         LeapClass cls;
-        if (fromBoard != null && fromTab != null && fromBoard != fromTab) {
+        String source;
+        if (c.nameClass != null) {
+            cls = c.nameClass;
+            source = "item name";
+        } else if (fromBoard != null && fromTab != null && fromBoard != fromTab) {
             cls = null;
+            source = "none";
         } else {
             cls = fromBoard != null ? fromBoard : fromTab;
+            source = fromBoard != null ? "scoreboard" : fromTab != null ? "tab" : "none";
         }
-        String source = fromBoard != null ? "scoreboard" : fromTab != null ? "tab" : "none";
+        if (cls == null) {
+            // The sidebar carries the same "[B] name" text the leap menu does. It is used for this teammate's
+            // own name only, so one player's marker can never be handed to another player's card.
+            LeapClass fromSidebar = classFromSidebar(c.owner.isEmpty() ? c.name : c.owner, names);
+            if (fromSidebar != null) {
+                cls = fromSidebar;
+                source = "sidebar";
+            }
+        }
         if (cls == null && c.loreClass != null) {
             cls = LeapClass.parse(c.loreClass);
-            source = cls != null ? "lore" : source;
+            if (cls != null) {
+                source = "lore";
+            }
         }
         c.cls = cls;
         c.clsText = cls == null ? LeapClass.displayText(null) : cls.label();
@@ -280,6 +416,20 @@ public final class LeapScreen extends GuiScreen {
         c.boardMember = boardMember;
         c.rawTab = tabRaw;
         c.source = cls == null ? "none (Unknown class)" : source;
+    }
+
+    /** The class for teammates from the sidebar lines, for the owner's name only. */
+    private LeapClass classFromSidebar(String owner, Collection<String> names) {
+        if (owner.isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < sidebar.size(); i++) {
+            LeapClass cls = classFrom(sidebar.get(i), owner, names);
+            if (cls != null) {
+                return cls;
+            }
+        }
+        return null;
     }
 
     /**
@@ -437,9 +587,10 @@ public final class LeapScreen extends GuiScreen {
         drawBorder(panelX, panelY, panelW, panelH, PANEL_EDGE);
 
         FontRenderer fr = fr();
-        fr.drawStringWithShadow("Spirit Leap", panelX + PAD, panelY + 8, TEXT);
-        String sub = cards.size() == 1 ? "1 teammate" : cards.size() + " teammates";
-        fr.drawString(sub, panelX + panelW - PAD - fr.getStringWidth(sub), panelY + 8, TEXT_DIM);
+        String title = preview ? "Spirit Leap (Preview)" : "Spirit Leap";
+        fr.drawStringWithShadow(title, panelX + PAD, panelY + 8, TEXT);
+        String sub = preview ? "Test data" : cards.size() == 1 ? "1 teammate" : cards.size() + " teammates";
+        fr.drawString(sub, panelX + panelW - PAD - fr.getStringWidth(sub), panelY + 8, preview ? TEST_BANNER : TEXT_DIM);
         drawRect(panelX + 1, panelY + TITLE_H, panelX + panelW - 1, panelY + TITLE_H + 1, PANEL_EDGE);
 
         int hovered = -1;
@@ -465,12 +616,15 @@ public final class LeapScreen extends GuiScreen {
         // Footer: hint on the left, close on the right.
         int footY = panelY + panelH - FOOT_H;
         drawRect(panelX + 1, footY, panelX + panelW - 1, footY + 1, PANEL_EDGE);
-        String hint = "Click a teammate, or use the arrows and Enter. Esc closes";
-        if (highlight >= 0 && highlight < cards.size()) {
+        String hint;
+        if (preview) {
+            hint = "Preview only: sample teammates, nothing is sent. Esc closes";
+        } else if (highlight >= 0 && highlight < cards.size()) {
             Card h = cards.get(highlight);
-            hint = "Class: board=[" + (h.rawBoard == null ? "-" : h.rawBoard) + "] tab=["
-                    + (h.rawTab == null ? "-" : h.rawTab) + "] lore=[" + (h.loreClass == null ? "-" : h.loreClass)
-                    + "] source=" + h.source;
+            hint = "Class: board=[" + plain(h.rawBoard) + "] tab=[" + plain(h.rawTab) + "] lore=["
+                    + plain(h.loreClass) + "] source=" + h.source;
+        } else {
+            hint = "Click a teammate, or use the arrows and Enter. Esc closes";
         }
         int hintW = Math.max(0, panelW - 2 * PAD - 70);
         fr.drawString(fr.trimStringToWidth(hint, hintW), panelX + PAD, footY + 6, TEXT_DIM);
@@ -481,8 +635,19 @@ public final class LeapScreen extends GuiScreen {
         boolean closeHover = inside(mx, my, closeX - 4, footY, closeW + 8, FOOT_H);
         fr.drawString(close, closeX, closeY, closeHover ? TEXT : TEXT_DIM);
 
-        // Tooltip for the hovered card's full class text is not needed: the class is already shown in full.
         super.drawScreen(mx, my, partialTicks);
+    }
+
+    /**
+     * Text safe to draw: formatting codes removed. The debug line shows raw server text, and drawing a section
+     * sign made the rest of the line change colour and look corrupted, so it is stripped before it is drawn.
+     */
+    static String plain(String s) {
+        if (s == null) {
+            return "-";
+        }
+        String t = LeapText.strip(s).trim();
+        return t.isEmpty() ? "-" : t;
     }
 
     private void layout() {
@@ -534,8 +699,9 @@ public final class LeapScreen extends GuiScreen {
                         | (int) (0xC0 + 0x3F * pulse);
                 drawBorder(hx, hy, HEAD, HEAD, edge);
             } else {
-                drawRect(hx, hy, hx + HEAD, hy + HEAD, HEAD_LETTER);
-                String letter = c.name.isEmpty() ? "?" : c.name.substring(0, 1).toUpperCase(java.util.Locale.ROOT);
+                drawRect(hx, hy, hx + HEAD, hy + HEAD, c.headFill);
+                String letter = c.name.isEmpty() || "Unknown".equals(c.name) ? "?"
+                        : c.name.substring(0, 1).toUpperCase(Locale.ROOT);
                 FontRenderer fr = fr();
                 fr.drawString(letter, hx + (HEAD - fr.getStringWidth(letter)) / 2,
                         hy + (HEAD - 8) / 2, TEXT);
@@ -550,9 +716,10 @@ public final class LeapScreen extends GuiScreen {
                 continue;
             }
             int textX = c.x + LeapLayout.HEAD_LEFT + HEAD + LeapLayout.HEAD_GAP;
+            // The name on the card never carries the class marker or a rank tag: those were removed when the
+            // item's name was read. The class gets its own line, so the two can never be confused.
             String name = c.name.isEmpty() ? "Unknown" : c.name;
             name = fr.trimStringToWidth(name, maxW);
-            // The name takes the class colour, as on the Spirit Leap reference design. Unknown class keeps white.
             int nameColor = c.cls == null ? TEXT : c.clsColor;
             fr.drawStringWithShadow(name, textX, c.y + 12, nameColor);
             String cls = fr.trimStringToWidth(c.clsText, maxW);
@@ -584,7 +751,18 @@ public final class LeapScreen extends GuiScreen {
             return;
         }
         if (inside(mx, my, closeX - 4, panelY + panelH - FOOT_H, closeW + 8, FOOT_H)) {
-            closeMenu();
+            leave();
+            return;
+        }
+        if (preview) {
+            // The preview is a layout test: a click only moves the highlight, nothing is sent anywhere.
+            for (int i = 0; i < cards.size(); i++) {
+                Card c = cards.get(i);
+                if (inside(mx, my, c.x, c.y, cardW, CARD_H)) {
+                    highlight = i;
+                    return;
+                }
+            }
             return;
         }
         for (int i = 0; i < cards.size(); i++) {
@@ -599,7 +777,7 @@ public final class LeapScreen extends GuiScreen {
     @Override
     protected void keyTyped(char c, int code) throws IOException {
         if (code == Keyboard.KEY_ESCAPE) {
-            closeMenu();
+            leave();
             return;
         }
         if (cards.isEmpty()) {
@@ -621,7 +799,9 @@ public final class LeapScreen extends GuiScreen {
             case Keyboard.KEY_RETURN:
             case Keyboard.KEY_NUMPADENTER:
             case Keyboard.KEY_SPACE:
-                pick(highlight);
+                if (!preview) {
+                    pick(highlight);
+                }
                 return;
             default:
                 break;
@@ -633,7 +813,7 @@ public final class LeapScreen extends GuiScreen {
      * waits for the server (pending), so a double click or a repeated Enter cannot send a second leap.
      */
     private void pick(int index) {
-        if (index < 0 || index >= cards.size()) {
+        if (preview || index < 0 || index >= cards.size()) {
             return;
         }
         long now = System.nanoTime();
@@ -650,6 +830,15 @@ public final class LeapScreen extends GuiScreen {
         pendingUntilNs = now + PENDING_NS;
         highlight = index;
         mc.playerController.windowClick(container.windowId, cards.get(index).slot, 0, 0, mc.thePlayer);
+    }
+
+    /** Leaves the screen: back to the hub in preview mode, or the vanilla close packet for a real menu. */
+    private void leave() {
+        if (preview) {
+            Minecraft.getMinecraft().displayGuiScreen(returnTo);
+            return;
+        }
+        closeMenu();
     }
 
     /** Closes the menu the way vanilla does: the close packet goes to the server, then the screen closes. */

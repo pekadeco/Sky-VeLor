@@ -1,15 +1,16 @@
-name: Build SkyVeLor Beta-0.7v
+name: Build SkyVeLor Beta-0.8v
 
-# Builds the Minecraft 1.8.9 Forge client mod and publishes the two deliverables:
-#   SkyVeLor-1.8.9-Beta-0.7v.jar
-#   SkyVeLor-1.8.9-Beta-0.7v-source.zip
+# Builds the Minecraft 1.8.9 Forge client mod and publishes the deliverables:
+#   SkyVeLor-1.8.9-Beta-0.8v.jar
+#   SkyVeLor-1.8.9-Beta-0.8v-source.zip
 #
 # Toolchain: JDK 8 + Gradle 2.14.1 + ForgeGradle 2.1-SNAPSHOT (from https://maven.minecraftforge.net).
-# GitHub-hosted runners can reach the Forge Maven, the Mojang launcher meta/library/asset hosts and
-# Maven Central, which the original authoring sandbox could not.
 #
-# The full verification report is written into the release notes of tag "beta-0.7v" so that it can be
-# read over the GitHub API without downloading build artifacts.
+# Reobfuscation note, because it is easy to get wrong: ForgeGradle's Forge plugin reobfuscates mod jars with
+# ReobfMappingType.SEARGE (see ForgePlugin.setupReobf), not NOTCH. A correct Forge 1.8.9 release jar therefore
+# keeps MCP class names - FML's runtime remapper maps them to notch names at launch - while every member name
+# becomes an srg name (func_NNNN_x / field_NNNN_x). The verification below asserts exactly that: no MCP member
+# names may survive, and srg member names must be present.
 
 on:
   push:
@@ -26,15 +27,16 @@ permissions:
 
 jobs:
   build:
-    name: Build + verify Beta-0.7v
+    name: Build + verify Beta-0.8v
     runs-on: ubuntu-22.04
     timeout-minutes: 120
 
     env:
       GRADLE_VERSION: '2.14.1'
       PROJECT_DIR: SkyVeLor-Beta-0.7v
-      JAR_NAME: SkyVeLor-1.8.9-Beta-0.7v.jar
-      ZIP_NAME: SkyVeLor-1.8.9-Beta-0.7v-source.zip
+      JAR_NAME: SkyVeLor-1.8.9-Beta-0.8v.jar
+      ZIP_NAME: SkyVeLor-1.8.9-Beta-0.8v-source.zip
+      EXPECTED_VERSION: 'Beta-0.8v'
       GRADLE_OPTS: '-Xmx2560m -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8'
 
     steps:
@@ -44,7 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '8'
@@ -65,14 +67,14 @@ jobs:
           echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
           "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --version
 
-      # `gradle build` -> assemble -> reobfJar (ForgeGradle reobfuscates in place) -> build/libs.
-      # decompileMc is NOT in this task graph: UserBasePlugin wires compileJava to deobfMcMCP and only
+      # `gradle build` -> assemble -> reobfJar (ForgeGradle reobfuscates the jar in place) -> build/libs.
+      # decompileMc is NOT in this task graph: UserBasePlugin wires compileJava to deobfMcMCP, and only
       # setupDecompWorkspace pulls in decompileMc, so no "-x decompileMc" is needed.
-      - name: Build mod (gradle build)
+      - name: Build mod (gradle build dumpTestClasspath)
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           set -o pipefail
-          gradle build --no-daemon --stacktrace --console=plain \
+          gradle build dumpTestClasspath --no-daemon --stacktrace --console=plain \
             2>&1 | tee "$GITHUB_WORKSPACE/gradle-build.log"
 
       - name: Show build output tree
@@ -80,10 +82,7 @@ jobs:
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           echo "=== build/libs ==="; ls -la build/libs 2>&1 || true
-          echo "=== build/ ==="; ls -la build 2>&1 || true
-          echo "=== jars under build/ ==="; find build -name '*.jar' 2>/dev/null | head -30 || true
-          echo "=== deobf mc jars in gradle cache ==="
-          find "$HOME/.gradle/caches/minecraft" -name '*.jar' 2>/dev/null | head -20 || true
+          echo "=== classpath entries ==="; tr ':' '\n' < build/test-classpath.txt 2>/dev/null | head -20 || true
 
       - name: Collect JAR
         if: success()
@@ -94,9 +93,7 @@ jobs:
           cp "build/libs/${JAR_NAME}" "$GITHUB_WORKSPACE/dist/${JAR_NAME}"
           ls -la "$GITHUB_WORKSPACE/dist"
 
-      # git archive of the checkout revision: the ZIP is the source tree at the exact commit that was
-      # built, with the same layout as the committed SkyVeLor-1.8.9-Beta-0.6v-source.zip (project files
-      # at the archive root). Path is "HEAD:<subdir>" so no commit-specific hash has to be maintained.
+      # git archive of the checkout revision: the ZIP is the source tree at the exact commit that was built.
       - name: Package source ZIP from the exact revision
         if: success()
         run: |
@@ -105,7 +102,7 @@ jobs:
           unzip -l "dist/${ZIP_NAME}" | head -12
           echo "entries: $(unzip -Z1 "dist/${ZIP_NAME}" | wc -l)"
 
-      - name: Verify JAR metadata, reobfuscation and source revision
+      - name: Verify JAR metadata, reobfuscation, coremod hook and source revision
         if: success()
         run: |
           set -euo pipefail
@@ -119,30 +116,40 @@ jobs:
           ver=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$work/mcmod.info" | sed 's/.*"\([^"]*\)"$/\1/')
           mcver=$(grep -o '"mcversion"[[:space:]]*:[[:space:]]*"[^"]*"' "$work/mcmod.info" | sed 's/.*"\([^"]*\)"$/\1/')
           classes=$(find "$work" -name '*.class' | wc -l)
-          # A production (reobfuscated) jar has no MCP class names left in its constant pools.
-          mcp_refs=$(cat $(find "$work" -name '*.class') | grep -a -o 'net/minecraft/client[a-zA-Z/$]*' | sort -u | wc -l)
+
+          cat $(find "$work" -name '*.class') > /tmp/all.class 2>/dev/null || true
+          srg_names=$(grep -a -o -E '(func|field)_[0-9]+_[A-Za-z]+' /tmp/all.class | sort -u | wc -l)
+          mcp_names=$(grep -a -o -E '\b(getMinecraft|thePlayer|theWorld|gameSettings|playerController|displayGuiScreen|fontRendererObj|theEntityRenderer)\b' /tmp/all.class | sort -u | wc -l)
+
           echo "mcmod.info version   : $ver"
           echo "mcmod.info mcversion : $mcver"
           echo "class files          : $classes"
-          echo "MCP name refs left   : $mcp_refs"
+          echo "srg member names     : $srg_names"
+          echo "MCP member names left: $mcp_names"
 
-          # Which MCP names survive reobfuscation, and in what kind of attribute, decides whether the
-          # jar is merely carrying generic signatures (harmless) or real class references (fatal).
-          cat $(find "$work" -name '*.class') | grep -a -o 'net/minecraft/client[a-zA-Z/$]*' | sort -u \
-            | tee "$GITHUB_WORKSPACE/mcp-refs.txt" || true
-          echo "--- end of surviving MCP names ---"
-
-          test "$ver" = "Beta-0.7v" || { echo "::error::JAR version is '$ver', expected Beta-0.7v"; exit 1; }
+          test "$ver" = "${EXPECTED_VERSION}" || { echo "::error::JAR version is '$ver', expected ${EXPECTED_VERSION}"; exit 1; }
+          test "$mcver" = "1.8.9" || { echo "::error::JAR targets Minecraft '$mcver', expected 1.8.9"; exit 1; }
           test "$classes" -gt 40 || { echo "::error::only $classes class files in the JAR"; exit 1; }
-          test "$mcp_refs" -le 2 || {
-            echo "::error::$mcp_refs distinct MCP names remain; see mcp-refs.txt: $(paste -sd, "$GITHUB_WORKSPACE/mcp-refs.txt")"
-            exit 1
-          }
+          test "$srg_names" -gt 20 || { echo "::error::only $srg_names srg member names - jar looks unreobfuscated"; exit 1; }
+          test "$mcp_names" -eq 0 || { echo "::error::$mcp_names MCP member names survive - jar is not reobfuscated"; exit 1; }
           if [ -d "$work/com/nef" ]; then echo "::error::unexpected com/nef package"; exit 1; fi
+
+          echo "=== manifest (coremod hook) ==="
+          unzip -p "${JAR_NAME}" META-INF/MANIFEST.MF
+          unzip -p "${JAR_NAME}" META-INF/MANIFEST.MF | grep -qi 'FMLCorePlugin' \
+            || { echo "::error::FMLCorePlugin missing from the manifest - the loading screen hook would not run"; exit 1; }
+          unzip -p "${JAR_NAME}" META-INF/MANIFEST.MF | grep -qi 'FMLCorePluginContainsFMLMod' \
+            || { echo "::error::FMLCorePluginContainsFMLMod missing from the manifest"; exit 1; }
+
+          echo "=== early loading screen asset ==="
+          test -f "$work/assets/pekaclient/textures/gui/skyvelor_splash.png" \
+            || { echo "::error::the splash wordmark is not packaged in the jar"; exit 1; }
+          ls -la "$work/assets/pekaclient/textures/gui/"
 
           echo "=== source ZIP sanity ==="
           unzip -Z1 "${ZIP_NAME}" | grep -q 'build.gradle' || { echo "::error::source ZIP has no build.gradle"; exit 1; }
           unzip -Z1 "${ZIP_NAME}" | grep -q 'PekaVersion.java' || { echo "::error::source ZIP has no PekaVersion.java"; exit 1; }
+          unzip -Z1 "${ZIP_NAME}" | grep -q 'SkyVeLorLoadingPlugin.java' || { echo "::error::source ZIP has no coremod class"; exit 1; }
 
           # The ZIP must list exactly the tree of the built revision - no more, no less.
           git -C "$GITHUB_WORKSPACE" ls-tree -r --name-only "HEAD:${PROJECT_DIR}" | sort > /tmp/git-tree.txt
@@ -159,40 +166,39 @@ jobs:
             echo "gradle       : ${GRADLE_VERSION}"
             echo "mcmod.info   : version=$ver mcversion=$mcver"
             echo "class files  : $classes"
-            echo "MCP refs left: $mcp_refs"
+            echo "srg members  : $srg_names   (0 MCP member names left)"
+            echo "coremod hook : FMLCorePlugin present, splash wordmark packaged"
             echo
             echo "sha256 ${JAR_NAME}: $(sha256sum "${JAR_NAME}" | cut -d' ' -f1)"
             echo "sha256 ${ZIP_NAME}: $(sha256sum "${ZIP_NAME}" | cut -d' ' -f1)"
           } | tee BUILD-INFO.txt
 
-      # The tests/ folder is not a Gradle source set, so `gradle build` never runs it and its
-      # dependencies cannot break the jar. This step runs the 12 suites anyway as extra evidence.
-      - name: Run the 12 logic test suites
+      # The tests/ folder is not a Gradle source set, so `gradle build` never runs it. Every suite is run here
+      # against the classpath the build itself used (build/test-classpath.txt).
+      - name: Run all logic test suites
         if: success()
         continue-on-error: true
         id: tests
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           set -o pipefail
-          MC_JAR=$(find "$HOME/.gradle/caches/minecraft" -name 'forgeBin-*.jar' 2>/dev/null | head -1)
-          [ -n "$MC_JAR" ] || MC_JAR=$(find "$HOME/.gradle" -name 'forgeBin-*.jar' 2>/dev/null | head -1)
-          LOG4J_JAR=$(find "$HOME/.gradle" -name 'log4j-api-*.jar' 2>/dev/null | head -1)
-          GSON_JAR=$(find "$HOME/.gradle" -name 'gson-2.2.4.jar' 2>/dev/null | head -1)
-          echo "MC_JAR=$MC_JAR"
-          echo "LOG4J_JAR=$LOG4J_JAR"
-          echo "GSON_JAR=$GSON_JAR"
-          if [ -z "$MC_JAR" ] || [ -z "$LOG4J_JAR" ] || [ -z "$GSON_JAR" ]; then
-            echo "dependency jars not found in the Gradle cache - skipping the suites"
-            exit 0
-          fi
-          CLASSES="$PWD/build/classes/main" MC_JAR="$MC_JAR" LOG4J_JAR="$LOG4J_JAR" GSON_JAR="$GSON_JAR" \
-            sh tests/run-tests.sh 2>&1 | tee "$GITHUB_WORKSPACE/test-suites.log"
+          {
+            OUT=$(mktemp -d)
+            CP="$PWD/build/classes/main:$(cat build/test-classpath.txt)"
+            echo "compiling test sources"
+            javac -nowarn -cp "$CP" -d "$OUT" $(find tests -name '*.java')
+            echo "compiled $(find tests -name '*.java' | wc -l) test files"
+            for t in $(cd "$OUT" && find . -name '*Tests.class' | sed 's#^\./##; s#/#.#g; s#\.class$##' | sort); do
+              echo "--- $t"
+              java -cp "$OUT:$CP" "$t" || echo "SUITE FAILED: $t"
+            done
+          } 2>&1 | tee "$GITHUB_WORKSPACE/test-suites.log"
 
       - name: Assemble build report
         if: always()
         run: |
           {
-            echo "## SkyVeLor Beta-0.7v - automated build report"
+            echo "## SkyVeLor ${EXPECTED_VERSION} - automated build report"
             echo
             echo '```'
             cat dist/BUILD-INFO.txt 2>/dev/null || echo "no BUILD-INFO.txt (build did not reach the verify step)"
@@ -202,16 +208,18 @@ jobs:
             echo
             echo '```'
             if [ "${{ steps.tests.outcome }}" = "success" ]; then
-              tail -40 test-suites.log 2>/dev/null || echo "no test output captured"
+              grep -E "^(---|.*passed .*failed|SUITE FAILED)" test-suites.log 2>/dev/null | tail -40 \
+                || echo "no test output captured"
             else
               echo "step outcome: ${{ steps.tests.outcome }}"
+              tail -30 test-suites.log 2>/dev/null || true
             fi
             echo '```'
           } > build-report.md
           cat build-report.md
 
-      # Actions artifacts and raw logs live on hosts that some sandboxed clients cannot reach. Pushing
-      # the same evidence to a scratch branch keeps it retrievable with plain git over github.com.
+      # Actions artifacts and raw logs live on hosts that some sandboxed clients cannot reach. Pushing the same
+      # evidence to a scratch branch keeps it retrievable with plain git over github.com.
       - name: Publish evidence to ci-evidence branch
         if: always()
         continue-on-error: true
@@ -221,7 +229,7 @@ jobs:
           set -euo pipefail
           rm -rf evidence && mkdir evidence
           cp gradle-build.log build-report.md evidence/ 2>/dev/null || true
-          cp mcp-refs.txt test-suites.log evidence/ 2>/dev/null || true
+          cp test-suites.log evidence/ 2>/dev/null || true
           cp -r dist evidence/dist 2>/dev/null || true
           cp -r "$PROJECT_DIR/build/libs" evidence/libs 2>/dev/null || true
           ls -laR evidence | head -40
@@ -243,23 +251,22 @@ jobs:
           path: |
             gradle-build.log
             build-report.md
-            mcp-refs.txt
+            test-suites.log
           if-no-files-found: warn
 
       - name: Upload JAR and source ZIP
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: SkyVeLor-1.8.9-Beta-0.7v
+          name: SkyVeLor-1.8.9-Beta-0.8v
           path: |
-            dist/SkyVeLor-1.8.9-Beta-0.7v.jar
-            dist/SkyVeLor-1.8.9-Beta-0.7v-source.zip
+            dist/SkyVeLor-1.8.9-Beta-0.8v.jar
+            dist/SkyVeLor-1.8.9-Beta-0.8v-source.zip
             dist/BUILD-INFO.txt
           if-no-files-found: error
 
-      # A release makes the two files directly downloadable by exact name, and the release body carries
-      # the verification report so it can be read over the GitHub API. Re-running overwrites the same
-      # tag instead of piling up tags. Permissions problems here must not hide a green build.
+      # A release makes the two files directly downloadable by exact name, and the release body carries the
+      # verification report. Re-running overwrites the same tag. Permissions problems must not hide a green build.
       - name: Publish release with verification report
         if: success() && github.event_name != 'pull_request'
         continue-on-error: true
@@ -267,11 +274,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TAG="beta-0.7v"
+          TAG="beta-0.8v"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.jar dist/*.zip dist/BUILD-INFO.txt --clobber
-            gh release edit "$TAG" --title "SkyVeLor Beta-0.7v" --notes-file build-report.md
+            gh release edit "$TAG" --title "SkyVeLor ${EXPECTED_VERSION}" --notes-file build-report.md
           else
             gh release create "$TAG" dist/*.jar dist/*.zip dist/BUILD-INFO.txt \
-              --title "SkyVeLor Beta-0.7v" --notes-file build-report.md
+              --title "SkyVeLor ${EXPECTED_VERSION}" --notes-file build-report.md
           fi
