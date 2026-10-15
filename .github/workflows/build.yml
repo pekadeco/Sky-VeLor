@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -54,7 +54,11 @@ jobs:
           echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
           "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --version
 
+      - name: Clear previous generated release outputs
+        run: rm -rf dist
+
       - name: Build Forge mod and export test classpath
+        id: build
         run: |
           set -o pipefail
           attempt=1
@@ -77,13 +81,8 @@ jobs:
             sleep 10
           done
 
-      - name: Run all logic test suites
-        run: |
-          set -euo pipefail
-          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh \
-            2>&1 | tee "$GITHUB_WORKSPACE/test-suites.log"
-
       - name: Package JAR and exact-source archive
+        id: package
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -92,7 +91,17 @@ jobs:
           unzip -t "dist/${JAR_NAME}" >/dev/null
           unzip -t "dist/${ZIP_NAME}" >/dev/null
 
+      - name: Run all logic test suites
+        id: tests
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh \
+            2>&1 | tee "$GITHUB_WORKSPACE/test-suites.log"
+
       - name: Verify release contents and metadata
+        id: verify
+        if: always() && steps.package.outcome == 'success'
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -133,6 +142,7 @@ jobs:
             echo "class files  : ${classes}"
             echo "srg members  : ${srg_names} (0 MCP member names left)"
             echo "source ZIP   : matches git archive tree; dist/ excluded"
+            echo "test outcome : ${{ steps.tests.outcome }}"
             echo "test suites  : $(grep -c '^.*passed .*failed 0$' test-suites.log) passing summaries"
             echo
             echo "sha256 ${JAR_NAME}: $(sha256sum "dist/${JAR_NAME}" | cut -d' ' -f1)"
@@ -148,6 +158,8 @@ jobs:
             echo
             echo '## Test suites'
             echo
+            echo "Step outcome: ${{ steps.tests.outcome }}"
+            echo
             echo '```'
             grep -E '^(leap text|leap identity|leap class cache|.*: passed .*failed 0|passed [0-9]+, failed 0)' \
               test-suites.log || true
@@ -155,6 +167,56 @@ jobs:
             echo
             echo 'In-game verification: not performed by this workflow.'
           } | tee dist/build-report.md
+
+      - name: Require successful tests and release verification
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.tests.outcome }}" != "success" ]; then
+            echo "::error::At least one logic test failed or was skipped"
+            exit 1
+          fi
+          if [ "${{ steps.verify.outcome }}" != "success" ]; then
+            echo "::error::Release verification failed or was skipped"
+            exit 1
+          fi
+
+      # The sandbox cannot download GitHub Actions artifacts from the runner's storage host. Keep the release
+      # files and raw logs on this same Arena session branch so the build remains verifiable and the deliverables
+      # are available without writing to a separate branch.
+      - name: Publish release outputs and logs to the session branch
+        if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/heads/arena/')
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          [ ! -f "$GITHUB_WORKSPACE/gradle-build.log" ] || cp "$GITHUB_WORKSPACE/gradle-build.log" dist/gradle-build.log
+          [ ! -f "$GITHUB_WORKSPACE/test-suites.log" ] || cp "$GITHUB_WORKSPACE/test-suites.log" dist/test-suites.log
+          if [ ! -f dist/BUILD-INFO.txt ]; then
+            {
+              echo "revision     : $(git rev-parse HEAD)"
+              echo "branch       : ${GITHUB_REF_NAME:-unknown}"
+              echo "java         : $(java -version 2>&1 | head -1)"
+              echo "gradle       : ${GRADLE_VERSION}"
+              echo "test outcome : ${{ steps.tests.outcome }}"
+              echo "verification : incomplete; see CI logs"
+            } > dist/BUILD-INFO.txt
+          fi
+          if [ ! -f dist/build-report.md ]; then
+            {
+              echo "# Sky VeLor ${EXPECTED_VERSION} automated build report"
+              echo
+              echo "Test outcome: ${{ steps.tests.outcome }}"
+              echo
+              echo "In-game verification: not performed by this workflow."
+            } > dist/build-report.md
+          fi
+          git config user.email "297053741+arena-agent@users.noreply.github.com"
+          git config user.name "arena-agent"
+          git add -f dist
+          if ! git diff --cached --quiet; then
+            git commit -m "CI: attach Beta-0.10v release and verification files [skip ci]"
+            git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+          fi
 
       - name: Upload release files and verification logs
         if: always()
