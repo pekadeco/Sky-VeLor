@@ -1,19 +1,19 @@
-# Sky VeLor Beta-0.10.5v automated build report
+# Sky VeLor 10.5.5 automated build report
 
 ```
-revision     : e1422ad521ae921f530c337f3c08f48cffa32279
+revision     : af29abfdd125c2b85eb321eb414597c6488343e1
 branch       : arena/b02906d6-sky-velor
 java         : openjdk version "1.8.0_504"
 gradle       : 2.14.1
-mcmod.info   : version=Beta-0.10.5v mcversion=1.8.9
-class files  : 104
+mcmod.info   : version=10.5.5 mcversion=1.8.9
+class files  : 105
 srg members  : 215 (0 MCP member names left)
 source ZIP   : matches git archive tree; dist/ excluded
 test outcome : success
-test suites  : 18 passing summaries
+test suites  : 19 passing summaries
 
-sha256 SkyVeLor-1.8.9-Beta-0.10.5v.jar: 93ea8d36cf095632208b7255192cde7afd41d72ab05eb537135f2a4e8d2b397a
-sha256 SkyVeLor-1.8.9-Beta-0.10.5v-source.zip: 98e3b2cdb7c39a41c3453ed6de35d6892d30490a150fc11a29ea37888525d8f5
+sha256 SkyVeLor-1.8.9-10.5.5.jar: 23dc180d2baa84d8d696520568a729d37a4e9c57874957930f3f6f13d66a7d55
+sha256 SkyVeLor-1.8.9-10.5.5-source.zip: ce4a48c958e84ff918e2ea874175724770f108340468ab93c5671fde6a4351d0
 ```
 
 ## Test suites
@@ -32,7 +32,8 @@ leap class: passed 27, failed 0
 spirit leap: passed 12, failed 0
 dungeon context: passed 7, failed 0
 mob markers: passed 8, failed 0
-leap layout: passed 2808, failed 0
+leap layout: passed 2810, failed 0
+leap palette: passed 8, failed 0
 leap preview data: passed 6, failed 0
 stats text: passed 10, failed 0
 startup timing: passed 12, failed 0
