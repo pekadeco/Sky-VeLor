@@ -1,0 +1,60 @@
+// ForgeGradle 2.1 build for Minecraft 1.8.9 (Forge 11.15.1.2318-1.8.9, MCP stable_22).
+// Requires JDK 8 and Gradle 2.14.x (2.14.1 used for the shipped jar).
+//
+// ForgeGradle plugin version: this script expects the ForgeGradle 2.1 plugin in the local
+// Maven repository as version 0.0.0 (that is how the shipped jar was built: the FG_2.1 branch
+// was compiled with `gradle install` and installed to ~/.m2). If you have the official
+// 2.1-SNAPSHOT artifact instead, change the classpath line below to
+// 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'.
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.minecraftforge.net/' }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+repositories {
+    mavenLocal()
+    maven { url = 'https://maven.minecraftforge.net/' }
+    mavenCentral()
+    jcenter()
+}
+
+// Version: read from PekaVersion.NAME so there is exactly one place to change it (Sky VeLor Beta-0.3v).
+def pekaVersionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java').text
+def pekaVersionMatch = (pekaVersionSource =~ /NAME\s*=\s*"([^"]+)"/)
+if (!pekaVersionMatch.find()) {
+    throw new GradleException('Could not read PekaVersion.NAME from PekaVersion.java')
+}
+version = pekaVersionMatch.group(1)
+group = "com.arena.pekaclient"
+archivesBaseName = "SkyVeLor-1.8.9"
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
+}
+
+minecraft {
+    version = "1.8.9-11.15.1.2318-1.8.9"
+    runDir = "run"
+    mappings = "stable_22"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': project.minecraft.version
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
