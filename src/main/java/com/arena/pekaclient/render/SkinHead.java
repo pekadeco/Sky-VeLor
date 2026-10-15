@@ -12,8 +12,8 @@ import org.lwjgl.opengl.GL11;
  * Draws the 2D face of a player skin: the 8x8 face with its hat layer on top. Uses fixed-function textured quads
  * only (POSITION_TEX), so it works on Android GL 2.1 / gl4es as well as desktop GL.
  *
- * Caller contract: call inside a UIRender frame. This method flushes any batched UI first and restores texture
- * and alpha state to the UI defaults (texture off, alpha test off) before it returns.
+ * Flushes any pending UI batch before binding the texture and restores the vanilla GUI texture, alpha and blend
+ * state before returning. The helper is local to its caller and does not change global entity rendering.
  */
 public final class SkinHead {
 
@@ -38,8 +38,9 @@ public final class SkinHead {
         quad(x, y, size, 8f, 8f);
         quad(x, y, size, 40f, 8f);
         GlStateManager.color(1f, 1f, 1f, 1f);
-        GlStateManager.disableAlpha();
-        GlStateManager.disableTexture2D();
+        GlStateManager.disableBlend();
+        GlStateManager.enableAlpha();
+        GlStateManager.enableTexture2D();
     }
 
     /** One 8x8 texel block starting at (u, v) on the skin texture, drawn into the square at (x, y). */

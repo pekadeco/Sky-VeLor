@@ -1,23 +1,26 @@
 package com.arena.pekaclient.feature;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Pure text helpers for the Spirit Leap teammate selector. No Minecraft types, so they can be unit-tested.
  *
- * Minecraft text uses section signs (U+00A7) followed by a code character for colour and style. These
- * helpers remove those codes and read a "Class: ..." line from an item's lore when one exists.
+ * Minecraft scoreboard text is assembled from team prefixes, entries and suffixes. Formatting and control
+ * characters can be interleaved through those parts, so normalization is applied before matching or parsing.
  */
 public final class LeapText {
 
     private LeapText() {
     }
 
-    /** Removes colour and style codes: a section sign and the character after it. */
+    /** Removes Minecraft colour/style pairs (a section sign and its following code character). */
     public static String strip(String s) {
         if (s == null || s.indexOf('\u00a7') < 0) {
             return s == null ? "" : s;
@@ -26,9 +29,40 @@ public final class LeapText {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c == '\u00a7') {
-                i++;
+                if (i + 1 < s.length()) {
+                    i++;
+                }
                 continue;
             }
+            out.append(c);
+        }
+        return out.toString();
+    }
+
+    /**
+     * Formatting-free text used for identity and class parsing. Collapses whitespace, removes non-whitespace
+     * controls and common zero-width decorations, and trims the result.
+     */
+    public static String normalize(String s) {
+        String plain = strip(s);
+        if (plain.isEmpty()) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder(plain.length());
+        boolean pendingSpace = false;
+        for (int i = 0; i < plain.length(); i++) {
+            char c = plain.charAt(i);
+            if (isSpace(c)) {
+                pendingSpace = out.length() > 0;
+                continue;
+            }
+            if (Character.isISOControl(c) || isInvisible(c)) {
+                continue;
+            }
+            if (pendingSpace && out.length() > 0) {
+                out.append(' ');
+            }
+            pendingSpace = false;
             out.append(c);
         }
         return out.toString();
@@ -43,7 +77,7 @@ public final class LeapText {
             return null;
         }
         for (String line : lore) {
-            String t = strip(line).trim();
+            String t = normalize(line);
             int colon = t.indexOf(':');
             if (colon <= 0) {
                 continue;
@@ -65,16 +99,15 @@ public final class LeapText {
 
     /**
      * The class from one tab-list entry, such as "Name (Archer XXV)". The entry is used only when it names the
-     * same player as the skull's owner as a whole word, so another player's entry can never supply the class.
-     * Only an exact class name counts. Returns the class label, or null when the entry does not give one.
-     * Pure: the caller passes the entry text it read from the tab list.
+     * same player as the skull's owner as a whole word. Only an exact class name counts.
      */
     public static String classFromTab(String entryText, String owner) {
         if (entryText == null || owner == null || owner.isEmpty()) {
             return null;
         }
-        String t = strip(entryText).trim();
-        if (!containsWord(t, owner.trim())) {
+        String t = normalize(entryText);
+        String name = normalize(owner);
+        if (!containsWord(t, name)) {
             return null;
         }
         Matcher m = TAB_CLASS.matcher(t);
@@ -88,21 +121,19 @@ public final class LeapText {
     }
 
     /**
-     * The class from a scoreboard or tab-list prefix such as "[A] pekadeco" (Archer). The marker must be the
-     * bracketed letter that sits directly before the owner's name as a whole word. Ranks in front of the marker,
-     * such as "[MVP+] [B] amito", are skipped. Spacing may be absent: "[T]player4" is valid. Formatting codes are
-     * removed first. Returns the class, or null when no marker sits in front of this owner. Nothing is guessed from
-     * the name itself, and a marker that is not one of A, B, M, T or H is ignored.
+     * Class from a marker immediately before the exact owner's name, for example "[MVP+] [B] player". Rank
+     * tokens are walked past but are not accepted as class markers. This method deliberately does not use substring
+     * matching and does not treat a marker after the name as a prefix.
      */
     public static LeapClass classFromPrefix(String entryText, String owner) {
-        if (entryText == null || owner == null || owner.trim().isEmpty()) {
+        if (entryText == null || owner == null || normalize(owner).isEmpty()) {
             return null;
         }
-        String t = strip(entryText);
-        String name = owner.trim();
+        String t = normalize(entryText);
+        String name = normalize(owner);
         int from = 0;
         while (true) {
-            int at = t.indexOf(name, from);
+            int at = indexOfIgnoreCase(t, name, from);
             if (at < 0) {
                 return null;
             }
@@ -117,33 +148,65 @@ public final class LeapText {
     }
 
     /**
+     * Class marker attached to a scoreboard line for one exact player. The class may be in a team prefix or
+     * suffix. Prefix markers win; suffix markers are accepted only when the token following them is not another
+     * known player's username (so "[A] alice [M] bob" never gives Alice Bob's class).
+     */
+    public static LeapClass classFromScoreboardLine(String entryText, String owner, Collection<String> knownNames) {
+        if (entryText == null || owner == null || normalize(owner).isEmpty()) {
+            return null;
+        }
+        String t = normalize(entryText);
+        String name = normalize(owner);
+        int from = 0;
+        while (true) {
+            int at = indexOfIgnoreCase(t, name, from);
+            if (at < 0) {
+                break;
+            }
+            int end = at + name.length();
+            boolean wholeWord = (at == 0 || !isNameChar(t.charAt(at - 1)))
+                    && (end >= t.length() || !isNameChar(t.charAt(end)));
+            if (wholeWord) {
+                LeapClass prefix = markerBefore(t, at);
+                if (prefix != null) {
+                    return prefix;
+                }
+                LeapClass suffix = markerAfter(t, end, name, knownNames);
+                if (suffix != null) {
+                    return suffix;
+                }
+            }
+            from = at + 1;
+        }
+        return classFromTruncated(entryText, name, knownNames);
+    }
+
+    /**
      * The class from a name the server cut short with "..." (or the single ellipsis character), such as
-     * "[B] anuptripah..." for the owner "anuptripah_xyz". The kept part must be at least 3 name characters, shorter
-     * than the owner's full name, and the start of it. It must also be the start of exactly one name in
-     * {@code knownNames}, and that name must be the owner, so an ambiguous cut never gives a class. Returns null
-     * otherwise. Nothing is guessed from the kept text beyond that check.
+     * "[B] anuptripah..." for owner "anuptripah_xyz". The kept part must uniquely identify that owner.
      */
     public static LeapClass classFromTruncated(String entryText, String owner, Collection<String> knownNames) {
         if (entryText == null || owner == null || knownNames == null) {
             return null;
         }
-        String full = owner.trim();
-        String body = strip(entryText).trim();
+        String full = normalize(owner);
+        String body = normalize(entryText);
         if (body.endsWith("\u2026")) {
-            body = body.substring(0, body.length() - 1);
+            body = body.substring(0, body.length() - 1).trim();
         } else if (body.endsWith("...")) {
-            body = body.substring(0, body.length() - 3);
+            body = body.substring(0, body.length() - 3).trim();
         } else {
             return null;
         }
-        body = body.trim();
         int end = body.length();
         int start = end;
         while (start > 0 && isNameChar(body.charAt(start - 1))) {
             start--;
         }
         String kept = body.substring(start, end);
-        if (kept.length() < 3 || kept.length() >= full.length() || !full.startsWith(kept)) {
+        if (kept.length() < 3 || kept.length() >= full.length()
+                || !full.regionMatches(true, 0, kept, 0, kept.length())) {
             return null;
         }
         if (start > 0 && body.charAt(start - 1) != ' ' && body.charAt(start - 1) != ']') {
@@ -155,42 +218,156 @@ public final class LeapText {
         return markerBefore(body, start);
     }
 
-    /** Name equality for matching a skull owner to a scoreboard or tab-list name: trimmed, case-insensitive. */
+    /** Name equality for identity fields: formatting removed, whitespace normalized, case-insensitive. */
     public static boolean sameName(String a, String b) {
         if (a == null || b == null) {
             return false;
         }
-        String x = strip(a).trim();
-        String y = strip(b).trim();
+        String x = normalize(a);
+        String y = normalize(b);
         return !x.isEmpty() && x.equalsIgnoreCase(y);
     }
 
-    /** True when exactly one name in {@code names} starts with {@code kept}, and that name is {@code owner}. */
-    static boolean isUniqueStart(String kept, String owner, Collection<String> names) {
-        int hits = 0;
-        boolean ownerHit = false;
-        for (String n : names) {
-            if (n == null) {
+    /**
+     * Keeps the formatted rank prefix, removes a dungeon class token and trailing tab-list details, and ends the
+     * rendered label at the exact canonical username. If the display cannot be tied to that username, only the
+     * canonical username is returned.
+     */
+    public static String playerDisplayName(String formatted, String username) {
+        String name = LeapIdentity.canonicalUsername(username);
+        if (name == null) {
+            return normalize(formatted);
+        }
+        if (formatted == null || formatted.isEmpty()) {
+            return name;
+        }
+        VisibleText visible = visibleText(formatted);
+        int at = indexOfIgnoreCase(visible.text, name, 0);
+        if (at < 0) {
+            return name;
+        }
+        int end = at + name.length();
+        boolean wholeWord = (at == 0 || !isNameChar(visible.text.charAt(at - 1)))
+                && (end >= visible.text.length() || !isNameChar(visible.text.charAt(end)));
+        if (!wholeWord) {
+            return name;
+        }
+        int rawEnd = visible.rawEnds.get(end - 1);
+        int[] marker = classMarkerRangeBefore(visible.text, at);
+        String result;
+        if (marker == null) {
+            result = formatted.substring(0, rawEnd);
+        } else {
+            int rawMarkerStart = visible.rawStarts.get(marker[0]);
+            int rawMarkerEnd = visible.rawEnds.get(marker[1] - 1);
+            result = formatted.substring(0, rawMarkerStart) + formatted.substring(rawMarkerEnd, rawEnd);
+        }
+        result = cleanFormattedText(result);
+        return normalize(result).isEmpty() ? name : result;
+    }
+
+    private static String cleanFormattedText(String formatted) {
+        StringBuilder out = new StringBuilder(formatted.length());
+        for (int i = 0; i < formatted.length(); i++) {
+            char c = formatted.charAt(i);
+            if (c == '\u00a7') {
+                if (i + 1 < formatted.length()) {
+                    out.append(c).append(formatted.charAt(++i));
+                }
                 continue;
             }
-            String name = n.trim();
-            if (name.startsWith(kept)) {
-                hits++;
-                ownerHit = name.equals(owner);
+            if (Character.isISOControl(c) || isInvisible(c)) {
+                continue;
+            }
+            out.append(c);
+        }
+        return out.toString();
+    }
+
+    private static VisibleText visibleText(String formatted) {
+        StringBuilder text = new StringBuilder(formatted.length());
+        List<Integer> starts = new ArrayList<Integer>();
+        List<Integer> ends = new ArrayList<Integer>();
+        for (int i = 0; i < formatted.length(); i++) {
+            char c = formatted.charAt(i);
+            if (c == '\u00a7') {
+                if (i + 1 < formatted.length()) {
+                    i++;
+                }
+                continue;
+            }
+            if (Character.isISOControl(c) || isInvisible(c)) {
+                continue;
+            }
+            text.append(c);
+            starts.add(i);
+            ends.add(i + 1);
+        }
+        return new VisibleText(text.toString(), starts, ends);
+    }
+
+    private static int[] classMarkerRangeBefore(String text, int nameStart) {
+        int i = nameStart;
+        while (i > 0) {
+            if (isSpace(text.charAt(i - 1))) {
+                i--;
+                continue;
+            }
+            if (text.charAt(i - 1) != ']') {
+                return null;
+            }
+            int close = i - 1;
+            int open = text.lastIndexOf('[', close);
+            if (open < 0) {
+                return null;
+            }
+            String token = text.substring(open + 1, close).trim();
+            if (token.length() == 1 && LeapClass.fromMarker(token.charAt(0)) != null) {
+                return new int[]{open, close + 1};
+            }
+            i = open;
+        }
+        return null;
+    }
+
+    private static final class VisibleText {
+        final String text;
+        final List<Integer> rawStarts;
+        final List<Integer> rawEnds;
+
+        VisibleText(String text, List<Integer> rawStarts, List<Integer> rawEnds) {
+            this.text = text;
+            this.rawStarts = rawStarts;
+            this.rawEnds = rawEnds;
+        }
+    }
+
+    /** True when exactly one distinct known username starts with {@code kept}, and it is {@code owner}. */
+    static boolean isUniqueStart(String kept, String owner, Collection<String> names) {
+        if (names == null) {
+            return false;
+        }
+        Set<String> matches = new HashSet<String>();
+        String prefix = normalize(kept).toLowerCase(Locale.ROOT);
+        String expected = normalize(owner).toLowerCase(Locale.ROOT);
+        for (String n : names) {
+            String name = LeapIdentity.canonicalUsername(n);
+            if (name != null && name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                matches.add(name.toLowerCase(Locale.ROOT));
             }
         }
-        return hits == 1 && ownerHit;
+        return matches.size() == 1 && matches.contains(expected);
     }
 
     /**
-     * Walks back from {@code nameStart} over bracketed tokens and spaces. Returns the first bracket whose content is a
-     * single class letter. Stops at any other character, so text that is not a prefix is never read.
+     * Walks back over whitespace and bracketed tags before {@code nameStart}. Returns the first class marker and
+     * ignores rank tags such as [VIP] or [MVP+].
      */
     static LeapClass markerBefore(String t, int nameStart) {
         int i = nameStart;
         while (i > 0) {
             char c = t.charAt(i - 1);
-            if (c == ' ') {
+            if (Character.isWhitespace(c)) {
                 i--;
                 continue;
             }
@@ -213,13 +390,74 @@ public final class LeapText {
         return null;
     }
 
-    /** True when {@code word} appears in {@code text} with no name character on either side. */
+    private static LeapClass markerAfter(String text, int nameEnd, String owner, Collection<String> knownNames) {
+        int i = nameEnd;
+        while (i < text.length() && Character.isWhitespace(text.charAt(i))) {
+            i++;
+        }
+        while (i < text.length() && text.charAt(i) == '[') {
+            int close = text.indexOf(']', i + 1);
+            if (close < 0) {
+                return null;
+            }
+            String inside = text.substring(i + 1, close).trim();
+            LeapClass cls = inside.length() == 1 ? LeapClass.fromMarker(inside.charAt(0)) : null;
+            if (cls != null) {
+                int next = close + 1;
+                while (next < text.length() && Character.isWhitespace(text.charAt(next))) {
+                    next++;
+                }
+                // A rank token may separate this marker from a following player's name in a combined line.
+                while (next < text.length() && text.charAt(next) == '[') {
+                    int rankEnd = text.indexOf(']', next + 1);
+                    if (rankEnd < 0) {
+                        break;
+                    }
+                    next = rankEnd + 1;
+                    while (next < text.length() && Character.isWhitespace(text.charAt(next))) {
+                        next++;
+                    }
+                }
+                int wordEnd = next;
+                while (wordEnd < text.length() && isNameChar(text.charAt(wordEnd))) {
+                    wordEnd++;
+                }
+                if (wordEnd > next && isKnownDifferentName(text.substring(next, wordEnd), owner, knownNames)) {
+                    return null;
+                }
+                return cls;
+            }
+            i = close + 1;
+            while (i < text.length() && Character.isWhitespace(text.charAt(i))) {
+                i++;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isKnownDifferentName(String candidate, String owner, Collection<String> knownNames) {
+        if (knownNames == null) {
+            return false;
+        }
+        String canonical = LeapIdentity.canonicalUsername(candidate);
+        if (canonical == null || canonical.equalsIgnoreCase(owner)) {
+            return false;
+        }
+        for (String known : knownNames) {
+            if (LeapIdentity.sameUsername(canonical, known)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True when {@code word} appears in {@code text} with no username character on either side. */
     static boolean containsWord(String text, String word) {
         if (word.isEmpty()) {
             return false;
         }
         int from = 0;
-        while ((from = text.indexOf(word, from)) >= 0) {
+        while ((from = indexOfIgnoreCase(text, word, from)) >= 0) {
             int end = from + word.length();
             boolean before = from == 0 || !isNameChar(text.charAt(from - 1));
             boolean after = end >= text.length() || !isNameChar(text.charAt(end));
@@ -231,12 +469,33 @@ public final class LeapText {
         return false;
     }
 
+    private static int indexOfIgnoreCase(String text, String word, int from) {
+        int last = text.length() - word.length();
+        for (int i = Math.max(0, from); i <= last; i++) {
+            if (text.regionMatches(true, i, word, 0, word.length())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private static boolean isNameChar(char c) {
         return c == '_' || Character.isLetterOrDigit(c);
     }
 
-    /** True when a container title, without formatting, is the Spirit Leap menu. */
+    private static boolean isSpace(char c) {
+        return Character.isWhitespace(c) || Character.isSpaceChar(c);
+    }
+
+    private static boolean isInvisible(char c) {
+        int type = Character.getType(c);
+        return c == '\u200b' || c == '\u200c' || c == '\u200d' || c == '\u2060'
+                || c == '\u00ad' || c == '\ufeff' || type == Character.FORMAT
+                || type == Character.PRIVATE_USE || type == Character.SURROGATE;
+    }
+
+    /** True when a container title, without formatting or control characters, is the Spirit Leap menu. */
     public static boolean isLeapTitle(String title) {
-        return "Spirit Leap".equals(strip(title).trim());
+        return "Spirit Leap".equals(normalize(title));
     }
 }

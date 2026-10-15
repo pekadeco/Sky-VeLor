@@ -1,0 +1,236 @@
+name: Build Sky VeLor Beta-0.10.5v
+
+on:
+  push:
+    branches:
+      - 'arena/**'
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build, test, and verify Beta-0.10.5v
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    env:
+      GRADLE_VERSION: '2.14.1'
+      JAR_NAME: SkyVeLor-1.8.9-Beta-0.10.5v.jar
+      ZIP_NAME: SkyVeLor-1.8.9-Beta-0.10.5v-source.zip
+      EXPECTED_VERSION: Beta-0.10.5v
+      GRADLE_OPTS: '-Xmx2560m -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8'
+
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Report toolchain
+        run: |
+          set -euo pipefail
+          java -version
+          echo "JAVA_HOME=${JAVA_HOME}"
+          echo "revision=$(git rev-parse HEAD)"
+
+      - name: Install Gradle 2.14.1
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/gradle.zip \
+            "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          sudo unzip -q -o /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
+          "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --version
+
+      - name: Clear previous generated release outputs
+        run: rm -rf dist
+
+      - name: Build Forge mod and export test classpath
+        id: build
+        run: |
+          set -o pipefail
+          attempt=1
+          while true; do
+            echo "=== gradle build, attempt ${attempt}/3 ==="
+            if gradle build dumpTestClasspath --no-daemon --stacktrace --console=plain \
+                 2>&1 | tee "$GITHUB_WORKSPACE/gradle-build.log"; then
+              break
+            fi
+            if [ "$attempt" -ge 3 ]; then
+              echo "::error::Gradle build failed after ${attempt} attempts"
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            rm -f "$HOME/.gradle/caches/forge_gradle/McpMappings.json" \
+                  "$HOME/.gradle/caches/forge_gradle/McpMappings.json.etag" \
+                  "$HOME/.gradle/caches/forge_gradle/McManifest.json" \
+                  "$HOME/.gradle/caches/forge_gradle/McManifest.json.etag"
+            gradle --stop >/dev/null 2>&1 || true
+            sleep 10
+          done
+
+      - name: Package JAR and exact-source archive
+        id: package
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp "build/libs/${JAR_NAME}" "dist/${JAR_NAME}"
+          git archive --format=zip --output="dist/${ZIP_NAME}" HEAD
+          unzip -t "dist/${JAR_NAME}" >/dev/null
+          unzip -t "dist/${ZIP_NAME}" >/dev/null
+
+      - name: Run all logic test suites
+        id: tests
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh \
+            2>&1 | tee "$GITHUB_WORKSPACE/test-suites.log"
+
+      - name: Verify release contents and metadata
+        id: verify
+        if: always() && steps.package.outcome == 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          work=$(mktemp -d)
+          unzip -q "dist/${JAR_NAME}" -d "$work"
+          mcmod="$work/mcmod.info"
+          test -f "$mcmod"
+          grep -Eq '"version"[[:space:]]*:[[:space:]]*"Beta-0\.10\.5v"' "$mcmod"
+          grep -Eq '"mcversion"[[:space:]]*:[[:space:]]*"1\.8\.9"' "$mcmod"
+          classes=$(find "$work" -name '*.class' | wc -l)
+          test "$classes" -gt 40
+          test -f "$work/com/arena/pekaclient/feature/LeapClassCache.class"
+          test -f "$work/com/arena/pekaclient/feature/LeapIdentity.class"
+          test -f "$work/com/arena/pekaclient/feature/LeapDiagnostics.class"
+          test -f "$work/com/arena/pekaclient/gui/LeapScreen.class"
+          test -f "$work/com/arena/pekaclient/gui/LeapPreviewData.class"
+
+          cat $(find "$work" -name '*.class') > /tmp/all.class 2>/dev/null || true
+          srg_names=$(grep -a -o -E '(func|field)_[0-9]+_[A-Za-z]+' /tmp/all.class | sort -u | wc -l || true)
+          mcp_hits=$(grep -a -o -E '(^|[^A-Za-z])(getMinecraft|thePlayer|theWorld|gameSettings|playerController|displayGuiScreen|fontRendererObj|theEntityRenderer)([^A-Za-z]|$)' /tmp/all.class | sort -u || true)
+          mcp_names=$(printf '%s' "$mcp_hits" | grep -c . || true)
+          test "$srg_names" -gt 20
+          test "$mcp_names" -eq 0
+
+          unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^build.gradle$'
+          unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^src/main/java/com/arena/pekaclient/gui/LeapScreen.java$'
+          unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^tests/com/arena/pekaclient/feature/LeapClassCacheTests.java$'
+          unzip -Z1 "dist/${ZIP_NAME}" | grep -q '^tests/com/arena/pekaclient/gui/LeapPreviewDataTests.java$'
+          git archive --format=tar HEAD | tar -tf - | grep -v '/$' | sort > /tmp/archive-tree.txt
+          unzip -Z1 "dist/${ZIP_NAME}" | grep -v '/$' | sort > /tmp/zip-tree.txt
+          diff -u /tmp/archive-tree.txt /tmp/zip-tree.txt
+
+          unzip -p "dist/${JAR_NAME}" META-INF/MANIFEST.MF > dist/MANIFEST.txt
+          {
+            echo "revision     : $(git rev-parse HEAD)"
+            echo "branch       : ${GITHUB_REF_NAME:-unknown}"
+            echo "java         : $(java -version 2>&1 | head -1)"
+            echo "gradle       : ${GRADLE_VERSION}"
+            echo "mcmod.info   : version=${EXPECTED_VERSION} mcversion=1.8.9"
+            echo "class files  : ${classes}"
+            echo "srg members  : ${srg_names} (0 MCP member names left)"
+            echo "source ZIP   : matches git archive tree; dist/ excluded"
+            echo "test outcome : ${{ steps.tests.outcome }}"
+            echo "test suites  : $(grep -c '^.*passed .*failed 0$' test-suites.log) passing summaries"
+            echo
+            echo "sha256 ${JAR_NAME}: $(sha256sum "dist/${JAR_NAME}" | cut -d' ' -f1)"
+            echo "sha256 ${ZIP_NAME}: $(sha256sum "dist/${ZIP_NAME}" | cut -d' ' -f1)"
+          } | tee dist/BUILD-INFO.txt
+
+          {
+            echo "# Sky VeLor ${EXPECTED_VERSION} automated build report"
+            echo
+            echo '```'
+            cat dist/BUILD-INFO.txt
+            echo '```'
+            echo
+            echo '## Test suites'
+            echo
+            echo "Step outcome: ${{ steps.tests.outcome }}"
+            echo
+            echo '```'
+            grep -E '^(leap text|leap identity|leap class cache|.*: passed .*failed 0|passed [0-9]+, failed 0)' \
+              test-suites.log || true
+            echo '```'
+            echo
+            echo 'In-game verification: not performed by this workflow.'
+          } | tee dist/build-report.md
+
+      - name: Require successful tests and release verification
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.tests.outcome }}" != "success" ]; then
+            echo "::error::At least one logic test failed or was skipped"
+            exit 1
+          fi
+          if [ "${{ steps.verify.outcome }}" != "success" ]; then
+            echo "::error::Release verification failed or was skipped"
+            exit 1
+          fi
+
+      # The sandbox cannot download GitHub Actions artifacts from the runner's storage host. Keep the release
+      # files and raw logs on this same Arena session branch so the build remains verifiable and the deliverables
+      # are available without writing to a separate branch.
+      - name: Publish release outputs and logs to the session branch
+        if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/heads/arena/')
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          [ ! -f "$GITHUB_WORKSPACE/gradle-build.log" ] || cp "$GITHUB_WORKSPACE/gradle-build.log" dist/gradle-build.log
+          [ ! -f "$GITHUB_WORKSPACE/test-suites.log" ] || cp "$GITHUB_WORKSPACE/test-suites.log" dist/test-suites.log
+          if [ ! -f dist/BUILD-INFO.txt ]; then
+            {
+              echo "revision     : $(git rev-parse HEAD)"
+              echo "branch       : ${GITHUB_REF_NAME:-unknown}"
+              echo "java         : $(java -version 2>&1 | head -1)"
+              echo "gradle       : ${GRADLE_VERSION}"
+              echo "test outcome : ${{ steps.tests.outcome }}"
+              echo "verification : incomplete; see CI logs"
+            } > dist/BUILD-INFO.txt
+          fi
+          if [ ! -f dist/build-report.md ]; then
+            {
+              echo "# Sky VeLor ${EXPECTED_VERSION} automated build report"
+              echo
+              echo "Test outcome: ${{ steps.tests.outcome }}"
+              echo
+              echo "In-game verification: not performed by this workflow."
+            } > dist/build-report.md
+          fi
+          git config user.email "297053741+arena-agent@users.noreply.github.com"
+          git config user.name "arena-agent"
+          git add -f dist
+          if ! git diff --cached --quiet; then
+            git commit -m "CI: attach Beta-0.10.5v release and verification files [skip ci]"
+            git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+          fi
+
+      - name: Upload release files and verification logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sky-velor-beta-0.10.5v-release
+          if-no-files-found: warn
+          path: |
+            dist/${{ env.JAR_NAME }}
+            dist/${{ env.ZIP_NAME }}
+            dist/BUILD-INFO.txt
+            dist/build-report.md
+            dist/MANIFEST.txt
+            gradle-build.log
+            test-suites.log

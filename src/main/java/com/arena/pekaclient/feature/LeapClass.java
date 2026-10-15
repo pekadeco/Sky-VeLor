@@ -21,14 +21,21 @@ public enum LeapClass {
 
     private final String label;
     private final int color;
+    private final char marker;
 
     LeapClass(String label, int color) {
         this.label = label;
         this.color = color;
+        this.marker = label.charAt(0);
     }
 
     public String label() {
         return label;
+    }
+
+    /** The one-letter marker used by dungeon scoreboards. */
+    public char marker() {
+        return marker;
     }
 
     /** ARGB colour used for the class text and its accent. */

@@ -1,9 +1,50 @@
-# Sky VeLor, Beta-0.9v
+# Sky VeLor, Beta-0.10.5v
 
-Forge client mod for Minecraft 1.8.9 (Forge 11.15.1.2318). Desktop Java is the target.
-Android launchers (for example PojavLauncher) are **not tested**.
+Forge client mod for Minecraft 1.8.9 (Forge 11.15.1.2318). Java 8 is the target. Android launchers such as PojavLauncher are **not tested**.
 
-## Changes in Beta-0.9v
+## Changes in Beta-0.10.5v
+
+- **Reference-matched Spirit Leap cards:** four large horizontal cards in a balanced 2×2 grid, with a prominent teammate head on the left, colored name and lighter class label on the right. Flat charcoal fills and restrained borders replace the old panel/header/footer treatment; the world remains visible behind the cards.
+- **Responsive geometry:** card, head, gap, and row sizes are calculated from Minecraft's scaled GUI dimensions. Complete usernames are fitted inside the card; a long rank prefix gives way to the canonical username before any horizontal text scaling.
+- **Hover/selection:** the focused card gets a subtly lighter charcoal fill and brighter thin outline. Card click, arrow/Enter selection, and the server's existing window-click action are unchanged.
+- **Preview:** the existing hub option uses this same renderer. Four test cards remain visible; N/P cycles through samples covering Archer, Berserk, Mage, Tank, and Healer. The preview is labelled TEST DATA, uses no live container/cache or skin lookup, sends no packet, and Escape returns to the hub.
+- **Regression boundary:** the scoreboard parser, identity matching, class cache, skin lookup/UV renderer, and live Spirit Leap data flow are not rewritten for this visual change. No global entity rendering or unrelated HUD code is changed.
+
+## Changes in Beta-0.10v
+
+- **Spirit Leap identity and class resolution:** resolve canonical player names from skull profiles, tab-list profiles, scoreboard entries, and local menu items. Match class markers against exact names (or a uniquely identified truncated scoreboard name), not loose substrings or rank tags.
+- **Class-state handling:** prefer scoreboard observations over tab/lore data, retain the last confirmed class through short update gaps, expire stale data, and isolate it by UUID/name identity. Identity changes do not inherit another player's class.
+- **Text and heads:** preserve readable rank-formatted names while separating the class label; normalize Minecraft formatting, invisible characters, and whitespace. Use an immediate named fallback head while the correct skin is unavailable, and retry unresolved profile lookups.
+- **Developer diagnostics:** transition-only and disabled by default; enable with `-Dskyvelor.debug.leap=true`. No debug strings are shown in the normal GUI.
+- **Isolated preview:** open “Preview Spirit Leap GUI” from the existing hub. It uses the real four-card renderer with rank-formatted sample names and “TEST DATA”; preview clicks cannot issue packets or gameplay actions, and closing returns to the hub.
+- **Regression scope:** the dark two-column/four-player layout and server-validated live window-click path remain. No entity renderers, models, layers, visibility, or culling code is changed.
+- **Version metadata:** `PekaVersion.NAME` drives the JAR name, `mcmod.info`, and visible version label.
+
+## Source-level root-cause review
+
+The Beta-0.9v implementation was traced before editing, and the Beta-0.7v source/tests were used as regression evidence rather than reverting the picker. The review found several mechanisms that can explain the reported failures; without a live server reproduction, these are source-level findings, not a confirmed server-specific diagnosis:
+
+- Item details were refreshed only when the slot's `ItemStack` object reference changed, although the server can update the same stack in place. That could leave stale owner/name/lore data.
+- Scoreboard selection used loose `contains` matching and did not consistently bind a detected marker to a canonical UUID/name. A prefix collision or decorated owner could select the wrong row.
+- A scoreboard/tab disagreement immediately cleared the class, with no bounded cache for temporary update gaps. The new cache is identity-keyed, source-aware, and expires.
+- Failed skull texture requests were remembered permanently by player name; a failed lookup could never be retried, and name-only matching could attach the wrong tab entry. Requests now use UUID when available, exact matching, and a retry cooldown.
+- When an owner was not already a plain ASCII username, the old name path could show rank/class decoration verbatim or strip every non-ASCII glyph and leave a blank/garbled label. The new display helper keeps the canonical username visible and removes only a recognized class token and trailing tab details.
+- `SkinHead` previously left alpha/texture state disabled after drawing; it now returns to the vanilla GUI state locally.
+
+Beta-0.7's two-column layout, strict marker tests, and live server-window click path are retained. Passing regression tests are not evidence of in-game behavior.
+
+## Build and verification
+
+Requires JDK 8, Gradle 2.14.1, and ForgeGradle 2.1 for Minecraft 1.8.9 / Forge 11.15.1.2318. `./gradlew build dumpTestClasspath` compiles and reobfuscates the mod; `TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh` runs the logic suites without starting Minecraft.
+
+**Verification status:** The exact source revision's toolchain, test summaries, JAR metadata, archive check, and SHA-256 values are recorded in `dist/BUILD-INFO.txt`, `dist/build-report.md`, and `dist/test-suites.log` after the CI build. Automated tests do not start Minecraft.
+
+- **In-game:** not verified in this environment; no working Minecraft 1.8.9 runtime was available. Do not treat the preview source path or layout tests as a screenshot or live-server test.
+- **Platforms:** desktop Java 8 is the build target. Pojav/Android compatibility is not verified.
+
+Release files: `dist/SkyVeLor-1.8.9-Beta-0.10.5v.jar` and `dist/SkyVeLor-1.8.9-Beta-0.10.5v-source.zip`.
+
+## Previous release notes (Beta-0.9v)
 
 Ported from RNG Carried Bald. The new code sits next to the existing features and does not replace them.
 
@@ -23,9 +64,9 @@ Ported from RNG Carried Bald. The new code sits next to the existing features an
 - **On/off switches:** every feature in the hub has one. They use an outlined pill style.
 - **Version:** `PekaVersion.NAME` is now `Beta-0.9v`.
 
-Tests: `tests/run-tests.sh` includes new suites, `FishingTests`, `DragonKillTests` and `SlayerTests`.
+Tests: `tests/run-tests.sh` includes the Fishing, Dragon Kill, and Slayer suites.
 
-**Status:** the JAR builds with `gradle build`, and the test suites pass on JDK 8. Beta-0.9v has not been run in-game.
+**Beta-0.9v status:** its README recorded a successful JDK 8 build and test suites; it was not run in-game.
 
 ## Status of earlier build (Beta-0.7v)
 
