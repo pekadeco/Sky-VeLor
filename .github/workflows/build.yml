@@ -126,9 +126,18 @@ jobs:
           echo "class files          : $classes"
           echo "MCP name refs left   : $mcp_refs"
 
+          # Which MCP names survive reobfuscation, and in what kind of attribute, decides whether the
+          # jar is merely carrying generic signatures (harmless) or real class references (fatal).
+          cat $(find "$work" -name '*.class') | grep -a -o 'net/minecraft/client[a-zA-Z/$]*' | sort -u \
+            | tee "$GITHUB_WORKSPACE/mcp-refs.txt" || true
+          echo "--- end of surviving MCP names ---"
+
           test "$ver" = "Beta-0.7v" || { echo "::error::JAR version is '$ver', expected Beta-0.7v"; exit 1; }
           test "$classes" -gt 40 || { echo "::error::only $classes class files in the JAR"; exit 1; }
-          test "$mcp_refs" -le 2 || { echo "::error::$mcp_refs MCP class references remain - jar is not reobfuscated"; exit 1; }
+          test "$mcp_refs" -le 2 || {
+            echo "::error::$mcp_refs distinct MCP names remain; see mcp-refs.txt: $(paste -sd, "$GITHUB_WORKSPACE/mcp-refs.txt")"
+            exit 1
+          }
           if [ -d "$work/com/nef" ]; then echo "::error::unexpected com/nef package"; exit 1; fi
 
           echo "=== source ZIP sanity ==="
@@ -201,6 +210,31 @@ jobs:
           } > build-report.md
           cat build-report.md
 
+      # Actions artifacts and raw logs live on hosts that some sandboxed clients cannot reach. Pushing
+      # the same evidence to a scratch branch keeps it retrievable with plain git over github.com.
+      - name: Publish evidence to ci-evidence branch
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          rm -rf evidence && mkdir evidence
+          cp gradle-build.log build-report.md evidence/ 2>/dev/null || true
+          cp mcp-refs.txt test-suites.log evidence/ 2>/dev/null || true
+          cp -r dist evidence/dist 2>/dev/null || true
+          cp -r "$PROJECT_DIR/build/libs" evidence/libs 2>/dev/null || true
+          ls -laR evidence | head -40
+          cd evidence
+          git init -q .
+          git config user.email "297053741+arena-agent@users.noreply.github.com"
+          git config user.name "arena-agent"
+          git checkout -q -b ci-evidence
+          git add -A
+          git commit -q -m "CI evidence for ${GITHUB_SHA} run ${GITHUB_RUN_ID} [skip ci]" || true
+          git push -q --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-evidence
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
@@ -209,6 +243,7 @@ jobs:
           path: |
             gradle-build.log
             build-report.md
+            mcp-refs.txt
           if-no-files-found: warn
 
       - name: Upload JAR and source ZIP
