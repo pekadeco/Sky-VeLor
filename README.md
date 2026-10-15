@@ -29,7 +29,15 @@ Beta-0.7's two-column layout, strict marker tests, and live server-window click 
 
 Requires JDK 8, Gradle 2.14.1, and ForgeGradle 2.1 for Minecraft 1.8.9 / Forge 11.15.1.2318. `./gradlew build dumpTestClasspath` compiles and reobfuscates the mod; `TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh` runs the logic suites without starting Minecraft.
 
-**Verification status:** final Java 8 build and test results will be recorded here after the CI run. No in-game verification has been performed. Pojav/Android compatibility is not tested.
+**Verification status (CI):**
+
+- **Compilation/reobfuscation:** passed on OpenJDK 8u504 with Gradle 2.14.1 and ForgeGradle 2.1. The JAR targets Minecraft 1.8.9 / Forge 11.15.1.2318 and contains 103 class files; verification found 216 SRG member names and no MCP member names.
+- **Automated tests:** all 17 suites passed (927 checks, 0 failures). The report and full output are in `dist/build-report.md` and `dist/test-suites.log`.
+- **JAR/source archive:** `mcmod.info` reports Beta-0.10v and Minecraft 1.8.9. The source ZIP matches the tested Git archive tree; generated `dist/` files are omitted. SHA-256 values are recorded in `dist/BUILD-INFO.txt`.
+- **In-game:** not tested; no working Minecraft runtime was available for this task. Do not treat compilation or pure-logic tests as in-game verification.
+- **Platforms:** desktop Java 8 is the build target. Pojav/Android compatibility is not verified.
+
+Release files: `dist/SkyVeLor-1.8.9-Beta-0.10v.jar` and `dist/SkyVeLor-1.8.9-Beta-0.10v-source.zip`.
 
 ## Previous release notes (Beta-0.9v)
 
