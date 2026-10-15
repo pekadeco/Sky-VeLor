@@ -157,9 +157,11 @@ jobs:
           unzip -Z1 "${ZIP_NAME}" | grep -q 'PekaVersion.java' || { echo "::error::source ZIP has no PekaVersion.java"; exit 1; }
           unzip -Z1 "${ZIP_NAME}" | grep -q 'SkyVeLorLoadingPlugin.java' || { echo "::error::source ZIP has no coremod class"; exit 1; }
 
-          # The ZIP must list exactly the tree of the built revision - no more, no less.
+          # The ZIP must list exactly the tree of the built revision - no more, no less. git archive writes
+          # directory entries into the zip too (they end with a slash), while ls-tree -r lists blobs only,
+          # so the directory entries are filtered out before the two lists are compared.
           git -C "$GITHUB_WORKSPACE" ls-tree -r --name-only "HEAD:${PROJECT_DIR}" | sort > /tmp/git-tree.txt
-          unzip -Z1 "${ZIP_NAME}" | sed "s#^#${PROJECT_DIR}/#" | sort > /tmp/zip-tree.txt
+          unzip -Z1 "${ZIP_NAME}" | grep -v "/$" | sed "s#^#${PROJECT_DIR}/#" | sort > /tmp/zip-tree.txt
           if ! diff -u /tmp/git-tree.txt /tmp/zip-tree.txt > /tmp/tree-diff.txt; then
             echo "::error::source ZIP does not match the built revision"; cat /tmp/tree-diff.txt; exit 1
           fi
