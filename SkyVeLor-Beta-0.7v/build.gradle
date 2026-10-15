@@ -1,29 +1,29 @@
 // ForgeGradle 2.1 build for Minecraft 1.8.9 (Forge 11.15.1.2318-1.8.9, MCP stable_22).
-// Requires JDK 8 and Gradle 2.14.x (2.14.1 used for the shipped jar).
+// Requires JDK 8 and Gradle 2.14.x (2.14.1 is the version this project is built with).
 //
-// ForgeGradle plugin version: this script expects the ForgeGradle 2.1 plugin in the local
-// Maven repository as version 0.0.0 (that is how the shipped jar was built: the FG_2.1 branch
-// was compiled with `gradle install` and installed to ~/.m2). If you have the official
-// 2.1-SNAPSHOT artifact instead, change the classpath line below to
-// 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'.
+// ForgeGradle plugin version: 2.1-SNAPSHOT, published on the Forge Maven. The FG_2.1 branch is
+// still maintained and was moved to the current Forge Maven endpoint
+// (https://maven.minecraftforge.net) in 2021, so this resolves over HTTPS with no local
+// `gradle install` / ~/.m2 step. There is no "0.0.0" artifact on any public repository.
 buildscript {
     repositories {
-        mavenLocal()
-        jcenter()
+        mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
+        mavenLocal()
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:0.0.0'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
+// ForgeGradle adds the Forge Maven, Maven Central and the Mojang library repository itself.
+// jcenter() was removed: it was sunset by JFrog and no ForgeGradle 2.1 dependency needs it.
 repositories {
-    mavenLocal()
     maven { url = 'https://maven.minecraftforge.net/' }
     mavenCentral()
-    jcenter()
+    mavenLocal()
 }
 
 // Version: read from PekaVersion.NAME so there is exactly one place to change it (Sky VeLor Beta-0.3v).

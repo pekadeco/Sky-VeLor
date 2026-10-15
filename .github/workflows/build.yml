@@ -1,0 +1,175 @@
+name: Build SkyVeLor Beta-0.7v
+
+# Builds the Minecraft 1.8.9 Forge client mod and publishes the two deliverables:
+#   SkyVeLor-1.8.9-Beta-0.7v.jar
+#   SkyVeLor-1.8.9-Beta-0.7v-source.zip
+#
+# Toolchain: JDK 8 + Gradle 2.14.1 + ForgeGradle 2.1-SNAPSHOT (from https://maven.minecraftforge.net).
+# GitHub-hosted runners can reach the Forge Maven, the Mojang launcher meta/library/asset hosts and
+# Maven Central, which the original authoring sandbox could not.
+
+on:
+  push:
+    branches:
+      - 'arena/**'
+      - 'main'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build + verify Beta-0.7v
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    env:
+      GRADLE_VERSION: '2.14.1'
+      PROJECT_DIR: SkyVeLor-Beta-0.7v
+      JAR_NAME: SkyVeLor-1.8.9-Beta-0.7v.jar
+      ZIP_NAME: SkyVeLor-1.8.9-Beta-0.7v-source.zip
+      GRADLE_OPTS: '-Xmx2560m -XX:MaxMetaspaceSize=768m -Dfile.encoding=UTF-8'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Report toolchain
+        run: |
+          set -euo pipefail
+          java -version
+          echo "JAVA_HOME=${JAVA_HOME}"
+          echo "checked out: $(git rev-parse HEAD)"
+
+      - name: Install Gradle ${GRADLE_VERSION}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/gradle.zip \
+            "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+          sudo unzip -q -o /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
+          "/opt/gradle-${GRADLE_VERSION}/bin/gradle" --version
+
+      # `gradle build` -> assemble -> reobfJar (ForgeGradle reobfuscates in place) -> build/libs.
+      # decompileMc is NOT in this task graph: UserBasePlugin wires compileJava to deobfMcMCP and only
+      # setupDecompWorkspace pulls in decompileMc, so no "-x decompileMc" is needed.
+      - name: Build mod (gradle build)
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          set -o pipefail
+          gradle build --no-daemon --stacktrace --console=plain \
+            2>&1 | tee "$GITHUB_WORKSPACE/gradle-build.log"
+
+      - name: Show build output tree
+        if: always()
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          echo "=== build/libs ==="; ls -la build/libs 2>&1 || true
+          echo "=== build/ ==="; ls -la build 2>&1 || true
+          echo "=== deobfuscated ==="; find build -name 'forgeBin*.jar' -o -name '*.jar' 2>/dev/null | head -30 || true
+
+      - name: Collect JAR
+        if: success()
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          cp "build/libs/${JAR_NAME}" "$GITHUB_WORKSPACE/dist/${JAR_NAME}"
+          ls -la "$GITHUB_WORKSPACE/dist"
+
+      # git archive of the checkout revision: the ZIP is the source tree at the exact commit that was
+      # built, with the same layout as the committed SkyVeLor-1.8.9-Beta-0.6v-source.zip (project files
+      # at the archive root). Path is "HEAD:<subdir>" so no commit-specific hash has to be maintained.
+      - name: Package source ZIP from the exact revision
+        if: success()
+        run: |
+          set -euo pipefail
+          git archive --format=zip -o "dist/${ZIP_NAME}" "HEAD:${PROJECT_DIR}"
+          unzip -l "dist/${ZIP_NAME}" | head -20
+          echo "entries: $(unzip -l "dist/${ZIP_NAME}" | tail -1)"
+
+      - name: Verify JAR version metadata and source revision
+        if: success()
+        run: |
+          set -euo pipefail
+          cd dist
+          work=$(mktemp -d)
+          unzip -o -q "${JAR_NAME}" -d "$work"
+
+          echo "=== mcmod.info from the JAR ==="
+          cat "$work/mcmod.info"
+
+          ver=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$work/mcmod.info" | sed 's/.*"\([^"]*\)"$/\1/')
+          mcver=$(grep -o '"mcversion"[[:space:]]*:[[:space:]]*"[^"]*"' "$work/mcmod.info" | sed 's/.*"\([^"]*\)"$/\1/')
+          classes=$(find "$work" -name '*.class' | wc -l)
+          echo "mcmod.info version : $ver"
+          echo "mcmod.info mcversion: $mcver"
+          echo "class files        : $classes"
+
+          test "$ver" = "Beta-0.7v" || { echo "::error::JAR version is '$ver', expected Beta-0.7v"; exit 1; }
+          test "$classes" -gt 40 || { echo "::error::only $classes class files in the JAR"; exit 1; }
+          if [ -d "$work/com/nef" ]; then echo "::error::unexpected com/nef package"; exit 1; fi
+
+          echo "=== source ZIP sanity ==="
+          unzip -l "${ZIP_NAME}" | grep -q 'build.gradle' || { echo "::error::source ZIP has no build.gradle"; exit 1; }
+          unzip -l "${ZIP_NAME}" | grep -q 'PekaVersion.java' || { echo "::error::source ZIP has no PekaVersion.java"; exit 1; }
+
+          rev=$(git rev-parse HEAD)
+          {
+            echo "revision : $rev"
+            echo "branch   : ${GITHUB_REF_NAME:-unknown}"
+            echo "java     : $(java -version 2>&1 | head -1)"
+            echo "gradle   : ${GRADLE_VERSION}"
+            echo
+            echo "sha256 ${JAR_NAME}: $(sha256sum "${JAR_NAME}" | cut -d' ' -f1)"
+            echo "sha256 ${ZIP_NAME}: $(sha256sum "${ZIP_NAME}" | cut -d' ' -f1)"
+          } | tee BUILD-INFO.txt
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: gradle-build.log
+          if-no-files-found: warn
+
+      - name: Upload JAR and source ZIP
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkyVeLor-1.8.9-Beta-0.7v
+          path: |
+            dist/SkyVeLor-1.8.9-Beta-0.7v.jar
+            dist/SkyVeLor-1.8.9-Beta-0.7v-source.zip
+            dist/BUILD-INFO.txt
+          if-no-files-found: error
+
+      # A release makes the two files directly downloadable by exact name. Re-running overwrites the
+      # same tag instead of piling up tags. Permissions problems here must not hide a green build.
+      - name: Publish release assets
+        if: success() && github.event_name != 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="beta-0.7v"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.jar dist/*.zip dist/BUILD-INFO.txt --clobber
+          else
+            gh release create "$TAG" dist/*.jar dist/*.zip dist/BUILD-INFO.txt \
+              --title "SkyVeLor Beta-0.7v" \
+              --notes "Automated ForgeGradle 2.1 build of ${GITHUB_SHA} (branch ${GITHUB_REF_NAME})."
+          fi
