@@ -70,12 +70,36 @@ jobs:
       # `gradle build` -> assemble -> reobfJar (ForgeGradle reobfuscates the jar in place) -> build/libs.
       # decompileMc is NOT in this task graph: UserBasePlugin wires compileJava to deobfMcMCP, and only
       # setupDecompWorkspace pulls in decompileMc, so no "-x decompileMc" is needed.
+      # ForgeGradle downloads Forge's MCP mappings JSON (BasePlugin.getRemoteJsons) and keeps it in
+      # ~/.gradle/caches/forge_gradle/McpMappings.json behind an ETag. If that fetch or its revalidation
+      # hiccups, the field stays null and setting `mappings` dies with a NullPointerException inside
+      # ForgeGradle - a transient infrastructure failure, nothing to do with the mod's source. (Seen once on
+      # 2026-10-15: pull-request run 38717806541 failed that way while the same revision built fine on push.)
+      # So the build is retried, and the ETag/cached copy is dropped first so the retry refetches instead of
+      # reusing whatever made the first attempt fail.
       - name: Build mod (gradle build dumpTestClasspath)
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           set -o pipefail
-          gradle build dumpTestClasspath --no-daemon --stacktrace --console=plain \
-            2>&1 | tee "$GITHUB_WORKSPACE/gradle-build.log"
+          attempt=1
+          while true; do
+            echo "=== gradle build, attempt ${attempt}/3 ==="
+            if gradle build dumpTestClasspath --no-daemon --stacktrace --console=plain \
+               2>&1 | tee "$GITHUB_WORKSPACE/gradle-build.log"; then
+              break
+            fi
+            if [ "$attempt" -ge 3 ]; then
+              echo "::error::gradle build failed on ${attempt} attempts - see gradle-build.log"
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            rm -f "$HOME/.gradle/caches/forge_gradle/McpMappings.json" \
+                  "$HOME/.gradle/caches/forge_gradle/McpMappings.json.etag" \
+                  "$HOME/.gradle/caches/forge_gradle/McManifest.json" \
+                  "$HOME/.gradle/caches/forge_gradle/McManifest.json.etag"
+            gradle --stop >/dev/null 2>&1 || true
+            sleep 10
+          done
 
       - name: Show build output tree
         if: always()
@@ -243,6 +267,16 @@ jobs:
           cp test-suites.log verify.log evidence/ 2>/dev/null || true
           cp -r dist evidence/dist 2>/dev/null || true
           cp -r "$PROJECT_DIR/build/libs" evidence/libs 2>/dev/null || true
+          # A run whose build failed produces no dist/, and this branch is force-pushed, so the artifacts of the
+          # last run that did succeed are carried over - the evidence branch always holds a jar that matches a
+          # green build instead of losing it to a later failed run.
+          if [ ! -d evidence/dist ]; then
+            if git clone -q --depth 1 --branch ci-evidence \
+                 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/prev-evidence 2>/dev/null; then
+              cp -r /tmp/prev-evidence/dist evidence/dist 2>/dev/null || true
+            fi
+            rm -rf /tmp/prev-evidence
+          fi
           ls -laR evidence | head -40
           cd evidence
           git init -q .
