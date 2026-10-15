@@ -1,0 +1,71 @@
+// ForgeGradle 2.1 build for Minecraft 1.8.9 (Forge 11.15.1.2318-1.8.9, MCP stable_22).
+// Requires JDK 8 and Gradle 2.14.1 (the version used for release builds).
+//
+// ForgeGradle 2.1-SNAPSHOT is resolved from the public Forge Maven repository; no local install is required.
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+repositories {
+    maven { url = 'https://maven.minecraftforge.net/' }
+    mavenCentral()
+    mavenLocal()
+}
+
+// Version: read from PekaVersion.NAME so there is exactly one source of release version metadata.
+def pekaVersionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java').text
+def pekaVersionMatch = (pekaVersionSource =~ /NAME\s*=\s*"([^"]+)"/)
+if (!pekaVersionMatch.find()) {
+    throw new GradleException('Could not read PekaVersion.NAME from PekaVersion.java')
+}
+version = pekaVersionMatch.group(1)
+group = "com.arena.pekaclient"
+archivesBaseName = "SkyVeLor-1.8.9"
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
+}
+
+minecraft {
+    version = "1.8.9-11.15.1.2318-1.8.9"
+    runDir = "run"
+    mappings = "stable_22"
+}
+
+// Exposes the exact Forge/Minecraft compile and runtime jars for the standalone logic-test suite.
+task dumpTestClasspath {
+    dependsOn 'classes'
+    doLast {
+        def files = (sourceSets.main.runtimeClasspath.files + sourceSets.main.compileClasspath.files)
+                .findAll { it != null }
+                .collect { it.absolutePath }
+                .unique()
+        def outputFile = file("$buildDir/test-classpath.txt")
+        outputFile.parentFile.mkdirs()
+        outputFile.text = files.join(File.pathSeparator)
+        println "wrote ${outputFile} with ${files.size()} entries"
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': project.minecraft.version
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
