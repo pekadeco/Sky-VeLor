@@ -52,11 +52,11 @@ public final class LeapClassTests {
     }
 
     private static void colours() {
-        check("archer yellow", LeapClass.ARCHER.color() == 0xFFFFD84D, "");
+        check("archer green", LeapClass.ARCHER.color() == 0xFF57D68D, "");
         check("berserk red", LeapClass.BERSERK.color() == 0xFFFF5A5A, "");
-        check("mage sky blue", LeapClass.MAGE.color() == 0xFF5AC8FA, "");
-        check("tank green", LeapClass.TANK.color() == 0xFF5CD65C, "");
-        check("healer light pink", LeapClass.HEALER.color() == 0xFFFFB6D9, "");
+        check("mage blue", LeapClass.MAGE.color() == 0xFF5AAEFF, "");
+        check("tank dark green", LeapClass.TANK.color() == 0xFF43A96F, "");
+        check("healer light purple", LeapClass.HEALER.color() == 0xFFD5A2FF, "");
         check("unknown grey", LeapClass.colorFor("Bard") == LeapClass.UNKNOWN_COLOR, "");
         check("missing grey", LeapClass.colorFor(null) == LeapClass.UNKNOWN_COLOR, "");
     }

@@ -41,8 +41,11 @@ public final class AppleSettings {
     public static boolean animSpeedOn = true;
     public static boolean scrollSpeedOn = true;
     public static final int DEFAULT_CORNER_RADIUS = 12;
-    public static final int DEFAULT_GLASS_OPACITY = 92;
+    /** A slightly more transparent fresh-install panel setting; saved user values are not reset. */
+    public static final int DEFAULT_GLASS_OPACITY = 88;
     public static final int DEFAULT_ANIM_SPEED = 100;
+    public static final boolean DEFAULT_ADAPTIVE_QUALITY = false;
+    public static final boolean DEFAULT_PERFORMANCE_BOOST_BETA = true;
     public static final int DEFAULT_SCROLL_SPEED = 100;
 
     /** Corner radius in use: the slider value when its switch is on, otherwise the default. */
@@ -62,23 +65,23 @@ public final class AppleSettings {
         return scrollSpeedOn ? scrollSpeed : DEFAULT_SCROLL_SPEED;
     }
     /** Panel opacity in percent (60..100). Higher is more solid, lower shows more of the game. */
-    public static int glassOpacity = 92;
+    public static int glassOpacity = DEFAULT_GLASS_OPACITY;
     public static boolean animations = true;
     public static int animSpeed = 100;        // 40..200 (%)
     public static int curveQuality = 1;       // 0 smooth, 1 balanced, 2 fast
     public static boolean shadows = true;
-    public static boolean adaptive = true;    // auto-lower detail when FPS drops
+    public static boolean adaptive = DEFAULT_ADAPTIVE_QUALITY; // auto-lower detail when FPS drops
     public static int scrollSpeed = 100;      // 50..300 (%), wheel and swipe speed (keys are fixed)
     /** Dungeon tab: replace the server's Spirit Leap menu with the teammate selector. On by default. */
     public static boolean leapMenu = true;
     /** Dungeon tab: outline dungeon mobs (named mobs with a level tag). On by default. Overlay only. */
     public static boolean mobHighlights = true;
     /**
-     * BETA. Off by default. Lowers the cost of Sky VeLor's own GUI, HUD and background work only:
+     * Performance Boost Beta. Enabled on a fresh install. Selects lower-cost Sky VeLor GUI/HUD work:
      * fewer curve segments and no shadows in the hub and editor, slower HUD scans, and cached HUD text.
      * It never touches entity rendering, world rendering or JVM flags.
      */
-    public static boolean experimentalPerformance = false;
+    public static boolean experimentalPerformance = DEFAULT_PERFORMANCE_BOOST_BETA;
     public static boolean slayerTracker = true;        // track Slayer drops from chat
     public static boolean slayerBossTimer = true;      // boss spawn to quest complete timer
     public static boolean slayerPricing = true;        // profit and /setprice
@@ -110,11 +113,10 @@ public final class AppleSettings {
         animSpeed = readInt(p, "animSpeed", animSpeed, 40, 200);
         curveQuality = readInt(p, "curveQuality", curveQuality, 0, 2);
         shadows = readBool(p, "shadows", shadows);
-        adaptive = readBool(p, "adaptive", adaptive);
+        loadPerformanceSettings(p);
         scrollSpeed = readInt(p, "scrollSpeed", scrollSpeed, 50, 300);
         leapMenu = readBool(p, "leapMenu", leapMenu);
         mobHighlights = readBool(p, "mobHighlights", mobHighlights);
-        experimentalPerformance = readBool(p, "experimentalPerformance", experimentalPerformance);
         leapKey = readBool(p, "leapKey", leapKey);
         svCommand = readBool(p, "cmd.sv", svCommand);
         slayerTracker = readBool(p, "slayer.tracker", slayerTracker);
@@ -180,7 +182,13 @@ public final class AppleSettings {
         }
     }
 
-    private static boolean readBool(Properties p, String key, boolean def) {
+    /** Loads the two performance defaults while honoring explicit values saved by the user. */
+    static void loadPerformanceSettings(Properties p) {
+        adaptive = readBool(p, "adaptive", adaptive);
+        experimentalPerformance = readBool(p, "experimentalPerformance", experimentalPerformance);
+    }
+
+    static boolean readBool(Properties p, String key, boolean def) {
         return Boolean.parseBoolean(p.getProperty(key, Boolean.toString(def)));
     }
 }

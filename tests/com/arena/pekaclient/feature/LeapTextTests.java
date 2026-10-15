@@ -11,6 +11,8 @@ public final class LeapTextTests {
 
     public static void main(String[] args) {
         stripsFormatting();
+        normalizesScoreboardText();
+        formatsPlayerDisplayName();
         readsClassFromLore();
         ignoresLinesThatOnlyLookLikeClass();
         matchesOnlyTheLeapTitle();
@@ -19,6 +21,7 @@ public final class LeapTextTests {
         prefixMarkersGiveClasses();
         prefixIgnoresBadInput();
         prefixMatchesOnlyItsOwner();
+        parsesMarkersAcrossTeamPrefixAndSuffix();
         userExamplesFromTheServer();
         truncatedNameMatchesOnlyUniquely();
         truncatedNameRejectsBadCuts();
@@ -45,6 +48,25 @@ public final class LeapTextTests {
         check("strip null", "".equals(LeapText.strip(null)), "");
         check("strip plain", "Plain".equals(LeapText.strip("Plain")), "");
         check("strip trailing sign", "x".equals(LeapText.strip("x\u00a7")), "");
+    }
+
+    private static void normalizesScoreboardText() {
+        check("formatting and controls normalized", "[B] [MVP+] Chimpanzee_7"
+                .equals(LeapText.normalize("\u00a7b[B]\u0001 \u00a76[MVP+]\u00a7r\u00a0Chimpanzee_7\u200b")), "");
+        check("separated section codes stripped", "[T] player4".equals(LeapText.normalize("[\u00a7aT\u00a7r]   player4")), "");
+        check("private-use server icon removed", "[MVP+] Player_7".equals(
+                LeapText.normalize("\ue000[MVP+] Player_7")), "");
+    }
+
+    private static void formatsPlayerDisplayName() {
+        String formatted = "\ue000\u00a7b[B] \u00a76[MVP+] \u00a7fChimpanzee_7 (Healer XXV)";
+        String display = LeapText.playerDisplayName(formatted, "Chimpanzee_7");
+        check("rank kept, class marker and tab suffix removed",
+                "[MVP+] Chimpanzee_7".equals(LeapText.normalize(display)), "");
+        check("rank formatting retained", display.contains("\u00a76") && display.contains("\u00a7f"), "");
+        check("private-use glyph removed from formatted label", !display.contains("\ue000"), "");
+        check("bad display falls back to canonical name", "Player_1".equals(
+                LeapText.playerDisplayName("[VIP] AnotherPlayer", "Player_1")), "");
     }
 
     private static void readsClassFromLore() {
@@ -124,6 +146,20 @@ public final class LeapTextTests {
         check("class not shared", LeapText.classFromPrefix("[M] bob", "alice") == null, "");
     }
 
+    private static void parsesMarkersAcrossTeamPrefixAndSuffix() {
+        String assembled = "\u00a7b[B] [MVP+] " + "\u00a7fDipanshu_ff" + "\u00a77 42";
+        check("team prefix plus member plus suffix", LeapClass.BERSERK == LeapText.classFromScoreboardLine(
+                assembled, "Dipanshu_ff", Arrays.asList("Dipanshu_ff")), "");
+        check("class marker in team suffix", LeapClass.TANK == LeapText.classFromScoreboardLine(
+                "[VIP] whiteshadow [T]", "whiteshadow", Arrays.asList("whiteshadow")), "");
+        check("suffix marker not assigned to previous player", LeapText.classFromScoreboardLine(
+                "alice [M] bob", "alice", Arrays.asList("alice", "bob")) == null, "");
+        check("suffix marker matched to next player prefix", LeapText.classFromScoreboardLine(
+                "[A] alice [M] bob", "bob", Arrays.asList("alice", "bob")) == LeapClass.MAGE, "");
+        check("rank is not a dungeon class", LeapText.classFromScoreboardLine(
+                "[VIP] whiteshadow", "whiteshadow", Arrays.asList("whiteshadow")) == null, "");
+    }
+
     /** The three formats the server sends, as given in the request, plus a rank before the marker. */
     private static void userExamplesFromTheServer() {
         check("example truncated Berserk", LeapClass.BERSERK == LeapText.classFromTruncated(
@@ -151,6 +187,9 @@ public final class LeapTextTests {
         check("unique cut with formatting", LeapClass.MAGE == LeapText.classFromTruncated(
                 "\u00a77[\u00a7bM\u00a77] \u00a7fanuptri\u00a77...", "anuptripah_zz",
                 Arrays.asList("anuptripah_zz", "Steve")), "");
+        check("duplicate tab/card identity does not make cut ambiguous", LeapClass.BERSERK
+                == LeapText.classFromTruncated("[B] anuptripah...", "anuptripah_zz",
+                Arrays.asList("anuptripah_zz", "AnupTripah_ZZ")), "");
     }
 
     private static void truncatedNameRejectsBadCuts() {

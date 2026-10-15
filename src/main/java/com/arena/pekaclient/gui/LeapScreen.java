@@ -1,9 +1,13 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.feature.LeapClass;
+import com.arena.pekaclient.feature.LeapClassCache;
+import com.arena.pekaclient.feature.LeapDiagnostics;
+import com.arena.pekaclient.feature.LeapIdentity;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.render.SkinHead;
+import com.arena.pekaclient.render.UIRender;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import net.minecraft.client.Minecraft;
@@ -11,12 +15,15 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.network.NetworkPlayerInfo;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.SkinManager;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTUtil;
+import net.minecraft.scoreboard.Score;
+import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.util.IChatComponent;
@@ -26,87 +33,110 @@ import org.lwjgl.input.Keyboard;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The Spirit Leap teammate picker. It replaces only the server-opened leap chest, and it is a plain flat screen:
- * a dark translucent panel, a grid of rectangular teammate cards, and a square player head on the left of each
- * card with the name beside it and the class label beneath the name. There are no rounded cards and no window
- * controls, and the Sky VeLor hub layout is not used.
+ * The Spirit Leap teammate picker. It replaces only the server-opened leap chest and draws a centered two-column
+ * grid of compact rounded teammate cards over the visible world. Each card places a square player head to the left
+ * of a fitted, enlarged player name and class label. There is no full-screen dimmer or window frame, and the Sky
+ * VeLor hub layout is not used.
  *
  * Every click is the server's own window click on the teammate's slot, the same as a left click in the vanilla
  * menu. Sky VeLor sends no packet and no command of its own. After a pick the screen waits for the server, so a
  * double click or a held Enter cannot send a second leap.
  *
- * Heads: the skin is requested with {@code getLocationSkin()}, which starts the download. The real skin is drawn
- * only once {@code hasLocationSkin()} reports it has arrived. While it loads, a dark placeholder with a pulse is
- * drawn. The first letter is drawn only when the player is not in the tab list or the skin never arrived.
+ * Heads use the matching tab-list skin or an asynchronous profile-texture lookup. A useful letter fallback is
+ * drawn immediately while a skin is unavailable, and failed texture lookups are retried with a cooldown.
  *
- * Classes: read from the scoreboard team prefix and the tab-list entry, matched to the owner by name. See
- * {@link LeapText#classFromPrefix}. Unknown data shows as \"Unknown class\".
+ * Classes are read from visible scoreboard rows/team text first, then the matching tab-list entry and item lore.
+ * A short-lived class cache is keyed by UUID (or canonical username when UUID is unavailable), never by a rank- or
+ * class-formatted display name. Unknown data shows as \"Unknown class\".
  */
 public final class LeapScreen extends GuiScreen {
 
     private static final long PENDING_NS = 1500000000L;
-    /** How long a skin may take to arrive before the head falls back to a letter. Loading keeps going. */
-    private static final long SKIN_WAIT_NS = 12000000000L;
+    /** Scoreboard and tab data changes slowly; avoid rebuilding the snapshot on every render frame. */
+    private static final long REFRESH_INTERVAL_NS = 250000000L;
+    /** A failed profile lookup is eligible for a retry after this delay. */
+    private static final long SKIN_RETRY_MS = 15000L;
 
-    private static final int CARD_H = 46;
-    private static final int HEAD = 32;
-    private static final int GAP = LeapLayout.GAP;
-    private static final int PAD = LeapLayout.PAD;
-    private static final int TITLE_H = 24;
-    private static final int FOOT_H = 20;
-    private static final int EMPTY_H = 40;
+    private static final int TEST_LABEL_HEIGHT = 18;
+    static final float NAME_SCALE = 2.6f;
+    static final float CLASS_SCALE = 1.9f;
+    private static final int FONT_LINE_HEIGHT = 9;
+    private static final int NAME_LINE_GAP = 1;
+    private static final float MIN_SINGLE_LINE_NAME_SCALE = 1.6f;
+    private static final float CLASS_RELATIVE_SCALE = 0.82f;
+    private static final int CLASS_TEXT_GAP = 3;
+    private static final int TEXT_VERTICAL_PADDING = 2;
 
-    private static final int PANEL = 0xD0000000;
-    private static final int PANEL_EDGE = 0xFF3A3A3A;
-    private static final int CARD_FILL = 0xB0101010;
-    private static final int BADGE_FILL = 0x33FFFFFF;
-    private static final int CARD_EDGE = 0xFF2E2E2E;
-    private static final int CARD_LIT = 0x40FFFFFF;
-    private static final int CARD_SELECT_EDGE = 0xFFE8E8E8;
-    private static final int HEAD_PLACEHOLDER = 0xFF1B2230;
+    private static final int CARD_FILL = LeapPalette.CARD_BACKGROUND;
+    private static final int CARD_HOVER = LeapPalette.CARD_HOVER_BACKGROUND;
+    private static final int CARD_EDGE = LeapPalette.CARD_BORDER;
+    private static final int CARD_SELECT_EDGE = LeapPalette.CARD_HOVER_BORDER;
     private static final int HEAD_LETTER = 0xFF2C3E5C;
     private static final int TEXT = 0xFFFFFFFF;
-    private static final int TEXT_DIM = 0xFFA0A0A0;
+    private static final int TEXT_DIM = 0xFFE0E0E0;
 
-    /** Head states. Only UNAVAILABLE shows a letter. LOADING shows a placeholder, never a generic face. */
+    /** Head states: unavailable skins immediately use a named fallback tile; ready skins use the real texture. */
     private static final int SKIN_UNAVAILABLE = 0;
-    private static final int SKIN_LOADING = 1;
-    private static final int SKIN_READY = 2;
+    private static final int SKIN_READY = 1;
 
-    /** Skull textures already loaded, keyed by lower-case owner name. Filled by the skin loader's callback. */
+    /** Resolved skull textures, keyed by profile UUID when known (otherwise by canonical username). */
     private static final Map<String, ResourceLocation> SKULL_SKINS = new ConcurrentHashMap<String, ResourceLocation>();
-    /** Owners whose skull texture has been asked for, so each owner is requested once. */
-    private static final Map<String, Boolean> SKULL_REQUESTED = new ConcurrentHashMap<String, Boolean>();
+    /** Last profile-texture request time. A miss is not permanent and can be retried after SKIN_RETRY_MS. */
+    private static final Map<String, Long> SKULL_REQUESTED_AT = new ConcurrentHashMap<String, Long>();
 
-    /** One teammate, kept by slot number between frames. */
+    private static final class BoardEntry {
+        final String member;
+        final String raw;
+
+        BoardEntry(String member, String raw) {
+            this.member = member;
+            this.raw = raw;
+        }
+    }
+
+    private static final class BoardDetection {
+        final String member;
+        final String raw;
+        final LeapClass cls;
+
+        BoardDetection(String member, String raw, LeapClass cls) {
+            this.member = member;
+            this.raw = raw;
+            this.cls = cls;
+        }
+    }
+
+    /** One teammate, kept by slot number between refreshes. Live and preview cards use the same renderer. */
     private static final class Card {
         final int slot;
         ItemStack stack;
         String name = "";
         String owner = "";
-        /** The item's own \"Class: X\" lore line, or null. Used only when no prefix gives a class. */
+        String rawDisplay = "";
+        /** The item's own \"Class: X\" lore line, or null. Used after scoreboard/tab data. */
         String loreClass;
-        /** The class read from the scoreboard or tab-list prefix, or null when not reliable. */
         LeapClass cls;
-        /** Debug: the raw scoreboard and tab-list texts this card was matched from, and where the class came from. */
         String rawBoard;
         String rawTab;
         String source = "none";
-        /** The scoreboard member the class was matched to, for the debug line. */
         String boardMember;
-        /** The skull's own profile (name, id and textures), or null for a non-skull item. */
+        /** The skull's own profile (name, UUID and textures), or null for a non-skull item. */
         GameProfile profile;
+        String identityKey;
+        String identityUsername;
         String clsText = LeapClass.displayText(null);
         int clsColor = LeapClass.UNKNOWN_COLOR;
         ResourceLocation skin;
         int skinState = SKIN_UNAVAILABLE;
-        long skinSinceNs;
         int x;
         int y;
 
@@ -116,36 +146,89 @@ public final class LeapScreen extends GuiScreen {
     }
 
     private final Container container;
+    private final boolean preview;
+    private final GuiScreen previewParent;
+    private final LeapClassCache classCache = new LeapClassCache();
     private final List<Card> previous = new ArrayList<Card>();
     private final List<Card> cards = new ArrayList<Card>();
     private final List<Slot> slotBuffer = new ArrayList<Slot>();
 
     private int highlight;
+    private int previewOffset;
     private int cols = LeapLayout.COLS;
-    /** Card width for the current screen. Set in {@link #layout()}. */
-    private int cardW = LeapLayout.MIN_CARD_W;
+    /** Responsive card geometry for the current scaled Minecraft viewport. */
+    private int cardW;
+    private int cardH;
+    private int headSize;
+    private int gapX;
+    private int gapY;
+    private int gridY;
     private long pendingUntilNs;
-    private int panelX;
-    private int panelY;
-    private int panelW;
-    private int panelH;
-    private int closeX;
-    private int closeY;
-    private int closeW;
+    private long lastRefreshNs;
 
     public LeapScreen(Container container) {
+        if (container == null) {
+            throw new IllegalArgumentException("Live Spirit Leap screen requires the server container");
+        }
         this.container = container;
+        this.preview = false;
+        this.previewParent = null;
+    }
+
+    private LeapScreen(GuiScreen parent) {
+        this.container = null;
+        this.preview = true;
+        this.previewParent = parent;
+        addPreviewCards();
+    }
+
+    /** Opens this real screen in isolated local preview mode; no container or gameplay action is available. */
+    public static LeapScreen createPreview(GuiScreen parent) {
+        return new LeapScreen(parent);
+    }
+
+    private void addPreviewCards() {
+        cards.clear();
+        for (int slot = 0; slot < LeapPreviewData.CARD_COUNT; slot++) {
+            int sample = LeapPreviewData.sampleIndex(previewOffset, slot);
+            addPreviewCard(slot, LeapPreviewData.displayName(sample), LeapPreviewData.username(sample),
+                    LeapPreviewData.playerClass(sample));
+        }
+        highlight = Math.min(highlight, Math.max(0, cards.size() - 1));
+    }
+
+    private void cyclePreviewSamples(int direction) {
+        if (!preview) {
+            return;
+        }
+        previewOffset = Math.floorMod(previewOffset + direction, LeapPreviewData.SAMPLE_COUNT);
+        addPreviewCards();
+    }
+
+    private void addPreviewCard(int slot, String displayName, String username, LeapClass cls) {
+        Card card = new Card(slot);
+        card.name = displayName;
+        card.owner = username;
+        card.identityKey = "preview:" + slot;
+        card.cls = cls;
+        card.clsText = cls.label();
+        card.clsColor = cls.color();
+        // The normal unavailable-skin renderer draws a legible initial tile; preview never requests or caches skins.
+        card.skinState = SKIN_UNAVAILABLE;
+        cards.add(card);
     }
 
     @Override
     public void initGui() {
         super.initGui();
         Keyboard.enableRepeatEvents(true);
-        // The chest the server opened was swapped before its own initGui ran, so make this container the
-        // player's open container here. Otherwise the server's window updates would not reach this menu.
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer != null) {
-            mc.thePlayer.openContainer = container;
+        if (!preview) {
+            // The chest the server opened was swapped before its own initGui ran, so make this container the
+            // player's open container here. Otherwise the server's window updates would not reach this menu.
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.thePlayer != null) {
+                mc.thePlayer.openContainer = container;
+            }
         }
     }
 
@@ -153,14 +236,19 @@ public final class LeapScreen extends GuiScreen {
     public void onGuiClosed() {
         super.onGuiClosed();
         Keyboard.enableRepeatEvents(false);
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer != null) {
-            container.onContainerClosed(mc.thePlayer);
+        if (!preview) {
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.thePlayer != null) {
+                container.onContainerClosed(mc.thePlayer);
+            }
         }
     }
 
-    /** True while the server still has this menu open for the player. */
+    /** True while the server still has this live menu open; local preview screens are independent of containers. */
     private boolean stillOpen() {
+        if (preview) {
+            return true;
+        }
         EntityPlayerSP p = Minecraft.getMinecraft().thePlayer;
         return p != null && p.openContainer == container;
     }
@@ -168,22 +256,34 @@ public final class LeapScreen extends GuiScreen {
     @Override
     public void updateScreen() {
         super.updateScreen();
-        if (!stillOpen()) {
+        if (!preview && !stillOpen()) {
             Minecraft.getMinecraft().displayGuiScreen(null);
+            return;
         }
+        refreshIfNeeded();
     }
 
     /**
-     * Reads the teammates from the open menu. Cards are matched to the previous frame by slot number, so the
-     * hover state survives. Item details are re-read only when the item in a slot changes. The scoreboard and
-     * tab-list class is re-read every frame, so a change there shows up at once.
+     * Refreshes the live snapshot at most four times a second. Scoreboard parsing and item tooltip extraction do not
+     * run per render frame; skin callbacks and input remain non-blocking.
      */
-    private void refresh() {
+    private void refreshIfNeeded() {
+        if (preview) {
+            return;
+        }
+        long now = System.nanoTime();
+        if (lastRefreshNs != 0L && now - lastRefreshNs < REFRESH_INTERVAL_NS) {
+            return;
+        }
+        lastRefreshNs = now;
+        refresh(System.currentTimeMillis());
+    }
+
+    private void refresh(long nowMs) {
         SpiritLeap.teammateSlots(container, slotBuffer);
         previous.clear();
         previous.addAll(cards);
         cards.clear();
-        long now = System.nanoTime();
         for (int i = 0, n = slotBuffer.size(); i < n; i++) {
             Slot s = slotBuffer.get(i);
             Card c = null;
@@ -197,17 +297,25 @@ public final class LeapScreen extends GuiScreen {
                 c = new Card(s.slotNumber);
             }
             ItemStack stack = s.getStack();
-            if (stack != c.stack) {
-                c.stack = stack;
-                readDetails(c, stack);
-            }
+            // Re-read the small number of skull items each snapshot. Server updates can mutate an ItemStack in place.
+            c.stack = stack;
+            readDetails(c, stack);
             cards.add(c);
         }
-        // Names are known only after every card has read its owner, so the class pass runs second.
-        Collection<String> names = knownNames();
+
+        Minecraft mc = Minecraft.getMinecraft();
+        List<NetworkPlayerInfo> playerInfos = playerInfos(mc);
+        Scoreboard board = mc.theWorld == null ? null : mc.theWorld.getScoreboard();
+        List<BoardEntry> boardEntries = scoreboardEntries(board);
+        Collection<String> names = knownNames(playerInfos, boardEntries);
+        Set<String> activeIdentities = new HashSet<String>();
         for (Card c : cards) {
-            resolve(c, now, names);
+            resolve(c, nowMs, playerInfos, boardEntries, names);
+            if (c.identityKey != null) {
+                activeIdentities.add(c.identityKey);
+            }
         }
+        classCache.retainCurrentPlayers(activeIdentities, nowMs);
         if (highlight >= cards.size()) {
             highlight = Math.max(0, cards.size() - 1);
         }
@@ -217,18 +325,25 @@ public final class LeapScreen extends GuiScreen {
         if (stack == null) {
             c.name = "";
             c.owner = "";
+            c.rawDisplay = "";
             c.loreClass = null;
+            c.profile = null;
             return;
         }
-        String display = LeapText.strip(stack.getDisplayName()).trim();
-        c.owner = ownerName(stack, display);
-        c.name = usernameOrClean(c.owner, display);
+        c.rawDisplay = stack.getDisplayName() == null ? "" : stack.getDisplayName();
         c.profile = skullProfile(stack);
-        List<String> lore = stack.getTooltip(Minecraft.getMinecraft().thePlayer, false);
+        String taggedOwner = ownerName(stack, "");
+        c.owner = LeapIdentity.canonicalUsername(taggedOwner);
+        if (c.owner == null && c.profile != null) {
+            c.owner = LeapIdentity.canonicalUsername(c.profile.getName());
+        }
+        c.name = LeapText.normalize(c.rawDisplay);
+        EntityPlayerSP player = Minecraft.getMinecraft().thePlayer;
+        List<String> lore = player == null ? null : stack.getTooltip(player, false);
         c.loreClass = LeapText.classFromLore(lore);
     }
 
-    /** The skull owner's profile from the item NBT (compound form only), or null. Never throws. */
+    /** The skull owner's profile from compound-form NBT, or null. Never throws. */
     static GameProfile skullProfile(ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
         if (tag == null || !tag.hasKey("SkullOwner", 10)) {
@@ -236,209 +351,314 @@ public final class LeapScreen extends GuiScreen {
         }
         try {
             GameProfile profile = NBTUtil.readGameProfileFromNBT(tag.getCompoundTag("SkullOwner"));
-            return profile == null || profile.getName() == null || profile.getName().isEmpty() ? null : profile;
+            if (profile == null) {
+                return null;
+            }
+            String name = LeapIdentity.canonicalUsername(profile.getName());
+            return name != null || profile.getId() != null ? profile : null;
         } catch (RuntimeException e) {
             return null;
         }
     }
 
-    /**
-     * Works out a teammate's head state and class. The class comes from the scoreboard team prefix and the
-     * tab-list entry, both matched to the owner's name. If the two disagree, the class is unknown. If neither
-     * gives one, the item's own \"Class:\" lore line is used when it names one of the five classes exactly.
-     */
-    private static void resolve(Card c, long now, Collection<String> names) {
-        Minecraft mc = Minecraft.getMinecraft();
-        NetworkPlayerInfo info = null;
-        if (!c.owner.isEmpty() && mc.getNetHandler() != null) {
-            info = mc.getNetHandler().getPlayerInfo(c.owner);
-            if (info == null) {
-                // Exact lookup missed: compare the tab-list profile names without case.
-                for (Object o : mc.getNetHandler().getPlayerInfoMap()) {
-                    NetworkPlayerInfo p = (NetworkPlayerInfo) o;
-                    if (p.getGameProfile() != null && LeapText.sameName(p.getGameProfile().getName(), c.owner)) {
-                        info = p;
-                        break;
-                    }
-                }
+    /** Resolves one card from a single scoreboard/tab snapshot and its identity-bound cache. */
+    private void resolve(Card c, long nowMs, List<NetworkPlayerInfo> infos,
+                         List<BoardEntry> boardEntries, Collection<String> names) {
+        if (c.owner == null) {
+            c.owner = LeapIdentity.usernameFromDisplay(c.rawDisplay, names);
+        }
+        NetworkPlayerInfo info = findPlayerInfo(c, infos);
+        if (c.owner == null && info != null && info.getGameProfile() != null) {
+            c.owner = LeapIdentity.canonicalUsername(info.getGameProfile().getName());
+        }
+
+        UUID uuid = c.profile == null ? null : c.profile.getId();
+        if (uuid == null && info != null && info.getGameProfile() != null) {
+            uuid = info.getGameProfile().getId();
+        }
+        c.identityKey = LeapIdentity.identityKey(uuid, c.owner, c.identityKey, c.identityUsername);
+        if (LeapIdentity.canonicalUsername(c.owner) != null) {
+            c.identityUsername = c.owner;
+        }
+        c.name = displayName(c.rawDisplay, info, c.owner);
+        resolveSkin(c, info, nowMs);
+
+        BoardDetection boardHit = findBoardEntry(boardEntries, c.owner, names);
+        String boardRaw = boardHit == null ? null : boardHit.raw;
+        String boardMember = boardHit == null ? null : boardHit.member;
+        LeapClass fromBoard = boardHit == null ? null : boardHit.cls;
+        String tabRaw = info == null ? null : tabText(info);
+        String tabName = info == null || info.getGameProfile() == null
+                ? c.owner : LeapIdentity.canonicalUsername(info.getGameProfile().getName());
+        LeapClass fromTab = tabRaw == null || tabName == null ? null : classFrom(tabRaw, tabName, names, true);
+
+        // Scoreboard class markers are the primary source. Tab data is only a fallback; a delayed or conflicting
+        // tab refresh must not erase an authoritative scoreboard class.
+        LeapClass detected = fromBoard != null ? fromBoard : fromTab;
+        String source = fromBoard != null ? "scoreboard" : fromTab != null ? "tab" : "none";
+        if (detected == null && c.loreClass != null) {
+            detected = LeapClass.parse(c.loreClass);
+            if (detected != null) {
+                source = "lore";
             }
         }
-        resolveSkin(c, info, now);
-
-        Scoreboard board = mc.theWorld == null ? null : mc.theWorld.getScoreboard();
-        String[] boardHit = board == null ? null : findBoardEntry(board, c, names);
-        if (boardHit == null && board != null) {
-            dumpScoreboard(board, c.owner);
-        }
-        String boardRaw = boardHit == null ? null : boardHit[1];
-        String boardMember = boardHit == null ? null : boardHit[0];
-        LeapClass fromBoard = boardHit == null ? null : classFrom(boardRaw, boardMember, names);
-        String tabRaw = info == null ? null : tabText(info);
-        String tabName = info == null || info.getGameProfile() == null ? c.owner : info.getGameProfile().getName();
-        LeapClass fromTab = info == null ? null : classFrom(tabRaw, tabName, names);
-
-        LeapClass cls;
-        if (fromBoard != null && fromTab != null && fromBoard != fromTab) {
-            cls = null;
-        } else {
-            cls = fromBoard != null ? fromBoard : fromTab;
-        }
-        String source = fromBoard != null ? "scoreboard" : fromTab != null ? "tab" : "none";
-        if (cls == null && c.loreClass != null) {
-            cls = LeapClass.parse(c.loreClass);
-            source = cls != null ? "lore" : source;
-        }
-        c.cls = cls;
-        c.clsText = cls == null ? LeapClass.displayText(null) : cls.label();
-        c.clsColor = cls == null ? LeapClass.UNKNOWN_COLOR : cls.color();
+        boolean conflict = fromBoard != null && fromTab != null && fromBoard != fromTab;
+        LeapClassCache.Resolution resolution = classCache.resolve(c.identityKey, detected, source, nowMs);
+        c.cls = resolution.value;
+        c.clsText = LeapClass.displayText(c.cls == null ? null : c.cls.label());
+        c.clsColor = c.cls == null ? LeapClass.UNKNOWN_COLOR : c.cls.color();
         c.rawBoard = boardRaw;
         c.boardMember = boardMember;
         c.rawTab = tabRaw;
-        c.source = cls == null ? "none (Unknown class)" : source;
+        c.source = c.cls == null ? "none" : resolution.source;
+
+        boolean lowerPriorityConflict = resolution.reason.startsWith("conflicting lower-priority ");
+        if (resolution.changed || conflict || lowerPriorityConflict) {
+            String reason = resolution.reason;
+            if (conflict) {
+                reason = "scoreboard/tab disagreement; scoreboard class was kept as authoritative. " + reason;
+            }
+            String diagnosticBoard = boardRaw == null ? summarizeScoreboard(boardEntries) : boardRaw;
+            LeapDiagnostics.record(c.identityKey == null ? "slot:" + c.slot : c.identityKey,
+                    c.owner, diagnosticBoard, fromBoard != null ? fromBoard : fromTab,
+                    c.cls, c.source, reason);
+        }
     }
 
-    /**
-     * Finds the scoreboard entry for a teammate. Every team is searched, and each member is compared with the
-     * skull owner and the item's display name, ignoring case. Returns {member, formatted text} or null.
-     * The formatted text is the team prefix, the member name and the suffix, as the sidebar shows them.
-     */
-    static String[] findBoardEntry(Scoreboard board, Card c, Collection<String> names) {
-        List<String> candidates = new ArrayList<String>(2);
-        if (!c.owner.isEmpty()) {
-            candidates.add(c.owner);
-        }
-        if (!c.name.isEmpty() && !candidates.contains(c.name)) {
-            candidates.add(c.name);
-        }
-        // Every team line is checked, not only the member key. The class marker can sit on a different line
-        // than the one that holds the level. The first line that gives a class wins; otherwise the first match.
-        String[] first = null;
-        for (String want : candidates) {
-            for (ScorePlayerTeam team : board.getTeams()) {
-                for (String member : team.getMembershipCollection()) {
-                    String raw = ScorePlayerTeam.formatPlayerName(team, member);
-                    boolean hasName = LeapText.sameName(member, want) || LeapText.sameName(LeapText.strip(raw), want)
-                            || LeapText.strip(raw).contains(want);
-                    if (!hasName) {
-                        continue;
-                    }
-                    String[] hit = new String[]{member, raw};
-                    if (classFrom(raw, want, names) != null) {
-                        return hit;
-                    }
-                    if (first == null) {
-                        first = hit;
-                    }
+    private static NetworkPlayerInfo findPlayerInfo(Card c, List<NetworkPlayerInfo> infos) {
+        UUID itemId = c.profile == null ? null : c.profile.getId();
+        if (itemId != null) {
+            for (NetworkPlayerInfo info : infos) {
+                GameProfile profile = info.getGameProfile();
+                if (profile != null && itemId.equals(profile.getId())) {
+                    return info;
                 }
+            }
+            // A UUID is stronger than a display-name match. Do not attach another player's skin if it disagrees.
+            return null;
+        }
+        if (c.owner == null) {
+            return null;
+        }
+        for (NetworkPlayerInfo info : infos) {
+            GameProfile profile = info.getGameProfile();
+            if (profile != null && LeapIdentity.sameUsername(profile.getName(), c.owner)) {
+                return info;
+            }
+        }
+        return null;
+    }
+
+    /** Uses the formatted tab/item label when it names this player, preserving rank colours; otherwise uses the ID. */
+    private static String displayName(String itemDisplay, NetworkPlayerInfo info, String owner) {
+        String formatted = null;
+        if (info != null && info.getDisplayName() != null) {
+            formatted = info.getDisplayName().getFormattedText();
+        }
+        if (owner != null && LeapIdentity.containsUsername(formatted, owner)) {
+            return LeapText.playerDisplayName(formatted, owner);
+        }
+        if (owner != null && LeapIdentity.containsUsername(itemDisplay, owner)) {
+            return LeapText.playerDisplayName(itemDisplay, owner);
+        }
+        if (LeapIdentity.canonicalUsername(owner) != null) {
+            return owner;
+        }
+        String fallback = LeapText.normalize(itemDisplay);
+        return fallback.isEmpty() ? "Unknown" : fallback;
+    }
+
+    /** Matches only the canonical username or a whole username token in a scoreboard row; no substring fallback. */
+    private static BoardDetection findBoardEntry(List<BoardEntry> entries, String owner, Collection<String> names) {
+        if (owner == null) {
+            return null;
+        }
+        BoardDetection first = null;
+        for (BoardEntry entry : entries) {
+            boolean identityMatch = LeapIdentity.sameUsername(entry.member, owner)
+                    || LeapIdentity.containsUsername(entry.raw, owner)
+                    || LeapIdentity.sameUsername(LeapIdentity.usernameFromDisplay(entry.member, names), owner);
+            LeapClass detected = classFrom(entry.raw, owner, names, false);
+            if (!identityMatch && detected == null) {
+                continue;
+            }
+            BoardDetection hit = new BoardDetection(entry.member, entry.raw, detected);
+            if (detected != null) {
+                return hit;
+            }
+            if (first == null) {
+                first = hit;
             }
         }
         return first;
     }
 
-    /** The class from one raw text: the exact owner match first, then the unique truncated-name match. */
-    private static LeapClass classFrom(String raw, String owner, Collection<String> names) {
-        if (raw == null) {
+    private static LeapClass classFrom(String raw, String owner, Collection<String> names, boolean tabSource) {
+        if (raw == null || owner == null) {
             return null;
         }
-        LeapClass exact = LeapText.classFromPrefix(raw, owner);
-        return exact != null ? exact : LeapText.classFromTruncated(raw, owner, names);
-    }
-
-    /** Every name the client can see: the tab list profiles and the owners of the cards in this menu. */
-    private Collection<String> knownNames() {
-        List<String> out = new ArrayList<String>();
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.getNetHandler() != null) {
-            for (Object o : mc.getNetHandler().getPlayerInfoMap()) {
-                NetworkPlayerInfo info = (NetworkPlayerInfo) o;
-                if (info.getGameProfile() != null && info.getGameProfile().getName() != null) {
-                    out.add(info.getGameProfile().getName());
-                }
+        if (tabSource) {
+            LeapClass fromTabClass = LeapClass.parse(LeapText.classFromTab(raw, owner));
+            if (fromTabClass != null) {
+                return fromTabClass;
             }
         }
-        for (Card c : cards) {
-            if (!c.owner.isEmpty()) {
-                out.add(c.owner);
+        return LeapText.classFromScoreboardLine(raw, owner, names);
+    }
+
+    private static List<NetworkPlayerInfo> playerInfos(Minecraft mc) {
+        List<NetworkPlayerInfo> out = new ArrayList<NetworkPlayerInfo>();
+        if (mc.getNetHandler() == null) {
+            return out;
+        }
+        for (Object value : mc.getNetHandler().getPlayerInfoMap()) {
+            if (value instanceof NetworkPlayerInfo) {
+                out.add((NetworkPlayerInfo) value);
             }
         }
         return out;
     }
 
-    /**
-     * Works out the head. The tab-list skin is used when the player is in the tab list. Otherwise the skull's own
-     * texture is used, loaded once per owner. Never blocks: it only reads state and starts the loads.
-     */
-    private static void resolveSkin(Card c, NetworkPlayerInfo info, long now) {
+    /** Sidebar entries are scanned first, then team membership rows (prefix + member + suffix). */
+    private static List<BoardEntry> scoreboardEntries(Scoreboard board) {
+        List<BoardEntry> out = new ArrayList<BoardEntry>();
+        Set<String> seen = new HashSet<String>();
+        if (board == null) {
+            return out;
+        }
+        ScoreObjective sidebar = board.getObjectiveInDisplaySlot(1);
+        if (sidebar != null) {
+            Collection<Score> scores = board.getSortedScores(sidebar);
+            if (scores != null) {
+                for (Score score : scores) {
+                    if (score != null) {
+                        addBoardEntry(board, score.getPlayerName(), out, seen);
+                    }
+                }
+            }
+        }
+        for (ScorePlayerTeam team : board.getTeams()) {
+            for (String member : team.getMembershipCollection()) {
+                addBoardEntry(board, member, out, seen);
+            }
+        }
+        return out;
+    }
+
+    private static void addBoardEntry(Scoreboard board, String member, List<BoardEntry> out, Set<String> seen) {
+        if (member == null) {
+            return;
+        }
+        ScorePlayerTeam team = board.getPlayersTeam(member);
+        String raw = ScorePlayerTeam.formatPlayerName(team, member);
+        String key = member + '\u0000' + raw;
+        if (seen.add(key)) {
+            out.add(new BoardEntry(member, raw));
+        }
+    }
+
+    private Collection<String> knownNames(List<NetworkPlayerInfo> infos, List<BoardEntry> entries) {
+        List<String> out = new ArrayList<String>();
+        Set<String> seen = new HashSet<String>();
+        for (NetworkPlayerInfo info : infos) {
+            GameProfile profile = info.getGameProfile();
+            if (profile != null) {
+                addKnownName(out, seen, profile.getName());
+            }
+        }
+        for (Card c : cards) {
+            addKnownName(out, seen, c.owner);
+            if (c.profile != null) {
+                addKnownName(out, seen, c.profile.getName());
+            }
+        }
+        for (BoardEntry entry : entries) {
+            addKnownName(out, seen, entry.member);
+        }
+        return out;
+    }
+
+    private static void addKnownName(List<String> out, Set<String> seen, String value) {
+        String name = LeapIdentity.canonicalUsername(value);
+        if (name != null && seen.add(name.toLowerCase(Locale.ROOT))) {
+            out.add(name);
+        }
+    }
+
+    private static String summarizeScoreboard(List<BoardEntry> entries) {
+        StringBuilder summary = new StringBuilder();
+        for (int i = 0; i < entries.size() && i < 15; i++) {
+            if (summary.length() > 0) {
+                summary.append(" | ");
+            }
+            summary.append(LeapText.normalize(entries.get(i).raw));
+        }
+        if (summary.length() > 600) {
+            return summary.substring(0, 600);
+        }
+        return summary.toString();
+    }
+
+    /** Uses only the matching tab profile or this skull's own profile; missing skins remain a visible letter tile. */
+    private static void resolveSkin(Card c, NetworkPlayerInfo info, long nowMs) {
         ResourceLocation skin = null;
         if (info != null) {
-            // getLocationSkin() is what starts the download. hasLocationSkin() reports that it has arrived.
-            ResourceLocation loc = info.getLocationSkin();
+            // This getter may start vanilla's asynchronous download; only use the location after it is ready.
+            ResourceLocation tabSkin = info.getLocationSkin();
             if (info.hasLocationSkin()) {
-                skin = loc;
+                skin = tabSkin;
             }
         }
         if (skin == null && c.profile != null) {
-            skin = skullSkin(c.profile);
+            skin = skullSkin(c.profile, nowMs);
         }
-        if (skin != null) {
-            c.skin = skin;
-            c.skinState = SKIN_READY;
-            c.skinSinceNs = 0L;
-            return;
-        }
-        c.skin = null;
-        if (info == null && c.profile == null) {
-            // Neither the tab list nor the skull can give a skin.
-            c.skinState = SKIN_UNAVAILABLE;
-            c.skinSinceNs = 0L;
-            return;
-        }
-        if (c.skinSinceNs == 0L) {
-            c.skinSinceNs = now;
-        }
-        c.skinState = now - c.skinSinceNs > SKIN_WAIT_NS ? SKIN_UNAVAILABLE : SKIN_LOADING;
+        c.skin = skin;
+        c.skinState = skin == null ? SKIN_UNAVAILABLE : SKIN_READY;
     }
 
-    /** The skull's texture once it has loaded, or null. Starts the load the first time an owner is seen. */
-    private static ResourceLocation skullSkin(final GameProfile profile) {
-        final String key = profile.getName().toLowerCase(Locale.ROOT);
+    /** Loads this skull profile asynchronously, keyed by UUID when available, with a retry for unresolved misses. */
+    private static ResourceLocation skullSkin(final GameProfile profile, long nowMs) {
+        final String key = LeapIdentity.identityKey(profile.getId(), profile.getName());
+        if (key == null) {
+            return null;
+        }
         ResourceLocation done = SKULL_SKINS.get(key);
         if (done != null) {
             return done;
         }
-        if (SKULL_REQUESTED.put(key, Boolean.TRUE) == null) {
-            Minecraft.getMinecraft().getSkinManager().loadProfileTextures(profile,
-                    new SkinManager.SkinAvailableCallback() {
-                        @Override
-                        public void skinAvailable(MinecraftProfileTexture.Type type, ResourceLocation loc,
-                                                  MinecraftProfileTexture texture) {
-                            if (type == MinecraftProfileTexture.Type.SKIN && loc != null) {
-                                SKULL_SKINS.put(key, loc);
+
+        Long lastRequest = SKULL_REQUESTED_AT.get(key);
+        boolean shouldRequest = lastRequest == null
+                ? SKULL_REQUESTED_AT.putIfAbsent(key, nowMs) == null
+                : nowMs - lastRequest >= SKIN_RETRY_MS && SKULL_REQUESTED_AT.replace(key, lastRequest, nowMs);
+        if (shouldRequest) {
+            try {
+                Minecraft.getMinecraft().getSkinManager().loadProfileTextures(profile,
+                        new SkinManager.SkinAvailableCallback() {
+                            @Override
+                            public void skinAvailable(MinecraftProfileTexture.Type type, ResourceLocation loc,
+                                                      MinecraftProfileTexture texture) {
+                                if (type == MinecraftProfileTexture.Type.SKIN && loc != null) {
+                                    SKULL_SKINS.put(key, loc);
+                                    SKULL_REQUESTED_AT.remove(key);
+                                }
                             }
-                        }
-                    }, false);
+                        }, false);
+            } catch (RuntimeException e) {
+                // Leave a retry timestamp behind; a transient client-side failure is not a permanent miss.
+                SKULL_REQUESTED_AT.put(key, System.currentTimeMillis());
+            }
         }
         return null;
     }
 
-    /** The text of a tab-list entry, or the profile name when the entry has no display text. */
+    /** The formatted text of a tab-list entry, or the profile name when it has no display component. */
     private static String tabText(NetworkPlayerInfo info) {
-        IChatComponent dn = info.getDisplayName();
-        if (dn != null) {
-            return dn.getUnformattedText();
+        IChatComponent display = info.getDisplayName();
+        if (display != null) {
+            return display.getFormattedText();
         }
         return info.getGameProfile() == null ? null : info.getGameProfile().getName();
-    }
-
-    /**
-     * The name to show: the skull owner when it is a valid Minecraft username, otherwise the display name with
-     * characters the font cannot draw (server icons) removed.
-     */
-    static String usernameOrClean(String owner, String display) {
-        if (owner != null && owner.matches("[A-Za-z0-9_]{1,16}")) {
-            return owner;
-        }
-        return display == null ? "" : display.replaceAll("[^\\x20-\\x7E]", "").trim();
     }
 
     /** The skull's owner name, from either NBT form, or the display name when the skull has no owner tag. */
@@ -467,24 +687,15 @@ public final class LeapScreen extends GuiScreen {
             mc.displayGuiScreen(null);
             return;
         }
-        refresh();
+        refreshIfNeeded();
         layout();
-        drawDefaultBackground();
 
-        // Panel.
-        drawRect(panelX, panelY, panelX + panelW, panelY + panelH, PANEL);
-        drawBorder(panelX, panelY, panelW, panelH, PANEL_EDGE);
-
+        // Keep the world visible behind the four compact rounded cards.
         FontRenderer fr = fr();
-        fr.drawStringWithShadow("Spirit Leap", panelX + PAD, panelY + 8, TEXT);
-        String sub = cards.size() == 1 ? "1 teammate" : cards.size() + " teammates";
-        fr.drawString(sub, panelX + panelW - PAD - fr.getStringWidth(sub), panelY + 8, TEXT_DIM);
-        drawRect(panelX + 1, panelY + TITLE_H, panelX + panelW - 1, panelY + TITLE_H + 1, PANEL_EDGE);
-
         int hovered = -1;
         for (int i = 0; i < cards.size(); i++) {
             Card c = cards.get(i);
-            if (inside(mx, my, c.x, c.y, cardW, CARD_H)) {
+            if (LeapLayout.containsRoundedRect(mx, my, c.x, c.y, cardW, cardH, LeapPalette.CARD_RADIUS)) {
                 hovered = i;
             }
         }
@@ -498,193 +709,188 @@ public final class LeapScreen extends GuiScreen {
 
         if (cards.isEmpty()) {
             String none = "No teammates in this menu";
-            fr.drawString(none, panelX + (panelW - fr.getStringWidth(none)) / 2, panelY + TITLE_H + 14, TEXT_DIM);
+            fr.drawStringWithShadow(none, (width - fr.getStringWidth(none)) / 2, height / 2 - 4, TEXT_DIM);
         }
-
-        // Footer: hint on the left, close on the right.
-        int footY = panelY + panelH - FOOT_H;
-        drawRect(panelX + 1, footY, panelX + panelW - 1, footY + 1, PANEL_EDGE);
-        String hint = "Click a teammate, or use the arrows and Enter. Esc closes";
-        // DEBUG (temporary): shows what the game gave for the highlighted card when its class is unknown.
-        if (highlight >= 0 && highlight < cards.size() && cards.get(highlight).cls == null) {
-            Card h = cards.get(highlight);
-            hint = "DEBUG board=[" + shortDebug(h.rawBoard) + "] tab=[" + shortDebug(h.rawTab) + "]";
+        if (preview) {
+            String hint = "TEST DATA - N/P cycles sample classes - Esc returns";
+            hint = fr.trimStringToWidth(hint, Math.max(0, width - 12));
+            fr.drawStringWithShadow(hint, (width - fr.getStringWidth(hint)) / 2, 4, TEXT_DIM);
         }
-        int hintW = Math.max(0, panelW - 2 * PAD - 70);
-        fr.drawString(fr.trimStringToWidth(hint, hintW), panelX + PAD, footY + 6, TEXT_DIM);
-        String close = "Close";
-        closeW = fr.getStringWidth(close);
-        closeX = panelX + panelW - PAD - closeW;
-        closeY = footY + 6;
-        boolean closeHover = inside(mx, my, closeX - 4, footY, closeW + 8, FOOT_H);
-        fr.drawString(close, closeX, closeY, closeHover ? TEXT : TEXT_DIM);
-
-        // Tooltip for the hovered card's full class text is not needed: the class is already shown in full.
         super.drawScreen(mx, my, partialTicks);
     }
 
     private void layout() {
         int n = cards.size();
-        int avail = width - 2 * LeapLayout.MARGIN;
-        cardW = LeapLayout.cardWidth(width, HEAD);
         cols = LeapLayout.COLS;
         int rows = LeapLayout.rows(n);
-        int bodyH = rows == 0 ? EMPTY_H : rows * CARD_H + (rows - 1) * GAP;
-        panelW = Math.min(avail, LeapLayout.panelWidth(cardW));
-        panelH = TITLE_H + PAD + bodyH + PAD + FOOT_H;
-        panelX = (width - panelW) / 2;
-        panelY = Math.max(4, (height - panelH) / 2);
+        int topInset = preview ? TEST_LABEL_HEIGHT : 0;
+        cardW = LeapLayout.cardWidth(width, height);
+        cardH = LeapLayout.cardHeight(width, height, rows, topInset);
+        headSize = LeapLayout.headSize(cardW, cardH);
+        gapX = LeapLayout.horizontalGap(width);
+        gapY = LeapLayout.verticalGap(height, rows);
 
-        int gridW = cols * cardW + (cols - 1) * GAP;
-        int startX = panelX + (panelW - gridW) / 2;
-        int startY = panelY + TITLE_H + PAD;
+        int gridH = LeapLayout.gridHeight(cardH, rows, gapY);
+        int availableHeight = Math.max(0, height - topInset);
+        gridY = topInset + Math.max(0, (availableHeight - gridH) / 2);
         for (int i = 0; i < n; i++) {
             Card c = cards.get(i);
-            c.x = startX + (i % cols) * (cardW + GAP);
-            c.y = startY + (i / cols) * (CARD_H + GAP);
+            int row = i / cols;
+            int firstInRow = row * cols;
+            int cardsInRow = Math.min(cols, n - firstInRow);
+            int rowWidth = LeapLayout.gridWidth(cardW, cardsInRow, gapX);
+            int rowX = (width - rowWidth) / 2;
+            int column = i - firstInRow;
+            c.x = rowX + column * (cardW + gapX);
+            c.y = gridY + row * (cardH + gapY);
         }
     }
 
     private void drawCardBackgrounds() {
-        for (int i = 0; i < cards.size(); i++) {
-            Card c = cards.get(i);
-            boolean selected = i == highlight;
-            drawRect(c.x, c.y, c.x + cardW, c.y + CARD_H, CARD_FILL);
-            if (selected) {
-                drawRect(c.x + 1, c.y + 1, c.x + cardW - 1, c.y + CARD_H - 1, CARD_LIT);
-                drawBorder(c.x, c.y, cardW, CARD_H, CARD_SELECT_EDGE);
-            } else {
-                drawBorder(c.x, c.y, cardW, CARD_H, CARD_EDGE);
+        int previousSegmentCap = UIRender.segCap;
+        UIRender.segCap = UIRender.MAX_SEG;
+        UIRender.beginFrame();
+        try {
+            for (int i = 0; i < cards.size(); i++) {
+                Card c = cards.get(i);
+                boolean selected = i == highlight;
+                UIRender.roundRectBorder(c.x, c.y, cardW, cardH, LeapPalette.CARD_RADIUS,
+                        selected ? CARD_HOVER : CARD_FILL,
+                        selected ? CARD_HOVER : CARD_FILL,
+                        selected ? CARD_SELECT_EDGE : CARD_EDGE);
+            }
+        } finally {
+            try {
+                UIRender.endFrame();
+            } finally {
+                UIRender.segCap = previousSegmentCap;
             }
         }
     }
 
     private void drawHeads() {
-        float pulse = 0.5f + 0.5f * (float) Math.sin(System.nanoTime() / 1.0e9 * 4.0);
         for (Card c : cards) {
-            int hx = c.x + LeapLayout.HEAD_LEFT;
-            int hy = c.y + (CARD_H - HEAD) / 2;
+            int headLeft = LeapLayout.headLeft(cardW);
+            int hx = c.x + headLeft;
+            int hy = c.y + (cardH - headSize) / 2;
             if (c.skinState == SKIN_READY && c.skin != null) {
-                SkinHead.draw(c.skin, hx, hy, HEAD, 1f);
-            } else if (c.skinState == SKIN_LOADING) {
-                drawRect(hx, hy, hx + HEAD, hy + HEAD, HEAD_PLACEHOLDER);
-                int edge = 0xFF000000 | (int) (0x55 + 0x55 * pulse) << 16 | (int) (0x80 + 0x40 * pulse) << 8
-                        | (int) (0xC0 + 0x3F * pulse);
-                drawBorder(hx, hy, HEAD, HEAD, edge);
+                SkinHead.draw(c.skin, hx, hy, headSize, 1f);
             } else {
-                drawRect(hx, hy, hx + HEAD, hy + HEAD, HEAD_LETTER);
-                String letter = c.name.isEmpty() ? "?" : c.name.substring(0, 1).toUpperCase(java.util.Locale.ROOT);
+                // Keep a visible, identity-specific fallback while the matching skin texture is unavailable.
+                drawRect(hx, hy, hx + headSize, hy + headSize, HEAD_LETTER);
+                String sourceName = c.owner == null || c.owner.isEmpty()
+                        ? LeapText.normalize(c.name) : c.owner;
+                String letter = sourceName.isEmpty() ? "?"
+                        : sourceName.substring(0, 1).toUpperCase(Locale.ROOT);
                 FontRenderer fr = fr();
-                fr.drawString(letter, hx + (HEAD - fr.getStringWidth(letter)) / 2,
-                        hy + (HEAD - 8) / 2, TEXT);
+                fr.drawString(letter, hx + (headSize - fr.getStringWidth(letter)) / 2,
+                        hy + (headSize - 8) / 2, TEXT);
+                drawBorder(hx, hy, headSize, headSize, CARD_EDGE);
             }
         }
     }
 
     private void drawCardText(FontRenderer fr) {
-        int maxW = LeapLayout.textWidth(cardW, HEAD);
-        for (Card c : cards) {
-            if (maxW <= 0) {
-                continue;
-            }
-            int textX = c.x + LeapLayout.HEAD_LEFT + HEAD + LeapLayout.HEAD_GAP;
-            String name = c.name.isEmpty() ? "Unknown" : c.name;
-            name = fr.trimStringToWidth(name, maxW);
-            // The name takes the class colour, as on the Spirit Leap reference design. Unknown class keeps white.
-            int nameColor = c.cls == null ? TEXT : c.clsColor;
-            fr.drawStringWithShadow(name, textX, c.y + 12, nameColor);
-            // Class as a small badge under the name, as on the reference design.
-            String cls = fr.trimStringToWidth(c.clsText, maxW);
-            int badgeW = Math.min(maxW, fr.getStringWidth(cls) + 6);
-            drawRect(textX - 3, c.y + 22, textX - 3 + badgeW, c.y + 34, BADGE_FILL);
-            fr.drawString(cls, textX, c.y + 25, TEXT_DIM);
-        }
-    }
-
-    private static long lastDump = 0L;
-
-    /**
-     * DEBUG (temporary): writes every scoreboard team and sidebar line to skyvelor-leap-debug.txt in the game
-     * folder, at most once every 3 seconds, so the real scoreboard text can be read.
-     */
-    private static void dumpScoreboard(Scoreboard board, String owner) {
-        long now = System.currentTimeMillis();
-        if (now - lastDump < 3000L) {
+        int maxW = LeapLayout.textWidth(cardW, headSize);
+        if (maxW <= 0) {
             return;
         }
-        lastDump = now;
+
+        for (Card c : cards) {
+            int textX = c.x + LeapLayout.headLeft(cardW) + headSize + LeapLayout.headGap(cardW);
+            String fallbackName = c.owner == null || c.owner.isEmpty() ? "Unknown" : c.owner;
+            String name = c.name == null || LeapText.normalize(c.name).isEmpty() ? fallbackName : c.name;
+            String canonical = LeapIdentity.canonicalUsername(c.owner);
+            if (fr.getStringWidth(name) * NAME_SCALE > maxW && canonical != null) {
+                name = canonical;
+            }
+
+            String[] nameLines = new String[]{name};
+            int nameWidth = fr.getStringWidth(name);
+            float nameScale = LeapLayout.fittedScale(nameWidth, maxW, NAME_SCALE);
+            if (nameScale < MIN_SINGLE_LINE_NAME_SCALE && canonical != null) {
+                String[] wrapped = splitUsername(fr, canonical);
+                if (wrapped != null) {
+                    name = canonical;
+                    nameLines = wrapped;
+                    int widestLine = Math.max(fr.getStringWidth(nameLines[0]), fr.getStringWidth(nameLines[1]));
+                    nameScale = LeapLayout.fittedScale(widestLine, maxW, NAME_SCALE);
+                }
+            }
+
+            String classText = c.clsText == null || c.clsText.isEmpty() ? "Unknown class" : c.clsText;
+            float classScale = LeapLayout.fittedScale(fr.getStringWidth(classText), maxW, CLASS_SCALE);
+            // Keep the name visually dominant even when a long username must use a smaller fitted scale.
+            classScale = Math.min(classScale, nameScale * CLASS_RELATIVE_SCALE);
+
+            float maxTextHeight = Math.max(0f, cardH - 2f * TEXT_VERTICAL_PADDING);
+            float nameBlockHeight = nameLines.length * FONT_LINE_HEIGHT * nameScale
+                    + (nameLines.length - 1) * NAME_LINE_GAP;
+            float blockHeight = nameBlockHeight + CLASS_TEXT_GAP + FONT_LINE_HEIGHT * classScale;
+            float fixedGaps = CLASS_TEXT_GAP + (nameLines.length - 1) * NAME_LINE_GAP;
+            if (blockHeight > maxTextHeight && blockHeight > fixedGaps) {
+                float heightFactor = maxTextHeight <= fixedGaps ? 0f
+                        : (maxTextHeight - fixedGaps) / (blockHeight - fixedGaps);
+                nameScale *= heightFactor;
+                classScale *= heightFactor;
+                nameBlockHeight = nameLines.length * FONT_LINE_HEIGHT * nameScale
+                        + (nameLines.length - 1) * NAME_LINE_GAP;
+                blockHeight = nameBlockHeight + CLASS_TEXT_GAP + FONT_LINE_HEIGHT * classScale;
+            }
+
+            float nameTop = c.y + (cardH - blockHeight) * 0.5f;
+            float lineY = nameTop;
+            int nameColor = c.cls == null ? TEXT : c.clsColor;
+            for (String nameLine : nameLines) {
+                drawScaledText(fr, nameLine, textX, Math.round(lineY), nameColor, nameScale);
+                lineY += FONT_LINE_HEIGHT * nameScale + NAME_LINE_GAP;
+            }
+
+            int classY = Math.round(nameTop + nameBlockHeight + CLASS_TEXT_GAP);
+            int classColor = c.cls == null ? TEXT_DIM : c.clsColor;
+            drawScaledText(fr, classText, textX, classY, classColor, classScale);
+        }
+    }
+
+    /** Splits a long, canonical username into two fitted lines instead of shrinking it to unreadability. */
+    private static String[] splitUsername(FontRenderer fr, String username) {
+        if (username == null || username.length() < 2) {
+            return null;
+        }
+        int halfWidth = Math.max(1, (fr.getStringWidth(username) + 1) / 2);
+        String first = fr.trimStringToWidth(username, halfWidth);
+        if (first.isEmpty() || first.length() >= username.length()) {
+            return null;
+        }
+        String second = username.substring(first.length());
+        return second.isEmpty() ? null : new String[]{first, second};
+    }
+
+    /** Uniformly enlarges vanilla text and restores the OpenGL matrix even if rendering fails. */
+    private static void drawScaledText(FontRenderer fr, String text, int x, int y, int color, float scale) {
+        if (text == null || text.isEmpty() || scale <= 0f) {
+            return;
+        }
+        GlStateManager.pushMatrix();
         try {
-            StringBuilder b = new StringBuilder();
-            b.append("owner=[").append(owner).append("]\n");
-            b.append("TEAMS:\n");
-            for (ScorePlayerTeam team : board.getTeams()) {
-                b.append("team=").append(team.getRegisteredName())
-                        .append(" prefix=[").append(team.getColorPrefix()).append("]")
-                        .append(" suffix=[").append(team.getColorSuffix()).append("] members=");
-                for (String m : team.getMembershipCollection()) {
-                    b.append("[").append(codes(m)).append("]");
-                    b.append(" text=[").append(codes(ScorePlayerTeam.formatPlayerName(team, m))).append("] ");
-                }
-                b.append("\n");
-            }
-            b.append("SIDEBAR:\n");
-            net.minecraft.scoreboard.ScoreObjective obj = board.getObjectiveInDisplaySlot(1);
-            if (obj != null) {
-                for (Object o : board.getSortedScores(obj)) {
-                    net.minecraft.scoreboard.Score sc = (net.minecraft.scoreboard.Score) o;
-                    b.append("name=[").append(codes(sc.getPlayerName())).append("] score=").append(sc.getScorePoints())
-                            .append(" team=").append(board.getPlayersTeam(sc.getPlayerName()) == null ? "none"
-                                    : board.getPlayersTeam(sc.getPlayerName()).getRegisteredName()).append("\n");
-                }
-            } else {
-                b.append("no sidebar objective\n");
-            }
-            java.io.File f = new java.io.File(Minecraft.getMinecraft().mcDataDir, "skyvelor-leap-debug.txt");
-            java.io.FileOutputStream out = new java.io.FileOutputStream(f);
-            out.write(b.toString().getBytes("UTF-8"));
-            out.close();
-        } catch (Exception e) {
-            // Debug only: a failed write must not affect the screen.
+            GlStateManager.translate((float) x, (float) y, 0f);
+            GlStateManager.scale(scale, scale, 1f);
+            fr.drawString(text, 0, 0, color);
+        } finally {
+            GlStateManager.popMatrix();
         }
-    }
-
-    private static String codes(String text) {
-        if (text == null) {
-            return "null";
-        }
-        StringBuilder b = new StringBuilder();
-        for (char ch : text.toCharArray()) {
-            if (ch >= 0x20 && ch <= 0x7E) {
-                b.append(ch);
-            } else {
-                b.append(String.format("<%04x>", (int) ch));
-            }
-        }
-        return b.toString();
-    }
-
-    private static String shortDebug(String text) {
-        if (text == null) {
-            return "-";
-        }
-        String t = text.replaceAll("\u00a7.", "");
-        return t.length() > 40 ? t.substring(0, 40) : t;
     }
 
     private static FontRenderer fr() {
         return Minecraft.getMinecraft().fontRendererObj;
     }
 
-    /** One-pixel border made of four thin rectangles. */
+    /** One-pixel square border retained for the fallback head tile. */
     private static void drawBorder(int x, int y, int w, int h, int color) {
         drawRect(x, y, x + w, y + 1, color);
         drawRect(x, y + h - 1, x + w, y + h, color);
         drawRect(x, y, x + 1, y + h, color);
         drawRect(x + w - 1, y, x + w, y + h, color);
-    }
-
-    private static boolean inside(int mx, int my, int x, int y, int w, int h) {
-        return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
     // ------------------------------------------------------------------ input
@@ -694,13 +900,9 @@ public final class LeapScreen extends GuiScreen {
         if (button != 0) {
             return;
         }
-        if (inside(mx, my, closeX - 4, panelY + panelH - FOOT_H, closeW + 8, FOOT_H)) {
-            closeMenu();
-            return;
-        }
         for (int i = 0; i < cards.size(); i++) {
             Card c = cards.get(i);
-            if (inside(mx, my, c.x, c.y, cardW, CARD_H)) {
+            if (LeapLayout.containsRoundedRect(mx, my, c.x, c.y, cardW, cardH, LeapPalette.CARD_RADIUS)) {
                 pick(i);
                 return;
             }
@@ -711,6 +913,14 @@ public final class LeapScreen extends GuiScreen {
     protected void keyTyped(char c, int code) throws IOException {
         if (code == Keyboard.KEY_ESCAPE) {
             closeMenu();
+            return;
+        }
+        if (preview && code == Keyboard.KEY_N) {
+            cyclePreviewSamples(1);
+            return;
+        }
+        if (preview && code == Keyboard.KEY_P) {
+            cyclePreviewSamples(-1);
             return;
         }
         if (cards.isEmpty()) {
@@ -744,7 +954,7 @@ public final class LeapScreen extends GuiScreen {
      * waits for the server (pending), so a double click or a repeated Enter cannot send a second leap.
      */
     private void pick(int index) {
-        if (index < 0 || index >= cards.size()) {
+        if (preview || index < 0 || index >= cards.size()) {
             return;
         }
         long now = System.nanoTime();
@@ -763,9 +973,15 @@ public final class LeapScreen extends GuiScreen {
         mc.playerController.windowClick(container.windowId, cards.get(index).slot, 0, 0, mc.thePlayer);
     }
 
-    /** Closes the menu the way vanilla does: the close packet goes to the server, then the screen closes. */
+    /** Live menus close through vanilla; preview menus simply return to the GUI that opened them. */
     private void closeMenu() {
         Minecraft mc = Minecraft.getMinecraft();
+        if (preview) {
+            if (mc.currentScreen == this) {
+                mc.displayGuiScreen(previewParent);
+            }
+            return;
+        }
         EntityPlayerSP p = mc.thePlayer;
         if (p != null && p.openContainer == container) {
             p.closeScreen();

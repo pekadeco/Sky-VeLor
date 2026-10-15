@@ -233,7 +233,7 @@ public class AppleHubScreen extends AppleScreen {
                             AppleSettings.cornerRadius = v;
                             Theme.refresh();
                         }), () -> AppleSettings.cornerRadiusOn)));
-        rows.add(Row.item("Panel opacity", "On: use the slider. Off: 92%",
+        rows.add(Row.item("Panel opacity", "On: use the slider. Off: " + AppleSettings.DEFAULT_GLASS_OPACITY + "%",
                 new AppleToggle(() -> AppleSettings.glassOpacityOn, v -> {
                     AppleSettings.glassOpacityOn = v;
                     Theme.refresh();
@@ -287,8 +287,8 @@ public class AppleHubScreen extends AppleScreen {
                         }), () -> AppleSettings.animSpeedOn)));
         rows.add(Row.item("Adaptive quality", "Lowers detail automatically when FPS drops",
                 new AppleToggle(() -> AppleSettings.adaptive, v -> AppleSettings.adaptive = v)));
-        rows.add(Row.item("Experimental performance (BETA)",
-                "Lighter GUI and HUD work. Off by default. Entity rendering is not changed",
+        rows.add(Row.item("Performance Boost Beta",
+                "Lower-cost Sky VeLor GUI/HUD settings. Entity and world rendering are unchanged",
                 new AppleToggle(() -> AppleSettings.experimentalPerformance,
                         v -> AppleSettings.experimentalPerformance = v)));
         rows.add(Row.header("Live"));
@@ -362,6 +362,10 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Use Spirit Leap key",
                 "Unbound by default. Set it in Controls, Sky VeLor. Hold a Spirit Leap item first",
                 new AppleToggle(() -> AppleSettings.leapKey, v -> AppleSettings.leapKey = v)));
+        rows.add(Row.item("Preview Spirit Leap GUI",
+                "Opens the real 2x2 picker with isolated test data. N/P cycles all five classes; no packets or teleports",
+                new AppleButton("Preview", 96f, 26f, false,
+                        () -> mc.displayGuiScreen(LeapScreen.createPreview(this)))));
 
         rows.add(Row.header("Mob highlights"));
         rows.add(Row.item("Outline dungeon mobs",
