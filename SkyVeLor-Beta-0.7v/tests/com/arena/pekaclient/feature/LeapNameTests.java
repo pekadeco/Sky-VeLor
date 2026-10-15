@@ -151,7 +151,6 @@ public final class LeapNameTests {
 
     /** Missing or unrelated text leaves the class unknown, which the card shows as "Unknown class". */
     private static void missingDataIsUnknown() {
-        check("unknown text", LeapClass.displayText(null), "");
         check("unknown label", "Unknown class".equals(LeapClass.displayText(null)), "");
         check("unknown label for blank", "Unknown class".equals(LeapClass.displayText("  ")), "");
         check("unknown colour", LeapClass.UNKNOWN_COLOR == LeapClass.colorFor(null), "");
