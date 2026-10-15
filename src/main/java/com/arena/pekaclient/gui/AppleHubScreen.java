@@ -362,6 +362,10 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Use Spirit Leap key",
                 "Unbound by default. Set it in Controls, Sky VeLor. Hold a Spirit Leap item first",
                 new AppleToggle(() -> AppleSettings.leapKey, v -> AppleSettings.leapKey = v)));
+        rows.add(Row.item("Preview Spirit Leap GUI",
+                "Opens four isolated sample cards in the real picker. No packets or teleports",
+                new AppleButton("Preview", 96f, 26f, false,
+                        () -> mc.displayGuiScreen(LeapScreen.createPreview(this)))));
 
         rows.add(Row.header("Mob highlights"));
         rows.add(Row.item("Outline dungeon mobs",

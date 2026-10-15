@@ -1,0 +1,2 @@
+# Binary release deliverables are stored beside the source but are omitted from source archives.
+/dist/** export-ignore

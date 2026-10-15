@@ -1,15 +1,12 @@
 // ForgeGradle 2.1 build for Minecraft 1.8.9 (Forge 11.15.1.2318-1.8.9, MCP stable_22).
-// Requires JDK 8 and Gradle 2.14.x (2.14.1 used for the shipped jar).
+// Requires JDK 8 and Gradle 2.14.1 (the version used for release builds).
 //
-// ForgeGradle plugin version: this script expects the ForgeGradle 2.1 plugin in the local
-// Maven repository as version 0.0.0 (that is how the shipped jar was built: the FG_2.1 branch
-// was compiled with `gradle install` and installed to ~/.m2). If you have the official
-// 2.1-SNAPSHOT artifact instead, change the classpath line below to
-// 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'.
+// ForgeGradle 2.1-SNAPSHOT is resolved from the public Forge Maven repository; no local install is required.
 buildscript {
     repositories {
         mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
+        mavenLocal()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
@@ -19,13 +16,12 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle.forge'
 
 repositories {
-    mavenLocal()
     maven { url = 'https://maven.minecraftforge.net/' }
     mavenCentral()
-    jcenter()
+    mavenLocal()
 }
 
-// Version: read from PekaVersion.NAME so there is exactly one place to change it (Sky VeLor Beta-0.3v).
+// Version: read from PekaVersion.NAME so there is exactly one source of release version metadata.
 def pekaVersionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java').text
 def pekaVersionMatch = (pekaVersionSource =~ /NAME\s*=\s*"([^"]+)"/)
 if (!pekaVersionMatch.find()) {
@@ -45,6 +41,21 @@ minecraft {
     version = "1.8.9-11.15.1.2318-1.8.9"
     runDir = "run"
     mappings = "stable_22"
+}
+
+// Exposes the exact Forge/Minecraft compile and runtime jars for the standalone logic-test suite.
+task dumpTestClasspath {
+    dependsOn 'classes'
+    doLast {
+        def files = (sourceSets.main.runtimeClasspath.files + sourceSets.main.compileClasspath.files)
+                .findAll { it != null }
+                .collect { it.absolutePath }
+                .unique()
+        def outputFile = file("$buildDir/test-classpath.txt")
+        outputFile.parentFile.mkdirs()
+        outputFile.text = files.join(File.pathSeparator)
+        println "wrote ${outputFile} with ${files.size()} entries"
+    }
 }
 
 processResources {
