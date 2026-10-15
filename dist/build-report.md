@@ -1,7 +1,7 @@
 # Sky VeLor Beta-0.10v automated build report
 
 ```
-revision     : b9715458c1ee814c8d5c2064d1651c0ddae74635
+revision     : e6b0214033279a4fa705bfafe355d94dfab26d33
 branch       : arena/b02906d6-sky-velor
 java         : openjdk version "1.8.0_504"
 gradle       : 2.14.1
@@ -13,7 +13,7 @@ test outcome : success
 test suites  : 17 passing summaries
 
 sha256 SkyVeLor-1.8.9-Beta-0.10v.jar: 0b3c47302ebbfdaf81502baae9fd2a05a7f325e560804d7c0ade9d4f3f2d69a6
-sha256 SkyVeLor-1.8.9-Beta-0.10v-source.zip: fac64576d625595652584d050e532298e3eac8603921f627cd66db5b0698e9e5
+sha256 SkyVeLor-1.8.9-Beta-0.10v-source.zip: f2218fc6d38f245e371a611ab997f396e7253a7bc4c24342b202224a6e9801ba
 ```
 
 ## Test suites
