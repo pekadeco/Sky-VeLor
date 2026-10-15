@@ -1,0 +1,17 @@
+
+passed 70, failed 0
+[13:46:32] [main/WARN]: HUD config mining.enabled=maybe is not true/false; using true
+[13:46:32] [main/WARN]: HUD config mining.ax=SIDEWAYS is not a valid anchor; using START
+[13:46:32] [main/WARN]: HUD config mining.ox=abc is not a whole number; using 6
+[13:46:32] [main/WARN]: HUD config mining.scale=big is not a whole number; using 100
+[13:46:32] [main/WARN]: HUD config mining.opacity= is not a whole number; using 100
+[13:46:32] [main/WARN]: HUD config mining.window=five is not a whole number; using 1
+[13:46:32] [main/WARN]: HUD config mining.ox=99999999999999 is not a whole number; using 6
+
+config: passed 24, failed 0
+
+leap text: passed 89, failed 0
+FAIL duplicate known name is deduplicated
+FAIL rank is not a username match
+
+leap identity: passed 21, failed 2
