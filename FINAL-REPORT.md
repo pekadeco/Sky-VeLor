@@ -6,12 +6,19 @@ branch, and in the `ci-evidence` branch under `dist/`):
 | File | Size | sha256 |
 | --- | --- | --- |
 | `SkyVeLor-1.8.9-Beta-0.8v.jar` | 166,809 B | `92d31069b5663b1117c9a0c534dc00b7fa7ae0eceef9b5930a7b1ad176cd626b` |
-| `SkyVeLor-1.8.9-Beta-0.8v-source.zip` | 148,099 B | `18f162b8bb2ea4dc12b7ff665645d08238d46cdc282a1d39122df5dbbe02fd0e` |
+| `SkyVeLor-1.8.9-Beta-0.8v-source.zip` | 148,099 B | see `dist/BUILD-INFO.txt` |
+
+The jar hash above is stable and identical in all three places (verified with `sha256sum` on the file that
+`ci-evidence` holds and on the copy committed here). The source ZIP's hash is not quoted because git stamps every
+archive with the commit id it was made from, so the bytes change on each rebuild even when no file inside changed;
+its value is printed in `BUILD-INFO.txt` next to the jar's. What matters is checked by CI on every run: the ZIP
+lists **exactly the 76 files** of the revision that was built.
 
 Release: https://github.com/pekadeco/Sky-VeLor/releases/tag/beta-0.8v · PR: https://github.com/pekadeco/Sky-VeLor/pull/2
-Built by: GitHub Actions run [38717498298](https://github.com/pekadeco/Sky-VeLor/actions/runs/38717498298) — **success**,
-revision `091b939`, JDK 1.8.0_504, Gradle 2.14.1, ForgeGradle 2.1-SNAPSHOT.
-The source ZIP lists exactly the 76 files of the built revision.
+Built by GitHub Actions — JDK 1.8.0_504, Gradle 2.14.1, ForgeGradle 2.1-SNAPSHOT. The release body always names
+the revision and the hashes of the current build, so it is the authoritative record; at the time of writing the
+last green push build was run [38718329803](https://github.com/pekadeco/Sky-VeLor/actions/runs/38718329803) on
+revision `951a6e1`.
 
 Every task below was implemented. Nothing was skipped. The one thing I could not do is run the game — that is
 called out at the end rather than glossed over.
@@ -194,6 +201,18 @@ Worth recording for anyone reading the build in future: ForgeGradle's Forge plug
 `ReobfMappingType.SEARGE`, so a *correct* Forge 1.8.9 jar keeps MCP **class** names (FML's runtime remapper handles
 them) while members become `func_`/`field_`. A jar still containing `getMinecraft` is the broken one. The CI check
 asserts exactly that: srg members present, zero MCP members.
+
+### Two CI hardening notes (pipeline, not mod)
+
+- **The build step retries (up to 3 times)**, dropping ForgeGradle's cached MCP-mappings JSON and its ETag first.
+  ForgeGradle downloads that JSON in `BasePlugin.getRemoteJsons`; if the fetch or its ETag revalidation comes back
+  empty the field stays null and setting `mappings` dies with a `NullPointerException` inside ForgeGradle
+  (`BaseExtension.checkMappings:261`). That hit one pull-request run at 25 seconds while the identical revision
+  built fine on push — infrastructure, not source — and the retry (plus the stale-cache removal that makes the
+  retry a real refetch) is the fix. It is not being hidden: it is documented here and in the workflow.
+- **Only push runs publish the jar and source ZIP to the evidence branch.** A `pull_request` run builds
+  `refs/pull/2/merge`, so its recorded revision and its source ZIP would be the merge commit's rather than the
+  branch's. Pull-request runs now publish their logs and leave `dist/` to the last push build.
 
 ### Test results (CI, JDK 1.8.0_504)
 
