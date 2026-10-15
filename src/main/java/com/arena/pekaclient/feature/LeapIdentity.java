@@ -52,7 +52,10 @@ public final class LeapIdentity {
             for (String knownName : knownNames) {
                 String canonical = canonicalUsername(knownName);
                 if (canonical != null) {
-                    known.put(lower(canonical), canonical);
+                    String key = lower(canonical);
+                    if (!known.containsKey(key)) {
+                        known.put(key, canonical);
+                    }
                 }
             }
         }
@@ -101,15 +104,10 @@ public final class LeapIdentity {
         if (name == null || text.isEmpty()) {
             return false;
         }
-        int from = 0;
-        while ((from = indexOfIgnoreCase(text, name, from)) >= 0) {
-            int end = from + name.length();
-            boolean leftBoundary = from == 0 || !isUsernameChar(text.charAt(from - 1));
-            boolean rightBoundary = end >= text.length() || !isUsernameChar(text.charAt(end));
-            if (leftBoundary && rightBoundary) {
+        for (String token : tokensOutsideBrackets(text)) {
+            if (name.equalsIgnoreCase(token)) {
                 return true;
             }
-            from++;
         }
         return false;
     }
@@ -175,16 +173,6 @@ public final class LeapIdentity {
             out.add(candidate);
         }
         token.setLength(0);
-    }
-
-    private static int indexOfIgnoreCase(String text, String needle, int from) {
-        int limit = text.length() - needle.length();
-        for (int i = Math.max(0, from); i <= limit; i++) {
-            if (text.regionMatches(true, i, needle, 0, needle.length())) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     private static boolean isUsernameChar(char c) {
