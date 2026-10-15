@@ -11,6 +11,7 @@ public final class LeapLayoutTests {
         twoColumnGridFitsAcrossResolutions();
         headAndTextStayInsideCards();
         rowsFitWithPreviewInset();
+        completeNamesFitWithoutClipping();
         rowsForFourTeammates();
 
         System.out.println();
@@ -98,6 +99,25 @@ public final class LeapLayoutTests {
                 }
             }
         }
+    }
+
+    private static void completeNamesFitWithoutClipping() {
+        int widestUsername = 16 * 8;
+        for (int textWidth = 40; textWidth <= 240; textWidth += 10) {
+            float scale = LeapLayout.fitScale(widestUsername, textWidth);
+            check("positive name scale at text width " + textWidth, scale > 0f && scale <= 1f,
+                    "scale=" + scale);
+            check("full name stays within text slot at " + textWidth,
+                    widestUsername * scale <= textWidth + 0.01f,
+                    "scaled=" + widestUsername * scale);
+            if (textWidth < widestUsername) {
+                check("long name shrinks rather than clips at " + textWidth, scale < 1f, "scale=" + scale);
+            } else {
+                check("normal name is not shrunk at " + textWidth, scale == 1f, "scale=" + scale);
+            }
+        }
+        check("empty text has no scale", LeapLayout.fitScale(0, 100) == 0f, "");
+        check("zero-width slot has no scale", LeapLayout.fitScale(100, 0) == 0f, "");
     }
 
     private static void rowsForFourTeammates() {

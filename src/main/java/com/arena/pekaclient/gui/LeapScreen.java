@@ -800,7 +800,7 @@ public final class LeapScreen extends GuiScreen {
         if (naturalWidth <= 0 || maxWidth <= 0) {
             return;
         }
-        float scaleX = Math.min(1f, maxWidth / (float) naturalWidth);
+        float scaleX = LeapLayout.fitScale(naturalWidth, maxWidth);
         GlStateManager.pushMatrix();
         GlStateManager.scale(scaleX, 1f, 1f);
         fr.drawStringWithShadow(name, Math.round(x / scaleX), y, color);
@@ -813,10 +813,7 @@ public final class LeapScreen extends GuiScreen {
         if (naturalWidth <= 0 || maxWidth <= 0) {
             return;
         }
-        float scale = 0.88f;
-        if (naturalWidth * scale > maxWidth) {
-            scale = maxWidth / (float) naturalWidth;
-        }
+        float scale = Math.min(0.88f, LeapLayout.fitScale(naturalWidth, maxWidth));
         GlStateManager.pushMatrix();
         GlStateManager.scale(scale, scale, 1f);
         fr.drawStringWithShadow(text, Math.round(x / scale), Math.round(y / scale), color);

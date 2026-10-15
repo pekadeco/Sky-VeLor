@@ -86,7 +86,7 @@ public final class LeapLayout {
     }
 
     public static int headGap(int cardWidth) {
-        return Math.max(4, Math.max(0, cardWidth) / 22);
+        return Math.max(4, Math.max(0, cardWidth) / 44);
     }
 
     public static int textRight(int cardWidth) {
@@ -97,6 +97,14 @@ public final class LeapLayout {
     public static int textWidth(int cardWidth, int headSize) {
         return Math.max(0, cardWidth - headLeft(cardWidth) - Math.max(0, headSize)
                 - headGap(cardWidth) - textRight(cardWidth));
+    }
+
+    /** Horizontal scale that keeps the complete rendered string inside its text slot instead of clipping it. */
+    public static float fitScale(int measuredTextWidth, int availableWidth) {
+        if (measuredTextWidth <= 0 || availableWidth <= 0) {
+            return 0f;
+        }
+        return Math.min(1f, availableWidth / (float) measuredTextWidth);
     }
 
     public static int gridWidth(int cardWidth, int columns, int gap) {
