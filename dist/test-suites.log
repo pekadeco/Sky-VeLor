@@ -1,12 +1,12 @@
 
 passed 70, failed 0
-[13:52:23] [main/WARN]: HUD config mining.enabled=maybe is not true/false; using true
-[13:52:23] [main/WARN]: HUD config mining.ax=SIDEWAYS is not a valid anchor; using START
-[13:52:23] [main/WARN]: HUD config mining.ox=abc is not a whole number; using 6
-[13:52:23] [main/WARN]: HUD config mining.scale=big is not a whole number; using 100
-[13:52:23] [main/WARN]: HUD config mining.opacity= is not a whole number; using 100
-[13:52:23] [main/WARN]: HUD config mining.window=five is not a whole number; using 1
-[13:52:23] [main/WARN]: HUD config mining.ox=99999999999999 is not a whole number; using 6
+[14:50:19] [main/WARN]: HUD config mining.enabled=maybe is not true/false; using true
+[14:50:19] [main/WARN]: HUD config mining.ax=SIDEWAYS is not a valid anchor; using START
+[14:50:19] [main/WARN]: HUD config mining.ox=abc is not a whole number; using 6
+[14:50:19] [main/WARN]: HUD config mining.scale=big is not a whole number; using 100
+[14:50:19] [main/WARN]: HUD config mining.opacity= is not a whole number; using 100
+[14:50:19] [main/WARN]: HUD config mining.window=five is not a whole number; using 1
+[14:50:19] [main/WARN]: HUD config mining.ox=99999999999999 is not a whole number; using 6
 
 config: passed 24, failed 0
 
@@ -15,18 +15,18 @@ leap text: passed 89, failed 0
 leap identity: passed 23, failed 0
 
 leap class cache: passed 18, failed 0
-[13:52:23] [main/INFO]: Migrating settings from pekaclient.properties to skyvelor.properties
-[13:52:23] [main/WARN]: Could not read /tmp/skyvelor-test7124775617724717009/skyvelor.properties; using default settings
+[14:50:19] [main/INFO]: Migrating settings from pekaclient.properties to skyvelor.properties
+[14:50:19] [main/WARN]: Could not read /tmp/skyvelor-test3344457955516285428/skyvelor.properties; using default settings
 java.lang.IllegalArgumentException: Malformed \uxxxx encoding.
 	at java.util.Properties.loadConvert(Properties.java:574) ~[?:1.8.0_504]
 	at java.util.Properties.load0(Properties.java:391) ~[?:1.8.0_504]
 	at java.util.Properties.load(Properties.java:341) ~[?:1.8.0_504]
 	at com.arena.pekaclient.config.ConfigFiles.read(ConfigFiles.java:47) [main/:?]
-	at com.arena.pekaclient.config.ConfigFilesTests.unreadableFileGivesEmptySet(ConfigFilesTests.java:79) [tmp.szRwgJTQbI/:?]
-	at com.arena.pekaclient.config.ConfigFilesTests.main(ConfigFilesTests.java:24) [tmp.szRwgJTQbI/:?]
+	at com.arena.pekaclient.config.ConfigFilesTests.unreadableFileGivesEmptySet(ConfigFilesTests.java:79) [tmp.7ZSIwFdEu3/:?]
+	at com.arena.pekaclient.config.ConfigFilesTests.main(ConfigFilesTests.java:24) [tmp.7ZSIwFdEu3/:?]
 
 config files: passed 7, failed 0
-[13:52:24] [main/WARN]: HUD config doll.angle=abc is not a whole number; using 0
+[14:50:20] [main/WARN]: HUD config doll.angle=abc is not a whole number; using 0
 
 doll config: passed 14, failed 0
 
@@ -38,17 +38,19 @@ dungeon context: passed 7, failed 0
 
 mob markers: passed 8, failed 0
 
-leap layout: passed 561, failed 0
+leap layout: passed 2743, failed 0
+
+leap preview data: passed 6, failed 0
 
 stats text: passed 10, failed 0
-[13:52:25] [main/INFO]: Sky VeLor startup task "sleeps" took 20.1 ms
-[13:52:25] [main/INFO]: Sky VeLor startup done: 1 tasks, 20.1 ms of task work, 20.1 ms wall, JVM uptime 554 ms
-[13:52:25] [main/ERROR]: Sky VeLor startup task failed: breaks
+[14:50:21] [main/INFO]: Sky VeLor startup task "sleeps" took 20.1 ms
+[14:50:21] [main/INFO]: Sky VeLor startup done: 1 tasks, 20.1 ms of task work, 20.1 ms wall, JVM uptime 581 ms
+[14:50:21] [main/ERROR]: Sky VeLor startup task failed: breaks
 java.lang.IllegalStateException: test failure
-	at com.arena.pekaclient.startup.StartupTimingTests$2.run(StartupTimingTests.java:56) ~[tmp.szRwgJTQbI/:?]
+	at com.arena.pekaclient.startup.StartupTimingTests$2.run(StartupTimingTests.java:56) ~[tmp.7ZSIwFdEu3/:?]
 	at com.arena.pekaclient.startup.StartupTasks.runNext(StartupTasks.java:99) [main/:?]
-	at com.arena.pekaclient.startup.StartupTimingTests.failureIsNotTimedAsFinished(StartupTimingTests.java:59) [tmp.szRwgJTQbI/:?]
-	at com.arena.pekaclient.startup.StartupTimingTests.main(StartupTimingTests.java:14) [tmp.szRwgJTQbI/:?]
+	at com.arena.pekaclient.startup.StartupTimingTests.failureIsNotTimedAsFinished(StartupTimingTests.java:59) [tmp.7ZSIwFdEu3/:?]
+	at com.arena.pekaclient.startup.StartupTimingTests.main(StartupTimingTests.java:14) [tmp.7ZSIwFdEu3/:?]
 
 startup timing: passed 12, failed 0
 
