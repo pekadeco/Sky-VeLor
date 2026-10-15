@@ -99,13 +99,17 @@ jobs:
         run: |
           set -euo pipefail
           git archive --format=zip -o "dist/${ZIP_NAME}" "HEAD:${PROJECT_DIR}"
-          unzip -l "dist/${ZIP_NAME}" | head -12
+          unzip -l "dist/${ZIP_NAME}" | sed -n '1,12p'
           echo "entries: $(unzip -Z1 "dist/${ZIP_NAME}" | wc -l)"
 
+      # The checks run inside a function so their output can be teed into verify.log (kept as evidence), and the
+      # exit status still fails the step. Note the "|| true" on the counting pipelines: a grep that finds nothing
+      # exits 1, which under `set -o pipefail` would abort the step at the moment a check SUCCEEDS with zero hits.
       - name: Verify JAR metadata, reobfuscation, coremod hook and source revision
         if: success()
         run: |
           set -euo pipefail
+          verify() {
           cd dist
           work=$(mktemp -d)
           unzip -o -q "${JAR_NAME}" -d "$work"
@@ -118,14 +122,16 @@ jobs:
           classes=$(find "$work" -name '*.class' | wc -l)
 
           cat $(find "$work" -name '*.class') > /tmp/all.class 2>/dev/null || true
-          srg_names=$(grep -a -o -E '(func|field)_[0-9]+_[A-Za-z]+' /tmp/all.class | sort -u | wc -l)
-          mcp_names=$(grep -a -o -E '\b(getMinecraft|thePlayer|theWorld|gameSettings|playerController|displayGuiScreen|fontRendererObj|theEntityRenderer)\b' /tmp/all.class | sort -u | wc -l)
+          srg_names=$(grep -a -o -E '(func|field)_[0-9]+_[A-Za-z]+' /tmp/all.class | sort -u | wc -l || true)
+          mcp_hits=$(grep -a -o -E '(^|[^A-Za-z])(getMinecraft|thePlayer|theWorld|gameSettings|playerController|displayGuiScreen|fontRendererObj|theEntityRenderer)([^A-Za-z]|$)' /tmp/all.class | sort -u || true)
+          mcp_names=$(printf '%s' "$mcp_hits" | grep -c . || true)
 
           echo "mcmod.info version   : $ver"
           echo "mcmod.info mcversion : $mcver"
           echo "class files          : $classes"
           echo "srg member names     : $srg_names"
           echo "MCP member names left: $mcp_names"
+          if [ -n "$mcp_hits" ]; then echo "MCP names found: $mcp_hits"; fi
 
           test "$ver" = "${EXPECTED_VERSION}" || { echo "::error::JAR version is '$ver', expected ${EXPECTED_VERSION}"; exit 1; }
           test "$mcver" = "1.8.9" || { echo "::error::JAR targets Minecraft '$mcver', expected 1.8.9"; exit 1; }
@@ -172,6 +178,8 @@ jobs:
             echo "sha256 ${JAR_NAME}: $(sha256sum "${JAR_NAME}" | cut -d' ' -f1)"
             echo "sha256 ${ZIP_NAME}: $(sha256sum "${ZIP_NAME}" | cut -d' ' -f1)"
           } | tee BUILD-INFO.txt
+          }
+          verify 2>&1 | tee "$GITHUB_WORKSPACE/verify.log"
 
       # The tests/ folder is not a Gradle source set, so `gradle build` never runs it. Every suite is run here
       # against the classpath the build itself used (build/test-classpath.txt).
@@ -229,7 +237,7 @@ jobs:
           set -euo pipefail
           rm -rf evidence && mkdir evidence
           cp gradle-build.log build-report.md evidence/ 2>/dev/null || true
-          cp test-suites.log evidence/ 2>/dev/null || true
+          cp test-suites.log verify.log evidence/ 2>/dev/null || true
           cp -r dist evidence/dist 2>/dev/null || true
           cp -r "$PROJECT_DIR/build/libs" evidence/libs 2>/dev/null || true
           ls -laR evidence | head -40
@@ -252,6 +260,7 @@ jobs:
             gradle-build.log
             build-report.md
             test-suites.log
+            verify.log
           if-no-files-found: warn
 
       - name: Upload JAR and source ZIP
