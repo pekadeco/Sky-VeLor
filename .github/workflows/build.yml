@@ -265,7 +265,12 @@ jobs:
           rm -rf evidence && mkdir evidence
           cp gradle-build.log build-report.md evidence/ 2>/dev/null || true
           cp test-suites.log verify.log evidence/ 2>/dev/null || true
-          cp -r dist evidence/dist 2>/dev/null || true
+          # Only a push run publishes the artifacts: a pull_request run builds the merge of the branch into
+          # main (refs/pull/<n>/merge), so its jar's recorded revision and its source ZIP would be the merge
+          # commit's rather than the branch's. Pull-request runs publish their logs and leave dist/ alone.
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
+            cp -r dist evidence/dist 2>/dev/null || true
+          fi
           cp -r "$PROJECT_DIR/build/libs" evidence/libs 2>/dev/null || true
           # A run whose build failed produces no dist/, and this branch is force-pushed, so the artifacts of the
           # last run that did succeed are carried over - the evidence branch always holds a jar that matches a
