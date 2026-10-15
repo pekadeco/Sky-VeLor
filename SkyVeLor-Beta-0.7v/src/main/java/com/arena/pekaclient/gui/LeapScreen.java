@@ -329,7 +329,13 @@ public final class LeapScreen extends GuiScreen {
         }
     }
 
-    /** The sidebar lines, formatted the way the sidebar shows them, read once per refresh. */
+    /**
+     * The sidebar lines, formatted the way the sidebar shows them, read once per refresh.
+     *
+     * Display slot 1 is the sidebar, the same objective {@link com.arena.pekaclient.feature.DungeonContext} reads.
+     * A line's visible text is the team prefix + the holder name + the suffix, which is where a class marker such
+     * as "[B]" appears when the server puts it there instead of on the leap item.
+     */
     private void readSidebar() {
         sidebar.clear();
         Minecraft mc = Minecraft.getMinecraft();
@@ -338,17 +344,21 @@ public final class LeapScreen extends GuiScreen {
             return;
         }
         try {
-            for (ScoreObjective objective : board.getObjectives()) {
-                for (Score score : board.getSortedScores(objective)) {
-                    String member = score.getPlayerName();
-                    if (member == null) {
-                        continue;
-                    }
-                    ScorePlayerTeam team = board.getPlayersTeam(member);
-                    String line = team == null ? member : ScorePlayerTeam.formatPlayerName(team, member);
-                    if (line != null) {
-                        sidebar.add(line);
-                    }
+            ScoreObjective objective = board.getObjectiveInDisplaySlot(1);
+            if (objective == null) {
+                return;
+            }
+            for (Score score : board.getSortedScores(objective)) {
+                if (score == null) {
+                    continue;
+                }
+                String holder = score.getPlayerName();
+                if (holder == null) {
+                    continue;
+                }
+                String line = ScorePlayerTeam.formatPlayerName(board.getPlayersTeam(holder), holder);
+                if (line != null && !line.isEmpty()) {
+                    sidebar.add(line);
                 }
             }
         } catch (RuntimeException ignored) {
