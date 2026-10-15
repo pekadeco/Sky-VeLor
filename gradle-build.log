@@ -1,0 +1,337 @@
+Invalid cookie header: "set-cookie: __cf_bm=0W4vOEwIq3UnWS23ZiX5wOzo.9nrdXYeWTyUFX9MXbY-1792059141.4542887-1.0.1.1-tQFDcOu74XLtQEcjQhi1xyW1B0PXiYaSegUzJOjBNBwdCyNwciw3JdakljsbHA8Njim.FoDgJ5q6QIWOv.QSB_ONCzKB0rjol2Hd5nM3gMLxnqUgce.VQHqUX5tWPD0c; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:21 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:21 GMT
+Invalid cookie header: "set-cookie: __cf_bm=8hAm_5rRVKgAXLcFEE2As9o0UDCgO4TOhlAaIPDttT4-1792059141.4926288-1.0.1.1-Jg4vxfbS1YgdTxavPsKtzi.WRza4oheko2izBft7EIt6uIos6z29PRNtvlsQyQH9zljbIvbKiKIJ3xDqvqEiwgrPdsr0ivHZxczOPdFKZcHF5qLVPU5nh7GByQqG620C; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:21 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:21 GMT
+Invalid cookie header: "set-cookie: __cf_bm=oQJvB4HvG..v1Yqlk_4Z7ZcyI4_Fiy8RC84WioIuPqM-1792059141.507746-1.0.1.1-jMGzGbJRc8zgJOOZireKgApOaHVWNmT.Y27_g75gftA5ngpEQV.Weue_BBg0aK66qZRRdnEERKBpPZdMkgiqJWLVT_oYVsZFM3mqiUckf8Cjfwj4k0.Gaq9QphraoFPW; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:21 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:21 GMT
+Download https://maven.minecraftforge.net/net/minecraftforge/gradle/ForgeGradle/2.1-SNAPSHOT/ForgeGradle-2.1-20211118.174922-42.pom
+Invalid cookie header: "set-cookie: __cf_bm=KdCj.OKF9eOHFo4bGdyIRnKla4OgOhktUhd9YPsr4bg-1792059142.846054-1.0.1.1-dSu1s4hmlO92B7WBMgme4h8qebevJdpANNKfLDvxwWNMtFHmq3RraD1Hq3ECzfTRyEcjMbp9nG7ej8g5b9V2bRIXWP24ENV3Qyoy4FW8ikXsBOtlXrdo62OK0ppe.g6G; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:22 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:22 GMT
+Download https://repo1.maven.org/maven2/org/ow2/asm/asm-debug-all/5.0.3/asm-debug-all-5.0.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=WQbX3KPTCxosS8nG3U.UaumZ6DOkor23Hb085mMvUQs-1792059142.8782735-1.0.1.1-hslSXfQ092vAKwiRbXvxSpGoBKKKkXnCPOm.8bLvZMWIlvM8dw_VFI0TDudTaTZsDqZ5JMSDhynOrspZH22AOk2UCUQ5WocrvfzFx1zdRlBuyJaybWZJzUE3e9v1lmuF; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:22 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:22 GMT
+Download https://repo1.maven.org/maven2/org/ow2/asm/asm-parent/5.0.3/asm-parent-5.0.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=bFxBYYGmr6.FtZgviIvlx6ZfD2ZSBFfkqdwHxdhbP2I-1792059142.9084973-1.0.1.1-JzhJOovDxCQAMcjHfN4Q8oaVufhPlVgmQm_8GS81cYUoLZAavl4GwD.fU2H.oXIbIfRf2OpsEubjXxO0ZKk_j34tLfLqiuQooQ55e3WTjlVxKvTpKQMtAhzLe.nEdPm2; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:22 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:22 GMT
+Download https://repo1.maven.org/maven2/org/ow2/ow2/1.3/ow2-1.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=txgkKQfb0PoCtSSqpobKg8gcXq2aMIorBg2l3ezpSZg-1792059142.9863837-1.0.1.1-kwNjPmCnGMZCSPaNknJrWYy_9E0.LBJkhSJw3N_zrDT9.rX62dLI9nJSejULR8iF6POhRNC7JNM4A3JnmnMXHO3q2cQCzM0I07H1PZ7KrSH8ItPGq5sp7KXVOAZL6o1Z; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/google/guava/guava/18.0/guava-18.0.pom
+Invalid cookie header: "set-cookie: __cf_bm=Z2oHhRXYf9kuJ7Vwaq02PZMG92Mw05TZQTMlneDQIac-1792059143.0133681-1.0.1.1-hYkMhIIszD.k42YrcR9Vo_4wIuIqNQy2rrF9q5yhFYVfmWJA74GUjsJzTPAPBpnkMbib3PVbz.8.NV6x1zJ1bwLth_scXbxPZWnVKtVryFxTteWTJKBF6iN90PdNElAH; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/google/guava/guava-parent/18.0/guava-parent-18.0.pom
+Invalid cookie header: "set-cookie: __cf_bm=PZMHxBFEiyz2vbhttEFVYhmx55ZMJiEkhEjwHJWQ_FA-1792059143.0377057-1.0.1.1-ug.N1YhqkF3Xh_KLl21YTvEvKnjUndSFR4aWoLeQMixyQXkpe0_9Wx03GV9TIJpdKf35VmKsDaZgPa2CWg0sHF6E4ZX4qOzL59SOjHuJAPWtSXqKfvRVzkKBTiQbC4rq; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/org/sonatype/oss/oss-parent/7/oss-parent-7.pom
+Invalid cookie header: "set-cookie: __cf_bm=.1rgNY6LWi.shws7i3.IpdIIwqAp2IorkHFKUi9GjD4-1792059143.0965002-1.0.1.1-8jPRiQ5eJT5U93owL7wg_xzgBBCr5qG7B4DewSaOAW60LQgHzeRezbTRRdpBZAa0intQMZVke18DpkQ8pvl03PwHfh5h7LlCxNb9xNUVaWu2SLyEIYcrwd4cIoqDfVlM; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/net/sf/opencsv/opencsv/2.3/opencsv-2.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=JvvgrqpeQm7XcBq4ITnsMcWCt77esOY2tDUnYiz03Rw-1792059143.127893-1.0.1.1-WcPXt6_uiq5UrY_rWKd4VKExKzasMOB2Duu56322Npap42q.dFJphBI__iUmuPXbigzEqYkKl2r78o2_43tORlip0HDE_TLI1g_GvEQ16pjgSSkKtei1dqEuIKbFTgti; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/cloudbees/diff4j/1.1/diff4j-1.1.pom
+Invalid cookie header: "set-cookie: __cf_bm=IHtP2GLv2zpOQJIiJt_vo6QhLUI.FFK._yEiVHNx6M0-1792059143.1586506-1.0.1.1-e1h_5SleLKlPU0ywJm.fiPmqO4_eyccRlOvqCe2FXvswNkeYpu3PI2LF3d3L2o.0aVfSARWZnajdoFgQrykNgcCchZK.M7zJMDBPOmQfDlIE9lnM1jzZ12WOQfsdL7JO; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/cloudbees/cloudbees-oss-parent/1/cloudbees-oss-parent-1.pom
+Invalid cookie header: "set-cookie: __cf_bm=HX6QKT4GbI_d7EMOVujvW88kVulF6LY54041bau.fFw-1792059143.1938765-1.0.1.1-wjpj1We3nT0A_Y_pHcnCAn8heur8u0XpQhIgcZ9Ce0LB7K92ofOUhAhFAZzgOmVMbHLdm6BiWZVhK5QAQ8ifmtl_gh8Oa5Jmi8TgYuGDVV4wmldLjnU8WTGOr2a4GcUl; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/github/abrarsyed/jastyle/jAstyle/1.3/jAstyle-1.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=PXSQ0R.EFN6Ymel0J2M0PjbDarF2Xuy5p.FEr_O3ELE-1792059143.2280526-1.0.1.1-eKs2OR48K0ejm28QMRPFGEBuRyF2iyG2txyuEqMsmzG.w8FSDVkKF6968yx4z9Ydu5Lnj2.56XrWD8pHui_acUG9sxzF6AYonZblWBi_UZ34s5lMym4olYJAHDg1_c.S; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/net/sf/trove4j/trove4j/2.1.0/trove4j-2.1.0.pom
+Invalid cookie header: "set-cookie: __cf_bm=V8NgaKHcRoiR8yfB.oo5CciKLKMKmgCYeyOK.4i59ls-1792059143.2763848-1.0.1.1-oCo5wNXq09cdDmBoc63.T.AfAYih60JVmkSHtMFnF0_nKCYqQkds2PPom_wVo.6eVwyM56gCsAK3F9uW7Cn4HrYGD_7VLJef7AFsYL4VJv_igxySz372BcNk6WXjI3Cd; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/github/jponge/lzma-java/1.3/lzma-java-1.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=JDpnLCfP8paA0RrJAWwFvt23LTwXd6Ira5.tB0COwMc-1792059143.3140922-1.0.1.1-FeLccW7NLSuiWKyPy0qCrRLafyAJRia6_kGyWE1Ube0oie8HABahtyw911CWmMwsk1veaOx.I5ul002j_5Oq.y5DPGWcOd9qMGObp9yFac38Tcuuppji_34x8rzvIK9I; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/nothome/javaxdelta/2.0.1/javaxdelta-2.0.1.pom
+Invalid cookie header: "set-cookie: __cf_bm=YVUc_JfxW8zqyBNoponL01OfUG.g9HOn1UQIx0I36lA-1792059143.35137-1.0.1.1-TNtKu74Y95gV.oo.hm4HnXbdgT9pWCsMI7Ywcg24fGRYC6WgpXsBM54bCDiQiwdEkkvQvORRZRRnECsYunGzf_ZdOtFoTgfTVtkOxYUVcJ9j3EDGwGQtKXJ2Q4m0Kskj; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/google/code/gson/gson/2.2.4/gson-2.2.4.pom
+Invalid cookie header: "set-cookie: __cf_bm=4ADpTPSPidh0U6oGl_fvQHyv90uk9IUruIvawRpX4so-1792059143.390856-1.0.1.1-Plmb.ujpQFmmDSmPZcFw2taWkPFlAnhz.HM.2gUP.1sf0ryu518H0C2jqfX8KGYWlAG_nKhMpC4vQ2TB5ODUG2CVCOtk4vBVwiIABuuN08GCeg8cNDIRMAslIYcNG13D; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/com/github/tony19/named-regexp/0.2.3/named-regexp-0.2.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=B.YH16SDKZBIfF4IIO4VlaC8XnnJZaGSeVt4aG8kT.M-1792059143.4217782-1.0.1.1-fo6j2kpK0p_NQLBjFhlZJUataLpiw8zQ.HFTU_erLe7LiAKf4IuauFk572AU.49NIG1vrg66USv9C_kMKW4GR8IisdVIrt3ygzkXoyz73TFZ8e5ve0_.lQ0bX8_zaBnL; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Invalid cookie header: "set-cookie: __cf_bm=oNxmw3CXuq.hYjgVLgARfnJEq0W9NPwjUyhOwvCa41o-1792059143.4436433-1.0.1.1-6Lz5_8AMTtXCWh.EmDp63gYFCtn3V0dV1GZ7qEUAknYThB6kM5tzKfWX4XN1_8QKOUPOeyk0vrB_JBSBGlkhwjNcrEJmX9GcsTWFHghsQCoO3mDAOKZIiGTVtL59yq3d; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Invalid cookie header: "set-cookie: __cf_bm=Maaclu9YglrArPNidAAXUAFIYMjqs_Yd3SPw6w9NkRg-1792059143.4667218-1.0.1.1-0u9HMQre8ItZa_pdzeVCtgN_bif2h6MDK63VxsFnQ9Yv0RaFz0pSUU2za1JQHen3.M8bBWeYK764LQuYGnaoWXPND5g_7NLpqTH1cIZxGwHRPEb__PeTrTa5tDpvp8hB; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://maven.minecraftforge.net/net/minecraftforge/fernflower/2.0-SNAPSHOT/fernflower-2.0-20151214.100946-17.pom
+Invalid cookie header: "set-cookie: __cf_bm=e3Lh1T3PW9.lAOVm_UbaDLPUQ4.nBLk3lYOsE1HRqIw-1792059143.7418435-1.0.1.1-xpbJE.gzp_bvRh7pZ_Wh9.5JKKSDBX7l2uUtU9SrdAaSfWpYiO3yUNh8xO..fSVxfMddQVnIv_otyWNvDjMZJU2NcdOf2KfZHYj6FZiHzgTX9CM2bW0UEC9ueqHlI2Tl; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpclient/4.3.3/httpclient-4.3.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=9cT_M6c3BqkYH9h15PgHaALti5WEkAqgUjJ0NQmtCrY-1792059143.7617958-1.0.1.1-1EbN_6AVqTfIAgeTNpt6v9XRMpP5od0lRyecRiuj2e0K8RMCpnh3Fd_EIJ.1KmohdOvGV37q3gsVlRnNcPn0zY.7D3Bo.F_V4JVsT1_wv4y0FMyTSF.11oUHv6ATqsR8; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcomponents-client/4.3.3/httpcomponents-client-4.3.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=ItqF5KcT_Jy4xZrQs3k.zs_o8rscgN7rOErHpcbG3zo-1792059143.779999-1.0.1.1-h58d7RllxWq6cxtEwxdUerDk..ZpvMeUyqa9w0LC.LwcWKWgKjaHVl9iTR.ao85sEwy0GsGBNW46g9mahJ5XPvAVJ5kTpxTL4wne8U1zJ60GFRrkNNNTh15TVSOLkHVJ; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/project/7/project-7.pom
+Invalid cookie header: "set-cookie: __cf_bm=SmX23NukNkKcw4it9KXT1cY7SGjhJJgQW0E756j.gPQ-1792059143.8054652-1.0.1.1-VTsFU8dLuux_8C34RoUACJ6bzWu9AUXReCOZOFPa6PX4iqRfgj.xpw7kR4h4VyQkgBQ7RAOEdEyDT9tVH4wJ3nae2HgKflU90ooqe7PYa0dDGHZCuyRcPKwfjAh2TnPF; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/org/apache/apache/13/apache-13.pom
+Invalid cookie header: "set-cookie: __cf_bm=_G1M.YG2fzWLRuCZWBOcQ8_R.KhyJXgI4TDL5M5OWik-1792059143.8562806-1.0.1.1-S9SjtvpqJtxFlFEIGIVn.sHgbjWVnSpybvgiZdF7WsB_EmBi4mApNQxcyelPivgk_WE93.HTsM3tEajijPj6Y6OcMZIgf7YWpEXDDjkDkb0TxjOO93iBxiSs8DNSUyF3; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:23 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:23 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpmime/4.3.3/httpmime-4.3.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=lvrQfvjkE_RULQrtZQgJxzKBcSxax15G6gtPX5s8lWk-1792059143.8854096-1.0.1.1-X8MhIGMNpJ38a1CPY7U3XJJ5YLdV6FTLHbmzr2I6ypUGi6iQNNyKetS5t1wfDhdrWo.qScoNKI719YrHDbERfYbXGl9xEMIB5D1QmvgHoihl8mKuzCZygCfoDLhDjFqA; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/jvnet/localizer/localizer/1.12/localizer-1.12.pom
+Invalid cookie header: "set-cookie: __cf_bm=U1VnlVlMdi19AVsocqOkDaa1RLQYEbXR_YKBUwKsRAY-1792059144.045408-1.0.1.1-EYmcGzo9naj4gKHDnPRTflA7WXt9Bm7T5YTwipUOYQtrGxnMS8KHTgd62cvs1mDy.DUDR.44R075VRjz3eTi7qBp0Z.oRQiaf5JixkJVoWZCCeDLPLrJBkLLtKcRHl1p; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/jvnet/localizer/localizer-parent/1.12/localizer-parent-1.12.pom
+Invalid cookie header: "set-cookie: __cf_bm=wmUANwHQVf8tAgKcakk8ckMv_eGtz4aWmuY7mBHsXfQ-1792059144.0735917-1.0.1.1-M2oxVkq9bWvks_WtFuZjCHXOBLtkDl3Is292dF6ko87Pny7FvERTP1nxywt8WCKCSpc_ofX6bAo6sP1wP.KUZVFzSFZNcCERFvXz7466rywVGaMmZZtloby8DnSjB.aD; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/commons-io/commons-io/1.4/commons-io-1.4.pom
+Invalid cookie header: "set-cookie: __cf_bm=CoJhEl2f0z_5RJmfgrQTRgzdFaCXXckstl6eWcgBYbI-1792059144.093261-1.0.1.1-.Lkc3KnDQD3ckW6tKdul_FQXiF8YbJhAvAHuXHqrlyEp5NL.wonwz6clbpqhkCf6oZNKxBk90c9DWnJO7gYAjuXaIMmEdy9ysIQiR61LWRqJ__biBmTlPEd.dOnkUgaX; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/7/commons-parent-7.pom
+Invalid cookie header: "set-cookie: __cf_bm=XRioTI5eNdycv91GKjFgohu0x2xXv9D7JsUqLTj7RO4-1792059144.1132245-1.0.1.1-dfvhRgm.aTrzlYafJGXZyrJd3w10UdzLe9wFSYNDx7FhHOHowovxqrDhU7Hz2pNialo79psedVfPiMTXiMbyzRhAHDxchmEpkm_TH52PbxiIpT_Oj0r3JZdgEMBLCEUX; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/apache/apache/4/apache-4.pom
+Invalid cookie header: "set-cookie: __cf_bm=NXY9ZV63nESOyAm91UB06ARkNYzQcyJaS9wpIN1_9qg-1792059144.147918-1.0.1.1-1mn.fNFqCPKoDlup6pOYkE3fmG1SfxJEEVmCH6s9346ABVKq7qNqagn74OYOYG3kw6Sukplfi1EV8i5hYSwzZdvKLZt5oHVgmToCDPrImOrGO15XrYYM4ccR8XxeaiNt; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/trove/trove/1.0.2/trove-1.0.2.pom
+Invalid cookie header: "set-cookie: __cf_bm=nwjTRJVXcxgNyZrLQQV3vKG2TDP4VJJ7Rvj_8N5fpy4-1792059144.170673-1.0.1.1-JMlACQhrUhn0dkJRm4ihTqfBUJeeOzjcpCnTr8DAJ.r4pP01gXEiKNlfGNgRKIR3K4xSD0p24keBfVK.m_itYs7i_XBPPeIvtpGC8oP96q7A634M2pjpYHqYl1W6US4Q; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcore/4.3.2/httpcore-4.3.2.pom
+Invalid cookie header: "set-cookie: __cf_bm=2DOSMYyiXjsJ4XT6K2gxD8CJuo4U.Ued.dIKXHq5_oE-1792059144.190226-1.0.1.1-DgSAeZ.p78xRBL3WiyEGAQBfKSCkZYN6HVfdWiT9ZZq.2LbM7X.Vd_iMy_28ZZ_tQ10WJnaERFkh56NukE2XMfPWgKgdf3zKY05Uk3LkK8sP96FLqmNi9q171KPEy0Xl; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcomponents-core/4.3.2/httpcomponents-core-4.3.2.pom
+Invalid cookie header: "set-cookie: __cf_bm=lB5l5xdw_AK6GZLWv14nEgXIU8qKRa2Lwv3qpS09pNg-1792059144.2263336-1.0.1.1-y._krq3iwPqUv9GmYiRv1C4fA2R8C7AD2JgcSf87JQ1sggaHS9YMmIUlnjzfqtEeIXFZ34_bQaQwKG7fD3kKBu8Wr1waqwhQez6uh7IUjy8_xyGAjPlB9CJwC.5M15jk; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=spCJDIn8PRsRnOGov98jW.BPmLyh.9PmJpj2PMl.vsw-1792059144.2465048-1.0.1.1-uDQN8AhOZQ.UVwzl0N2RiYrpkpKfU7H6dkLOFXvSL3OJpLNYxCETunnRF.Ci8o05NdjN3cMhu3RIrZlgQ__rPgiurBeUAH3w3CaUcYFpnwM6YeULKK0_l1Jrb13GOL__; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/28/commons-parent-28.pom
+Invalid cookie header: "set-cookie: __cf_bm=VFv5rR_f0an4vPNaW2xI8ikPgJOgJ8wJT7feAsL5sHc-1792059144.2840252-1.0.1.1-fazRc4fpUY3k5DzABHTpPLJottDZkHU9OSwW3sSC2UNYKmF5OMonEb6Gwe0IXenk8ixyAgPP.xnwJJVGNGn00veZ7Pmsfe.LAc9vIRiiy0E1DrR11lFRTVilo_EsLDQa; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/commons-codec/commons-codec/1.6/commons-codec-1.6.pom
+Invalid cookie header: "set-cookie: __cf_bm=6muQLKzOwr0f6SSfT9HLCcv76dFSe0.i4OYLzLfNTXg-1792059144.6458902-1.0.1.1-pzA8tzrkPyyFiBA6ekz.gQXO3.t_5SvpqyL9spTF0OmX6oGtx429Pdl0VQZKHYpUByKnRhyky69lqHfSkb8WN_fth8uMvc0UO_19.KCZedHBvHtZYTBYtnkLVC_rWs6n; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/22/commons-parent-22.pom
+Invalid cookie header: "set-cookie: __cf_bm=fLU605jvgzXQ.R5YWs2LYxNI1X41cGeD5BHojGMZQaM-1792059144.6674867-1.0.1.1-i0g8ktbO0DGvFkBsKMPKG2RbhHMLTjoIRsKRkLpIDJJkVZjQbUTgrSCBhnduU98ISP52QK6Il6fTZ4sD.TpCRo.KxYzF0Lqx2ezMd1AAHwqZoT79VAG4TLhLSPC4FZJU; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:24 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:24 GMT
+Download https://repo1.maven.org/maven2/org/apache/apache/9/apache-9.pom
+Download https://maven.minecraftforge.net/net/minecraftforge/gradle/ForgeGradle/2.1-SNAPSHOT/ForgeGradle-2.1-20211118.174922-42.jar
+Invalid cookie header: "set-cookie: __cf_bm=IdMaIXttkNUdO5IHiXv6TLzOlWHtz7IvTtRb9gbGNn4-1792059145.2242649-1.0.1.1-bjxJwcXWKYtc9KZ0YvDLydD8weWBqk5xDlh7NOjHFj.aMFByTosG55kG0VyezQYbJHEaHL16pKot9PvkYMGFp5y2g8zrqQx1izaXYK9KT4IgUJpsgWiSpJZfl0Dj3716; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/org/ow2/asm/asm-debug-all/5.0.3/asm-debug-all-5.0.3.jar
+Invalid cookie header: "set-cookie: __cf_bm=W0vscv9qDDRoqdExsAJL0_T6RIOz8dYkieRGoxEgniM-1792059145.2511463-1.0.1.1-WCnnQ_IRprchFc3GWpyADi37PvE0diPC5GWAeQ6iHinUkoaAOkT6eDaJ_0nY7pXi0FT6haF_5XJBrU3m3WiSskW88Bp9GdA5PP97GniCX6duuJaGa3ID9EGy6gdytLMc; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/com/google/guava/guava/18.0/guava-18.0.jar
+Invalid cookie header: "set-cookie: __cf_bm=3j5iG0h41jK8bOYxZatCSuuUF8AuR3m2poabgwA2uKw-1792059145.3064258-1.0.1.1-kc.XQTkTOcynUSC6NR.cNBh.czpBXe55FSa624OLadFwROFu02jFo._6C_PbpWzpvjUnSK.hE_fWowXqUMwkFWPa_LzxwB85Qp2YiyM_RSWrd9GQ6.clz2UzKTznwJaW; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/net/sf/opencsv/opencsv/2.3/opencsv-2.3.jar
+Invalid cookie header: "set-cookie: __cf_bm=yHZdqZbrLKz2c7u1QdIUQ8dT0bKwWhbY7uUDV_1hdw4-1792059145.3232205-1.0.1.1-8JIHY3KsSwNPz3P14LRBLjms7H3C7on_reEv287lQGWkdksAwaNG17i3vTNHstgDS5j8gxkAtsacyL0imsXmbm8GxcCWkgfHXFWHeFIocm3t6_9KNT6YeX44AuiylXNR; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/com/cloudbees/diff4j/1.1/diff4j-1.1.jar
+Invalid cookie header: "set-cookie: __cf_bm=.q54FGG73iGy.3jIelO7xI3gWxzVnSCAqdyxrchWiew-1792059145.3440537-1.0.1.1-xtau6UUUdpGL0npA5.uv3RD.rwNmNmi.G8iClz0jC8gkmwCttsrDEVgtK6O535ePJZvXMHJf_4dCitakQQAw5qLwT6UQ0wzAEvhR0kiF_yBQ6KydLDEJzdEZVhTjWJVX; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/com/github/abrarsyed/jastyle/jAstyle/1.3/jAstyle-1.3.jar
+Invalid cookie header: "set-cookie: __cf_bm=lBJVAPJFCrviAMFoP3y9PVKpBRgOVTnxXYqlcY24QQw-1792059145.3624558-1.0.1.1-Guxoq085vfqgPXxFoXsFmNAaZy_qUmHqGGDgRAtVvY7e3E85.sgy.vVQ2p6JSOzjsBIj6AqdXi2xQNs9WGeLtyfritxQLPIz4kvjhsGSoymw3bALwX_tjP_Z6HAVIk4s; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/net/sf/trove4j/trove4j/2.1.0/trove4j-2.1.0.jar
+Invalid cookie header: "set-cookie: __cf_bm=I_UMZoDPT5itvr3CiDlPujLDjJ9HAnt2J43narj25aU-1792059145.3924928-1.0.1.1-TMZT6QUmYVWD6Aadj8q2UTmgHmeFQw1PcAcw4iUUObTlqjmrID9EaAARaYCFRDBm8h7PeZIzd8fezbfZNONDhICxUQQHmnYU9.sU8bqLG9YTgQctTIym3CudYaj0cC5Q; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/com/github/jponge/lzma-java/1.3/lzma-java-1.3.jar
+Invalid cookie header: "set-cookie: __cf_bm=JZPW4levuEqws_OPLER2Ad0yWrCxdFfZr1W7sBk_Sh4-1792059145.407923-1.0.1.1-unjREsC6WFq6ZiGl7zWi4Crn3tKvTXTREb7h6a.e93SSoVK46ycaWK4Ju0pNoMHvPEKyV9xSrlFjFW8wWW6N4YnnUWUxp1Vt3H9AcHGU3FBF1OMpOPuBFifS1w6jzfFz; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/com/nothome/javaxdelta/2.0.1/javaxdelta-2.0.1.jar
+Invalid cookie header: "set-cookie: __cf_bm=iwQDczOpuJ.LO9b7v3Vjc6j5D7IEBew01.aBJcoH6A4-1792059145.426913-1.0.1.1-LLWkkRJTw708AysJTqgQlulUemxypIOSiB_usy7D.kGg.SOlLcrEzjuotTKfNwNtPSl87_IoWPLKfhlrhk8WT_Md0iYzG40HJSzfF8KkfWzt2N_m2.ru7JaJbzFwHDsJ; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/com/google/code/gson/gson/2.2.4/gson-2.2.4.jar
+Invalid cookie header: "set-cookie: __cf_bm=LP47_x4hCY1yfsHaiNQBUMKypkd5hQpujLveKsX2j2I-1792059145.4518754-1.0.1.1-27SNxWYJYyVjjDyKAzZ3VnHNXKHNcC5nuCFSUvvFxAnWaoJqvfGSAEZ_qkFAwplHPBeHw1icXTZc9mi.aLVdwHZo3sRpT5LNjGEBiKqxpIoHVIUI7_rwN7mJ8r1S995Y; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/com/github/tony19/named-regexp/0.2.3/named-regexp-0.2.3.jar
+Download https://maven.minecraftforge.net/net/minecraftforge/fernflower/2.0-SNAPSHOT/fernflower-2.0-20151214.100946-17.jar
+Invalid cookie header: "set-cookie: __cf_bm=nXA4J6A4o1Ih3jGXvupwwOihewoz50gY8ZpWkZ3.UCA-1792059145.500605-1.0.1.1-lUpr32_kgsMW_A0yahLB1c6pqwDd_nepRV4UgxDv3rhWOFf4Ih1rOTKgKFE1I_GU68REU4HBgn6Gj5tu4NNOJ2rq3HdpalxZI7nbrcfsQf2tw4qvpPgCZVFV3ztN9Tqv; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpclient/4.3.3/httpclient-4.3.3.jar
+Invalid cookie header: "set-cookie: __cf_bm=Z3BHGNV6rL9z9a0ok2NDd_bxdiblIjuYuKhPZWvZ6Xc-1792059145.5265844-1.0.1.1-jtK62wkaRZhXLyX54HxlKLXUIVV6ppq4PQ2KZ3dzQxK1tsPWLGKYrmfyEuhzWCFpbz5PJkIonEaL8dGKz_OLE1SeoAWhxvW7i14KwxVtir3TR47Nkke51GtiHO.ev19u; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpmime/4.3.3/httpmime-4.3.3.jar
+Invalid cookie header: "set-cookie: __cf_bm=ExpIM4wfvIVLlaCDkFuGccxFs8yGw8FsdN40etSmPRQ-1792059145.5432017-1.0.1.1-LJxb1PB8ajh3FvrwqlIOWWxb8go3ztYtGyW_U4Ibuqg707ImkW0AfSiiLjjSSaJbkcYm1E1.RmERKz7brBCFkdLAh9mLuFtLbpLr4YClZWpZemqZDHrQi9UUfeXWmAst; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/org/jvnet/localizer/localizer/1.12/localizer-1.12.jar
+Invalid cookie header: "set-cookie: __cf_bm=4DZJyU97eF6RbprPkix7ffj166teBIZQ_XAmn24isjU-1792059145.5574-1.0.1.1-9_Ev6MfAlV2covxbZsLiXNLbHjqxdxuWGCEMPycKh86DYv7HLOhQ1bUjqfQyphEhgsf.mqhOns.pFzhu6TQJakj2ZJ_w8JPQZmGPjS_Xy8NRupWTFpTIO3gSHvbw9ikW; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/commons-io/commons-io/1.4/commons-io-1.4.jar
+Invalid cookie header: "set-cookie: __cf_bm=cYaCYA5hXQSBY4MfKjVnBeUlEL0NJb1hlGEk6rdONgs-1792059145.5757258-1.0.1.1-eW66OMRgFrYVum7dlpIOjAbqL2JvIccJjtfEdGA98bf86Owh8HuZmZvIlZDd3BHWWwJN1IltIi0vmMRCTCf269GWDY2RZxxRIUHohEJrQ.N2gM.eDyzEzPWwApIblYZB; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/trove/trove/1.0.2/trove-1.0.2.jar
+Invalid cookie header: "set-cookie: __cf_bm=ta.LgwL2H5qF_7hizzrxTW8YhLI1_nSq.a9QKLWDWtU-1792059145.5979393-1.0.1.1-mDqUTd23zwMdpfHFyJ5nN49TGPAzvqEMfQ1wSp26sFtg.QpMY13_1Aa6uhvZtwaXDLQF75NVl4N8wlDpCSCAkEVcO_87U5koLobQwJHzmnLHd8PXsaaWlZpzkdvaMcwr; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcore/4.3.2/httpcore-4.3.2.jar
+Invalid cookie header: "set-cookie: __cf_bm=emgzz2V4iooGFZR36r7D46ukR3.Jo96uUSLjiDXodbc-1792059145.6148746-1.0.1.1-ApB3qBI8xmbZVmlklGGUVPNKg6AjnISAd0cXc0LpoSh6zYVt5hBT3gqgGBF_6gpnoTwNGiSZ.ELuQmqQxG2A7eTYWRfaC5Mz4FXJyrVzLy9MqraiZaXOKLF4pvXPLqAw; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar
+Invalid cookie header: "set-cookie: __cf_bm=Nn.2Ezev6T.yw8jEWB959.OLPLLvUBR9QpddfFHocUQ-1792059145.6305995-1.0.1.1-VWLLc7GKeJlAjFZAKymxJ1d8j_SAQWDOXCM19whma9RzxPWSl1DUFPYoNugFgKeHJ_vud1u7151ugi_TVRtpWNkz.p2m4hjgWx2BPYaQyPmfc8iqIycXhV1pURVMvDYp; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:25 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:25 GMT
+Download https://repo1.maven.org/maven2/commons-codec/commons-codec/1.6/commons-codec-1.6.jar
+WARNING: You are using an unsupported version of ForgeGradle.
+Please consider upgrading to ForgeGradle 5 and helping in the efforts to get old versions working on the modern toolchain.
+See https://gist.github.com/TheCurle/fe7ad3ede188cbdd15c235cc75d52d4a for more info on contributing.
+#################################################
+         ForgeGradle 2.1.3-g6a7c715        
+  https://github.com/MinecraftForge/ForgeGradle  
+#################################################
+               Powered by MCP unknown               
+             http://modcoderpack.com             
+         by: Searge, ProfMobius, Fesh0r,         
+         R4wk, ZeuX, IngisKahn, bspkrs           
+#################################################
+Version string 'Beta-0.8v' does not match SemVer specification 
+You should try SemVer : http://semver.org/
+:deobfCompileDummyTask
+:getVersionJson
+:extractUserdev
+Download https://maven.minecraftforge.net/net/minecraftforge/forge/1.8.9-11.15.1.2318-1.8.9/forge-1.8.9-11.15.1.2318-1.8.9.pom
+Download https://maven.minecraftforge.net/net/minecraftforge/forge/1.8.9-11.15.1.2318-1.8.9/forge-1.8.9-11.15.1.2318-1.8.9-userdev.jar
+:downloadClient
+:downloadServer
+:splitServerJar
+:mergeJars
+:applyBinaryPatches
+:deobfProvidedDummyTask
+:extractDependencyATs SKIPPED
+:extractMcpData
+Invalid cookie header: "set-cookie: __cf_bm=0eWk9gnOTV.htjJKu8innCvgAKCxTucTzY8kApka_Io-1792059157.0788755-1.0.1.1-KSrZ8tEP9S7oMtJeqtg5sfdDT3NLAvSajvK1zzhrh7RJ88_29crjuqqYCkiFG18xgnYTNN9rXt8LcFwO3nS8QU4jOYHIvaotPj63CAOxHbnekl698MiMtsgE9rlmne9s; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:37 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:37 GMT
+Invalid cookie header: "set-cookie: __cf_bm=OhPdK9fv9VUtmJqCSyJpOGNKaWWsznzr4hMFDFvrbIw-1792059157.0969043-1.0.1.1-RLa6URD3rUeAXg7T3bw_32.cbp7nTBujDmvUDAISQ6iZXqDzAXgCvzEN1V6BJlxMDZLGX0y1mKyW_nfZLx1gRg7SBQEiAetEww4aiduQkQM3zXKySG0gv2I1DrxZvIZJ; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:37 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:37 GMT
+Download https://maven.minecraftforge.net/de/oceanlabs/mcp/mcp/1.8.9/mcp-1.8.9-srg.zip
+:extractMcpMappings
+Invalid cookie header: "set-cookie: __cf_bm=8OgC0aF0M8020klTmUqXZeR1jYqTcdosC9ReLoqCUvc-1792059158.113161-1.0.1.1-RBHmpjLVBmY_cjnyJeoZSpcRNaUnpQlx4zMAi2DOCdk69Lg_x1km8NSNkMiBS6_rPQzJt4djz5uN6WoReO3ZqYOlIkZios_p.F1fcjLSShrqM_Xx63XDnGwQ8rFg81iq; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:38 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:38 GMT
+Invalid cookie header: "set-cookie: __cf_bm=3X46YSK0kgxbF9_9YXIAnfvpezm1j.vCBBICsPC5ko0-1792059158.1636534-1.0.1.1-fLQPRVyJmJFkAVyG6Q1OYDx_m2pEFbqBc1RhMf5zXb1LUDasL2N.IHqb1TINE9IlyKboLOVjV5bPsW9mwFeZSemC3ldDx_TIYavc4nQGXzmUtVjBgwkYhXKcSdWKpdoq; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:38 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:38 GMT
+Download https://maven.minecraftforge.net/de/oceanlabs/mcp/mcp_stable/22-1.8.9/mcp_stable-22-1.8.9.zip
+:genSrgs
+:deobfMcMCP
+Applying SpecialSource...
+Applying Exceptor...
+:sourceApiJava
+:compileApiJava UP-TO-DATE
+:processApiResources UP-TO-DATE
+:apiClasses UP-TO-DATE
+:sourceMainJava
+:compileJava
+Invalid cookie header: "set-cookie: __cf_bm=T6YIivnU8TodEktQVfOnTTtEbqH4wFFaeBwBqxId5B0-1792059167.609849-1.0.1.1-sciTIWKjqLp5kqBI5qCjDNo4dSX4NjtLg0u7v9lm5eBJD6W3TBjphXOqs_WkaPPS1CcevPFvpWMFQzEGZU9foTlfhFCbqoEf6FLDJs7_XRhCBC9XKeIjnbruvolbaVOj; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:47 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:47 GMT
+Invalid cookie header: "set-cookie: __cf_bm=DO3rPkb1SzbXJZsMRkRqSM2E97QNjZfN0omx4dl92HI-1792059167.634098-1.0.1.1-oQuo3OvsP2xfKHmnglIY9LVTbiJ58wlcPYn2NqZg8l14Mwo8jM_n.kBTjD0InvG97V6mDg05rcLbiPZGe0CfBrNk1PUqUK240_gQfWsJJPS7lLmVUhvq1ODEAxILPq5Q; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:47 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:47 GMT
+Invalid cookie header: "set-cookie: __cf_bm=VZZeuGebUjo_6CqiXFGbZowpe_HYf_9SkABLrycS1gA-1792059168.4473076-1.0.1.1-aWYm57Wp6xw.X5JovtOkbH2xhol8bSy5JU8fUJIu4WzHEyOgTSeP6xdZZEQJXdkjUnhGOgiRcgtsUk.0ohdAbJYejKsgVGAI9ndQJEpwxlaLDTpWlM_R7eQ9UBZOwy3p; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:48 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:48 GMT
+Invalid cookie header: "set-cookie: __cf_bm=mtswGdN7Fwj49STeQzKfEME_X74ujHNUTWhmFwmnf4Y-1792059168.4700503-1.0.1.1-kXKndwY6uvvmdpT4td_Qj8octb.Ez2UVRdsMC7tdRiqTfC5Ke4OGMXWKJUj2Z5a_BPMc86CsgqkMwRzE0k7Vl7ZpWmJGefWSB2q4UAIkKgYjYu2B0AkpCIfnWvEx5btK; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:48 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:48 GMT
+Download https://libraries.minecraft.net/com/mojang/netty/1.8.8/netty-1.8.8.pom
+Invalid cookie header: "set-cookie: __cf_bm=oOQ7uSiKTFpCtgAoFEPOPpWCJpLb_oZrEjvO5azj5d4-1792059168.9624813-1.0.1.1-5eQhoxxtRhTM3QUSAeGbkdWc2HVYMgeke6PYsoawHnrOhMDPAeMfENgMIJaZAgVtrGBtKeX0NZJrrl6FYC3l0IVNHyfTs2S2OrFjPfV_zxmVD9lkkwxi93Bs5zP.TLtO; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:48 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:48 GMT
+Invalid cookie header: "set-cookie: __cf_bm=BanGNFR_Qjvg9kFN0TBqkP34wUbe2fj0.wlsxQj5p30-1792059168.9921346-1.0.1.1-vGaXwa05J5RGTaUq6hDECRzM7rsii5d41azxzHcssLM87DdUFwkKpB6708EQM0ydfTBe6B6QxnVyQCgbta3.nfYyLAHSpoekgWN4Ceg2mjVXu_Al6FJ_izE5OAOtLw2F; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:49 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:49 GMT
+Download https://libraries.minecraft.net/oshi-project/oshi-core/1.1/oshi-core-1.1.pom
+Download https://maven.minecraftforge.net/net/java/dev/jna/jna/3.4.0/jna-3.4.0.pom
+Download https://maven.minecraftforge.net/net/java/dev/jna/platform/3.4.0/platform-3.4.0.pom
+Invalid cookie header: "set-cookie: __cf_bm=LRYqTASEHAUTTz1x1txeECqlky5tDbwmgako8IQ3gNo-1792059169.885656-1.0.1.1-qphOz8b_IOG23d_bxod2VSZlrpfv73pWKJl8yzHbEL_NNJxF6ec25qCRKpfKIpSJSvBDVS1RxCu_sImIZG.IPIF0X1VqhwEIryQRDDF.S_.eJh2ibES93Cc20tNBB7im; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:49 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:49 GMT
+Invalid cookie header: "set-cookie: __cf_bm=VySEMqDFks3pIXQJHREDEs25m0opsfWJsOTKBs3OOpA-1792059169.9091628-1.0.1.1-jm79y1mPJSJyMr.IxbmsNA6NeudOY90b.7WrPUxkQuMi7NMACmP77BlrobmIcYNdMqheTr_YUu2PsUD.oSmdCxA0WL4dOofnDh9bW9Kj40Es4Xl3Zctod6_pd1Lv4PTn; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:49 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:49 GMT
+Download https://libraries.minecraft.net/com/ibm/icu/icu4j-core-mojang/51.2/icu4j-core-mojang-51.2.pom
+Download https://maven.minecraftforge.net/net/sf/jopt-simple/jopt-simple/4.6/jopt-simple-4.6.pom
+Download https://maven.minecraftforge.net/io/netty/netty-all/4.0.23.Final/netty-all-4.0.23.Final.pom
+Download https://maven.minecraftforge.net/io/netty/netty-parent/4.0.23.Final/netty-parent-4.0.23.Final.pom
+Download https://maven.minecraftforge.net/org/sonatype/oss/oss-parent/9/oss-parent-9.pom
+Download https://maven.minecraftforge.net/com/google/guava/guava/17.0/guava-17.0.pom
+Download https://maven.minecraftforge.net/com/google/guava/guava-parent/17.0/guava-parent-17.0.pom
+Download https://maven.minecraftforge.net/org/apache/commons/commons-lang3/3.3.2/commons-lang3-3.3.2.pom
+Download https://maven.minecraftforge.net/org/apache/commons/commons-parent/33/commons-parent-33.pom
+Download https://maven.minecraftforge.net/commons-io/commons-io/2.4/commons-io-2.4.pom
+Download https://maven.minecraftforge.net/org/apache/commons/commons-parent/25/commons-parent-25.pom
+Download https://maven.minecraftforge.net/commons-codec/commons-codec/1.9/commons-codec-1.9.pom
+Download https://maven.minecraftforge.net/org/apache/commons/commons-parent/32/commons-parent-32.pom
+Download https://maven.minecraftforge.net/net/java/jutils/jutils/1.0.0/jutils-1.0.0.pom
+Invalid cookie header: "set-cookie: __cf_bm=am2aBhzlSvHGI.x8LKbqLu8S9jf8pOqT48qRpORwB7Y-1792059172.7264585-1.0.1.1-UzBvmdnXemkCXhXYBZ27hjW4X0e2FYYldx6hVfR6bTmXNtbZ_XxmLwGf4SlDnyY624dXckparnRC5qwKIF1BwevLHbpuN7Wu0.taq3fZlJhq8q_i8vuBLYr1zP9TeqIR; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:52 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:52 GMT
+Invalid cookie header: "set-cookie: __cf_bm=qm8WX1prdSLLS1sc3.rabjtrbL9x6AqmkK09IUHA3qY-1792059172.8223808-1.0.1.1-FQtgsXFfEoH5Dx5xHruqTMa79H9oIg3WBuS03NkzVFJOSGM3neXGxqEKLxRU1FUX_q1i.qntNLfUHNgAIagYRsUUbXqx36OhLZ7jQBETIEKwCFbzOgBGQi8jiyxPKx2H; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:52 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:52 GMT
+Download https://libraries.minecraft.net/com/mojang/authlib/1.5.21/authlib-1.5.21.pom
+Invalid cookie header: "set-cookie: __cf_bm=uSy_1vKALOyU.HxeHMUOjbbDsxdQ4nlkSoofM49vO3Q-1792059173.3287-1.0.1.1-iURjS5ja7ymquj9QrrXZuqpanKahLeCiJf_w1oYyJtzAd8HXU8OXekl2XUl4HhX5drmFyui5.QhDyKsBngyqJSmO0SlbHLu79R_9oZynqUOXu4WPKdMoiSM5RMfJg8vO; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:53 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:53 GMT
+Invalid cookie header: "set-cookie: __cf_bm=UtkM25qOoxUuAtQTjAARG7P6MRgomwCAnZkOAP3bIzg-1792059173.3511696-1.0.1.1-YiPi_UsmR5jtx307qNOzh_g3bDU7S1DX1h4.Ll9cGBCvDcme5vD7fVvHAP_i2iM_tefXEhAsSTVq1XN7EI4sK77n7nm6BzQcdK33Givz9TPrQNxJVfaM2pQTMFuU3pb2; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:53 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:53 GMT
+Download https://libraries.minecraft.net/com/mojang/realms/1.7.59/realms-1.7.59.pom
+Download https://maven.minecraftforge.net/org/apache/commons/commons-compress/1.8.1/commons-compress-1.8.1.pom
+Download https://maven.minecraftforge.net/org/apache/logging/log4j/log4j-api/2.0-beta9/log4j-api-2.0-beta9.pom
+Download https://maven.minecraftforge.net/org/apache/logging/log4j/log4j/2.0-beta9/log4j-2.0-beta9.pom
+Download https://maven.minecraftforge.net/org/apache/logging/log4j/log4j-core/2.0-beta9/log4j-core-2.0-beta9.pom
+Invalid cookie header: "set-cookie: __cf_bm=48ZsewFq7HEzrM5V50GrnEBqNkXWCL2767tN9qZyYU8-1792059175.6389287-1.0.1.1-LS5solTMN7PCelzw9fg1W4RQiedbmGRobwJBB_.OTlVxX8f.IeAZ_bTN06A4.3CV0q6MW6_Dqiuu8IXM9Als.YnEd_fOwEvY4bGNdosW19wssvNfeo8uZGDoxWQNULj0; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:55 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:55 GMT
+Invalid cookie header: "set-cookie: __cf_bm=X_51XBROCJbq6v6NtR6JOATa7bftsFszDOo057bpmho-1792059175.6769133-1.0.1.1-hwvqlg_h9Qya0KJR5TWzmLJGjzuw0bbk7XvnPckeqJLphLzqCJNvmXI2qfIqCHCyawt6G81BDoqlSwp3ndkHuKRYQszBIiQKccy6hdp0Enkog.JRgaOfIRaZ9r5w0RhL; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:55 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:55 GMT
+Download https://libraries.minecraft.net/net/minecraft/launchwrapper/1.12/launchwrapper-1.12.pom
+Download https://maven.minecraftforge.net/jline/jline/2.13/jline-2.13.pom
+Download https://maven.minecraftforge.net/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.pom
+Download https://maven.minecraftforge.net/com/typesafe/akka/akka-actor_2.11/2.3.3/akka-actor_2.11-2.3.3.pom
+Download https://maven.minecraftforge.net/com/typesafe/config/1.2.1/config-1.2.1.pom
+Download https://maven.minecraftforge.net/org/scala-lang/scala-actors-migration_2.11/1.1.0/scala-actors-migration_2.11-1.1.0.pom
+Download https://maven.minecraftforge.net/org/scala-lang/scala-compiler/2.11.1/scala-compiler-2.11.1.pom
+Download https://maven.minecraftforge.net/org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.pom
+Download https://maven.minecraftforge.net/org/scala-lang/plugins/scala-continuations-plugin_2.11.1/1.0.2/scala-continuations-plugin_2.11.1-1.0.2.pom
+Download https://maven.minecraftforge.net/org/scala-lang/scala-library/2.11.1/scala-library-2.11.1.pom
+Download https://maven.minecraftforge.net/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.1/scala-parser-combinators_2.11-1.0.1.pom
+Download https://maven.minecraftforge.net/org/scala-lang/scala-reflect/2.11.1/scala-reflect-2.11.1.pom
+Download https://maven.minecraftforge.net/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.pom
+Download https://maven.minecraftforge.net/org/scala-lang/modules/scala-xml_2.11/1.0.2/scala-xml_2.11-1.0.2.pom
+Invalid cookie header: "set-cookie: __cf_bm=eX63_2gQ0SqLu9Cxu5ECt1pCuoK.XwklwgUaqSprTNc-1792059177.9810593-1.0.1.1-1saZYY4rmXE4MZlH7Vhkr84Z7txcpogeo5V7NzhpKBNquu7l6ofAEvlS.F7GVN8Ul5zpKagflKjxLeb17r7E6wXtQEno3XL.mqiwmwfVJ3.Q2yu6OEfGMGmS2rRZ9FMi; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:58 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:58 GMT
+Invalid cookie header: "set-cookie: __cf_bm=CFjuegXpPuwyVOsvVp_FFMUX3g.G6y.BAE5Hz5nY5VU-1792059178.0084448-1.0.1.1-ZITZOiY9bn1s8fc2oNJQag8MDOUs8yCvXlZ45qZO8mRITSruSH6E3mrQoDxonHNBLKMp2tAm.DTTwgwOq3BO_PJVXQ0GrIWSxft8ZqOt1Xc7CpOmXZsO5Hy7HtFea8uA; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:58 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:58 GMT
+Download https://libraries.minecraft.net/lzma/lzma/0.0.1/lzma-0.0.1.pom
+Download https://maven.minecraftforge.net/net/sf/trove4j/trove4j/3.0.3/trove4j-3.0.3.pom
+Invalid cookie header: "set-cookie: __cf_bm=aDggBUIuwvMwXZ2CIXZvtT712pLXOCFvMcry0z0H5MY-1792059178.5529613-1.0.1.1-h_csQRnTwgkfMftZu538vZzNCJU4zpA2CbKURzGkKQk.9j9AZ5Fd7OX4_xRUVHY.nwNTj1FK1pzXNiawGluG3SpjOYWXVH2s.Nq12XV0wUabOur8eyci.kJiB0ohCODy; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:58 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:58 GMT
+Invalid cookie header: "set-cookie: __cf_bm=jONQEB9Vm_8CpF7Mteq_xMi.ctLYdnM18xAlD1NOAs4-1792059178.5721076-1.0.1.1-DAdZH8Dlrvz_NMsFn7B9c5hOUJbh9uqq7m8tBCzfI5qWfba3FdiKm6OcGDGckP2Vu_6w5qSxNov6RBFvs8RFZfWWA.nbJX.HcdknITXgNZOVPoSLWCE9NCs_8nO_5i73; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:58 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:58 GMT
+Download https://libraries.minecraft.net/com/paulscode/codecjorbis/20101023/codecjorbis-20101023.pom
+Invalid cookie header: "set-cookie: __cf_bm=PxhIWv.f.KsEh7KgEp8MtA9D9BirCeV81tLQXOh2L2E-1792059179.0347328-1.0.1.1-kbGrdVPYfdSRD49UoqqmAkng5zdXHjLFUoZmAuGpYj1sCAcxViJhTCA_4hXxsZ3UEg_iQPw7dOyL1IZk0lJM5yTtHxZUCGVde7oA_hiFsHKk1nVvhRaOENQXTMSoCjv3; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:59 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:59 GMT
+Invalid cookie header: "set-cookie: __cf_bm=P2tOwVLD1KcAiW3XFGZh1EeYixQxLEfDAE8mehEBkuY-1792059179.0722828-1.0.1.1-lYwMATQViWLoKGpTRqy98Aqdg.IKn4Y47ZJHIwIU8C.rR9u_xNXpWwdNVqi_Lpozqd.2QmQcm_npOspl9Q5pkpMeoI4iBe4SVmBtU6Oyo9WZvLcSXSAhK1_0umSQhy0z; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:59 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:59 GMT
+Download https://libraries.minecraft.net/com/paulscode/codecwav/20101023/codecwav-20101023.pom
+Invalid cookie header: "set-cookie: __cf_bm=UI1Qec0bi6ZmagdZRDjXpNQhH_Fv4NaFItnJmR8bFO0-1792059179.36426-1.0.1.1-5PRcsKsRuleoWjvRGjKdRHLoETodbRJVhhqpQ_8rhsb6rYtat7CWnXhIvtARo4.gB_9QQ7gS1nUbvREAxvAb2WA21ACTErZ3WP9V4bWqvf2L9tPNHmnXkR9HVxowIdT3; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:59 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:59 GMT
+Invalid cookie header: "set-cookie: __cf_bm=L_8FOpqsMBZqzDociMQemurVns.v4Jj84PxWYqhR45I-1792059179.4013064-1.0.1.1-JgaRtznWqA7ZdDp6vDGeLrNpd89QcJB2TEXiygmXHwF5Yk2X4Ccyfz3MK8dW7pO0qGE4PHJBctim.FcV_PCamniMi6jYSTFHSvYGvcZqVQjNj_6FzJJIH7qh0WRu5OiX; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:59 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:59 GMT
+Download https://libraries.minecraft.net/com/paulscode/libraryjavasound/20101123/libraryjavasound-20101123.pom
+Invalid cookie header: "set-cookie: __cf_bm=.nJIsVYF2Si6xzAsqb8o4_QLHaG4U9cGWGZJJAku2mE-1792059179.8778048-1.0.1.1-kG0MSw_nYYkKEPdmspupTaJqDJ1woA1L3Tju3Yx9H4P7r1_LkgGYyAgfEsfQ8tm.93gOrst7HKijSUAdZ7cAZySqHUIzZRapUxfcORvyTKlZgIycG0TZ.2nTUa.IuwLJ; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:59 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:59 GMT
+Invalid cookie header: "set-cookie: __cf_bm=Pebf76bbOxYTzEuavTfeIEMCm1tf7rncAmuZOiCd.54-1792059179.9149828-1.0.1.1-2UPKYF4c3Iw20cRHAJ6e8XQRhADNoyDfJWlxzNl0R94yKw0Vb__64EJvHzc4Y5yahkpKFImU3ThuUqilDp4obAZ53OS8AYJNgDDDEfIchMcuWDowtKnWXqQyn9VlpR1J; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:42:59 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:42:59 GMT
+Download https://libraries.minecraft.net/com/paulscode/librarylwjglopenal/20100824/librarylwjglopenal-20100824.pom
+Invalid cookie header: "set-cookie: __cf_bm=1aXWQeoZTZ5z26mKnnxcAttAJOQmWAeNx..IZpJMMho-1792059180.3845987-1.0.1.1-n2HsUqC9sNkR5wOlYoW11mFTblQPHjhXH2AM4N.BvH0Hxll_sw0nnpcLTgYmhmZUJY2gT.G3gXo1itrvNDYhUhJ0EmSowDdmGMrZ.Y06kP64Ifq8lf_Q83O.SjpK82PJ; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:00 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:00 GMT
+Invalid cookie header: "set-cookie: __cf_bm=i6inCM7TA3sd0WAvIRk7VMiNev6UnY3VpmMoadVNoz4-1792059180.3974376-1.0.1.1-aNcT9XqGZM4pBXdNi4VE9uxqh7Hy8uAynSdAyBZDUBu_bf4V_ofg5YVRawngfPLHO_32QONbi89OF2CtY6lgvAEOzm44WJ4NB0466d1.ZWwXelXQKCZZtWyeBxaWVseO; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:00 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:00 GMT
+Download https://libraries.minecraft.net/com/paulscode/soundsystem/20120107/soundsystem-20120107.pom
+Download https://maven.minecraftforge.net/net/java/jinput/jinput/2.0.5/jinput-2.0.5.pom
+Invalid cookie header: "set-cookie: __cf_bm=0C5D6idm.P8Ce8kvXFKWEaklQqcxrYtzLbiugwnkpGE-1792059180.9563498-1.0.1.1-HUdQOXcG10P6ux8WzgdDhJlefGjFuzPG3rrM24w9h03MMiroFHC.DdsbNBoZzjPgkZMYqUl2UhXjRD5H9cn0fFhkP6UZFVj5SdScAKHp3oXxEIva4n_87Emok2gDXMH9; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:01 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:01 GMT
+Invalid cookie header: "set-cookie: __cf_bm=pXeUGuy_cCVzb_oAOFg_qmlGSWCgi1D2rgk1qxqcRB0-1792059181.0185297-1.0.1.1-Pm_z4wQqBF8VW0txOftM7162CtnsHxWZaQ9LpUMbTpMCUMpOgrElZAjdrVth9KjHdCi.BG7iwYcqRMJKtOmaN5XXp3.iWR3sBmLWyMqAnNRed7Ny7gdhJD4jLa.sy1rE; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:01 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:01 GMT
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl/2.9.4-nightly-20150209/lwjgl-2.9.4-nightly-20150209.pom
+Invalid cookie header: "set-cookie: __cf_bm=fzAn2QvaxAB3OQhKvq6Cxt7Q.AwlotIjOh5CgXhCL8A-1792059181.5000248-1.0.1.1-9uBfEWolouIJ84LQxE3WxQVIISDox0EoFVFiAMBgiXPgR044GQ5ie1g6sT5VQgb2R7ZbomTuiHBK2aqvY_duKbKnW5IokI0xkiszNpbb86XZKidnSHwVU.TZ7yukE1KR; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:01 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:01 GMT
+Invalid cookie header: "set-cookie: __cf_bm=seAiuN9V5Oa2VUPnUMRccXNbSvXISIQdH6apEuH6mm8-1792059181.523092-1.0.1.1-xfw0wCsY5e5P3gZujymBVmeyVWQ2WBkENJhPDxwaUOJhXPgNswvJ2aOK0zFkOpm.6VFU18nbm4V5hl78IzAVftU0cwQRgA1YvFyLfAWt7znhkZIrhvAYCMj5E47HEp3m; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:01 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:01 GMT
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/parent/2.9.4-nightly-20150209/parent-2.9.4-nightly-20150209.pom
+Invalid cookie header: "set-cookie: __cf_bm=7TvWjN7j.n1WVJODWUP03iPvVKNAYDTGg2hwmnl5EBY-1792059182.0151758-1.0.1.1-x3bpN1o0_i8DCwVEwyLaPSXVQrgWDRtyNc8TrHTZDkDEv7lBiKc5T1LfAiwf4Td50c5ah5n1Em7Wi8Spf1HiNLGpZ3pbMIOT4Ck8IrPwMRIKkgL_D8QOLgB.OxmElvbH; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:02 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:02 GMT
+Invalid cookie header: "set-cookie: __cf_bm=2bPQ3ZXioJk4jVvP4G6DZByQQ3ANG0C8ax9SqEi8qV8-1792059182.035187-1.0.1.1-kcyg2obkohsP8hZt3G__bDGMbBUTOBcKwFn3YKd6HJwLdWxbipvbKq7U08pkLJTGPVmoYMyh1H7H5SW2JmAoRcOsR4ochtc6h60vFDFxsgepomyGDA0V0fpCHkaU2kHg; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:02 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:02 GMT
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl_util/2.9.4-nightly-20150209/lwjgl_util-2.9.4-nightly-20150209.pom
+Invalid cookie header: "set-cookie: __cf_bm=2cRUTqR5mGUk6x9dmBNEv0jGGvfXlOQDRI74nSVsu38-1792059182.5536027-1.0.1.1-y4LCSmS5LEy.EYr2rGGUi2bWBQe4NsJ.ICdUiWoIyS.D5TLVSJb2JVzBLM6EvC.RXUB2Iyer29ErS76CyKO_DJQ3yO2MOt2r_OpMCr7afSX9DYSGqaH8_x2VL36OKss5; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:02 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:02 GMT
+Invalid cookie header: "set-cookie: __cf_bm=TY1RiMEd9AcUShVD_tD9QU0IaTHWmTuux9pcPGUbqq0-1792059182.577251-1.0.1.1-3IN8Yz4FDHOZcbQ.P76xGV0wU8fPXojDAcOWHNK6tVUWVsCmpB1mCsquzAcAo9aY.LyCu.pRct350UkJ9ZXYqLt1KQD6uAKSE5daanmn4r_1Q.ezcSd5LXfxO0cyme8a; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:02 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:02 GMT
+Download https://libraries.minecraft.net/tv/twitch/twitch/6.5/twitch-6.5.pom
+Invalid cookie header: "set-cookie: __cf_bm=bZiUY2nVVzLR.cbrJ9I3pk7WNO_NKl.lTN5fhPw89Ns-1792059183.0544486-1.0.1.1-uxn49hoixyT41oEHClV9qwCmOUqG.w7MSvmMKsZCHdiJlj5lXVra2yhK2NZ6ORy1Tf6T840hpXi_sQAns8YraEb60onOLX7_TTXot9RwoeAHPlYRl1XKDEyLB7iivY3J; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:03 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:03 GMT
+Invalid cookie header: "set-cookie: __cf_bm=L4iB3.SHZQmQ8BolX9So_bjwCtzhY5fyZipgvsQN3qA-1792059183.0735712-1.0.1.1-iiZY5LEf0Byc6SP34tWk8kwbqfi1vO9CFYj_YKqQ7X5rda6YC_ZgsQhdtw1JUXmJsMeAbtlbzWsk2OUAZAfwXQsoRAi_R8E795KUA2yCEA3rwchZgI3SLIafOy3W.5Mp; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:03 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:03 GMT
+Download https://libraries.minecraft.net/java3d/vecmath/1.5.2/vecmath-1.5.2.pom
+Download https://maven.minecraftforge.net/org/fusesource/jansi/jansi/1.11/jansi-1.11.pom
+Download https://maven.minecraftforge.net/org/fusesource/jansi/jansi-project/1.11/jansi-project-1.11.pom
+Download https://maven.minecraftforge.net/org/fusesource/fusesource-pom/1.8/fusesource-pom-1.8.pom
+Download https://maven.minecraftforge.net/org/scala-lang/scala-actors/2.11.0/scala-actors-2.11.0.pom
+Download https://maven.minecraftforge.net/net/java/jinput/jinput-platform/2.0.5/jinput-platform-2.0.5.pom
+Invalid cookie header: "set-cookie: __cf_bm=nYQfu83nNb9QgauYxRq3WrI.6M8juibhyqKhW6_9dAw-1792059183.9573345-1.0.1.1-pnQoZCR5R_3Lqi5wbzbP7Vy.bS7kAfeAQ7Ps9eS4N0j.oYgGrLUV5wDQQxPp.n3mOkBRifu.q7tvujVQ.6KxO8xWC.6EQPQ2jcrs9h_PoRGpI2EGTvUur.X30t4MtpB5; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:03 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:03 GMT
+Invalid cookie header: "set-cookie: __cf_bm=OottoLu.TC6.vuH_qGECqgQ8Sq1RbgSHGoAZW5oMnMM-1792059183.9913259-1.0.1.1-s5rZ6WrXfvBkrXLIMmBbeTdwhkc.PZODlgGc8OGyWKNisSSt0To.ohU0CJvPuSjuCTw.UBNKvavYQJ.dFai2Df_gmqr2oZixV.uhadlTPH.BiBR3QEl_PTlzqrSBxYC8; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:04 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:04 GMT
+Download https://libraries.minecraft.net/tv/twitch/twitch-platform/6.5/twitch-platform-6.5.pom
+Invalid cookie header: "set-cookie: __cf_bm=Ht6clPMAdhkyEUGpuCK9G6aJjNB8b_BUNH6y4kkwv.k-1792059184.458318-1.0.1.1-C78eYqE17omkH2M7rv3GvgNqf4LEwlZoyH4Jh20yFxxQVywswT87GDr5xOBv2rklQRl4SokiL8PMZSZewYFWnO6yXK_X4zhRz2e7BlRme1cpxmlx8TFqMExZ2KIwElD8; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:04 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:04 GMT
+Invalid cookie header: "set-cookie: __cf_bm=x8zF6X4bFUGtpZ.Gt89rVWUh9nNHiaHw2DmYbav7XKk-1792059184.4906187-1.0.1.1-._1Yla83RhtlHPtZUWtIbSYUJGZPNbNzQTuBL59iSXpQBxIkCIRWssQfXaPA1uyARfmGhf8n6WToKvfBIL4qIZwrfSgoQnJfn1EeO3w98YNeUgonLCnk9jndJnVdGruf; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:04 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:04 GMT
+Download https://libraries.minecraft.net/tv/twitch/twitch-external-platform/4.5/twitch-external-platform-4.5.pom
+Download https://maven.minecraftforge.net/com/google/code/findbugs/jsr305/2.0.1/jsr305-2.0.1.pom
+Invalid cookie header: "set-cookie: __cf_bm=w8Y4ZhpjkMKRcsH2mtWhmB7uVe86DGivBJwpX63DdpU-1792059185.1149282-1.0.1.1-VlwnjM2DYUEDRe1S8ICyqLMGAhkpOH0XPNZ00NH1_QmrIT_gW3eBFZfvnhqt19aDfE2cm8SVJdJHl5lcXtUVrFaovqHA5Xf2Nutf614SicDq68LGhfouWQC6TJ_m4wRD; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:05 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:05 GMT
+Invalid cookie header: "set-cookie: __cf_bm=XOwnef3LbyHJpoySHxIOHApmj_Ub5m94GMUDBZUALh8-1792059185.1739602-1.0.1.1-6kLn6XIVM5ggHvNI6EYxhTet9ygVTMPmHBz7uKhTJ_uA_1V8N7g99mtCP5vsm2A.rCaSutM3eWmlwuRemQaI2PjSZds39NzF.LUnlCKoK4Q.HZIRNgSe8pU2H5SI1evM; HttpOnly; SameSite=None; Secure; Path=/; Domain=maven.org; Expires=Thu, 15 Oct 2026 10:43:05 GMT". Invalid 'expires' attribute: Thu, 15 Oct 2026 10:43:05 GMT
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl-platform/2.9.4-nightly-20150209/lwjgl-platform-2.9.4-nightly-20150209.pom
+Download https://libraries.minecraft.net/com/mojang/netty/1.8.8/netty-1.8.8.jar
+Download https://libraries.minecraft.net/oshi-project/oshi-core/1.1/oshi-core-1.1.jar
+Download https://maven.minecraftforge.net/net/java/dev/jna/jna/3.4.0/jna-3.4.0.jar
+Download https://maven.minecraftforge.net/net/java/dev/jna/platform/3.4.0/platform-3.4.0.jar
+Download https://libraries.minecraft.net/com/ibm/icu/icu4j-core-mojang/51.2/icu4j-core-mojang-51.2.jar
+Download https://maven.minecraftforge.net/net/sf/jopt-simple/jopt-simple/4.6/jopt-simple-4.6.jar
+Download https://maven.minecraftforge.net/io/netty/netty-all/4.0.23.Final/netty-all-4.0.23.Final.jar
+Download https://maven.minecraftforge.net/com/google/guava/guava/17.0/guava-17.0.jar
+Download https://maven.minecraftforge.net/org/apache/commons/commons-lang3/3.3.2/commons-lang3-3.3.2.jar
+Download https://maven.minecraftforge.net/commons-io/commons-io/2.4/commons-io-2.4.jar
+Download https://maven.minecraftforge.net/commons-codec/commons-codec/1.9/commons-codec-1.9.jar
+Download https://maven.minecraftforge.net/net/java/jutils/jutils/1.0.0/jutils-1.0.0.jar
+Download https://libraries.minecraft.net/com/mojang/authlib/1.5.21/authlib-1.5.21.jar
+Download https://libraries.minecraft.net/com/mojang/realms/1.7.59/realms-1.7.59.jar
+Download https://maven.minecraftforge.net/org/apache/commons/commons-compress/1.8.1/commons-compress-1.8.1.jar
+Download https://maven.minecraftforge.net/org/apache/logging/log4j/log4j-api/2.0-beta9/log4j-api-2.0-beta9.jar
+Download https://maven.minecraftforge.net/org/apache/logging/log4j/log4j-core/2.0-beta9/log4j-core-2.0-beta9.jar
+Download https://libraries.minecraft.net/net/minecraft/launchwrapper/1.12/launchwrapper-1.12.jar
+Download https://maven.minecraftforge.net/jline/jline/2.13/jline-2.13.jar
+Download https://maven.minecraftforge.net/com/typesafe/akka/akka-actor_2.11/2.3.3/akka-actor_2.11-2.3.3.jar
+Download https://maven.minecraftforge.net/com/typesafe/config/1.2.1/config-1.2.1.jar
+Download https://maven.minecraftforge.net/org/scala-lang/scala-actors-migration_2.11/1.1.0/scala-actors-migration_2.11-1.1.0.jar
+Download https://maven.minecraftforge.net/org/scala-lang/scala-compiler/2.11.1/scala-compiler-2.11.1.jar
+Download https://maven.minecraftforge.net/org/scala-lang/plugins/scala-continuations-library_2.11/1.0.2/scala-continuations-library_2.11-1.0.2.jar
+Download https://maven.minecraftforge.net/org/scala-lang/plugins/scala-continuations-plugin_2.11.1/1.0.2/scala-continuations-plugin_2.11.1-1.0.2.jar
+Download https://maven.minecraftforge.net/org/scala-lang/scala-library/2.11.1/scala-library-2.11.1.jar
+Download https://maven.minecraftforge.net/org/scala-lang/modules/scala-parser-combinators_2.11/1.0.1/scala-parser-combinators_2.11-1.0.1.jar
+Download https://maven.minecraftforge.net/org/scala-lang/scala-reflect/2.11.1/scala-reflect-2.11.1.jar
+Download https://maven.minecraftforge.net/org/scala-lang/modules/scala-swing_2.11/1.0.1/scala-swing_2.11-1.0.1.jar
+Download https://maven.minecraftforge.net/org/scala-lang/modules/scala-xml_2.11/1.0.2/scala-xml_2.11-1.0.2.jar
+Download https://libraries.minecraft.net/lzma/lzma/0.0.1/lzma-0.0.1.jar
+Download https://maven.minecraftforge.net/net/sf/trove4j/trove4j/3.0.3/trove4j-3.0.3.jar
+Download https://libraries.minecraft.net/com/paulscode/codecjorbis/20101023/codecjorbis-20101023.jar
+Download https://libraries.minecraft.net/com/paulscode/codecwav/20101023/codecwav-20101023.jar
+Download https://libraries.minecraft.net/com/paulscode/libraryjavasound/20101123/libraryjavasound-20101123.jar
+Download https://libraries.minecraft.net/com/paulscode/librarylwjglopenal/20100824/librarylwjglopenal-20100824.jar
+Download https://libraries.minecraft.net/com/paulscode/soundsystem/20120107/soundsystem-20120107.jar
+Download https://maven.minecraftforge.net/net/java/jinput/jinput/2.0.5/jinput-2.0.5.jar
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl/2.9.4-nightly-20150209/lwjgl-2.9.4-nightly-20150209.jar
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl_util/2.9.4-nightly-20150209/lwjgl_util-2.9.4-nightly-20150209.jar
+Download https://libraries.minecraft.net/tv/twitch/twitch/6.5/twitch-6.5.jar
+Download https://libraries.minecraft.net/java3d/vecmath/1.5.2/vecmath-1.5.2.jar
+Download https://maven.minecraftforge.net/org/fusesource/jansi/jansi/1.11/jansi-1.11.jar
+Download https://maven.minecraftforge.net/org/scala-lang/scala-actors/2.11.0/scala-actors-2.11.0.jar
+Download https://maven.minecraftforge.net/net/java/jinput/jinput-platform/2.0.5/jinput-platform-2.0.5-natives-linux.jar
+Download https://maven.minecraftforge.net/net/java/jinput/jinput-platform/2.0.5/jinput-platform-2.0.5-natives-windows.jar
+Download https://maven.minecraftforge.net/net/java/jinput/jinput-platform/2.0.5/jinput-platform-2.0.5-natives-osx.jar
+Download https://libraries.minecraft.net/tv/twitch/twitch-platform/6.5/twitch-platform-6.5-natives-windows-32.jar
+Download https://libraries.minecraft.net/tv/twitch/twitch-platform/6.5/twitch-platform-6.5-natives-windows-64.jar
+Download https://libraries.minecraft.net/tv/twitch/twitch-platform/6.5/twitch-platform-6.5-natives-osx.jar
+Download https://libraries.minecraft.net/tv/twitch/twitch-external-platform/4.5/twitch-external-platform-4.5-natives-windows-32.jar
+Download https://libraries.minecraft.net/tv/twitch/twitch-external-platform/4.5/twitch-external-platform-4.5-natives-windows-64.jar
+Download https://maven.minecraftforge.net/com/google/code/findbugs/jsr305/2.0.1/jsr305-2.0.1.jar
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl-platform/2.9.4-nightly-20150209/lwjgl-platform-2.9.4-nightly-20150209-natives-windows.jar
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl-platform/2.9.4-nightly-20150209/lwjgl-platform-2.9.4-nightly-20150209-natives-linux.jar
+Download https://libraries.minecraft.net/org/lwjgl/lwjgl/lwjgl-platform/2.9.4-nightly-20150209/lwjgl-platform-2.9.4-nightly-20150209-natives-osx.jar
+:processResources
+:classes
+:jar
+:sourceTestJava
+:compileTestJava UP-TO-DATE
+:processTestResources UP-TO-DATE
+:testClasses UP-TO-DATE
+:test UP-TO-DATE
+:reobfJar
+:extractRangemapReplacedMain
+/home/runner/work/Sky-VeLor/Sky-VeLor/SkyVeLor-Beta-0.7v/build/sources/main/java
+:retromapReplacedMain
+remapping source...
+:sourceJar
+:assemble
+:check UP-TO-DATE
+:build
+:dumpTestClasspath
+wrote /home/runner/work/Sky-VeLor/Sky-VeLor/SkyVeLor-Beta-0.7v/build/test-classpath.txt with 67 entries
+
+BUILD SUCCESSFUL
+
+Total time: 59.546 secs

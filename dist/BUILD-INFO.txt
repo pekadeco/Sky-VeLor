@@ -1,0 +1,11 @@
+revision     : 8b6c6caa0841fdf5bc7f1bc7e6d116193cd7b4dc
+branch       : arena/3a4b1e35-sky-velor
+java         : openjdk version "1.8.0_504"
+gradle       : 2.14.1
+mcmod.info   : version=Beta-0.8v mcversion=1.8.9
+class files  : 67
+srg members  : 174   (0 MCP member names left)
+coremod hook : FMLCorePlugin present, splash wordmark packaged
+
+sha256 SkyVeLor-1.8.9-Beta-0.8v.jar: 92d31069b5663b1117c9a0c534dc00b7fa7ae0eceef9b5930a7b1ad176cd626b
+sha256 SkyVeLor-1.8.9-Beta-0.8v-source.zip: 1057bacd933e23ce6f8039e61fc222582e2929ca99ea1c9182a08d0eb43451b5

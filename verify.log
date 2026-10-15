@@ -1,0 +1,48 @@
+=== mcmod.info from the JAR ===
+[
+  {
+    "modid": "pekaclient",
+    "name": "Sky VeLor",
+    "description": "Sky VeLor: an Apple-inspired, translucent settings hub, HUD editor and tools for Minecraft 1.8.9. Built for desktop Java. Android launchers are not tested.",
+    "version": "Beta-0.8v",
+    "mcversion": "1.8.9",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["Arena"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
+mcmod.info version   : Beta-0.8v
+mcmod.info mcversion : 1.8.9
+class files          : 67
+srg member names     : 174
+MCP member names left: 0
+=== manifest (coremod hook) ===
+Manifest-Version: 1.0
+Implementation-Title: Sky VeLor
+Implementation-Version: Beta-0.8v
+FMLCorePluginContainsFMLMod: true
+FMLCorePlugin: com.arena.pekaclient.startup.SkyVeLorLoadingPlugin
+Implementation-Vendor: Arena
+
+=== early loading screen asset ===
+total 12
+drwxr-xr-x 2 runner runner 4096 Jan  1  1970 .
+drwxr-xr-x 3 runner runner 4096 Jan  1  1970 ..
+-rw-r--r-- 1 runner runner  622 Jan  1  1970 skyvelor_splash.png
+=== source ZIP sanity ===
+source ZIP file list matches git tree of e40f9a2e05c88b77957e76eb6060fb33447a45c7 exactly
+revision     : e40f9a2e05c88b77957e76eb6060fb33447a45c7
+branch       : 2/merge
+java         : openjdk version "1.8.0_504"
+gradle       : 2.14.1
+mcmod.info   : version=Beta-0.8v mcversion=1.8.9
+class files  : 67
+srg members  : 174   (0 MCP member names left)
+coremod hook : FMLCorePlugin present, splash wordmark packaged
+
+sha256 SkyVeLor-1.8.9-Beta-0.8v.jar: 92d31069b5663b1117c9a0c534dc00b7fa7ae0eceef9b5930a7b1ad176cd626b
+sha256 SkyVeLor-1.8.9-Beta-0.8v-source.zip: 3f7826bc9c27efc754887d91b3cdceb0ed54e1726e3d4ba114c616e6c758b054
