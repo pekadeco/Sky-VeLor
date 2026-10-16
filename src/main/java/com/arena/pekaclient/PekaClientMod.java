@@ -120,6 +120,9 @@ public class PekaClientMod {
                 mc.displayGuiScreen(new LoadingScreen(mc.currentScreen));
             }
             // Before the world moves. Also resets mining counts on world change, respawn and disconnect.
+            // EntityRenderer is built during startGame(), so the first-person renderer swap retries
+            // until it is in place; afterwards this is a single boolean test per tick.
+            FirstPersonItemSetup.init();
             HudManager.tick(mc);
             DungeonContext.tick(mc);
             dragonKill.tick(System.currentTimeMillis());

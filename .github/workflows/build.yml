@@ -135,7 +135,7 @@ jobs:
           ./gradlew setupDecompWorkspace --stacktrace > ci-evidence/gradle-decomp.log 2>&1 || true
           tail -20 ci-evidence/gradle-decomp.log || true
           : > ci-evidence/decomp-status.txt
-          for F in ItemRenderer EntityRenderer ; do
+          for F in ItemRenderer EntityRenderer Minecraft ; do
             SRC=$(find ~/.gradle build -name "$F.java" 2>/dev/null | head -1)
             echo "$F .java on disk: ${SRC:-NOT FOUND}" >> ci-evidence/decomp-status.txt
             if [ -n "$SRC" ]; then cp "$SRC" "ci-evidence/mc-$F.java"; continue; fi
@@ -198,70 +198,77 @@ jobs:
       # ------------------------------------------------------------------
       - name: Verify release JAR identity, metadata and mappings
         run: |
-          set -x
           JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
           echo "selected release jar: ${JAR:-NONE}"
           if [ -z "$JAR" ]; then
-            echo "::error::No release jar in build/libs"
+            echo "::error title=JAR::no release jar in build/libs"
             find "$PWD/build" -name '*.jar' -printf '%10s %p\n' | sort -k2
             exit 1
           fi
+          # Expected version comes from the source of truth build.gradle itself reads.
+          EXPECT=$(grep -oE 'NAME *= *"[^"]+"' src/main/java/com/arena/pekaclient/PekaVersion.java \
+                   | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "expected version from PekaVersion.NAME: $EXPECT"
           {
-            echo "jar          : $JAR"
-            echo "size         : $(stat -c%s "$JAR") bytes"
-            echo "sha256       : $(sha256sum "$JAR" | cut -d' ' -f1)"
+            echo "=== raw inventory ==="
+            ls -lh build/libs/
             echo
             echo "=== MANIFEST ==="
             unzip -p "$JAR" META-INF/MANIFEST.MF || true
-            echo "=== mcmod.info ==="
-            unzip -p "$JAR" mcmod.info || true
             echo "=== entry list ==="
             unzip -l "$JAR"
-            echo "=== nested archives (must be none) ==="
-            unzip -l "$JAR" | grep -E '\.jar$|\.zip$' || echo "none"
-            echo "=== mod class count ==="
-            unzip -l "$JAR" | grep -c 'com/arena/pekaclient/.*\.class' || true
-          } | tee ci-evidence/verify.txt
-
-          # Is this the reobfuscated artifact or the deobfuscated dev artifact?
-          # In the release jar, references to Minecraft members must be SRG names.
-          mkdir -p /tmp/jarx && rm -rf /tmp/jarx/* && (cd /tmp/jarx && unzip -oq "$JAR")
-          SRG=$(grep -rhoE 'field_[0-9]+_[A-Za-z0-9_]+|func_[0-9]+_[A-Za-z0-9_]+' /tmp/jarx --include='*.class' 2>/dev/null | sort -u | wc -l)
-          MCP=$(grep -rlE 'equippedProgress|itemRenderer|renderItemInFirstPerson|updateEquippedItem' /tmp/jarx --include='*.class' 2>/dev/null | wc -l)
-          {
-            echo
-            echo "=== mapping check ==="
-            echo "distinct SRG member names referenced : $SRG"
-            echo "class files still containing MCP renderer member names : $MCP"
-          } | tee -a ci-evidence/verify.txt
-          echo "::notice title=JAR::$(basename "$JAR") size=$(stat -c%s "$JAR") srg_names=$SRG mcp_leftovers=$MCP"
-
-          # Prove the new feature classes are really in the release artifact.
-          for C in render/CustomItemRenderer render/FirstPersonItemSetup \
-                   feature/FirstPersonItem config/AppleSettings gui/AppleHubScreen \
-                   gui/AppleGuiButton PekaClientMod PekaVersion ; do
-            if unzip -l "$JAR" | grep -q "com/arena/pekaclient/$C.class"; then
-              echo "PRESENT com/arena/pekaclient/$C.class" | tee -a ci-evidence/verify.txt
-            else
-              echo "MISSING com/arena/pekaclient/$C.class" | tee -a ci-evidence/verify.txt
-              echo "::error title=JAR::missing class $C"
-            fi
-          done
-          # The dead proxy class must be gone.
-          if unzip -l "$JAR" | grep -q "FirstPersonItemRendererProxy"; then
-            echo "::error title=JAR::dead proxy class still packaged"
-          else
-            echo "dead FirstPersonItemRendererProxy correctly absent" | tee -a ci-evidence/verify.txt
+          } > ci-evidence/verify.txt 2>&1
+          python3 tools/verify_release_jar.py "$JAR" --version "$EXPECT" 2>&1 | tee -a ci-evidence/verify.txt
+          RC=${PIPESTATUS[0]}
+          echo "verify exit=$RC" | tee -a ci-evidence/verify.txt
+          if [ "$RC" != "0" ]; then
+            echo "::error title=JAR::release verification failed with exit $RC"
+            exit 1
           fi
-          # Version metadata must say Beta-0.10.7v.
-          unzip -p "$JAR" mcmod.info | grep -o '"version": *"[^"]*"' | tee -a ci-evidence/verify.txt
+          echo "::notice title=JAR::verified $(basename "$JAR") $(stat -c%s "$JAR") bytes version=$EXPECT"
 
-      - name: Copy the verified release jar into evidence
+      - name: Stage the verified release jar and build report
         run: |
-          mkdir -p ci-evidence/dist
+          set -x
+          mkdir -p dist
           JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
-          cp -v "$JAR" ci-evidence/dist/ 2>&1 | tee -a ci-evidence/verify.txt || true
-          ls -lh ci-evidence/dist/ || true
+          cp -v "$JAR" dist/
+          cp -v "$JAR" ci-evidence/dist/ 2>/dev/null || mkdir -p ci-evidence/dist && cp "$JAR" ci-evidence/dist/
+          EXPECT=$(grep -oE 'NAME *= *"[^"]+"' src/main/java/com/arena/pekaclient/PekaVersion.java \
+                   | head -1 | sed 's/.*"\(.*\)"/\1/')
+          {
+            echo "revision     : $(git rev-parse HEAD)"
+            echo "branch       : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+            echo "run          : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "java         : $(java -version 2>&1 | head -1)"
+            echo "gradle       : $(grep -m1 'Gradle ' ci-evidence/gradle-version.txt || true)"
+            echo "version      : $EXPECT"
+            echo "mcmod.info   : $(unzip -p "$JAR" mcmod.info | grep -oE '"version": *"[^"]*"|"mcversion": *"[^"]*"' | tr '\n' ' ')"
+            echo "class files  : $(unzip -l "$JAR" | grep -c 'com/arena/pekaclient/.*\.class')"
+            echo "artifact     : dist/$(basename "$JAR")"
+            echo "size         : $(stat -c%s "$JAR") bytes"
+            echo "sha256       : $(sha256sum "$JAR" | cut -d' ' -f1)"
+            echo
+            echo "reobfuscated : yes - verified by tools/verify_release_jar.py (SRG member names present, no MCP names left)"
+            echo "task graph   : $(grep -E '^:(compileJava|jar|reobfJar|sourceJar|assemble|build)$' ci-evidence/gradle-build.log | tr -d ':' | tr '\n' ' ')"
+            echo "tests        : $(grep -c 'failed 0' ci-evidence/test-suites.log) suites passed, $(grep -c 'FAIL' ci-evidence/test-suites.log) failures"
+          } | tee dist/BUILD-INFO.txt
+
+      - name: Publish GitHub Release (main and tags only)
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -x
+          EXPECT=$(grep -oE 'NAME *= *"[^"]+"' src/main/java/com/arena/pekaclient/PekaVersion.java \
+                   | head -1 | sed 's/.*"\(.*\)"/\1/')
+          JAR=$(ls -1 dist/SkyVeLor-1.8.9-*.jar | head -1)
+          TAG="SkyVeLor-1.8.9-$EXPECT"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" \
+            --title "Sky VeLor $EXPECT" \
+            --notes "Built and verified from $(git rev-parse HEAD) by run $GITHUB_RUN_ID. See dist/BUILD-INFO.txt for the sha256 and the verification summary."
+          gh release upload "$TAG" "$JAR" dist/BUILD-INFO.txt --clobber
+          echo "::notice title=RELEASE::$TAG published with $(basename "$JAR")"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish evidence and artifact to this branch
         run: |
@@ -271,6 +278,11 @@ jobs:
           TARGET="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           echo "target branch = $TARGET"
           ls -la ci-evidence
+          # gradle-decomp.log is megabytes of Fernflower output; keep only the tail.
+          if [ -f ci-evidence/gradle-decomp.log ]; then
+            tail -200 ci-evidence/gradle-decomp.log > ci-evidence/gradle-decomp.log.tail
+            mv ci-evidence/gradle-decomp.log.tail ci-evidence/gradle-decomp.log
+          fi
           git add -A ci-evidence
           git status --porcelain | head -40
           git commit -m "CI evidence for $(git rev-parse --short HEAD) run $GITHUB_RUN_ID [skip ci]"
