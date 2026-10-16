@@ -1,7 +1,7 @@
 Sky VeLor Beta-0.10.6.5v build report
 ====================================
-commit:  02b7f5612904f53602fb112a54a8fdf152cace0f
-ref:     refs/heads/arena/641340b2-sky-velor
+commit:  a36060cb4ffc385290f3b39a065614f21a1b960b
+ref:     refs/heads/main
 runner:  Linux runnervm8k3b6 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
 
 java -version:
@@ -30,7 +30,7 @@ size:    309872 bytes
 gradle tasks that produced the jar:
 :deobfCompileDummyTask
 :deobfProvidedDummyTask
-:deobfMcMCP SKIPPED
+:deobfMcMCP
 :jar
 :reobfJar
 :build
