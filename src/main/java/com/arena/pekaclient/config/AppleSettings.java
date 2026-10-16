@@ -48,9 +48,12 @@ public final class AppleSettings {
     public static final boolean DEFAULT_PERFORMANCE_BOOST_BETA = true;
     public static final int DEFAULT_SCROLL_SPEED = 100;
     
-    // First-person item customization
+    // First-person held item customization. Both are percentages; 100% is untouched vanilla.
     public static final int DEFAULT_FIRST_PERSON_ITEM_SCALE = 100;  // 100% = normal size
     public static final int DEFAULT_FIRST_PERSON_ANIM_SPEED = 100;  // 100% = normal speed
+    /** Shared range for both sliders, so the GUI, the loader and the clamps cannot drift apart. */
+    public static final int FIRST_PERSON_MIN = 50;
+    public static final int FIRST_PERSON_MAX = 200;
     public static boolean firstPersonItemScaleOn = true;
     public static boolean firstPersonAnimSpeedOn = true;
 
@@ -139,8 +142,10 @@ public final class AppleSettings {
         // First-person item customization
         firstPersonItemScaleOn = readBool(p, "firstPersonItemScaleOn", firstPersonItemScaleOn);
         firstPersonAnimSpeedOn = readBool(p, "firstPersonAnimSpeedOn", firstPersonAnimSpeedOn);
-        firstPersonItemScale = readInt(p, "firstPersonItemScale", firstPersonItemScale, 50, 200);
-        firstPersonAnimSpeed = readInt(p, "firstPersonAnimSpeed", firstPersonAnimSpeed, 50, 200);
+        firstPersonItemScale = readInt(p, "firstPersonItemScale", firstPersonItemScale,
+                FIRST_PERSON_MIN, FIRST_PERSON_MAX);
+        firstPersonAnimSpeed = readInt(p, "firstPersonAnimSpeed", firstPersonAnimSpeed,
+                FIRST_PERSON_MIN, FIRST_PERSON_MAX);
         
         leapMenu = readBool(p, "leapMenu", leapMenu);
         mobHighlights = readBool(p, "mobHighlights", mobHighlights);

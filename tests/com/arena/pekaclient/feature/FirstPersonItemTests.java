@@ -67,6 +67,9 @@ public final class FirstPersonItemTests {
         check("clamp handles negative input", FirstPersonItem.clamp(-500) == FirstPersonItem.MIN_PERCENT);
         check("clamp bounds match the GUI slider bounds",
                 FirstPersonItem.MIN_PERCENT == 50 && FirstPersonItem.MAX_PERCENT == 200);
+        check("clamp bounds mirror the range the loader clamps to",
+                FirstPersonItem.MIN_PERCENT == AppleSettings.FIRST_PERSON_MIN
+                        && FirstPersonItem.MAX_PERCENT == AppleSettings.FIRST_PERSON_MAX);
         check("defaults sit inside the clamp bounds",
                 FirstPersonItem.clamp(FirstPersonItem.DEFAULT_SCALE_PERCENT)
                         == FirstPersonItem.DEFAULT_SCALE_PERCENT

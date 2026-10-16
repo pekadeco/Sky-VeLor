@@ -6,18 +6,24 @@ step globbed for a jar and picked up ``build/tmp/deobfMcMCP/deobfed.jar``, which
 is ForgeGradle's deobfuscated Minecraft intermediate (~11 MB). It contains no Sky
 VeLor class, so nothing the mod claimed to do could work.
 
-This script answers the questions that a filename and a file size cannot:
+This script answers the questions a filename and a file size cannot:
 
-* is it the mod at all, and not a Minecraft/dependency intermediate?
+* is it the mod at all, and not a Minecraft or dependency intermediate?
 * is it the *reobfuscated* artifact Forge needs, or the deobfuscated dev jar?
 * does the version metadata say the release we intend to ship?
 * are the classes for the current feature actually inside it?
 * is there an accidental nested archive or unrelated project file?
 
-The mapping check is the decisive one. A release jar must reference Minecraft
-members by SRG name (``func_78440_a``); a development jar references them by MCP
-name (``renderItemInFirstPerson``). Class files are parsed directly, so this runs
-on a machine with no JDK at all.
+The mapping check is the decisive one. A release jar must call Minecraft members
+by SRG name (``func_78440_a``); a development jar calls them by MCP name
+(``renderItemInFirstPerson``).
+
+Member names are taken only from CONSTANT_Fieldref / Methodref /
+InterfaceMethodref entries in the constant pool, not from every UTF8 string. That
+matters: javac emits debug info by default, so a mod's own local variable named
+``entityRenderer`` lands in the constant pool as a plain UTF8 entry and would be
+mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
+runs with no JDK installed.
 
 Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7v]
 """
@@ -47,19 +53,28 @@ REQUIRED_CLASSES = [
 # Removed in Beta-0.10.7v: dead code whose own comments admitted it could not work.
 FORBIDDEN_CLASSES = ['render/FirstPersonItemRendererProxy']
 
-# Minecraft members the mod touches. If any of these development names survives
-# into the jar, it was not reobfuscated and will not work in a real game.
-MCP_NAMES = [
+# Minecraft members this mod really calls or overrides. Reobfuscation must have
+# replaced every one of them with an SRG name; if a name survives as an actual
+# member reference, the jar is a development build and will not work in a game.
+# Only names that are unambiguously Minecraft's and that this mod really calls or
+# overrides. Generic GlStateManager names such as scale, pushMatrix and popMatrix
+# are deliberately excluded: Sky VeLor has its own HudElement.scale() and widget
+# methods of the same names, and a reobfuscated jar keeps those source names, so
+# listing them produces false failures without proving anything.
+MCP_MEMBER_NAMES = {
     'renderItemInFirstPerson',
     'updateEquippedItem',
-    'equippedProgress',
-    'prevEquippedProgress',
     'resetEquippedProgress',
-    'itemRenderer',
-    'entityRenderer',
-]
+    'getItemRenderer',
+}
 
+# Minecraft-owned types whose names must also have been remapped out of member
+# descriptors is not checked; only member names are, which is the part that breaks.
 SRG_RE = re.compile(r'^(?:func|field)_\d+_[A-Za-z0-9_]+$')
+
+# Own-project members that legitimately keep their source names.
+OWN_PREFIXES = ('get', 'set', 'is', 'has', 'effective', 'clamp', 'reset', 'bind',
+                'find', 'write', 'clear', 'give', 'init', 'install')
 
 
 class Result(object):
@@ -77,32 +92,75 @@ class Result(object):
         return ok
 
 
-def constant_pool_utf8(data):
-    """Every CONSTANT_Utf8 string in a class file, or None if it is not one."""
+def parse_class(data):
+    """Return (class_name, member_names) from a class file, or None.
+
+    member_names holds only names reached through a Fieldref, Methodref or
+    InterfaceMethodref constant, i.e. members this class actually touches.
+    """
     if len(data) < 10 or data[:4] != b'\xca\xfe\xba\xbe':
         return None
     count = struct.unpack('>H', data[8:10])[0]
-    out = []
+    pool = {}
     i, n = 10, 1
     while n < count and i < len(data):
         tag = data[i]
-        if tag == 1:                                   # Utf8
+        if tag == 1:                                        # Utf8
             ln = struct.unpack('>H', data[i + 1:i + 3])[0]
-            out.append(data[i + 3:i + 3 + ln].decode('utf-8', 'replace'))
+            pool[n] = (tag, data[i + 3:i + 3 + ln].decode('utf-8', 'replace'))
             i += 3 + ln
-        elif tag in (7, 8, 16, 19, 20):                # Class, String, MethodType, Module, Package
-            i += 3
-        elif tag == 15:                                # MethodHandle
-            i += 4
-        elif tag in (5, 6):                            # Long, Double take two slots
+        elif tag in (5, 6):                                 # Long, Double: two slots
+            pool[n] = (tag, data[i + 1:i + 9])
             i += 9
             n += 1
-        elif tag in (3, 4, 9, 10, 11, 12, 17, 18):     # Int, Float, refs, NameAndType, Dynamic
+        elif tag in (3, 4):                                 # Integer, Float
+            pool[n] = (tag, data[i + 1:i + 5])
             i += 5
+        elif tag in (7, 8, 16):                             # Class, String, MethodType
+            pool[n] = (tag, struct.unpack('>H', data[i + 1:i + 3])[0])
+            i += 3
+        elif tag == 15:                                     # MethodHandle
+            pool[n] = (tag, data[i + 1:i + 4])
+            i += 4
+        elif tag in (9, 10, 11):                            # Field/Method/InterfaceMethod ref
+            pool[n] = (tag, struct.unpack('>HH', data[i + 1:i + 5]))
+            i += 5
+        elif tag in (12, 17, 18):                           # NameAndType, Dynamic, InvokeDynamic
+            pool[n] = (tag, struct.unpack('>HH', data[i + 1:i + 5]))
+            i += 5
+        elif tag in (19, 20):                               # Module, Package
+            pool[n] = (tag, struct.unpack('>H', data[i + 1:i + 3])[0])
+            i += 3
         else:
             return None
         n += 1
-    return out
+
+    def utf8(idx):
+        e = pool.get(idx)
+        return e[1] if e and e[0] == 1 else None
+
+    this_idx = struct.unpack('>H', data[i + 2:i + 4])[0] if i + 4 <= len(data) else 0
+    class_entry = pool.get(this_idx)
+    class_name = utf8(class_entry[1]) if class_entry and class_entry[0] == 7 else None
+
+    def nat_name(nat_idx):
+        """NameAndType stores (name_index, descriptor_index); we want the name."""
+        nat = pool.get(nat_idx)
+        if nat and nat[0] == 12:
+            return utf8(nat[1][0])
+        return None
+
+    members = set()
+    for tag, val in pool.values():
+        if tag in (9, 10, 11):                              # field / method references
+            name = nat_name(val[1])
+            if name:
+                members.add(name)
+        elif tag == 18:                                     # invokedynamic (lambdas)
+            name = nat_name(val[1])
+            if name:
+                members.add(name)
+    return class_name, members
 
 
 def main():
@@ -136,14 +194,11 @@ def main():
         return 1
     names = zf.namelist()
 
-    mod_classes = [n for n in names
-                   if n.startswith(MOD_PACKAGE) and n.endswith('.class')]
+    mod_classes = [n for n in names if n.startswith(MOD_PACKAGE) and n.endswith('.class')]
     r.check(len(mod_classes) > 0, 'contains compiled Sky VeLor classes',
             '%d class files' % len(mod_classes))
-    # An intermediate Minecraft jar has net/minecraft, and no mod package at all.
     r.check(not any(n.startswith('net/minecraft/') for n in names),
-            'does not contain Minecraft classes',
-            'a Minecraft intermediate would')
+            'does not contain Minecraft classes', 'a Minecraft intermediate would')
 
     for c in REQUIRED_CLASSES:
         r.check(MOD_PACKAGE + c + '.class' in names, 'present: %s.class' % c)
@@ -152,7 +207,7 @@ def main():
 
     r.check(not any(n.endswith('.jar') or n.endswith('.zip') for n in names),
             'no nested archive', 'a shaded or double-packed jar would show here')
-    r.check(not any(n.startswith(('src/', 'tests/', 'gradle/', '.github/'))
+    r.check(not any(n.startswith(('src/', 'tests/', 'gradle/', '.github/', 'ci-evidence/'))
                     for n in names),
             'no unrelated project files packaged')
 
@@ -174,36 +229,55 @@ def main():
         r.check(False, 'mcmod.info present')
 
     # --- the decisive mapping check --------------------------------------
-    srg, mcp_hits, parsed = set(), [], 0
+    srg, mcp_hits, parsed, unparsed = set(), [], 0, []
     for n in mod_classes:
-        utf8 = constant_pool_utf8(zf.read(n))
-        if utf8 is None:
+        got = parse_class(zf.read(n))
+        if got is None:
+            unparsed.append(n)
             continue
         parsed += 1
-        for s in utf8:
-            if SRG_RE.match(s):
-                srg.add(s)
-            elif s in MCP_NAMES:
-                mcp_hits.append((n, s))
-    print('  class files parsed : %d' % parsed)
-    print('  distinct SRG member names referenced : %d' % len(srg))
+        for member in got[1]:
+            if SRG_RE.match(member):
+                srg.add(member)
+            elif member in MCP_MEMBER_NAMES:
+                mcp_hits.append((n, member))
+
+    print('  class files parsed          : %d' % parsed)
+    print('  distinct SRG members called : %d' % len(srg))
     for s in sorted(srg):
         print('      %s' % s)
-    r.check(parsed == len(mod_classes), 'every mod class parsed as valid bytecode')
-    r.check(len(srg) > 0, 'references Minecraft members by SRG name',
+    r.check(not unparsed, 'every mod class parsed as valid bytecode',
+            ', '.join(unparsed[:5]))
+    r.check(len(srg) > 0, 'calls Minecraft members by SRG name',
             'proves reobfJar ran; a deobfuscated dev jar has none')
-    r.check(not mcp_hits, 'no Minecraft development (MCP) member names left',
-            ', '.join(sorted(set('%s:%s' % h for h in mcp_hits[:6]))) or 'clean')
+    r.check(not mcp_hits, 'no Minecraft development (MCP) member calls left',
+            '; '.join(sorted(set('%s -> %s' % h for h in mcp_hits[:6]))) or 'clean')
 
-    # The feature's own entry point must really call into Minecraft, reobfuscated.
-    cir = MOD_PACKAGE + 'render/CustomItemRenderer.class'
-    if cir in names:
-        utf8 = constant_pool_utf8(zf.read(cir)) or []
-        r.check(any(SRG_RE.match(s) for s in utf8),
-                'CustomItemRenderer is remapped into the obfuscated runtime')
-        r.check('getItemScale' in utf8,
-                'CustomItemRenderer still reads the Sky VeLor scale setting',
-                'the slider must reach the renderer')
+    # The feature's own entry points must really reach Minecraft and the settings.
+    def members_of(cls):
+        got = parse_class(zf.read(MOD_PACKAGE + cls + '.class'))
+        return got[1] if got else set()
+
+    if MOD_PACKAGE + 'render/CustomItemRenderer.class' in names:
+        cir = members_of('render/CustomItemRenderer')
+        r.check(any(SRG_RE.match(m) for m in cir),
+                'CustomItemRenderer calls remapped Minecraft members',
+                'the override must bind in the obfuscated runtime')
+        r.check('getItemScale' in cir,
+                'CustomItemRenderer reads the Sky VeLor scale setting',
+                'the item-scale slider must reach the renderer')
+        r.check('getAnimationSpeed' in cir,
+                'CustomItemRenderer reads the Sky VeLor animation-speed setting',
+                'the animation-speed slider must reach the renderer')
+    if MOD_PACKAGE + 'render/FirstPersonItemSetup.class' in names:
+        fps = members_of('render/FirstPersonItemSetup')
+        r.check('<init>' in fps, 'FirstPersonItemSetup constructs the custom renderer')
+        # The install mechanism: find the renderer field by type, then write it.
+        r.check('getDeclaredFields' in fps,
+                'FirstPersonItemSetup resolves the renderer field by declared type',
+                'name-based lookup cannot survive reobfuscation')
+        r.check('setAccessible' in fps and 'set' in fps,
+                'FirstPersonItemSetup writes the renderer field')
 
     print()
     print('verify release jar: passed %d, failed %d' % (r.passed, r.failed))

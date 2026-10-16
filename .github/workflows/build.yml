@@ -198,6 +198,9 @@ jobs:
       # ------------------------------------------------------------------
       - name: Verify release JAR identity, metadata and mappings
         run: |
+          # GitHub's default shell is `bash -e -o pipefail`, which would abort this step
+          # on the verifier's first nonzero status, before it printed why. Report, then fail.
+          set +e +o pipefail
           JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
           echo "selected release jar: ${JAR:-NONE}"
           if [ -z "$JAR" ]; then
@@ -218,17 +221,27 @@ jobs:
             echo "=== entry list ==="
             unzip -l "$JAR"
           } > ci-evidence/verify.txt 2>&1
-          python3 tools/verify_release_jar.py "$JAR" --version "$EXPECT" 2>&1 | tee -a ci-evidence/verify.txt
-          RC=${PIPESTATUS[0]}
+          python3 tools/verify_release_jar.py "$JAR" --version "$EXPECT" > /tmp/verify-out.txt 2>&1
+          RC=$?
+          cat /tmp/verify-out.txt | tee -a ci-evidence/verify.txt
           echo "verify exit=$RC" | tee -a ci-evidence/verify.txt
+          # Every FAIL line becomes an annotation, so the reason is readable without log access.
+          grep '^  FAIL' /tmp/verify-out.txt | while read -r line; do
+            echo "::error title=JAR-VERIFY::${line}"
+          done
+          tail -3 /tmp/verify-out.txt | while read -r line; do
+            echo "::notice title=JAR-VERIFY-SUMMARY::${line}"
+          done
           if [ "$RC" != "0" ]; then
             echo "::error title=JAR::release verification failed with exit $RC"
-            exit 1
+            exit "$RC"
           fi
           echo "::notice title=JAR::verified $(basename "$JAR") $(stat -c%s "$JAR") bytes version=$EXPECT"
 
       - name: Stage the verified release jar and build report
+        if: always()
         run: |
+          set +e +o pipefail
           set -x
           mkdir -p dist
           JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
@@ -271,7 +284,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish evidence and artifact to this branch
+        if: always()
         run: |
+          set +e +o pipefail
           set -x
           git config user.name  "arena-ci"
           git config user.email "arena-ci@users.noreply.github.com"

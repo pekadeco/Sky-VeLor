@@ -14,10 +14,10 @@ import com.arena.pekaclient.config.AppleSettings;
  */
 public final class FirstPersonItem {
 
-    /** Lower bound of both sliders, in percent. */
-    public static final int MIN_PERCENT = 50;
-    /** Upper bound of both sliders, in percent. */
-    public static final int MAX_PERCENT = 200;
+    /** Lower bound of both sliders, in percent. Mirrors {@link AppleSettings#FIRST_PERSON_MIN}. */
+    public static final int MIN_PERCENT = AppleSettings.FIRST_PERSON_MIN;
+    /** Upper bound of both sliders, in percent. Mirrors {@link AppleSettings#FIRST_PERSON_MAX}. */
+    public static final int MAX_PERCENT = AppleSettings.FIRST_PERSON_MAX;
 
     /** 100% keeps the held item at its vanilla size. */
     public static final int DEFAULT_SCALE_PERCENT = AppleSettings.DEFAULT_FIRST_PERSON_ITEM_SCALE;

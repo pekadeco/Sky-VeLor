@@ -300,7 +300,7 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Item scale value", "Size of the item held in first person",
                 gated(new AppleSlider(50, 200, 10, "%", 150f,
                         () -> AppleSettings.firstPersonItemScale,
-                        v -> AppleSettings.firstPersonItemScale = v),
+                        v -> AppleSettings.firstPersonItemScale = FirstPersonItem.clamp(v)),
                         () -> AppleSettings.firstPersonItemScaleOn)));
         rows.add(Row.item("Held-item animation speed", "On: use the slider. Off: 100%",
                 new AppleToggle(() -> AppleSettings.firstPersonAnimSpeedOn,
@@ -309,7 +309,7 @@ public class AppleHubScreen extends AppleScreen {
                 "Tempo of the first-person equip and hold animation. Swing and attack timing are unchanged",
                 gated(new AppleSlider(50, 200, 10, "%", 150f,
                         () -> AppleSettings.firstPersonAnimSpeed,
-                        v -> AppleSettings.firstPersonAnimSpeed = v),
+                        v -> AppleSettings.firstPersonAnimSpeed = FirstPersonItem.clamp(v)),
                         () -> AppleSettings.firstPersonAnimSpeedOn)));
         rows.add(Row.item("Reset held item", "Back to 100% size and 100% animation speed",
                 button("Reset", FirstPersonItem::resetToDefaults)));
