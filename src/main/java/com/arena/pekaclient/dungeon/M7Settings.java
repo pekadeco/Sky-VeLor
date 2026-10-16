@@ -26,6 +26,7 @@ public final class M7Settings {
     private static boolean statueZonesEnabled = true;
     private static boolean areasPersistAfterDragonSpawn = true;
     private static boolean dragonKillAlertEnabled = true;
+    private static boolean terminalSolverEnabled = true;
 
     private M7Settings() {
     }
@@ -44,6 +45,7 @@ public final class M7Settings {
         statueZonesEnabled = bool(p, "dungeon.m7.statueZones", true);
         areasPersistAfterDragonSpawn = bool(p, "dungeon.m7.areasPersist", true);
         dragonKillAlertEnabled = bool(p, "dungeon.m7.dragonKillAlert", true);
+        terminalSolverEnabled = bool(p, "dungeon.m7.terminalSolver", true);
     }
 
     public static void save(Properties p) {
@@ -60,6 +62,7 @@ public final class M7Settings {
         p.setProperty("dungeon.m7.statueZones", String.valueOf(statueZonesEnabled));
         p.setProperty("dungeon.m7.areasPersist", String.valueOf(areasPersistAfterDragonSpawn));
         p.setProperty("dungeon.m7.dragonKillAlert", String.valueOf(dragonKillAlertEnabled));
+        p.setProperty("dungeon.m7.terminalSolver", String.valueOf(terminalSolverEnabled));
     }
 
     // ----------------------------------------------------------------- accessors
@@ -71,6 +74,8 @@ public final class M7Settings {
     public static void setAreasPersistAfterDragonSpawn(boolean v) { areasPersistAfterDragonSpawn = v; }
     public static boolean isDragonKillAlertEnabled() { return dragonKillAlertEnabled; }
     public static void setDragonKillAlertEnabled(boolean v) { dragonKillAlertEnabled = v; }
+    public static boolean isTerminalSolverEnabled() { return terminalSolverEnabled; }
+    public static void setTerminalSolverEnabled(boolean v) { terminalSolverEnabled = v; }
 
     public static boolean isBossHitboxEnabled(M7OverlayRenderer.M7HitboxTarget target) {
         if (target == null) {

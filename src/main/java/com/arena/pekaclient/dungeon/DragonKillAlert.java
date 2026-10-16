@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.boss.EntityDragon;
+import net.minecraft.util.EnumChatFormatting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +17,9 @@ import java.util.Locale;
  */
 public final class DragonKillAlert {
 
-    static final double PLAYER_RANGE = 20.0D;
-    static final double STATUE_RANGE = 15.0D;
+    static final double PLAYER_RANGE = 30.0D;
+    static final double STATUE_RANGE = 25.0D;
+    static final double TAG_RANGE = 8.0D;
     static final long HOLD_MS = 900L;
     static final long RETITLE_MS = 1200L;
 
@@ -41,17 +43,35 @@ public final class DragonKillAlert {
         if (minecraft == null || minecraft.theWorld == null || minecraft.thePlayer == null) {
             return;
         }
-        List<DragonSighting> sightings = new ArrayList<DragonSighting>();
+        // Hypixel puts each dragon's name above it on its own entity, e.g. "Power Dragon 48.5M". Those name
+        // tags say which dragon is where. A dragon is matched to the nearest tag, and only falls back to the
+        // statue it is parked at when no tags are in the world.
+        List<DragonTag> tags = new ArrayList<DragonTag>();
+        List<Entity> dragons = new ArrayList<Entity>();
         for (Object loaded : minecraft.theWorld.loadedEntityList) {
             if (!(loaded instanceof Entity)) {
                 continue;
             }
             Entity entity = (Entity) loaded;
-            String name = entity instanceof EntityLivingBase ? entity.getName() : null;
-            M7DragonStatue statue = statueForDragon(name, entity.posX, entity.posY, entity.posZ,
-                    entity instanceof EntityDragon);
+            if (entity instanceof EntityDragon) {
+                dragons.add(entity);
+                continue;
+            }
+            if (!(entity instanceof EntityLivingBase)) {
+                continue;
+            }
+            M7DragonStatue tagged = statueForTag(entity.getName());
+            if (tagged != null) {
+                tags.add(new DragonTag(tagged, entity.posX, entity.posY, entity.posZ));
+            }
+        }
+        List<DragonSighting> sightings = new ArrayList<DragonSighting>();
+        for (Entity dragon : dragons) {
+            M7DragonStatue statue = tags.isEmpty()
+                    ? statueForDragon(null, dragon.posX, dragon.posY, dragon.posZ, true)
+                    : statueNearTag(tags, dragon.posX, dragon.posY, dragon.posZ);
             if (statue != null) {
-                sightings.add(new DragonSighting(statue, entity.posX, entity.posY, entity.posZ));
+                sightings.add(new DragonSighting(statue, dragon.posX, dragon.posY, dragon.posZ));
             }
         }
         M7DragonStatue picked = pickTarget(minecraft.thePlayer.posX, minecraft.thePlayer.posY,
@@ -134,6 +154,41 @@ public final class DragonKillAlert {
         return nearest;
     }
 
+    /** The dragon named on a name tag, e.g. "Power Dragon 48.5M" gives POWER. Colour codes are ignored. */
+    static M7DragonStatue statueForTag(String tagText) {
+        if (tagText == null) {
+            return null;
+        }
+        String plain = EnumChatFormatting.getTextWithoutFormattingCodes(tagText);
+        if (plain == null) {
+            return null;
+        }
+        String lower = plain.toLowerCase(Locale.ROOT);
+        for (M7DragonStatue statue : M7DragonStatue.values()) {
+            if (lower.contains(statue.dragonName.toLowerCase(Locale.ROOT))) {
+                return statue;
+            }
+        }
+        return null;
+    }
+
+    /** The statue of the nearest name tag within a few blocks, or null when no tag is that close. */
+    static M7DragonStatue statueNearTag(List<DragonTag> tags, double x, double y, double z) {
+        M7DragonStatue best = null;
+        double bestDistance = TAG_RANGE * TAG_RANGE;
+        for (DragonTag t : tags) {
+            double dx = t.x - x;
+            double dy = t.y - y;
+            double dz = t.z - z;
+            double d = dx * dx + dy * dy + dz * dz;
+            if (d <= bestDistance) {
+                bestDistance = d;
+                best = t.statue;
+            }
+        }
+        return best;
+    }
+
     private static double distanceSqToAnchor(M7DragonStatue statue, double x, double y, double z) {
         double dx = statue.anchor.getX() + 0.5D - x;
         double dy = statue.anchor.getY() - y;
@@ -149,6 +204,20 @@ public final class DragonKillAlert {
             case ICE: return "\u00A7b";
             case FLAME: return "\u00A76";
             default: return "\u00A7f";
+        }
+    }
+
+    static final class DragonTag {
+        final M7DragonStatue statue;
+        final double x;
+        final double y;
+        final double z;
+
+        DragonTag(M7DragonStatue statue, double x, double y, double z) {
+            this.statue = statue;
+            this.x = x;
+            this.y = y;
+            this.z = z;
         }
     }
 
