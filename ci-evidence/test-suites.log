@@ -1,12 +1,12 @@
 
 passed 70, failed 0
-[11:48:07] [main/WARN] [SkyVeLor]: HUD config mining.enabled=maybe is not true/false; using true
-[11:48:07] [main/WARN] [SkyVeLor]: HUD config mining.ax=SIDEWAYS is not a valid anchor; using START
-[11:48:07] [main/WARN] [SkyVeLor]: HUD config mining.ox=abc is not a whole number; using 6
-[11:48:07] [main/WARN] [SkyVeLor]: HUD config mining.scale=big is not a whole number; using 100
-[11:48:07] [main/WARN] [SkyVeLor]: HUD config mining.opacity= is not a whole number; using 100
-[11:48:07] [main/WARN] [SkyVeLor]: HUD config mining.window=five is not a whole number; using 1
-[11:48:07] [main/WARN] [SkyVeLor]: HUD config mining.ox=99999999999999 is not a whole number; using 6
+[12:10:34] [main/WARN] [SkyVeLor]: HUD config mining.enabled=maybe is not true/false; using true
+[12:10:34] [main/WARN] [SkyVeLor]: HUD config mining.ax=SIDEWAYS is not a valid anchor; using START
+[12:10:34] [main/WARN] [SkyVeLor]: HUD config mining.ox=abc is not a whole number; using 6
+[12:10:34] [main/WARN] [SkyVeLor]: HUD config mining.scale=big is not a whole number; using 100
+[12:10:34] [main/WARN] [SkyVeLor]: HUD config mining.opacity= is not a whole number; using 100
+[12:10:34] [main/WARN] [SkyVeLor]: HUD config mining.window=five is not a whole number; using 1
+[12:10:34] [main/WARN] [SkyVeLor]: HUD config mining.ox=99999999999999 is not a whole number; using 6
 
 config: passed 24, failed 0
 
@@ -15,22 +15,22 @@ leap text: passed 89, failed 0
 leap identity: passed 23, failed 0
 
 leap class cache: passed 18, failed 0
-[11:48:07] [main/INFO] [SkyVeLor]: Migrating settings from pekaclient.properties to skyvelor.properties
-[11:48:07] [main/WARN] [SkyVeLor]: Could not read /tmp/skyvelor-test2054009398756127188/skyvelor.properties; using default settings
+[12:10:35] [main/INFO] [SkyVeLor]: Migrating settings from pekaclient.properties to skyvelor.properties
+[12:10:35] [main/WARN] [SkyVeLor]: Could not read /tmp/skyvelor-test5500992667738628568/skyvelor.properties; using default settings
 java.lang.IllegalArgumentException: Malformed \uxxxx encoding.
 	at java.util.Properties.loadConvert(Properties.java:574) ~[?:1.8.0_504]
 	at java.util.Properties.load0(Properties.java:391) ~[?:1.8.0_504]
 	at java.util.Properties.load(Properties.java:341) ~[?:1.8.0_504]
 	at com.arena.pekaclient.config.ConfigFiles.read(ConfigFiles.java:47) [main/:?]
-	at com.arena.pekaclient.config.ConfigFilesTests.unreadableFileGivesEmptySet(ConfigFilesTests.java:79) [tmp.kNtOSrdlao/:?]
-	at com.arena.pekaclient.config.ConfigFilesTests.main(ConfigFilesTests.java:24) [tmp.kNtOSrdlao/:?]
+	at com.arena.pekaclient.config.ConfigFilesTests.unreadableFileGivesEmptySet(ConfigFilesTests.java:79) [tmp.8q2HIbqTaE/:?]
+	at com.arena.pekaclient.config.ConfigFilesTests.main(ConfigFilesTests.java:24) [tmp.8q2HIbqTaE/:?]
 
 config files: passed 7, failed 0
 
 apple settings: passed 9, failed 0
 
 theme: passed 11, failed 0
-[11:48:08] [main/WARN] [SkyVeLor]: HUD config doll.angle=abc is not a whole number; using 0
+[12:10:36] [main/WARN] [SkyVeLor]: HUD config doll.angle=abc is not a whole number; using 0
 
 doll config: passed 14, failed 0
 
