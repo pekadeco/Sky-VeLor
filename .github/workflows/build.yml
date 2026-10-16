@@ -19,6 +19,8 @@ jobs:
     name: Build with Java 8
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout the triggering revision
@@ -134,11 +136,26 @@ jobs:
           tail -20 ci-evidence/gradle-decomp.log || true
           : > ci-evidence/decomp-status.txt
           for F in ItemRenderer EntityRenderer ; do
-            SRC=$(find ~/.gradle build -name "$F.java" -path '*minecraft*' 2>/dev/null | head -1)
-            echo "$F source: ${SRC:-NOT FOUND}" >> ci-evidence/decomp-status.txt
-            if [ -n "$SRC" ]; then cp "$SRC" "ci-evidence/mc-$F.java"; fi
+            SRC=$(find ~/.gradle build -name "$F.java" 2>/dev/null | head -1)
+            echo "$F .java on disk: ${SRC:-NOT FOUND}" >> ci-evidence/decomp-status.txt
+            if [ -n "$SRC" ]; then cp "$SRC" "ci-evidence/mc-$F.java"; continue; fi
+            # Otherwise pull it out of a Forge sources jar if one was produced.
+            for SJ in $(find ~/.gradle -name '*-sources.jar' -path '*forge*' 2>/dev/null | head -5); do
+              HIT=$(unzip -l "$SJ" 2>/dev/null | grep -oE "[^ ]*/$F\.java" | head -1)
+              echo "$F in $(basename "$SJ"): ${HIT:-none}" >> ci-evidence/decomp-status.txt
+              if [ -n "$HIT" ]; then
+                unzip -p "$SJ" "$HIT" > "ci-evidence/mc-$F.java" 2>/dev/null || true
+                break
+              fi
+            done
           done
           cat ci-evidence/decomp-status.txt
+          ls -l ci-evidence/mc-*.java 2>/dev/null || echo "no decompiled sources captured"
+          if [ -f ci-evidence/mc-ItemRenderer.java ]; then
+            echo "::notice title=DECOMP::ItemRenderer source captured $(wc -l < ci-evidence/mc-ItemRenderer.java) lines"
+          else
+            echo "::warning title=DECOMP::ItemRenderer source NOT captured"
+          fi
 
       - name: Dump the Gradle task graph
         run: |
@@ -181,12 +198,12 @@ jobs:
       # ------------------------------------------------------------------
       - name: Verify release JAR identity, metadata and mappings
         run: |
-          set -e
-          JAR=$(ls -1 build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
+          set -x
+          JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
           echo "selected release jar: ${JAR:-NONE}"
           if [ -z "$JAR" ]; then
             echo "::error::No release jar in build/libs"
-            find build -name '*.jar' -printf '%10s %p\n' | sort -k2
+            find "$PWD/build" -name '*.jar' -printf '%10s %p\n' | sort -k2
             exit 1
           fi
           {
@@ -242,7 +259,7 @@ jobs:
       - name: Copy the verified release jar into evidence
         run: |
           mkdir -p ci-evidence/dist
-          JAR=$(ls -1 build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
+          JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
           cp -v "$JAR" ci-evidence/dist/ 2>&1 | tee -a ci-evidence/verify.txt || true
           ls -lh ci-evidence/dist/ || true
 
@@ -257,5 +274,13 @@ jobs:
           git add -A ci-evidence
           git status --porcelain | head -40
           git commit -m "CI evidence for $(git rev-parse --short HEAD) run $GITHUB_RUN_ID [skip ci]"
-          git push origin "HEAD:refs/heads/$TARGET"
-          echo "::notice title=EVIDENCE::pushed to $TARGET"
+          git log --oneline -1
+          git push origin "HEAD:refs/heads/$TARGET" 2>&1 | tee /tmp/push.log
+          PUSH_EXIT=${PIPESTATUS[0]}
+          echo "push exit=$PUSH_EXIT"
+          echo "remote now points at: $(git ls-remote origin "refs/heads/$TARGET")"
+          if [ "$PUSH_EXIT" != "0" ]; then
+            echo "::error title=EVIDENCE::push to $TARGET failed with exit $PUSH_EXIT"
+            exit 1
+          fi
+          echo "::notice title=EVIDENCE::pushed $(git rev-parse --short HEAD) to $TARGET"
