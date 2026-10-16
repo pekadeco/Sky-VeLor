@@ -33,3 +33,35 @@
 ## License note
 
 `LICENSE` contains MIT terms while `LICENSE.txt` contains LGPL v3 terms. Both were retained; confirm which terms apply to each component before redistributing the mod.
+
+## Terminal GUI fix (Beta-0.10.6.5v)
+
+The Beta-0.10.6v source archive added a Terminal GUI whose numbered grid was missing inside the game while
+the panel, header, transparency button and footer were drawn. The cause was in `gui/TerminalScreen`: the
+loop that drew the fourteen buttons ran `for (int i = 0; i < count; i++)` with
+`count = live == null ? COUNT : liveCount`, and `liveCount` was the number of chest slots that could be
+matched to a number 1..14 by the terminal solver. When the live chest could not be read (the slot items are
+plain stained glass panes whose stack size is the number, which the solver did not accept, or the slots are
+empty at the moment the screen is first built), `liveCount` was 0 and the loop drew nothing at all: the panel
+appeared with an empty body. The practice panel from `/terminal` always used `COUNT`, so the same code looked
+correct in the preview.
+
+The fix:
+
+- `gui/TerminalScreen` always draws all fourteen buttons and always keeps their hit boxes; the live chest only
+  decides which number is next, which numbers are already clicked, and which slot a click is sent to.
+- A number the chest cannot show is now counted by the panel itself, so the grid stays usable either way.
+- `dungeon/TerminalSolver` now reads the number from the item name or lore first (with a standalone one or two
+  digit token check), and falls back to the stack size of a stained glass pane/glass block, skipping stacks
+  that have already turned into the clicked lime pane. Both readings are supported, which is what the Floor
+  VII / M7 terminal needs.
+- Clicks are confirmed against the chest as well: a slot that changed or a number that left the chest after a
+  click was sent counts as clicked, with a 400 ms grace window while the click is in flight.
+- `R` restarts the panel in both modes, `Esc` still closes the live chest through the player so the server
+  knows the window is closed, and the pixel scale is applied and restored around the panel so no scale leaks
+  into the rest of the GUI.
+- The Transparent button fades the panel behind the buttons only: the button colours and numbers are drawn at
+  full opacity, so the grid stays readable in either mode.
+- One line is written to the log per panel: whether the chest was read from the item names, from the pane
+  stack sizes, or not at all, and how many numbers were mapped. When nothing is found, the chest slots are
+  listed once, so a live terminal can be diagnosed from the log.

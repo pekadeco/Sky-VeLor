@@ -73,6 +73,7 @@ public final class HudEditorScreen extends AppleScreen {
     private final AppleDropdown chooser;
     private final AppleButton resetAllBtn;
     private final AppleButton doneBtn;
+    private final AppleButton dungeonBtn;
     private final ScrollState scroll = new ScrollState();
     private final Gesture gesture = new Gesture();
 
@@ -115,16 +116,23 @@ public final class HudEditorScreen extends AppleScreen {
     private int guides;
     private boolean dirty;
 
+    /** Opens the Dungeon HUD screen, which shows only the Click in order panel. Done returns here. */
+    private void openDungeonHud() {
+        Minecraft.getMinecraft().displayGuiScreen(new DungeonHudScreen(this));
+    }
+
     public HudEditorScreen(GuiScreen parent) {
         this.parent = parent;
         this.chooser = new AppleDropdown(chooserNames(), null, CONTROL_W, 22f,
                 () -> indexOf(selected), v -> select(HudManager.ELEMENTS[v]));
         this.resetAllBtn = new AppleButton("Reset all", 74f, 22f, false, this::resetAll);
         this.doneBtn = new AppleButton("Done", 56f, 22f, true, this::close);
+        this.dungeonBtn = new AppleButton("Dungeon HUD", 92f, 22f, false, this::openDungeonHud);
         this.manualField.w = CONTROL_W;
         this.manualField.h = 22f;
         bar.add(doneBtn);
         bar.add(resetAllBtn);
+        bar.add(dungeonBtn);
         openAnim.to(1f);
     }
 
@@ -217,6 +225,8 @@ public final class HudEditorScreen extends AppleScreen {
         doneBtn.y = barY + (BAR_H - doneBtn.h) * 0.5f;
         resetAllBtn.x = doneBtn.x - 6f - resetAllBtn.w;
         resetAllBtn.y = barY + (BAR_H - resetAllBtn.h) * 0.5f;
+        dungeonBtn.x = resetAllBtn.x - 6f - dungeonBtn.w;
+        dungeonBtn.y = barY + (BAR_H - dungeonBtn.h) * 0.5f;
 
         // The inspector card sits bottom-left, so the default HUD corners stay clear of it.
         cardW = Math.min(CARD_W, ww - 20f);
@@ -467,6 +477,7 @@ public final class HudEditorScreen extends AppleScreen {
         WindowDots.drawHint(fr, mx, my, barX + 14f, cy, 0b001,
                 "Collapse is not used in the HUD editor", "Zoom is not used in the HUD editor", width);
         resetAllBtn.draw(mx, my);
+        dungeonBtn.draw(mx, my);
     }
 
     private void drawCard(int mx, int my) {

@@ -100,6 +100,10 @@ public class AppleHubScreen extends AppleScreen {
     };
     private static final int PAGE_QOL = 0;
     private static final int PAGE_HUD = 1;
+    /** HUD tab categories: 0 is the element list, 1 is Dungeon (Floor VII overlay and terminals). */
+    private static final int HUD_CAT_ELEMENTS = 0;
+    private static final int HUD_CAT_DUNGEON = 1;
+    private int hudCategory = HUD_CAT_ELEMENTS;
     private static final int PAGE_FARMING = 2;
     private static final int PAGE_FISHING = 5;
     private static final int PAGE_DUNGEON = 3;
@@ -329,7 +333,28 @@ public class AppleHubScreen extends AppleScreen {
         return s;
     }
 
+    /** The hub opened on the HUD tab, Dungeon category. */
+    public static AppleHubScreen dungeonHud(GuiScreen parent) {
+        AppleHubScreen hub = new AppleHubScreen(parent);
+        hub.hudCategory = HUD_CAT_DUNGEON;
+        hub.selectPage(PAGE_HUD);
+        return hub;
+    }
+
+    /** Switches the HUD tab between its categories and rebuilds that page. */
+    private void setHudCategory(int category) {
+        hudCategory = category;
+        pages.set(PAGE_HUD, hudPage());
+        scroll.reset();
+        gestureActive = false;
+        active = null;
+        openDropdown = null;
+    }
+
     private List<Row> hudPage() {
+        if (hudCategory == HUD_CAT_DUNGEON) {
+            return hudDungeonPage();
+        }
         final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("HUD editor"));
@@ -351,6 +376,43 @@ public class AppleHubScreen extends AppleScreen {
             if (el == HudManager.DOLL) {
                 rows.add(Row.custom(132f, this::paintDollPreview));
             }
+        }
+        return rows;
+    }
+
+    /** HUD tab, Dungeon category: the dungeon screen features, with the same switches as the Dungeon tab. */
+    private List<Row> hudDungeonPage() {
+        final Minecraft mc = Minecraft.getMinecraft();
+        List<Row> rows = new ArrayList<Row>();
+        rows.add(Row.section("Dungeon"));
+        rows.add(Row.item("Back to elements", "Return to the HUD element list",
+                new AppleButton("Back", 84f, 26f, false, () -> setHudCategory(HUD_CAT_ELEMENTS))));
+
+        rows.add(Row.header("Floor VII (M7) overlay"));
+        rows.add(Row.item("M7 overlay",
+                "Draws the boss rooms, dragon spawns and relic areas on a Floor VII run. Off elsewhere",
+                new AppleToggle(M7Settings::isOverlayEnabled, M7Settings::setOverlayEnabled)));
+        rows.add(Row.item("Relic kill areas", "Shows the five relic areas around the dragon statues",
+                new AppleToggle(M7Settings::isStatueZonesEnabled, M7Settings::setStatueZonesEnabled)));
+        rows.add(Row.item("Dragon kill alert", "Title when a dragon is close to you and sitting at its statue",
+                new AppleToggle(M7Settings::isDragonKillAlertEnabled, M7Settings::setDragonKillAlertEnabled)));
+
+        rows.add(Row.header("Terminals"));
+        rows.add(Row.item("Click in order solver",
+                "Floor VII and M7 terminals: green is the number to click now, yellow is the one after it",
+                new AppleToggle(M7Settings::isTerminalSolverEnabled, M7Settings::setTerminalSolverEnabled)));
+        rows.add(Row.item("Terminal GUI", "Opens the 1 to 14 terminal. Also /terminal",
+                new AppleButton("Open", 84f, 26f, false,
+                        () -> mc.displayGuiScreen(new com.arena.pekaclient.gui.TerminalScreen()))));
+
+        rows.add(Row.header("Click in order panel"));
+        rows.add(Row.item("Show on terminals",
+                "Movable, resizable 1 to 14 panel drawn over Floor VII and M7 Click in order terminals",
+                new AppleToggle(() -> HudManager.CLICK_IN_ORDER.enabled,
+                        v -> HudManager.CLICK_IN_ORDER.enabled = v)));
+        for (HudSettingsBuilder.Item it : HudSettingsBuilder.build(HudManager.CLICK_IN_ORDER, balanceField,
+                () -> { }, this::applyBalance, false)) {
+            rows.add(Row.item(it.label == null ? "" : it.label, null, it.control));
         }
         return rows;
     }

@@ -1,32 +1,40 @@
 name: Build Sky VeLor
 
-# Builds the branch/PR that triggered the run. Never a hardcoded revision:
-# a pinned `ref:` would silently ship a different commit than the one reviewed.
+# The ForgeGradle 2.1 / Minecraft 1.8.9 toolchain needs a JDK 8 and network access to the Forge
+# Maven and Mojang's servers. This workflow is that environment: it checks out the revision it was
+# triggered by, builds with the project's own Gradle wrapper, runs the standalone tests, verifies
+# that the output really is the reobfuscated Sky VeLor mod jar, and publishes it.
+#
+# Nothing here hardcodes a version or a revision. The version is read from PekaVersion.NAME, which
+# build.gradle also reads, so the jar name, mcmod.info, the release tag and the verification all
+# follow the source automatically.
+#
+# The dist/ publish step commits the built jar back to the branch, so this needs write access.
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
     branches:
       - main
       - 'arena/**'
-      - build-fix
-      - build-fix-131e5ae
-      - fix-missing-import
   pull_request:
     branches: [ main ]
+
+env:
+  # Resolved once and reused; never hardcoded, so a version bump needs no workflow edit.
+  VERSION_FILE: src/main/java/com/arena/pekaclient/PekaVersion.java
 
 jobs:
   build:
     name: Build with Java 8
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    permissions:
-      contents: write
 
     steps:
-      - name: Checkout the triggering revision
+      - name: Checkout the revision this run was triggered by
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Java 8 JDK
         uses: actions/setup-java@v4
@@ -34,285 +42,184 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
 
-      # Evidence lives OUTSIDE build/: Gradle owns build/ and can wipe it, which is
-      # what silently discarded the previous run's evidence.
-      - name: Record revision and toolchain
+      - name: Cache the Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle8-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle8-
+
+      - name: Resolve the release version from source
         run: |
-          set -x
-          rm -rf ci-evidence && mkdir -p ci-evidence
+          set -e
+          VERSION=$(grep -oE 'NAME *= *"[^"]+"' "$VERSION_FILE" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          if [ -z "$VERSION" ]; then
+            echo "::error title=VERSION::could not read PekaVersion.NAME from $VERSION_FILE"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "JAR_NAME=SkyVeLor-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
           {
-            echo "revision     : $(git rev-parse HEAD)"
-            echo "branch       : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-            echo "run          : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            echo "java         : $(java -version 2>&1 | head -1)"
-          } > ci-evidence/REVISION.txt
-          cat ci-evidence/REVISION.txt
+            echo "revision : $(git rev-parse HEAD)"
+            echo "branch   : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+            echo "version  : $VERSION"
+            echo "java     : $(java -version 2>&1 | head -1)"
+          } | tee "$RUNNER_TEMP/revision.txt"
+
+      - name: Build the mod (ForgeGradle 2.1, Minecraft 1.8.9)
+        run: |
+          set -o pipefail
           chmod +x gradlew
-          ./gradlew --version 2>&1 | tee ci-evidence/gradle-version.txt
+          ./gradlew --version 2>&1 | tee "$RUNNER_TEMP/gradle-version.txt"
+          ./gradlew clean build dumpTestClasspath --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"
+          echo "=== tasks that produced the jar ==="
+          grep -E "^:(compileJava|jar|reobfJar|sourceJar|assemble|check|build)" "$RUNNER_TEMP/build.log" || true
+          tail -6 "$RUNNER_TEMP/build.log"
 
-      # ------------------------------------------------------------------
-      # PHASE A: authoritative Minecraft 1.8.9 / Forge API probe.
-      # ------------------------------------------------------------------
-      - name: Prepare Forge/Minecraft workspace
+      - name: Inventory every jar produced
+        if: always()
         run: |
-          ./gradlew setupCIWorkspace --stacktrace > ci-evidence/gradle-setup.log 2>&1
-          echo "setupCIWorkspace exit=$?"
-          tail -25 ci-evidence/gradle-setup.log
+          echo "=== build/libs ==="
+          ls -lh build/libs/ 2>/dev/null || echo "build/libs not found"
+          echo "=== every jar under build/ ==="
+          # build/tmp/deobfMcMCP/deobfed.jar is ForgeGradle's deobfuscated Minecraft, about 11 MB.
+          # It is NOT the mod. A previous release was published from it by mistake.
+          find build -name '*.jar' -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2
 
-      - name: Probe Minecraft 1.8.9 renderer API (javap)
+      - name: Run the standalone logic tests
         run: |
-          set -x
-          MCJAR=$(find build ~/.gradle -name 'deobfed.jar' 2>/dev/null | head -1)
-          echo "MCJAR=$MCJAR" > ci-evidence/probe-locations.txt
-          ls -lh "$MCJAR" >> ci-evidence/probe-locations.txt 2>/dev/null || true
-          for C in net.minecraft.client.Minecraft \
-                   net.minecraft.client.renderer.ItemRenderer \
-                   net.minecraft.client.renderer.EntityRenderer ; do
-            N=$(echo "$C" | sed 's/.*\.//')
-            javap -p -classpath "$MCJAR" "$C" > "ci-evidence/javap-$N.txt" 2>&1 || true
-          done
-          set +x
-          echo "=== ItemRenderer (full) ==="
-          cat ci-evidence/javap-ItemRenderer.txt
-          echo "=== Minecraft: renderer-related members ==="
-          grep -nE "ItemRenderer|EntityRenderer" ci-evidence/javap-Minecraft.txt || true
-          cp ci-evidence/javap-ItemRenderer.txt /tmp/ir.txt || true
-          # Surface the decisive facts as annotations, which are readable without log access.
-          grep -E "ItemRenderer\(|renderItemInFirstPerson|updateEquippedItem|equippedProgress|renderMapFirstPerson|renderOverlays|renderFireInFirstPerson" /tmp/ir.txt \
-            | while read -r line; do echo "::notice title=ItemRenderer::${line}"; done
-          grep -E "ItemRenderer " ci-evidence/javap-Minecraft.txt \
-            | while read -r line; do echo "::notice title=Minecraft-field::${line}"; done
+          set -o pipefail
+          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          echo "=== suites ==="
+          grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" | tail -40
 
-      - name: Probe MCP to SRG mappings (reobfuscation safety)
+      - name: Verify the release jar is really the reobfuscated mod
         run: |
-          MROOT=~/.gradle/caches/minecraft
-          : > ci-evidence/srg-probe.txt
-          { echo "### mapping files present ###"
-            find "$MROOT" -maxdepth 7 \( -name '*.csv' -o -name '*.srg' -o -name '*.tsrg' -o -name '*.zip' \) 2>/dev/null | head -80
-          } >> ci-evidence/srg-probe.txt
-          for Z in $(find "$MROOT" -name '*mcp_stable*.zip' -o -name '*mcp*.zip' 2>/dev/null | head -4); do
-            D=$(mktemp -d); (cd "$D" && unzip -oq "$Z" 2>/dev/null || true)
-            echo "### unpacked $Z -> $(ls -1 "$D" 2>/dev/null | tr '\n' ' ')" >> ci-evidence/srg-probe.txt
-            for PAT in itemRenderer equippedProgress prevEquippedProgress itemToRender \
-                       renderItemInFirstPerson updateEquippedItem renderOverlays \
-                       renderFireInFirstPerson renderMapFirstPerson ; do
-              echo "--- $PAT ---" >> ci-evidence/srg-probe.txt
-              grep -rhE "$PAT" "$D" 2>/dev/null | head -6 >> ci-evidence/srg-probe.txt || true
-            done
-            rm -rf "$D"
-          done
-          for S in $(find "$MROOT" -name '*.srg' 2>/dev/null | head -4); do
-            echo "### $S ###" >> ci-evidence/srg-probe.txt
-            grep -E "client/Minecraft|client/renderer/ItemRenderer" "$S" | head -60 >> ci-evidence/srg-probe.txt || true
-          done
-          cat ci-evidence/srg-probe.txt
-          grep -E "^--- itemRenderer|^--- equippedProgress" -A 3 ci-evidence/srg-probe.txt \
-            | grep -E "field_|func_" | head -8 | while read -r line; do echo "::notice title=SRG::${line}"; done
-
-      - name: Probe Forge client event API
-        run: |
-          FJARS=$(find ~/.gradle -name 'forge*1.8.9-11.15.1.2318*.jar' -o -name 'forgeSrc*.jar' -o -name 'forge-*universal*.jar' 2>/dev/null | sort -u)
-          echo "$FJARS" > ci-evidence/forge-probe.txt
-          FJ=$(echo "$FJARS" | grep -E 'forgeSrc|userdev|universal' | head -1)
-          [ -z "$FJ" ] && FJ=$(echo "$FJARS" | head -1)
-          echo "selected=$FJ" >> ci-evidence/forge-probe.txt
-          if [ -n "$FJ" ]; then
-            echo "--- client/event/Render* classes ---" >> ci-evidence/forge-probe.txt
-            unzip -l "$FJ" 2>/dev/null | grep -iE "client/event/Render" | head -30 >> ci-evidence/forge-probe.txt || true
-            for C in net.minecraftforge.client.event.RenderHandEvent \
-                     net.minecraftforge.client.event.RenderSpecificHandEvent \
-                     net.minecraftforge.client.ForgeHooksClient ; do
-              echo "--- javap $C ---" >> ci-evidence/forge-probe.txt
-              javap -p -classpath "$FJ" "$C" >> ci-evidence/forge-probe.txt 2>&1 || true
-            done
-          fi
-          cat ci-evidence/forge-probe.txt
-
-      - name: Best-effort decompiled renderer source
-        continue-on-error: true
-        run: |
-          export GRADLE_OPTS="-Xmx3g"
-          ./gradlew setupDecompWorkspace --stacktrace > ci-evidence/gradle-decomp.log 2>&1 || true
-          tail -20 ci-evidence/gradle-decomp.log || true
-          : > ci-evidence/decomp-status.txt
-          for F in ItemRenderer EntityRenderer Minecraft ; do
-            SRC=$(find ~/.gradle build -name "$F.java" 2>/dev/null | head -1)
-            echo "$F .java on disk: ${SRC:-NOT FOUND}" >> ci-evidence/decomp-status.txt
-            if [ -n "$SRC" ]; then cp "$SRC" "ci-evidence/mc-$F.java"; continue; fi
-            # Otherwise pull it out of a Forge sources jar if one was produced.
-            for SJ in $(find ~/.gradle -name '*-sources.jar' -path '*forge*' 2>/dev/null | head -5); do
-              HIT=$(unzip -l "$SJ" 2>/dev/null | grep -oE "[^ ]*/$F\.java" | head -1)
-              echo "$F in $(basename "$SJ"): ${HIT:-none}" >> ci-evidence/decomp-status.txt
-              if [ -n "$HIT" ]; then
-                unzip -p "$SJ" "$HIT" > "ci-evidence/mc-$F.java" 2>/dev/null || true
-                break
-              fi
-            done
-          done
-          cat ci-evidence/decomp-status.txt
-          ls -l ci-evidence/mc-*.java 2>/dev/null || echo "no decompiled sources captured"
-          echo "note: decompiled Minecraft sources are used inside this run only and are"
-          echo "      gitignored, so they are never committed to the repository."
-          if [ -f ci-evidence/mc-ItemRenderer.java ]; then
-            echo "::notice title=DECOMP::ItemRenderer source captured $(wc -l < ci-evidence/mc-ItemRenderer.java) lines"
-          else
-            echo "::warning title=DECOMP::ItemRenderer source NOT captured"
-          fi
-
-      - name: Dump the Gradle task graph
-        run: |
-          ./gradlew tasks --all > ci-evidence/gradle-tasks.txt 2>&1 || true
-          echo "=== packaging tasks ==="
-          grep -inE "^(reobf|jar |jar$|build|assemble|sourceJar|remap|retromap|deobf|setup|dumpTestClasspath)" ci-evidence/gradle-tasks.txt || true
-
-      # ------------------------------------------------------------------
-      # PHASE B: the real release build.
-      # ------------------------------------------------------------------
-      - name: Build (compile, reobfuscate, package)
-        run: |
-          ./gradlew build dumpTestClasspath --stacktrace > ci-evidence/gradle-build.log 2>&1
-          echo "gradle exit=$?"
-          echo "=== executed task graph ==="
-          grep -E "^:[a-zA-Z]" ci-evidence/gradle-build.log | tail -40
-          tail -15 ci-evidence/gradle-build.log
-
-      - name: Inventory every produced JAR
-        run: |
-          { echo "=== build/libs ==="
-            ls -lh build/libs/ 2>/dev/null || echo "(no build/libs)"
-            echo "=== every jar under build/ ==="
-            find build -name '*.jar' -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2
-            echo "=== build/tmp/deobfMcMCP (FG2 intermediate, NOT a release) ==="
-            ls -lh build/tmp/deobfMcMCP/ 2>/dev/null || echo "(absent)"
-          } | tee ci-evidence/jar-inventory.txt
-          ls -1 build/libs/*.jar 2>/dev/null | while read -r j; do
-            echo "::notice title=RELEASE-CANDIDATE::$(basename "$j") $(stat -c%s "$j") bytes"
-          done
-
-      - name: Run the standalone test suite
-        run: |
-          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh > ci-evidence/test-suites.log 2>&1
-          echo "tests exit=$?" | tee -a ci-evidence/test-suites.log
-          grep -E "passed [0-9]+, failed|FAIL|tests exit" ci-evidence/test-suites.log | tail -40
-
-      # ------------------------------------------------------------------
-      # PHASE C: verify the artifact is really the reobfuscated mod.
-      # ------------------------------------------------------------------
-      - name: Verify release JAR identity, metadata and mappings
-        run: |
-          # GitHub's default shell is `bash -e -o pipefail`, which would abort this step
-          # on the verifier's first nonzero status, before it printed why. Report, then fail.
+          # GitHub's default shell is `bash -e -o pipefail`, which would abort on the verifier's
+          # first nonzero status before it printed why. Report first, then fail.
           set +e +o pipefail
-          JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
-          echo "selected release jar: ${JAR:-NONE}"
-          if [ -z "$JAR" ]; then
-            echo "::error title=JAR::no release jar in build/libs"
+          JAR="$PWD/build/libs/$JAR_NAME"
+          echo "expected artifact: $JAR"
+          if [ ! -f "$JAR" ]; then
+            echo "::error title=JAR::$JAR_NAME was not produced"
             find "$PWD/build" -name '*.jar' -printf '%10s %p\n' | sort -k2
             exit 1
           fi
-          # Expected version comes from the source of truth build.gradle itself reads.
-          EXPECT=$(grep -oE 'NAME *= *"[^"]+"' src/main/java/com/arena/pekaclient/PekaVersion.java \
-                   | head -1 | sed 's/.*"\(.*\)"/\1/')
-          echo "expected version from PekaVersion.NAME: $EXPECT"
-          {
-            echo "=== raw inventory ==="
-            ls -lh build/libs/
-            echo
-            echo "=== MANIFEST ==="
-            unzip -p "$JAR" META-INF/MANIFEST.MF || true
-            echo "=== entry list ==="
-            unzip -l "$JAR"
-          } > ci-evidence/verify.txt 2>&1
-          python3 tools/verify_release_jar.py "$JAR" --version "$EXPECT" > /tmp/verify-out.txt 2>&1
+          python3 tools/verify_release_jar.py "$JAR" --version "$VERSION" > "$RUNNER_TEMP/verify.txt" 2>&1
           RC=$?
-          cat /tmp/verify-out.txt | tee -a ci-evidence/verify.txt
-          echo "verify exit=$RC" | tee -a ci-evidence/verify.txt
-          # Every FAIL line becomes an annotation, so the reason is readable without log access.
-          grep '^  FAIL' /tmp/verify-out.txt | while read -r line; do
+          cat "$RUNNER_TEMP/verify.txt"
+          grep '^  FAIL' "$RUNNER_TEMP/verify.txt" | while read -r line; do
             echo "::error title=JAR-VERIFY::${line}"
           done
-          tail -3 /tmp/verify-out.txt | while read -r line; do
-            echo "::notice title=JAR-VERIFY-SUMMARY::${line}"
+          tail -1 "$RUNNER_TEMP/verify.txt" | while read -r line; do
+            echo "::notice title=JAR-VERIFY::${line}"
           done
           if [ "$RC" != "0" ]; then
             echo "::error title=JAR::release verification failed with exit $RC"
             exit "$RC"
           fi
-          echo "::notice title=JAR::verified $(basename "$JAR") $(stat -c%s "$JAR") bytes version=$EXPECT"
+          echo "::notice title=JAR::verified $JAR_NAME $(stat -c%s "$JAR") bytes version=$VERSION"
 
-      - name: Stage the verified release jar and build report
-        if: always()
+      - name: Write the build report
         run: |
-          set +e +o pipefail
-          set -x
-          mkdir -p dist
-          JAR=$(ls -1 "$PWD"/build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
-          cp -v "$JAR" dist/
-          cp -v "$JAR" ci-evidence/dist/ 2>/dev/null || mkdir -p ci-evidence/dist && cp "$JAR" ci-evidence/dist/
-          EXPECT=$(grep -oE 'NAME *= *"[^"]+"' src/main/java/com/arena/pekaclient/PekaVersion.java \
-                   | head -1 | sed 's/.*"\(.*\)"/\1/')
+          set -e
+          JAR="build/libs/$JAR_NAME"
           {
-            echo "revision     : $(git rev-parse HEAD)"
-            echo "branch       : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-            echo "run          : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            echo "java         : $(java -version 2>&1 | head -1)"
-            echo "gradle       : $(grep -m1 'Gradle ' ci-evidence/gradle-version.txt || true)"
-            echo "version      : $EXPECT"
-            echo "mcmod.info   : $(unzip -p "$JAR" mcmod.info | grep -oE '"version": *"[^"]*"|"mcversion": *"[^"]*"' | tr '\n' ' ')"
-            echo "class files  : $(unzip -l "$JAR" | grep -c 'com/arena/pekaclient/.*\.class')"
-            echo "artifact     : dist/$(basename "$JAR")"
-            echo "size         : $(stat -c%s "$JAR") bytes"
-            echo "sha256       : $(sha256sum "$JAR" | cut -d' ' -f1)"
+            echo "Sky VeLor $VERSION build report"
+            echo "================================"
+            cat "$RUNNER_TEMP/revision.txt"
+            echo "run      : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
-            echo "reobfuscated : yes - verified by tools/verify_release_jar.py (SRG member names present, no MCP names left)"
-            echo "task graph   : $(grep -E '^:(compileJava|jar|reobfJar|sourceJar|assemble|build)$' ci-evidence/gradle-build.log | tr -d ':' | tr '\n' ' ')"
-            echo "tests        : $(grep -c 'failed 0' ci-evidence/test-suites.log) suites passed, $(grep -c 'FAIL' ci-evidence/test-suites.log) failures"
-          } | tee dist/BUILD-INFO.txt
+            echo "gradle:"
+            sed -n '1,12p' "$RUNNER_TEMP/gradle-version.txt"
+            echo
+            echo "jar      : dist/$JAR_NAME"
+            echo "size     : $(stat -c%s "$JAR") bytes"
+            echo "sha256   : $(sha256sum "$JAR" | cut -d' ' -f1)"
+            echo
+            echo "gradle tasks that produced the jar:"
+            grep -E "^:(compileJava|jar|reobfJar|sourceJar|assemble|check|build)" "$RUNNER_TEMP/build.log" || echo "(none listed)"
+            echo
+            echo "reobfuscated: yes - tools/verify_release_jar.py confirmed SRG member references"
+            echo "              and no development (MCP) member names left in the packaged classes."
+            echo
+            echo "test suites:"
+            grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" || true
+            echo
+            echo "verification:"
+            cat "$RUNNER_TEMP/verify.txt"
+          } > BUILD-REPORT.txt
+          grep -vE '^      (func|field)_' BUILD-REPORT.txt | tail -45
 
-      - name: Publish GitHub Release (main and tags only)
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
-        run: |
-          set -x
-          EXPECT=$(grep -oE 'NAME *= *"[^"]+"' src/main/java/com/arena/pekaclient/PekaVersion.java \
-                   | head -1 | sed 's/.*"\(.*\)"/\1/')
-          JAR=$(ls -1 dist/SkyVeLor-1.8.9-*.jar | head -1)
-          TAG="SkyVeLor-1.8.9-$EXPECT"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" \
-            --title "Sky VeLor $EXPECT" \
-            --notes "Built and verified from $(git rev-parse HEAD) by run $GITHUB_RUN_ID. See dist/BUILD-INFO.txt for the sha256 and the verification summary."
-          gh release upload "$TAG" "$JAR" dist/BUILD-INFO.txt --clobber
-          echo "::notice title=RELEASE::$TAG published with $(basename "$JAR")"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish evidence and artifact to this branch
-        if: always()
+      - name: Publish the jar and report into dist/ on this branch
+        if: github.event_name == 'push'
         run: |
           set +e +o pipefail
-          set -x
-          git config user.name  "arena-ci"
-          git config user.email "arena-ci@users.noreply.github.com"
-          TARGET="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          echo "target branch = $TARGET"
-          ls -la ci-evidence
-          # gradle-decomp.log is megabytes of Fernflower output; keep only the tail.
-          if [ -f ci-evidence/gradle-decomp.log ]; then
-            tail -200 ci-evidence/gradle-decomp.log > ci-evidence/gradle-decomp.log.tail
-            mv ci-evidence/gradle-decomp.log.tail ci-evidence/gradle-decomp.log
+          mkdir -p dist
+          cp -v "build/libs/$JAR_NAME" "dist/$JAR_NAME"
+          cp -v BUILD-REPORT.txt dist/BUILD-REPORT.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "dist/$JAR_NAME" dist/BUILD-REPORT.txt
+          if git diff --cached --quiet; then
+            echo "dist/ is already up to date"
+            exit 0
           fi
-          # ci-evidence/mc-*.java and gradle-decomp.log are gitignored: ForgeGradle can
-          # decompile Minecraft for inspection, but that output is derived from Mojang's
-          # code and must not be committed to this repository.
-          git add -A ci-evidence dist
-          git status --porcelain | head -40
-          git commit -m "CI evidence for $(git rev-parse --short HEAD) run $GITHUB_RUN_ID [skip ci]"
-          git log --oneline -1
-          git push origin "HEAD:refs/heads/$TARGET" 2>&1 | tee /tmp/push.log
-          PUSH_EXIT=${PIPESTATUS[0]}
-          echo "push exit=$PUSH_EXIT"
-          echo "remote now points at: $(git ls-remote origin "refs/heads/$TARGET")"
-          if [ "$PUSH_EXIT" != "0" ]; then
-            echo "::error title=EVIDENCE::push to $TARGET failed with exit $PUSH_EXIT"
-            exit 1
+          git commit -m "Publish $JAR_NAME built from $GITHUB_SHA [skip ci]"
+          git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          RC=$?
+          echo "push exit=$RC"
+          if [ "$RC" != "0" ]; then
+            echo "::error title=DIST::could not publish dist/ (exit $RC)"
+            exit "$RC"
           fi
-          echo "::notice title=EVIDENCE::pushed $(git rev-parse --short HEAD) to $TARGET"
+          echo "::notice title=DIST::published dist/$JAR_NAME"
+
+      - name: Attach the jar to a GitHub release (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          JAR="dist/$JAR_NAME"
+          TAG="SkyVeLor-$VERSION"
+          printf '%s\n' \
+            "Minecraft 1.8.9 Forge mod jar built by the Build Sky VeLor workflow." \
+            "" \
+            "Built from commit $GITHUB_SHA. See dist/BUILD-REPORT.txt for the sha256, the Gradle task" \
+            "graph, the test results and the artifact verification." \
+            "" \
+            "Install: put $JAR_NAME in the Minecraft mods folder." \
+            "Requires Minecraft 1.8.9 with Forge 11.15.1.2318 and Java 8." > release-notes.txt
+          cat release-notes.txt
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$JAR" dist/BUILD-REPORT.txt --clobber
+          else
+            gh release create "$TAG" "$JAR" dist/BUILD-REPORT.txt \
+              --title "Sky VeLor $VERSION" --notes-file release-notes.txt
+          fi
+          echo "::notice title=RELEASE::$TAG published with $JAR_NAME"
+
+      - name: Upload the release jar as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkyVeLor-1.8.9-${{ env.VERSION }}
+          path: |
+            build/libs/${{ env.JAR_NAME }}
+            BUILD-REPORT.txt
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload the build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build/reports/
+            build/logs/
+          if-no-files-found: ignore
+          retention-days: 14

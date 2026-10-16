@@ -1,0 +1,76 @@
+Terminal GUI verification (before-all build)
+=====================================
+PASS  in-game path: the Click in order chest is replaced by the terminal panel   [com.arena.pekaclient.gui.TerminalScreen@59690aa4]
+PASS  in-game path: the panel draws all fourteen tiles   [14 of 14]
+PASS  in-game path: the panel draws the numbers   [14 of 14]
+PASS  in-game path: tile 1 green, tile 2 yellow
+PASS  in-game path: a click on number 1 is sent to the chest slot of the pane with stack size 1   [[0:0:0:0]]
+PASS  in-game path: the overlay path on an untaken-over chest still runs
+PASS  practice 960x540: fourteen tiles drawn   [14 of 14]
+PASS  practice 960x540: tile 1 is green at its cell   [#FF2E9E3E]
+PASS  practice 960x540: tile 2 is yellow at its cell   [#FFE6C229]
+PASS  practice 960x540: tile 3 is black at its cell   [#FF000000]
+PASS  practice 960x540: numbers drawn in every tile   [14 of 14]
+PASS  practice 960x540: title drawn   [Terminal @34,84 Next 1  Mistakes 0  0.00s @465,84 Transparent: Off @277,304 Click 1 to 14 in order. R restarts. Esc closes. @184,325 ]
+PASS  practice 960x540: header shows Next and Mistakes   [[I@103f852]
+PASS  practice 960x540: footer hint
+PASS  practice 427x240: fourteen tiles drawn   [14 of 14]
+PASS  practice 427x240: tile 1 is green at its cell   [#FF2E9E3E]
+PASS  practice 427x240: tile 2 is yellow at its cell   [#FFE6C229]
+PASS  practice 427x240: tile 3 is black at its cell   [#FF000000]
+PASS  practice 427x240: numbers drawn in every tile   [14 of 14]
+PASS  practice 427x240: title drawn   [Terminal @34,84 Next 1  Mistakes 0  0.00s @465,84 Transparent: Off @277,304 Click 1 to 14 in order. R restarts. Esc closes. @184,325 ]
+PASS  practice 427x240: header shows Next and Mistakes   [[I@80169cf]
+PASS  practice 427x240: footer hint
+PASS  practice 640x360: fourteen tiles drawn   [14 of 14]
+PASS  practice 640x360: tile 1 is green at its cell   [#FF2E9E3E]
+PASS  practice 640x360: tile 2 is yellow at its cell   [#FFE6C229]
+PASS  practice 640x360: tile 3 is black at its cell   [#FF000000]
+PASS  practice 640x360: numbers drawn in every tile   [14 of 14]
+PASS  practice 640x360: title drawn   [Terminal @34,84 Next 1  Mistakes 0  0.00s @465,84 Transparent: Off @277,304 Click 1 to 14 in order. R restarts. Esc closes. @184,325 ]
+PASS  practice 640x360: header shows Next and Mistakes   [[I@60438a68]
+PASS  practice 640x360: footer hint
+PASS  practice 1920x1080: fourteen tiles drawn   [14 of 14]
+PASS  practice 1920x1080: tile 1 is green at its cell   [#FF2E9E3E]
+PASS  practice 1920x1080: tile 2 is yellow at its cell   [#FFE6C229]
+PASS  practice 1920x1080: tile 3 is black at its cell   [#FF000000]
+PASS  practice 1920x1080: numbers drawn in every tile   [14 of 14]
+PASS  practice 1920x1080: title drawn   [Terminal @190,172 Next 1  Mistakes 0  0.00s @621,172 Transparent: Off @433,392 Click 1 to 14 in order. R restarts. Esc closes. @340,413 ]
+PASS  practice 1920x1080: header shows Next and Mistakes   [[I@77a57272]
+PASS  practice 1920x1080: footer hint
+PASS  practice 320x240: fourteen tiles drawn   [14 of 14]
+PASS  practice 320x240: tile 1 is green at its cell   [#FF2E9E3E]
+PASS  practice 320x240: tile 2 is yellow at its cell   [#FFE6C229]
+PASS  practice 320x240: tile 3 is black at its cell   [#FF000000]
+PASS  practice 320x240: numbers drawn in every tile   [14 of 14]
+PASS  practice 320x240: title drawn   [Terminal @30,142 Next 1  Mistakes 0  0.00s @461,142 Transparent: Off @273,362 Click 1 to 14 in order. R restarts. Esc closes. @180,383 ]
+PASS  practice 320x240: header shows Next and Mistakes   [[I@70beb599]
+PASS  practice 320x240: footer hint
+PASS  practice: correct clicks advance Next 1..14 and finish
+PASS  practice: wrong click counts a mistake, flashes red, Next unchanged   [Next 1 Mistakes 1 pixel #FF7A2222]
+PASS  practice: timer advances   [Next 2  Mistakes 1  0.09s @465,84]
+PASS  practice: R restarts   [Next 1  Mistakes 0  0.00s @465,84]
+PASS  practice: toggle fades the panel   [#FF1D1D20 -> #6D4B4B52]
+FAIL  practice: transparent keeps tile 1 green   [#AD4B7455]
+FAIL  practice: transparent keeps tile 3 black   [#AD39393E]
+FAIL  practice: transparent keeps all fourteen tiles   [0 of 14]
+FAIL  practice: transparent keeps the numbers   [0 of 14]
+PASS  practice: transparent label
+PASS  practice: Esc closes
+PASS  live/items: fourteen tiles drawn   [14 of 14]
+PASS  live/items: click 1 goes to the chest slot of number 1   [[0:0:0:0]]
+PASS  live/items: wrong click sends nothing and counts a mistake   [[] Next 1  Mistakes 1  0.00s @465,84]
+PASS  live/stacks: fourteen tiles drawn   [14 of 14]
+PASS  live/stacks: tile 1 green, tile 2 yellow
+PASS  live/stacks: click 1 goes to the pane of stack size 1   [[0:0:0:0]]
+PASS  live/stacks: clicked number is marked done and Next moves to 2   [Next 2  Mistakes 0  0.00s @465,84]
+FAIL  live/unreadable (unreadable chest, 45 slots): fourteen tiles drawn   [0 of 14]
+FAIL  live/unreadable (unreadable chest, 45 slots): tile 1 green at its cell   [#FF1D1D20]
+FAIL  live/unreadable (unreadable chest, 45 slots): numbers drawn   [0 of 14]
+FAIL  live/unreadable (unreadable chest, 45 slots): clicking still counts on the panel   [Next 1  Mistakes 0  0.00s @465,84]
+FAIL  live/unreadable (empty chest, 27 slots): fourteen tiles drawn   [0 of 14]
+FAIL  live/unreadable (empty chest, 27 slots): tile 1 green at its cell   [#FF1D1D20]
+FAIL  live/unreadable (empty chest, 27 slots): numbers drawn   [0 of 14]
+FAIL  live/unreadable (empty chest, 27 slots): clicking still counts on the panel   [Next 1  Mistakes 0  0.00s @465,84]
+
+passed: 60, failed: 12

@@ -38,7 +38,8 @@ import zipfile
 
 MOD_PACKAGE = 'com/arena/pekaclient/'
 
-# Classes the Beta-0.10.7v release must contain.
+# Classes the release must contain: the mod core, the first-person held-item
+# feature, and the Terminal GUI that came in with the Beta-0.10.6.5v baseline.
 REQUIRED_CLASSES = [
     'PekaClientMod',
     'PekaVersion',
@@ -46,6 +47,11 @@ REQUIRED_CLASSES = [
     'feature/FirstPersonItem',
     'gui/AppleHubScreen',
     'gui/AppleGuiButton',
+    'gui/TerminalScreen',
+    'gui/DungeonHudScreen',
+    'dungeon/TerminalSolver',
+    'hud/ClickInOrderHud',
+    'command/TerminalCommand',
     'render/CustomItemRenderer',
     'render/FirstPersonItemSetup',
 ]
@@ -227,6 +233,10 @@ def main():
         r.check('"modid": "pekaclient"' in info, 'mcmod.info modid is pekaclient')
     else:
         r.check(False, 'mcmod.info present')
+
+    # Resources: keybind labels would fall back to raw translation keys without these.
+    r.check('assets/pekaclient/lang/en_US.lang' in names,
+            'English keybind labels packaged')
 
     # --- the decisive mapping check --------------------------------------
     srg, mcp_hits, parsed, unparsed = set(), [], 0, []
