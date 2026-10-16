@@ -1,5 +1,6 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.gui.FontRenderer;
 
@@ -28,6 +29,8 @@ final class WindowDots {
     private static final int[] BOTTOM = {0xFFFF5F57, 0xFFFEBC2E, 0xFF28C840};
     private static final int[] RIM = {0xFFD9423C, 0xFFD9A020, 0xFF1EA534};
     private static final int DISABLED = 0x59808088;
+    private static float hoverAmount;
+    private static long lastFrameNs;
 
     private WindowDots() {
     }
@@ -111,12 +114,18 @@ final class WindowDots {
      * @param enabledMask bit i set means button i is live. Other buttons are drawn dimmed
      */
     static void draw(float firstX, float cy, int mx, int my, int enabledMask, boolean zoomed) {
-        boolean group = false;
-        for (int i = 0; i < 3; i++) {
-            if (hit(mx, my, firstX, cy, enabledMask) == i) {
-                group = true;
-            }
+        boolean group = hit(mx, my, firstX, cy, enabledMask) != NONE;
+        long now = System.nanoTime();
+        float dt = lastFrameNs == 0L ? 1f / 60f : Math.min(0.1f, (now - lastFrameNs) / 1.0e9f);
+        lastFrameNs = now;
+        float target = group ? 1f : 0f;
+        if (!Theme.animations) {
+            hoverAmount = target;
+        } else {
+            hoverAmount += (target - hoverAmount)
+                    * (1f - (float) Math.exp(-dt * 20f * Math.max(0.1f, Theme.speed)));
         }
+
         for (int i = 0; i < 3; i++) {
             float x = centreX(firstX, i);
             boolean live = (enabledMask & (1 << i)) != 0;
@@ -127,14 +136,14 @@ final class WindowDots {
             UIRender.circle(x, cy, R, RIM[i]);
             UIRender.roundRect(x - R + 0.8f, cy - R + 0.8f, (R - 0.8f) * 2f, (R - 0.8f) * 2f,
                     R - 0.8f, TOP[i], BOTTOM[i], 0.6f);
-            if (group) {
-                drawGlyph(i, x, cy, zoomed);
+            if (hoverAmount > 0.001f) {
+                drawGlyph(i, x, cy, zoomed, hoverAmount);
             }
         }
     }
 
-    private static void drawGlyph(int index, float x, float cy, boolean zoomed) {
-        int ink = 0xB3000000;
+    private static void drawGlyph(int index, float x, float cy, boolean zoomed, float alpha) {
+        int ink = UIRender.withAlpha(0xB3000000, alpha);
         switch (index) {
             case CLOSE:
                 UIRender.line(x - 2.2f, cy - 2.2f, x + 2.2f, cy + 2.2f, 1.1f, ink);

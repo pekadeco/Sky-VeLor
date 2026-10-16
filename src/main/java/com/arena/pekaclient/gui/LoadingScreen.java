@@ -55,6 +55,7 @@ public final class LoadingScreen extends GuiScreen {
     public void updateScreen() {
         super.updateScreen();
         fade.update(1f / 20f, 6f);
+        continueBtn.update(1f / 20f);
         if (StartupTasks.hasWork()) {
             // One real task per tick. Its result is only counted when it has completed.
             StartupTasks.runNext();

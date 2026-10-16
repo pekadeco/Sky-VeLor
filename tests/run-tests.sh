@@ -40,3 +40,5 @@ java -cp "$OUT:$CP" com.arena.pekaclient.startup.StartupTimingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.fishing.FishingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.DragonKillTests
 java -cp "$OUT:$CP" com.arena.pekaclient.slayer.SlayerTests
+java -cp "$OUT:$CP" com.arena.pekaclient.widget.SearchFieldTests
+java -cp "$OUT:$CP" com.arena.pekaclient.widget.WidgetInteractionTests

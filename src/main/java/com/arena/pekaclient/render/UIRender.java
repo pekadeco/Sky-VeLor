@@ -99,6 +99,21 @@ public final class UIRender {
         }
     }
 
+    /** Scales a control around its centre without changing its layout or hitbox. */
+    public static void pushScaleAt(float centerX, float centerY, float scale) {
+        flush();
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(centerX, centerY, 0f);
+        GlStateManager.scale(scale, scale, 1f);
+        GlStateManager.translate(-centerX, -centerY, 0f);
+    }
+
+    /** Flushes geometry while the scale is active, then restores the previous matrix. */
+    public static void popTransform() {
+        flush();
+        GlStateManager.popMatrix();
+    }
+
     /** Groups following primitives into one draw call until {@link #endBatch()}. */
     public static void beginBatch() {
         flush();

@@ -7,7 +7,6 @@ public final class WidgetInteractionTests {
     public static void main(String[] args) {
         buttonReleaseRequiresAnActivatedPress();
         toggleChangesOnlyOnAnActivatedPress();
-        toggleKnobStaysStateDrivenWhileHeld();
         segmentedControlChoosesThePressedSegment();
         sliderSnapsAndHonorsItsGate();
         dropdownSelectionUsesTheProvidedSetter();
@@ -51,24 +50,6 @@ public final class WidgetInteractionTests {
         toggle.onPress(10, 10);
         toggle.onRelease(80, 80, false);
         check("cancelled toggle press keeps value", value[0]);
-    }
-
-    private static void toggleKnobStaysStateDrivenWhileHeld() {
-        final boolean[] value = {false};
-        AppleToggle toggle = new AppleToggle(() -> value[0], v -> value[0] = v);
-        toggle.x = 10f;
-        toggle.y = 10f;
-
-        float before = toggle.knobLeftForState(toggle.visualState());
-        toggle.onPress(29, 20);
-        float whileHeld = toggle.knobLeftForState(toggle.visualState());
-        check("toggle knob stays at its state position while held", Math.abs(before - whileHeld) < 0.001f);
-        check("toggle value does not change before release", !value[0]);
-
-        toggle.onRelease(29, 20, true);
-        check("toggle changes after release", value[0]);
-        float after = toggle.knobLeftForState(toggle.visualState());
-        check("toggle knob moves to the new state position", after > before);
     }
 
     private static void segmentedControlChoosesThePressedSegment() {

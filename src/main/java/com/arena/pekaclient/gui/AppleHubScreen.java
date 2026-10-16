@@ -678,6 +678,7 @@ public class AppleHubScreen extends AppleScreen {
         openAnim.update(dt, 10f);
         fadeAnim.update(dt, 14f);
         indicator.update(dt, 10f);
+        search.update(dt);
         for (int i = 0; i < navSel.length; i++) {
             navSel[i].to(!searching && i == pageIndex ? 1f : 0f);
             navSel[i].update(dt, 14f);

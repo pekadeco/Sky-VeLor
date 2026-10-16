@@ -1,5 +1,7 @@
 package com.arena.pekaclient.notes;
 
+import com.arena.pekaclient.gui.AppleGuiButton;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,16 +73,16 @@ public final class QuickNoteScreen extends GuiScreen {
         int gap = 4;
         int buttonY = panelY() + panelHeight() - 24;
         int x = panelX() + 10;
-        buttonList.add(new GuiButton(BUTTON_PREV, x, buttonY, buttonWidth, 18, "< Prev"));
-        buttonList.add(new GuiButton(BUTTON_NEXT, x + buttonWidth + gap, buttonY, buttonWidth, 18,
+        buttonList.add(new AppleGuiButton(BUTTON_PREV, x, buttonY, buttonWidth, 18, "< Prev"));
+        buttonList.add(new AppleGuiButton(BUTTON_NEXT, x + buttonWidth + gap, buttonY, buttonWidth, 18,
                 "Next >"));
-        buttonList.add(new GuiButton(BUTTON_DELETE_PAGE, x + (buttonWidth + gap) * 2, buttonY,
+        buttonList.add(new AppleGuiButton(BUTTON_DELETE_PAGE, x + (buttonWidth + gap) * 2, buttonY,
                 buttonWidth, 18, "Delete"));
         int doneX = panelX() + panelWidth() - 10 - buttonWidth;
-        buttonList.add(new GuiButton(BUTTON_DONE, doneX, buttonY, buttonWidth, 18, "Done"));
+        buttonList.add(new AppleGuiButton(BUTTON_DONE, doneX, buttonY, buttonWidth, 18, "Done"));
         // The new page button sits in the header, where the old page counter used to be.
         int newPageWidth = 78;
-        buttonList.add(new GuiButton(BUTTON_NEW_PAGE, panelX() + panelWidth() - 12 - newPageWidth,
+        buttonList.add(new AppleGuiButton(BUTTON_NEW_PAGE, panelX() + panelWidth() - 12 - newPageWidth,
                 panelY() + 5, newPageWidth, 16, "+ New page"));
         headingField = new GuiTextField(0, fontRendererObj, headingFieldX(), headingLabelY(),
                 headingFieldWidth(), 14);

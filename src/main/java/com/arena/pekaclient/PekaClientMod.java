@@ -13,6 +13,7 @@ import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.feature.LeapUse;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.gui.AppleHubScreen;
+import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
@@ -202,7 +203,7 @@ public class PekaClientMod {
     public void onInitGui(GuiScreenEvent.InitGuiEvent.Post event) {
         if (event.gui instanceof GuiMainMenu || event.gui instanceof GuiIngameMenu) {
             // Top-right corner: does not collide with vanilla's centred column.
-            event.buttonList.add(new GuiButton(MENU_BUTTON_ID, event.gui.width - 92, 8, 84, 20, NAME));
+            event.buttonList.add(new AppleGuiButton(MENU_BUTTON_ID, event.gui.width - 92, 8, 84, 20, NAME));
         }
     }
 

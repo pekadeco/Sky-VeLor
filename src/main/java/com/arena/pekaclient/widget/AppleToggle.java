@@ -22,18 +22,6 @@ public final class AppleToggle extends Widget {
         return getter != null && Boolean.TRUE.equals(getter.get());
     }
 
-    float visualState() {
-        return initialized ? animatedOn : (value() ? 1f : 0f);
-    }
-
-    float knobLeftForState(float state) {
-        float pad = 2f;
-        float knob = h - pad * 2f;
-        float left = x + pad;
-        float right = x + w - pad - knob;
-        return left + (right - left) * clamp(state, 0f, 1f);
-    }
-
     @Override
     protected void updateWidget(float dt) {
         float target = value() ? 1f : 0f;
@@ -48,7 +36,7 @@ public final class AppleToggle extends Widget {
     @Override
     public void draw(int mouseX, int mouseY) {
         beginAnimatedDraw(0.025f, 0.04f, 0.018f);
-        float state = visualState();
+        float state = initialized ? animatedOn : (value() ? 1f : 0f);
         int fill = UIRender.mix(Theme.track, Theme.accent, state);
         if (contains(mouseX, mouseY) && enabled) {
             fill = UIRender.mix(fill, 0xFFFFFFFF, hoverAmount * 0.16f);
@@ -60,7 +48,12 @@ public final class AppleToggle extends Widget {
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.5f);
         float pad = 2f;
         float knob = h - pad * 2f;
-        float kx = knobLeftForState(state);
+        float left = x + pad;
+        float right = x + w - pad - knob;
+        float kx = left + (right - left) * state;
+        if (pressed && contains(mouseX, mouseY)) {
+            kx = clamp(mouseX - knob * 0.5f, left, right);
+        }
         if (Theme.animations && clickPulse > 0.015f && enabled) {
             float outer = knob * 0.5f + 2f + (1f - clickPulse) * 1.2f;
             UIRender.ring(kx + knob * 0.5f, y + h * 0.5f, outer, outer - 0.9f,
