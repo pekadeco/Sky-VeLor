@@ -7,3 +7,5 @@ crash-reports/
 .idea/
 hs_err_pid*.log
 replay_pid*.log
+
+# CI evidence is committed explicitly from the workflow, never picked up locally.

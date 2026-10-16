@@ -18,7 +18,7 @@ jobs:
   build:
     name: Build with Java 8
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout the triggering revision
@@ -32,152 +32,230 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
 
+      # Evidence lives OUTSIDE build/: Gradle owns build/ and can wipe it, which is
+      # what silently discarded the previous run's evidence.
       - name: Record revision and toolchain
         run: |
-          mkdir -p build/evidence
+          set -x
+          rm -rf ci-evidence && mkdir -p ci-evidence
           {
             echo "revision     : $(git rev-parse HEAD)"
             echo "branch       : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
             echo "run          : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo "java         : $(java -version 2>&1 | head -1)"
-          } > build/evidence/REVISION.txt
-          cat build/evidence/REVISION.txt
+          } > ci-evidence/REVISION.txt
+          cat ci-evidence/REVISION.txt
           chmod +x gradlew
-          ./gradlew --version 2>&1 | tee build/evidence/gradle-version.txt
+          ./gradlew --version 2>&1 | tee ci-evidence/gradle-version.txt
 
       # ------------------------------------------------------------------
       # PHASE A: authoritative Minecraft 1.8.9 / Forge API probe.
-      # Everything the implementation depends on is dumped here instead of
-      # being guessed: real signatures from the deobfuscated MC jar, real
-      # MCP->SRG names from the mappings, real Forge event classes.
       # ------------------------------------------------------------------
       - name: Prepare Forge/Minecraft workspace
-        id: setup
         run: |
-          ./gradlew setupCIWorkspace --stacktrace 2>&1 | tee build/evidence/gradle-setup.log | tail -40
-          echo "exit=${PIPESTATUS[0]}"
+          ./gradlew setupCIWorkspace --stacktrace > ci-evidence/gradle-setup.log 2>&1
+          echo "setupCIWorkspace exit=$?"
+          tail -25 ci-evidence/gradle-setup.log
 
       - name: Probe Minecraft 1.8.9 renderer API (javap)
         run: |
           set -x
-          MCJAR=$(find build -name 'deobfed.jar' -path '*deobfMcMCP*' | head -1)
-          echo "MCJAR=$MCJAR" > build/evidence/probe-locations.txt
-          if [ -z "$MCJAR" ]; then
-            echo "deobfed.jar not found; searching wider" >> build/evidence/probe-locations.txt
-            find build ~/.gradle/caches/minecraft -name '*.jar' 2>/dev/null | head -50 >> build/evidence/probe-locations.txt
-            MCJAR=$(find build ~/.gradle/caches/minecraft -name 'deobfed.jar' 2>/dev/null | head -1)
-          fi
-          echo "MCJAR(resolved)=$MCJAR" >> build/evidence/probe-locations.txt
-          ls -lh "$MCJAR" >> build/evidence/probe-locations.txt 2>/dev/null || true
+          MCJAR=$(find build ~/.gradle -name 'deobfed.jar' 2>/dev/null | head -1)
+          echo "MCJAR=$MCJAR" > ci-evidence/probe-locations.txt
+          ls -lh "$MCJAR" >> ci-evidence/probe-locations.txt 2>/dev/null || true
           for C in net.minecraft.client.Minecraft \
                    net.minecraft.client.renderer.ItemRenderer \
-                   net.minecraft.client.renderer.EntityRenderer \
-                   net.minecraft.client.renderer.RenderGlobal ; do
+                   net.minecraft.client.renderer.EntityRenderer ; do
             N=$(echo "$C" | sed 's/.*\.//')
-            javap -p -classpath "$MCJAR" "$C" > "build/evidence/javap-$N.txt" 2>&1 || true
+            javap -p -classpath "$MCJAR" "$C" > "ci-evidence/javap-$N.txt" 2>&1 || true
           done
-          echo "=== ItemRenderer ==="
-          cat build/evidence/javap-ItemRenderer.txt
-          echo "=== Minecraft: itemRenderer field ==="
-          grep -nE "ItemRenderer|itemRenderer" build/evidence/javap-Minecraft.txt || true
+          set +x
+          echo "=== ItemRenderer (full) ==="
+          cat ci-evidence/javap-ItemRenderer.txt
+          echo "=== Minecraft: renderer-related members ==="
+          grep -nE "ItemRenderer|EntityRenderer" ci-evidence/javap-Minecraft.txt || true
+          cp ci-evidence/javap-ItemRenderer.txt /tmp/ir.txt || true
+          # Surface the decisive facts as annotations, which are readable without log access.
+          grep -E "ItemRenderer\(|renderItemInFirstPerson|updateEquippedItem|equippedProgress|renderMapFirstPerson|renderOverlays|renderFireInFirstPerson" /tmp/ir.txt \
+            | while read -r line; do echo "::notice title=ItemRenderer::${line}"; done
+          grep -E "ItemRenderer " ci-evidence/javap-Minecraft.txt \
+            | while read -r line; do echo "::notice title=Minecraft-field::${line}"; done
 
       - name: Probe MCP to SRG mappings (reobfuscation safety)
         run: |
           MROOT=~/.gradle/caches/minecraft
-          {
-            echo "### mapping files present ###"
-            find "$MROOT" -maxdepth 6 \( -name '*.csv' -o -name '*.srg' -o -name '*.tsrg' -o -name '*mcp_stable*' \) 2>/dev/null | head -60
-          } > build/evidence/srg-probe.txt
-          for Z in $(find "$MROOT" -name '*mcp_stable*.zip' 2>/dev/null | head -3); do
+          : > ci-evidence/srg-probe.txt
+          { echo "### mapping files present ###"
+            find "$MROOT" -maxdepth 7 \( -name '*.csv' -o -name '*.srg' -o -name '*.tsrg' -o -name '*.zip' \) 2>/dev/null | head -80
+          } >> ci-evidence/srg-probe.txt
+          for Z in $(find "$MROOT" -name '*mcp_stable*.zip' -o -name '*mcp*.zip' 2>/dev/null | head -4); do
             D=$(mktemp -d); (cd "$D" && unzip -oq "$Z" 2>/dev/null || true)
-            echo "### unpacked $Z -> $(ls "$D" | tr '\n' ' ')" >> build/evidence/srg-probe.txt
+            echo "### unpacked $Z -> $(ls -1 "$D" 2>/dev/null | tr '\n' ' ')" >> ci-evidence/srg-probe.txt
             for PAT in itemRenderer equippedProgress prevEquippedProgress itemToRender \
                        renderItemInFirstPerson updateEquippedItem renderOverlays \
                        renderFireInFirstPerson renderMapFirstPerson ; do
-              echo "--- $PAT ---" >> build/evidence/srg-probe.txt
-              grep -rhnE "(,|\s|^)$PAT(,|\s|$)|[^A-Za-z0-9_]$PAT[^A-Za-z0-9_]" "$D" 2>/dev/null \
-                | grep -E "Minecraft|ItemRenderer|field_|func_" | head -8 >> build/evidence/srg-probe.txt || true
+              echo "--- $PAT ---" >> ci-evidence/srg-probe.txt
+              grep -rhE "$PAT" "$D" 2>/dev/null | head -6 >> ci-evidence/srg-probe.txt || true
             done
             rm -rf "$D"
           done
-          for S in $(find "$MROOT" -name '*.srg' 2>/dev/null | head -3); do
-            echo "### $S ###" >> build/evidence/srg-probe.txt
-            grep -E "client/Minecraft|client/renderer/ItemRenderer" "$S" \
-              | grep -iE "itemRenderer|equipped|renderItemInFirstPerson|updateEquippedItem" | head -20 >> build/evidence/srg-probe.txt || true
+          for S in $(find "$MROOT" -name '*.srg' 2>/dev/null | head -4); do
+            echo "### $S ###" >> ci-evidence/srg-probe.txt
+            grep -E "client/Minecraft|client/renderer/ItemRenderer" "$S" | head -60 >> ci-evidence/srg-probe.txt || true
           done
-          cat build/evidence/srg-probe.txt
+          cat ci-evidence/srg-probe.txt
+          grep -E "^--- itemRenderer|^--- equippedProgress" -A 3 ci-evidence/srg-probe.txt \
+            | grep -E "field_|func_" | head -8 | while read -r line; do echo "::notice title=SRG::${line}"; done
 
       - name: Probe Forge client event API
         run: |
           FJARS=$(find ~/.gradle -name 'forge*1.8.9-11.15.1.2318*.jar' -o -name 'forgeSrc*.jar' -o -name 'forge-*universal*.jar' 2>/dev/null | sort -u)
-          echo "$FJARS" > build/evidence/forge-probe.txt
+          echo "$FJARS" > ci-evidence/forge-probe.txt
           FJ=$(echo "$FJARS" | grep -E 'forgeSrc|userdev|universal' | head -1)
           [ -z "$FJ" ] && FJ=$(echo "$FJARS" | head -1)
-          echo "selected=$FJ" >> build/evidence/forge-probe.txt
+          echo "selected=$FJ" >> ci-evidence/forge-probe.txt
           if [ -n "$FJ" ]; then
-            echo "--- RenderHandEvent present? ---" >> build/evidence/forge-probe.txt
-            unzip -l "$FJ" 2>/dev/null | grep -iE "client/event/Render" | head -30 >> build/evidence/forge-probe.txt || true
+            echo "--- client/event/Render* classes ---" >> ci-evidence/forge-probe.txt
+            unzip -l "$FJ" 2>/dev/null | grep -iE "client/event/Render" | head -30 >> ci-evidence/forge-probe.txt || true
             for C in net.minecraftforge.client.event.RenderHandEvent \
                      net.minecraftforge.client.event.RenderSpecificHandEvent \
                      net.minecraftforge.client.ForgeHooksClient ; do
-              N=$(echo "$C" | sed 's/.*\.//')
-              echo "--- javap $C ---" >> build/evidence/forge-probe.txt
-              javap -p -classpath "$FJ" "$C" >> build/evidence/forge-probe.txt 2>&1 || true
+              echo "--- javap $C ---" >> ci-evidence/forge-probe.txt
+              javap -p -classpath "$FJ" "$C" >> ci-evidence/forge-probe.txt 2>&1 || true
             done
           fi
-          cat build/evidence/forge-probe.txt
+          cat ci-evidence/forge-probe.txt
 
       - name: Best-effort decompiled renderer source
         continue-on-error: true
         run: |
-          export GRADLE_OPTS="-Xmx3g -XX:MaxPermSize=512m"
-          ./gradlew setupDecompWorkspace --stacktrace > build/evidence/gradle-decomp.log 2>&1 || true
-          tail -25 build/evidence/gradle-decomp.log || true
+          export GRADLE_OPTS="-Xmx3g"
+          ./gradlew setupDecompWorkspace --stacktrace > ci-evidence/gradle-decomp.log 2>&1 || true
+          tail -20 ci-evidence/gradle-decomp.log || true
+          : > ci-evidence/decomp-status.txt
           for F in ItemRenderer EntityRenderer ; do
             SRC=$(find ~/.gradle build -name "$F.java" -path '*minecraft*' 2>/dev/null | head -1)
-            echo "$F source: ${SRC:-NOT FOUND}" >> build/evidence/decomp-status.txt
-            if [ -n "$SRC" ]; then cp "$SRC" "build/evidence/mc-$F.java"; fi
+            echo "$F source: ${SRC:-NOT FOUND}" >> ci-evidence/decomp-status.txt
+            if [ -n "$SRC" ]; then cp "$SRC" "ci-evidence/mc-$F.java"; fi
           done
-          cat build/evidence/decomp-status.txt
+          cat ci-evidence/decomp-status.txt
 
-      - name: Dump the Gradle task graph (release packaging authority)
+      - name: Dump the Gradle task graph
         run: |
-          ./gradlew tasks --all > build/evidence/gradle-tasks.txt 2>&1 || true
-          echo "=== packaging-related tasks ==="
-          grep -inE "^(reobf|jar|build|assemble|sourceJar|remap|retromap|deobf|setup|dumpTestClasspath)" build/evidence/gradle-tasks.txt || true
-          grep -icE "reobf" build/evidence/gradle-tasks.txt || true
+          ./gradlew tasks --all > ci-evidence/gradle-tasks.txt 2>&1 || true
+          echo "=== packaging tasks ==="
+          grep -inE "^(reobf|jar |jar$|build|assemble|sourceJar|remap|retromap|deobf|setup|dumpTestClasspath)" ci-evidence/gradle-tasks.txt || true
 
       # ------------------------------------------------------------------
-      # PHASE B: the real build.
+      # PHASE B: the real release build.
       # ------------------------------------------------------------------
-      - name: Build (compile, test, reobfuscate, package)
+      - name: Build (compile, reobfuscate, package)
         run: |
-          ./gradlew build dumpTestClasspath --stacktrace 2>&1 | tee build/evidence/gradle-build.log | tail -60
-          echo "=== gradle exit=${PIPESTATUS[0]} ==="
+          ./gradlew build dumpTestClasspath --stacktrace > ci-evidence/gradle-build.log 2>&1
+          echo "gradle exit=$?"
+          echo "=== executed task graph ==="
+          grep -E "^:[a-zA-Z]" ci-evidence/gradle-build.log | tail -40
+          tail -15 ci-evidence/gradle-build.log
 
       - name: Inventory every produced JAR
         run: |
-          echo "=== build/libs ===" | tee build/evidence/jar-inventory.txt
-          ls -lh build/libs/ 2>/dev/null | tee -a build/evidence/jar-inventory.txt || echo "(no build/libs)" | tee -a build/evidence/jar-inventory.txt
-          echo "=== every jar under build/ ===" | tee -a build/evidence/jar-inventory.txt
-          find build -name '*.jar' -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2 | tee -a build/evidence/jar-inventory.txt || true
-          echo "=== build/tmp/deobfMcMCP (FG2 intermediate, NOT a release) ===" | tee -a build/evidence/jar-inventory.txt
-          ls -lh build/tmp/deobfMcMCP/ 2>/dev/null | tee -a build/evidence/jar-inventory.txt || true
+          { echo "=== build/libs ==="
+            ls -lh build/libs/ 2>/dev/null || echo "(no build/libs)"
+            echo "=== every jar under build/ ==="
+            find build -name '*.jar' -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2
+            echo "=== build/tmp/deobfMcMCP (FG2 intermediate, NOT a release) ==="
+            ls -lh build/tmp/deobfMcMCP/ 2>/dev/null || echo "(absent)"
+          } | tee ci-evidence/jar-inventory.txt
+          ls -1 build/libs/*.jar 2>/dev/null | while read -r j; do
+            echo "::notice title=RELEASE-CANDIDATE::$(basename "$j") $(stat -c%s "$j") bytes"
+          done
 
       - name: Run the standalone test suite
         run: |
-          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh 2>&1 | tee build/evidence/test-suites.log | tail -60
-          echo "=== tests exit=${PIPESTATUS[0]} ==="
+          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh > ci-evidence/test-suites.log 2>&1
+          echo "tests exit=$?" | tee -a ci-evidence/test-suites.log
+          grep -E "passed [0-9]+, failed|FAIL|tests exit" ci-evidence/test-suites.log | tail -40
 
-      - name: Publish probe and build evidence to this branch
+      # ------------------------------------------------------------------
+      # PHASE C: verify the artifact is really the reobfuscated mod.
+      # ------------------------------------------------------------------
+      - name: Verify release JAR identity, metadata and mappings
         run: |
+          set -e
+          JAR=$(ls -1 build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
+          echo "selected release jar: ${JAR:-NONE}"
+          if [ -z "$JAR" ]; then
+            echo "::error::No release jar in build/libs"
+            find build -name '*.jar' -printf '%10s %p\n' | sort -k2
+            exit 1
+          fi
+          {
+            echo "jar          : $JAR"
+            echo "size         : $(stat -c%s "$JAR") bytes"
+            echo "sha256       : $(sha256sum "$JAR" | cut -d' ' -f1)"
+            echo
+            echo "=== MANIFEST ==="
+            unzip -p "$JAR" META-INF/MANIFEST.MF || true
+            echo "=== mcmod.info ==="
+            unzip -p "$JAR" mcmod.info || true
+            echo "=== entry list ==="
+            unzip -l "$JAR"
+            echo "=== nested archives (must be none) ==="
+            unzip -l "$JAR" | grep -E '\.jar$|\.zip$' || echo "none"
+            echo "=== mod class count ==="
+            unzip -l "$JAR" | grep -c 'com/arena/pekaclient/.*\.class' || true
+          } | tee ci-evidence/verify.txt
+
+          # Is this the reobfuscated artifact or the deobfuscated dev artifact?
+          # In the release jar, references to Minecraft members must be SRG names.
+          mkdir -p /tmp/jarx && rm -rf /tmp/jarx/* && (cd /tmp/jarx && unzip -oq "$JAR")
+          SRG=$(grep -rhoE 'field_[0-9]+_[A-Za-z0-9_]+|func_[0-9]+_[A-Za-z0-9_]+' /tmp/jarx --include='*.class' 2>/dev/null | sort -u | wc -l)
+          MCP=$(grep -rlE 'equippedProgress|itemRenderer|renderItemInFirstPerson|updateEquippedItem' /tmp/jarx --include='*.class' 2>/dev/null | wc -l)
+          {
+            echo
+            echo "=== mapping check ==="
+            echo "distinct SRG member names referenced : $SRG"
+            echo "class files still containing MCP renderer member names : $MCP"
+          } | tee -a ci-evidence/verify.txt
+          echo "::notice title=JAR::$(basename "$JAR") size=$(stat -c%s "$JAR") srg_names=$SRG mcp_leftovers=$MCP"
+
+          # Prove the new feature classes are really in the release artifact.
+          for C in render/CustomItemRenderer render/FirstPersonItemSetup \
+                   feature/FirstPersonItem config/AppleSettings gui/AppleHubScreen \
+                   gui/AppleGuiButton PekaClientMod PekaVersion ; do
+            if unzip -l "$JAR" | grep -q "com/arena/pekaclient/$C.class"; then
+              echo "PRESENT com/arena/pekaclient/$C.class" | tee -a ci-evidence/verify.txt
+            else
+              echo "MISSING com/arena/pekaclient/$C.class" | tee -a ci-evidence/verify.txt
+              echo "::error title=JAR::missing class $C"
+            fi
+          done
+          # The dead proxy class must be gone.
+          if unzip -l "$JAR" | grep -q "FirstPersonItemRendererProxy"; then
+            echo "::error title=JAR::dead proxy class still packaged"
+          else
+            echo "dead FirstPersonItemRendererProxy correctly absent" | tee -a ci-evidence/verify.txt
+          fi
+          # Version metadata must say Beta-0.10.7v.
+          unzip -p "$JAR" mcmod.info | grep -o '"version": *"[^"]*"' | tee -a ci-evidence/verify.txt
+
+      - name: Copy the verified release jar into evidence
+        run: |
+          mkdir -p ci-evidence/dist
+          JAR=$(ls -1 build/libs/SkyVeLor-1.8.9-*.jar 2>/dev/null | grep -v -- '-sources' | head -1)
+          cp -v "$JAR" ci-evidence/dist/ 2>&1 | tee -a ci-evidence/verify.txt || true
+          ls -lh ci-evidence/dist/ || true
+
+      - name: Publish evidence and artifact to this branch
+        run: |
+          set -x
           git config user.name  "arena-ci"
           git config user.email "arena-ci@users.noreply.github.com"
           TARGET="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          git add -f build/evidence || true
-          if git diff --cached --quiet; then
-            echo "no evidence changes"
-          else
-            git commit -m "CI evidence for $(git rev-parse --short HEAD) run $GITHUB_RUN_ID [skip ci]"
-            git push origin "HEAD:refs/heads/$TARGET" || echo "EVIDENCE PUSH FAILED"
-          fi
+          echo "target branch = $TARGET"
+          ls -la ci-evidence
+          git add -A ci-evidence
+          git status --porcelain | head -40
+          git commit -m "CI evidence for $(git rev-parse --short HEAD) run $GITHUB_RUN_ID [skip ci]"
+          git push origin "HEAD:refs/heads/$TARGET"
+          echo "::notice title=EVIDENCE::pushed to $TARGET"

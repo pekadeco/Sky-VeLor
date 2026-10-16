@@ -48,12 +48,18 @@ public final class FirstPersonItem {
         return AppleSettings.effectiveFirstPersonAnimSpeed() / 100.0f;
     }
 
-    /** Restores both sliders and both switches to their defaults and persists the result. */
+    /**
+     * Restores both sliders and both switches to their defaults.
+     *
+     * <p>Deliberately does not write the properties file: {@code AppleHubScreen.onGuiClosed()} already
+     * calls {@code AppleSettings.save()} for every setting changed from the hub, so saving here too
+     * would be a second, redundant write. The renderer reads the effective values every frame, so the
+     * reset is visible immediately without any persistence step.
+     */
     public static void resetToDefaults() {
         AppleSettings.firstPersonItemScale = DEFAULT_SCALE_PERCENT;
         AppleSettings.firstPersonAnimSpeed = DEFAULT_ANIM_SPEED_PERCENT;
         AppleSettings.firstPersonItemScaleOn = true;
         AppleSettings.firstPersonAnimSpeedOn = true;
-        AppleSettings.save();
     }
 }
