@@ -1,0 +1,9 @@
+.gradle/
+build/
+run/
+logs/
+crash-reports/
+*.iml
+.idea/
+hs_err_pid*.log
+replay_pid*.log
