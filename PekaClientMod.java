@@ -13,12 +13,12 @@ import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.feature.LeapUse;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.gui.AppleHubScreen;
-import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.render.MobHighlight;
+import com.arena.pekaclient.render.FirstPersonItemSetup;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.startup.StartupTasks;
 import net.minecraft.client.Minecraft;
@@ -98,6 +98,8 @@ public class PekaClientMod {
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
+        \n        // Initialize first-person item rendering customization
+        StartupTasks.add("Setting up first-person item customization", FirstPersonItemSetup::init);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));
@@ -203,7 +205,7 @@ public class PekaClientMod {
     public void onInitGui(GuiScreenEvent.InitGuiEvent.Post event) {
         if (event.gui instanceof GuiMainMenu || event.gui instanceof GuiIngameMenu) {
             // Top-right corner: does not collide with vanilla's centred column.
-            event.buttonList.add(new AppleGuiButton(MENU_BUTTON_ID, event.gui.width - 92, 8, 84, 20, NAME));
+            event.buttonList.add(new GuiButton(MENU_BUTTON_ID, event.gui.width - 92, 8, 84, 20, NAME));
         }
     }
 

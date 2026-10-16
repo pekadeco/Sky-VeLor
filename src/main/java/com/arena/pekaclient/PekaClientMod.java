@@ -18,6 +18,7 @@ import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.render.MobHighlight;
+import com.arena.pekaclient.render.FirstPersonItemSetup;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.startup.StartupTasks;
 import net.minecraft.client.Minecraft;
@@ -97,6 +98,8 @@ public class PekaClientMod {
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
+        \n        // Initialize first-person item rendering customization
+        StartupTasks.add("Setting up first-person item customization", FirstPersonItemSetup::init);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));

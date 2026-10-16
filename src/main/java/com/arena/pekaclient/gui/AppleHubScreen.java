@@ -291,6 +291,21 @@ public class AppleHubScreen extends AppleScreen {
                 "Lower-cost Sky VeLor GUI/HUD settings. Entity and world rendering are unchanged",
                 new AppleToggle(() -> AppleSettings.experimentalPerformance,
                         v -> AppleSettings.experimentalPerformance = v)));
+
+        rows.add(Row.header("First-person held item"));
+        rows.add(Row.item("Item scale", "On: use the slider. Off: 100%",
+                new AppleToggle(() -> AppleSettings.firstPersonItemScaleOn, v -> AppleSettings.firstPersonItemScaleOn = v)));
+        rows.add(Row.item("Item scale value", "Size of the first-person held item",
+                gated(new AppleSlider(50, 200, 10, "%", 150f,
+                        () -> AppleSettings.firstPersonItemScale,
+                        v -> AppleSettings.firstPersonItemScale = v), () -> AppleSettings.firstPersonItemScaleOn)));
+        rows.add(Row.item("Animation speed", "On: use the slider. Off: 100%",
+                new AppleToggle(() -> AppleSettings.firstPersonAnimSpeedOn, v -> AppleSettings.firstPersonAnimSpeedOn = v)));
+        rows.add(Row.item("Animation speed value", "Speed of first-person item animations",
+                gated(new AppleSlider(50, 200, 10, "%", 150f,
+                        () -> AppleSettings.firstPersonAnimSpeed,
+                        v -> AppleSettings.firstPersonAnimSpeed = v), () -> AppleSettings.firstPersonAnimSpeedOn)));
+
         rows.add(Row.header("Live"));
         rows.add(Row.custom(76f, this::paintGraph));
 
