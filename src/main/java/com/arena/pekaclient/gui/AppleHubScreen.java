@@ -297,11 +297,14 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.experimentalPerformance,
                         v -> AppleSettings.experimentalPerformance = v)));
 
-        rows.add(Row.header("First-person held item"));
-        rows.add(Row.item("Item scale", "On: use the slider. Off: 100%",
+        rows.add(Row.header("First-Person Item — Renderer"));
+        rows.add(Row.item("X/Y/Z renderer position", "Visual-only positioning lives in the HUD editor",
+                new AppleButton("Editor", 84f, 26f, false,
+                        () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
+        rows.add(Row.item("Item size", "On: use the slider. Off: 100%",
                 new AppleToggle(() -> AppleSettings.firstPersonItemScaleOn,
                         v -> AppleSettings.firstPersonItemScaleOn = v)));
-        rows.add(Row.item("Item scale value", "Size of the item held in first person",
+        rows.add(Row.item("Item size value", "Visual size of the item held in first person",
                 gated(new AppleSlider(50, 200, 10, "%", 150f,
                         () -> AppleSettings.firstPersonItemScale,
                         v -> AppleSettings.firstPersonItemScale = FirstPersonItem.clamp(v)),
@@ -315,7 +318,7 @@ public class AppleHubScreen extends AppleScreen {
                         () -> AppleSettings.firstPersonAnimSpeed,
                         v -> AppleSettings.firstPersonAnimSpeed = FirstPersonItem.clamp(v)),
                         () -> AppleSettings.firstPersonAnimSpeedOn)));
-        rows.add(Row.item("Reset held item", "Back to 100% size and 100% animation speed",
+        rows.add(Row.item("Reset held item", "Back to 100% size/animation and zero X/Y/Z position",
                 button("Reset", FirstPersonItem::resetToDefaults)));
 
         rows.add(Row.header("Live"));
@@ -382,7 +385,6 @@ public class AppleHubScreen extends AppleScreen {
 
     /** HUD tab, Dungeon category: the dungeon screen features, with the same switches as the Dungeon tab. */
     private List<Row> hudDungeonPage() {
-        final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Dungeon"));
         rows.add(Row.item("Back to elements", "Return to the HUD element list",
@@ -399,21 +401,8 @@ public class AppleHubScreen extends AppleScreen {
 
         rows.add(Row.header("Terminals"));
         rows.add(Row.item("Click in order solver",
-                "Floor VII and M7 terminals: green is the number to click now, yellow is the one after it",
+                "Outlines only the next parsed live chest slot on Floor VII and M7. It never replaces, clicks, or blocks the chest",
                 new AppleToggle(M7Settings::isTerminalSolverEnabled, M7Settings::setTerminalSolverEnabled)));
-        rows.add(Row.item("Terminal GUI", "Opens the 1 to 14 terminal. Also /terminal",
-                new AppleButton("Open", 84f, 26f, false,
-                        () -> mc.displayGuiScreen(new com.arena.pekaclient.gui.TerminalScreen()))));
-
-        rows.add(Row.header("Click in order panel"));
-        rows.add(Row.item("Show on terminals",
-                "Movable, resizable 1 to 14 panel drawn over Floor VII and M7 Click in order terminals",
-                new AppleToggle(() -> HudManager.CLICK_IN_ORDER.enabled,
-                        v -> HudManager.CLICK_IN_ORDER.enabled = v)));
-        for (HudSettingsBuilder.Item it : HudSettingsBuilder.build(HudManager.CLICK_IN_ORDER, balanceField,
-                () -> { }, this::applyBalance, false)) {
-            rows.add(Row.item(it.label == null ? "" : it.label, null, it.control));
-        }
         return rows;
     }
 
@@ -451,6 +440,13 @@ public class AppleHubScreen extends AppleScreen {
                 "Opens the real 2x2 picker with isolated test data. N/P cycles all five classes; no packets or teleports",
                 new AppleButton("Preview", 96f, 26f, false,
                         () -> mc.displayGuiScreen(LeapScreen.createPreview(this)))));
+
+        rows.add(Row.header("Dungeon map"));
+        rows.add(Row.item("Show dungeon map", "Live map overlay with party and puzzle labels",
+                new AppleToggle(() -> AppleSettings.dungeonMap, v -> AppleSettings.dungeonMap = v)));
+        rows.add(Row.item("Map placement and options", "Position, scale, zoom and labels are in the HUD editor",
+                new AppleButton("Editor", 84f, 26f, false,
+                        () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
 
         rows.add(Row.header("Mob highlights"));
         rows.add(Row.item("Outline dungeon mobs",

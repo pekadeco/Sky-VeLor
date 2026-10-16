@@ -3,10 +3,11 @@ package com.arena.pekaclient;
 import com.arena.pekaclient.command.ClientActions;
 import com.arena.pekaclient.command.PriceSetCommand;
 import com.arena.pekaclient.command.QuickNoteCommand;
-import com.arena.pekaclient.command.TerminalCommand;
 import com.arena.pekaclient.command.SvCommand;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.dungeon.DragonKillAlert;
+import com.arena.pekaclient.dungeon.DungeonMapOverlay;
+import com.arena.pekaclient.dungeon.PuzzleRoomDatabase;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.TerminalSolver;
 import com.arena.pekaclient.fishing.FishingStats;
@@ -87,8 +88,9 @@ public class PekaClientMod {
 
     private boolean loadingShown;
     private final M7OverlayRenderer m7Overlay = new M7OverlayRenderer();
+    private final DungeonMapOverlay dungeonMapOverlay = new DungeonMapOverlay();
     private final DragonKillAlert dragonKill = new DragonKillAlert(m7Overlay);
-    private final TerminalSolver terminalSolver = new TerminalSolver(m7Overlay);
+    private final TerminalSolver terminalSolver = new TerminalSolver();
     private final FishingStats fishingStats = new FishingStats();
     private final SlayerTracker slayerTracker = new SlayerTracker();
 
@@ -102,14 +104,15 @@ public class PekaClientMod {
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
+        StartupTasks.add("Loading dungeon map templates", PuzzleRoomDatabase::load);
         StartupTasks.add("Setting up first-person item customization", FirstPersonItemSetup::init);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
-        ClientCommandHandler.instance.registerCommand(new TerminalCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("priceset"));
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(m7Overlay);
+        MinecraftForge.EVENT_BUS.register(dungeonMapOverlay);
         MinecraftForge.EVENT_BUS.register(terminalSolver);
         MinecraftForge.EVENT_BUS.register(fishingStats);
         MinecraftForge.EVENT_BUS.register(slayerTracker);

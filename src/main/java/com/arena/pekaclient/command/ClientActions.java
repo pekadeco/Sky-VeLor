@@ -26,13 +26,6 @@ public final class ClientActions {
         notesPending = true;
     }
 
-    private static boolean terminalPending;
-
-    /** Opens the terminal screen on the next tick, after the chat screen has closed. */
-    public static void requestTerminal() {
-        terminalPending = true;
-    }
-
     /** Called once per client tick, after the chat screen has closed. */
     public static void run(Minecraft mc) {
         if (mc == null) {
@@ -41,10 +34,6 @@ public final class ClientActions {
         if (hubPending) {
             hubPending = false;
             mc.displayGuiScreen(new AppleHubScreen(null));
-        }
-        if (terminalPending) {
-            terminalPending = false;
-            mc.displayGuiScreen(new com.arena.pekaclient.gui.TerminalScreen());
         }
         if (notesPending) {
             notesPending = false;

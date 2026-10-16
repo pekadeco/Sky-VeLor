@@ -66,6 +66,7 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "JAR_NAME=SkyVeLor-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=SkyVeLor-1.8.9-$VERSION.zip" >> "$GITHUB_ENV"
           {
             echo "revision : $(git rev-parse HEAD)"
             echo "branch   : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
@@ -158,16 +159,37 @@ jobs:
           } > BUILD-REPORT.txt
           grep -vE '^      (func|field)_' BUILD-REPORT.txt | tail -45
 
-      - name: Publish the jar and report into dist/ on this branch
+      - name: Create the delivery zip
+        run: |
+          set -e
+          JAR="build/libs/$JAR_NAME"
+          ZIP="build/delivery/$ZIP_NAME"
+          mkdir -p build/delivery
+          python3 - "$JAR" "$ZIP" BUILD-REPORT.txt <<'PY'
+          import os
+          import sys
+          import zipfile
+          jar, output, report = sys.argv[1:]
+          with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
+              archive.write(jar, os.path.basename(jar))
+              archive.write(report, os.path.basename(report))
+          with zipfile.ZipFile(output) as archive:
+              print('delivery zip:', output)
+              for item in archive.infolist():
+                  print('  %s %d bytes' % (item.filename, item.file_size))
+          PY
+
+      - name: Publish the jar, zip, and report into dist/ on this branch
         if: github.event_name == 'push'
         run: |
           set +e +o pipefail
           mkdir -p dist
           cp -v "build/libs/$JAR_NAME" "dist/$JAR_NAME"
+          cp -v "build/delivery/$ZIP_NAME" "dist/$ZIP_NAME"
           cp -v BUILD-REPORT.txt dist/BUILD-REPORT.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f "dist/$JAR_NAME" dist/BUILD-REPORT.txt
+          git add -f "dist/$JAR_NAME" "dist/$ZIP_NAME" dist/BUILD-REPORT.txt
           if git diff --cached --quiet; then
             echo "dist/ is already up to date"
             exit 0
@@ -256,6 +278,7 @@ jobs:
           name: SkyVeLor-1.8.9-${{ env.VERSION }}
           path: |
             build/libs/${{ env.JAR_NAME }}
+            build/delivery/${{ env.ZIP_NAME }}
             BUILD-REPORT.txt
           if-no-files-found: error
           retention-days: 90

@@ -1,6 +1,7 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.feature.FirstPersonItem;
 import com.arena.pekaclient.hud.BalanceSource;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
@@ -11,6 +12,7 @@ import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleSlider;
+import com.arena.pekaclient.widget.AppleToggle;
 import com.arena.pekaclient.widget.SearchField;
 import com.arena.pekaclient.widget.Widget;
 import net.minecraft.client.Minecraft;
@@ -25,9 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * HUD editor. Drag an element to move it. It snaps to the screen centre and edges, and it can never be
- * dragged off screen. Pick an element with a tap or the chooser, then adjust it in the inspector card.
- * Every change is saved when the editor closes.
+ * HUD editor. Drag ordinary HUD elements to move them. The Dungeon Map has its own unclamped placement
+ * controls, and First-Person Item is a clearly labelled visual renderer configuration target. Every change
+ * is saved when the editor closes.
  *
  * Works with mouse and touch (PojavLauncher): a tap is a click, a drag moves an element or scrolls
  * the card, and a swipe never activates a control.
@@ -41,15 +43,18 @@ public final class HudEditorScreen extends AppleScreen {
     private static final float ROW_H = 26f;
     private static final float ROW_GAP = 6f;
     private static final float CONTROL_W = HudSettingsBuilder.CONTROL_W;
+    private static final float CONTROL_H = HudSettingsBuilder.CONTROL_H;
     private static final float SNAP = 4f;
     private static final float TOUCH_MIN = 28f;
 
-    /** Element names for the chooser, taken from the element list so a new element shows up automatically. */
+    /** Element names plus dedicated map and renderer configuration targets. */
     private static String[] chooserNames() {
-        String[] out = new String[HudManager.ELEMENTS.length];
-        for (int i = 0; i < out.length; i++) {
+        String[] out = new String[HudManager.ELEMENTS.length + 2];
+        for (int i = 0; i < HudManager.ELEMENTS.length; i++) {
             out[i] = HudManager.ELEMENTS[i].name;
         }
+        out[HudManager.ELEMENTS.length] = "Dungeon Map";
+        out[HudManager.ELEMENTS.length + 1] = "First-Person Item";
         return out;
     }
 
@@ -73,11 +78,13 @@ public final class HudEditorScreen extends AppleScreen {
     private final AppleDropdown chooser;
     private final AppleButton resetAllBtn;
     private final AppleButton doneBtn;
-    private final AppleButton dungeonBtn;
     private final ScrollState scroll = new ScrollState();
     private final Gesture gesture = new Gesture();
 
+    private enum EditorTarget { HUD_ELEMENT, DUNGEON_MAP, FIRST_PERSON_ITEM }
+
     private HudElement selected = HudManager.MINING;
+    private EditorTarget target = EditorTarget.HUD_ELEMENT;
     private long lastNs;
     private int scaleKey = -1;
     private float sf = 2f;
@@ -99,6 +106,9 @@ public final class HudEditorScreen extends AppleScreen {
     private float cardDy;
     private boolean cardHidden;
     private boolean draggingCard;
+    private boolean draggingDungeonMap;
+    private float dungeonMapGrabX;
+    private float dungeonMapGrabY;
     private float cardGrabX;
     private float cardGrabY;
     private static final float HEAD_H = 26f;
@@ -116,24 +126,31 @@ public final class HudEditorScreen extends AppleScreen {
     private int guides;
     private boolean dirty;
 
-    /** Opens the Dungeon HUD screen, which shows only the Click in order panel. Done returns here. */
-    private void openDungeonHud() {
-        Minecraft.getMinecraft().displayGuiScreen(new DungeonHudScreen(this));
-    }
-
     public HudEditorScreen(GuiScreen parent) {
         this.parent = parent;
         this.chooser = new AppleDropdown(chooserNames(), null, CONTROL_W, 22f,
-                () -> indexOf(selected), v -> select(HudManager.ELEMENTS[v]));
+                this::chooserIndex, value -> {
+                    if (value < HudManager.ELEMENTS.length) {
+                        select(HudManager.ELEMENTS[value]);
+                    } else if (value == HudManager.ELEMENTS.length) {
+                        selectDungeonMap();
+                    } else {
+                        selectFirstPersonItem();
+                    }
+                });
         this.resetAllBtn = new AppleButton("Reset all", 74f, 22f, false, this::resetAll);
         this.doneBtn = new AppleButton("Done", 56f, 22f, true, this::close);
-        this.dungeonBtn = new AppleButton("Dungeon HUD", 92f, 22f, false, this::openDungeonHud);
         this.manualField.w = CONTROL_W;
         this.manualField.h = 22f;
         bar.add(doneBtn);
         bar.add(resetAllBtn);
-        bar.add(dungeonBtn);
         openAnim.to(1f);
+    }
+
+    private int chooserIndex() {
+        if (target == EditorTarget.DUNGEON_MAP) return HudManager.ELEMENTS.length;
+        if (target == EditorTarget.FIRST_PERSON_ITEM) return HudManager.ELEMENTS.length + 1;
+        return indexOf(selected);
     }
 
     private static int indexOf(HudElement e) {
@@ -158,15 +175,33 @@ public final class HudEditorScreen extends AppleScreen {
         super.onGuiClosed();
         Keyboard.enableRepeatEvents(false);
         HudManager.save();
+        AppleSettings.save();
     }
 
     // ------------------------------------------------------------------ inspector
 
-    private void select(HudElement e) {
-        if (e == selected) {
+    private void select(HudElement element) {
+        if (target == EditorTarget.HUD_ELEMENT && element == selected) {
             return;
         }
-        selected = e;
+        selected = element;
+        target = EditorTarget.HUD_ELEMENT;
+        resetInspector();
+    }
+
+    private void selectDungeonMap() {
+        if (target == EditorTarget.DUNGEON_MAP) return;
+        target = EditorTarget.DUNGEON_MAP;
+        resetInspector();
+    }
+
+    private void selectFirstPersonItem() {
+        if (target == EditorTarget.FIRST_PERSON_ITEM) return;
+        target = EditorTarget.FIRST_PERSON_ITEM;
+        resetInspector();
+    }
+
+    private void resetInspector() {
         openDropdown = null;
         manualField.setFocused(false);
         scroll.reset();
@@ -177,15 +212,123 @@ public final class HudEditorScreen extends AppleScreen {
         dirty = true;
     }
 
-    /** Rebuilds the inspector rows for the selected element, from the same builder the hub uses. */
+    /** Rebuilds the inspector for an ordinary HUD element, the map, or the first-person renderer. */
     private void rebuild() {
         entries.clear();
         entries.add(new Entry(null, chooser));
+        if (target == EditorTarget.DUNGEON_MAP) {
+            buildDungeonMapEntries();
+            return;
+        }
+        if (target == EditorTarget.FIRST_PERSON_ITEM) {
+            buildFirstPersonEntries();
+            return;
+        }
         List<HudSettingsBuilder.Item> items = HudSettingsBuilder.build(
                 selected, manualField, this::changed, this::applyManual, true);
-        for (HudSettingsBuilder.Item it : items) {
-            entries.add(new Entry(it.label, it.control));
+        for (HudSettingsBuilder.Item item : items) {
+            entries.add(new Entry(item.label, item.control));
         }
+    }
+
+    private void buildDungeonMapEntries() {
+        entries.add(new Entry("Show", new AppleToggle(() -> AppleSettings.dungeonMap, value -> {
+            AppleSettings.dungeonMap = value;
+            changed();
+        })));
+        entries.add(new Entry("Rotate map", new AppleToggle(() -> AppleSettings.dungeonMapRotate, value -> {
+            AppleSettings.dungeonMapRotate = value;
+            changed();
+        })));
+        entries.add(new Entry("Use scale", new AppleToggle(() -> AppleSettings.dungeonMapScaleOn, value -> {
+            AppleSettings.dungeonMapScaleOn = value;
+            if (!value) AppleSettings.dungeonMapScale = 100;
+            changed();
+        })));
+        entries.add(new Entry("Scale", new AppleSlider(AppleSettings.DUNGEON_MAP_SCALE_MIN,
+                AppleSettings.DUNGEON_MAP_SCALE_MAX, 5, "%", CONTROL_W,
+                AppleSettings::effectiveDungeonMapScale, value -> {
+                    AppleSettings.dungeonMapScale = value;
+                    changed();
+                }).gate(() -> AppleSettings.dungeonMapScaleOn)));
+        entries.add(new Entry("Map zoom", new AppleSlider(AppleSettings.DUNGEON_MAP_ZOOM_MIN,
+                AppleSettings.DUNGEON_MAP_ZOOM_MAX, 5, "%", CONTROL_W,
+                AppleSettings::effectiveDungeonMapZoom, value -> {
+                    AppleSettings.dungeonMapZoom = value;
+                    changed();
+                })));
+        int xRange = Math.max(128, width);
+        int yRange = Math.max(128, height);
+        entries.add(new Entry("X position", new AppleSlider(-xRange, xRange * 2, 1, " px", CONTROL_W,
+                this::dungeonMapLeft, this::setDungeonMapLeft)));
+        entries.add(new Entry("Y position", new AppleSlider(-yRange, yRange * 2, 1, " px", CONTROL_W,
+                this::dungeonMapTop, this::setDungeonMapTop)));
+        entries.add(new Entry("Player names", new AppleToggle(() -> AppleSettings.dungeonMapShowPlayerNames, value -> {
+            AppleSettings.dungeonMapShowPlayerNames = value;
+            changed();
+        })));
+        entries.add(new Entry("Puzzle names", new AppleToggle(() -> AppleSettings.dungeonMapShowPuzzleName, value -> {
+            AppleSettings.dungeonMapShowPuzzleName = value;
+            changed();
+        })));
+        entries.add(new Entry("Party announce (chat)", new AppleToggle(() -> AppleSettings.partyPuzzleAnnounce, value -> {
+            AppleSettings.partyPuzzleAnnounce = value;
+            changed();
+        })));
+        entries.add(new Entry(null, new AppleButton("Reset map position", CONTROL_W, CONTROL_H, false, () -> {
+            AppleSettings.resetDungeonMapPosition();
+            changed();
+        })));
+        entries.add(new Entry(null, new AppleButton("Reset map size", CONTROL_W, CONTROL_H, false, () -> {
+            AppleSettings.dungeonMapScaleOn = true;
+            AppleSettings.dungeonMapScale = 100;
+            changed();
+        })));
+        entries.add(new Entry(null, new AppleButton("Reset map zoom", CONTROL_W, CONTROL_H, false, () -> {
+            AppleSettings.dungeonMapZoom = 100;
+            changed();
+        })));
+    }
+
+    private void buildFirstPersonEntries() {
+        entries.add(new Entry("Use size", new AppleToggle(() -> AppleSettings.firstPersonItemScaleOn, value -> {
+            AppleSettings.firstPersonItemScaleOn = value;
+            changed();
+        })));
+        entries.add(new Entry("Size", new AppleSlider(FirstPersonItem.MIN_PERCENT, FirstPersonItem.MAX_PERCENT,
+                5, "%", CONTROL_W, AppleSettings::effectiveFirstPersonItemScale, value -> {
+                    AppleSettings.firstPersonItemScale = FirstPersonItem.clamp(value);
+                    changed();
+                }).gate(() -> AppleSettings.firstPersonItemScaleOn)));
+        entries.add(new Entry("X position", new AppleSlider(FirstPersonItem.MIN_OFFSET, FirstPersonItem.MAX_OFFSET,
+                5, "%", CONTROL_W, () -> AppleSettings.firstPersonItemX, value -> {
+                    AppleSettings.firstPersonItemX = FirstPersonItem.clampOffset(value);
+                    changed();
+                })));
+        entries.add(new Entry("Y position", new AppleSlider(FirstPersonItem.MIN_OFFSET, FirstPersonItem.MAX_OFFSET,
+                5, "%", CONTROL_W, () -> AppleSettings.firstPersonItemY, value -> {
+                    AppleSettings.firstPersonItemY = FirstPersonItem.clampOffset(value);
+                    changed();
+                })));
+        entries.add(new Entry("Z position", new AppleSlider(FirstPersonItem.MIN_OFFSET, FirstPersonItem.MAX_OFFSET,
+                5, "%", CONTROL_W, () -> AppleSettings.firstPersonItemZ, value -> {
+                    AppleSettings.firstPersonItemZ = FirstPersonItem.clampOffset(value);
+                    changed();
+                })));
+        entries.add(new Entry("Use animation", new AppleToggle(() -> AppleSettings.firstPersonAnimSpeedOn, value -> {
+            AppleSettings.firstPersonAnimSpeedOn = value;
+            changed();
+        })));
+        entries.add(new Entry("Animation multiplier", new AppleSlider(FirstPersonItem.MIN_PERCENT,
+                FirstPersonItem.MAX_PERCENT, 5, "%", CONTROL_W, AppleSettings::effectiveFirstPersonAnimSpeed,
+                value -> {
+                    AppleSettings.firstPersonAnimSpeed = FirstPersonItem.clamp(value);
+                    changed();
+                }).gate(() -> AppleSettings.firstPersonAnimSpeedOn)));
+        entries.add(new Entry(null, new AppleButton("Reset First-Person Item", CONTROL_W, CONTROL_H, false, () -> {
+            FirstPersonItem.resetToDefaults();
+            changed();
+        })));
     }
 
     private void applyManual() {
@@ -196,17 +339,25 @@ public final class HudEditorScreen extends AppleScreen {
         manualField.setFocused(false);
         changed();
         HudManager.save();
+        AppleSettings.save();
     }
 
     private void resetAll() {
         HudManager.resetAll();
+        AppleSettings.resetDungeonMapPosition();
+        AppleSettings.dungeonMapScale = 100;
+        AppleSettings.dungeonMapScaleOn = true;
+        AppleSettings.dungeonMapZoom = 100;
+        FirstPersonItem.resetToDefaults();
         openDropdown = null;
         rebuild();
         HudManager.save();
+        AppleSettings.save();
     }
 
     private void close() {
         HudManager.save();
+        AppleSettings.save();
         Minecraft.getMinecraft().displayGuiScreen(parent);
     }
 
@@ -225,9 +376,6 @@ public final class HudEditorScreen extends AppleScreen {
         doneBtn.y = barY + (BAR_H - doneBtn.h) * 0.5f;
         resetAllBtn.x = doneBtn.x - 6f - resetAllBtn.w;
         resetAllBtn.y = barY + (BAR_H - resetAllBtn.h) * 0.5f;
-        dungeonBtn.x = resetAllBtn.x - 6f - dungeonBtn.w;
-        dungeonBtn.y = barY + (BAR_H - dungeonBtn.h) * 0.5f;
-
         // The inspector card sits bottom-left, so the default HUD corners stay clear of it.
         cardW = Math.min(CARD_W, ww - 20f);
         float contentH = entries.isEmpty() ? 0f : entries.size() * (ROW_H + ROW_GAP) - ROW_GAP;
@@ -292,7 +440,8 @@ public final class HudEditorScreen extends AppleScreen {
     /** Title on the left, Hide or Show on the right. Drag the header to move the card. */
     private void drawCardHeader(int mx, int my) {
         FontRenderer fr = fr();
-        String title = selected == null ? "Settings" : selected.name;
+        String title = target == EditorTarget.DUNGEON_MAP ? "Dungeon Map"
+                : target == EditorTarget.FIRST_PERSON_ITEM ? "First-Person Item — Renderer" : selected.name;
         UIRender.text(fr, title, cardX + CARD_PAD, cardY + (HEAD_H - 9f) * 0.5f + 1f,
                 Theme.textPrimary, 1f, false);
         boolean hot = inHideButton(mx, my);
@@ -406,11 +555,12 @@ public final class HudEditorScreen extends AppleScreen {
 
         ScaledResolution sr = new ScaledResolution(mc);
         HudManager.renderEditor(sr, mx, my);
+        drawDungeonMapEditorPreview(mx, my);
 
         UIRender.beginFrame();
         UIRender.alphaMul = open;
         drawSelection();
-        if (dragging != null && guides != 0) {
+        if ((dragging != null || draggingDungeonMap) && guides != 0) {
             drawGuides();
         }
         drawBar(mx, my);
@@ -421,14 +571,24 @@ public final class HudEditorScreen extends AppleScreen {
         UIRender.endFrame();
     }
 
-    /** Thin rounded ring around the selected element, with corner handles. */
+    /** Thin rounded ring around the selected HUD target or the dedicated map preview. */
     private void drawSelection() {
-        HudElement e = selected;
-        float x = e.leftFor(width) - 3f;
-        float y = e.topFor(height) - 3f;
-        float w = e.pixelWidth() + 6f;
-        float h = e.pixelHeight() + 6f;
-        UIRender.roundRectRing(x, y, w, h, e.radius * e.scale + 3f, 1f, Theme.accent);
+        if (target == EditorTarget.FIRST_PERSON_ITEM) {
+            return;
+        }
+        if (target == EditorTarget.DUNGEON_MAP) {
+            int[] bounds = new int[3];
+            dungeonMapBounds(bounds);
+            UIRender.roundRectRing(bounds[0] - 3f, bounds[1] - 3f, bounds[2] + 6f, bounds[2] + 6f,
+                    4f, 1f, Theme.accent);
+            return;
+        }
+        HudElement element = selected;
+        float x = element.leftFor(width) - 3f;
+        float y = element.topFor(height) - 3f;
+        float w = element.pixelWidth() + 6f;
+        float h = element.pixelHeight() + 6f;
+        UIRender.roundRectRing(x, y, w, h, element.radius * element.scale + 3f, 1f, Theme.accent);
         int dot = Theme.accent;
         UIRender.circle(x, y, 2.2f, dot);
         UIRender.circle(x + w, y, 2.2f, dot);
@@ -477,7 +637,6 @@ public final class HudEditorScreen extends AppleScreen {
         WindowDots.drawHint(fr, mx, my, barX + 14f, cy, 0b001,
                 "Collapse is not used in the HUD editor", "Zoom is not used in the HUD editor", width);
         resetAllBtn.draw(mx, my);
-        dungeonBtn.draw(mx, my);
     }
 
     private void drawCard(int mx, int my) {
@@ -515,6 +674,66 @@ public final class HudEditorScreen extends AppleScreen {
             float ty = visibleTop + (scroll.value() / maxScroll) * (viewH - th);
             UIRender.roundRect(cardX + cardW - 4f, ty, 2.5f, th, 1.25f,
                     Theme.textTertiary, Theme.textTertiary, 1f);
+        }
+    }
+
+    private void dungeonMapBounds(int[] out) {
+        int size = AppleSettings.dungeonMapPixelSize(width, height);
+        out[0] = AppleSettings.dungeonMapLeft(width, height, size);
+        out[1] = AppleSettings.dungeonMapTop(width, height, size);
+        out[2] = size;
+    }
+
+    private int dungeonMapLeft() {
+        int size = AppleSettings.dungeonMapPixelSize(width, height);
+        return AppleSettings.dungeonMapLeft(width, height, size);
+    }
+
+    private int dungeonMapTop() {
+        int size = AppleSettings.dungeonMapPixelSize(width, height);
+        return AppleSettings.dungeonMapTop(width, height, size);
+    }
+
+    private void setDungeonMapLeft(int left) {
+        int size = AppleSettings.dungeonMapPixelSize(width, height);
+        AppleSettings.setDungeonMapLeft(width, height, size, left, false, 0);
+        changed();
+    }
+
+    private void setDungeonMapTop(int top) {
+        int size = AppleSettings.dungeonMapPixelSize(width, height);
+        AppleSettings.setDungeonMapTop(width, height, size, top, false, 0);
+        changed();
+    }
+
+    /** A controllable preview is available even outside a dungeon, where the live map has no server item to draw. */
+    private void drawDungeonMapEditorPreview(int mx, int my) {
+        int[] bounds = new int[3];
+        dungeonMapBounds(bounds);
+        int x = bounds[0], y = bounds[1], size = bounds[2];
+        int inner = Math.max(0, size - 4);
+        UIRender.beginFrame();
+        try {
+            boolean hovering = mx >= x && mx <= x + size && my >= y && my <= y + size;
+            int border = target == EditorTarget.DUNGEON_MAP || hovering ? Theme.accent : Theme.border;
+            UIRender.roundRectBorder(x - 2, y - 2, size + 4, size + 4, 4f,
+                    0xB8181C24, 0xB8181C24, border);
+            UIRender.rect(x + 2, y + 2, inner, inner, 0xAA292D34);
+            float zoom = AppleSettings.dungeonMapZoomFactor();
+            for (int index = 0; index <= 4; index++) {
+                float source = index * 32.0F;
+                float mapped = 64.0F + (source - 64.0F) * zoom;
+                if (mapped < 0.0F || mapped > 128.0F) continue;
+                float gx = x + 2 + mapped / 128.0F * inner;
+                float gy = y + 2 + mapped / 128.0F * inner;
+                UIRender.line(gx, y + 2, gx, y + size - 2, 1f, 0x553FFFFF);
+                UIRender.line(x + 2, gy, x + size - 2, gy, 1f, 0x553FFFFF);
+            }
+            UIRender.text(fr(), "DUNGEON MAP", x + 7, y + 7, 0xFFFFFFFF, 0.9f, true);
+            UIRender.text(fr(), "Drag | Zoom " + AppleSettings.effectiveDungeonMapZoom() + "%",
+                    x + 7, y + size - 14, 0xFFD0D4DC, 0.8f, false);
+        } finally {
+            UIRender.endFrame();
         }
     }
 
@@ -582,6 +801,18 @@ public final class HudEditorScreen extends AppleScreen {
             return;
         }
 
+        int[] mapBounds = new int[3];
+        dungeonMapBounds(mapBounds);
+        if (mx >= mapBounds[0] && mx <= mapBounds[0] + mapBounds[2]
+                && my >= mapBounds[1] && my <= mapBounds[1] + mapBounds[2]) {
+            selectDungeonMap();
+            draggingDungeonMap = true;
+            dungeonMapGrabX = mx - mapBounds[0];
+            dungeonMapGrabY = my - mapBounds[1];
+            guides = 0;
+            return;
+        }
+
         HudElement h = hitElement(mx, my);
         if (h != null) {
             select(h);
@@ -594,6 +825,13 @@ public final class HudEditorScreen extends AppleScreen {
 
     @Override
     protected void mouseClickMove(int mx, int my, int button, long timeSinceLastClick) {
+        if (draggingDungeonMap) {
+            int size = AppleSettings.dungeonMapPixelSize(width, height);
+            guides = AppleSettings.setDungeonMapPosition(width, height, size,
+                    Math.round(mx - dungeonMapGrabX), Math.round(my - dungeonMapGrabY), true, (int) SNAP);
+            dirty = true;
+            return;
+        }
         if (draggingCard) {
             moveCard(mx, my);
             return;
@@ -625,6 +863,13 @@ public final class HudEditorScreen extends AppleScreen {
 
     @Override
     protected void mouseReleased(int mx, int my, int button) {
+        if (draggingDungeonMap) {
+            draggingDungeonMap = false;
+            guides = 0;
+            AppleSettings.save();
+            dirty = false;
+            return;
+        }
         if (draggingCard) {
             draggingCard = false;
             return;
@@ -635,6 +880,7 @@ public final class HudEditorScreen extends AppleScreen {
             if (dirty) {
                 dirty = false;
                 HudManager.save();
+                AppleSettings.save();
             }
             return;
         }
@@ -665,6 +911,7 @@ public final class HudEditorScreen extends AppleScreen {
         if (dirty) {
             dirty = false;
             HudManager.save();
+            AppleSettings.save();
         }
     }
 
@@ -697,8 +944,10 @@ public final class HudEditorScreen extends AppleScreen {
         } else if (code == Keyboard.KEY_UP) {
             scroll.key(-ScrollState.KEY_STEP);
         } else if (code == Keyboard.KEY_TAB) {
-            int next = (indexOf(selected) + 1) % HudManager.ELEMENTS.length;
-            select(HudManager.ELEMENTS[next]);
+            int next = (chooserIndex() + 1) % (HudManager.ELEMENTS.length + 2);
+            if (next < HudManager.ELEMENTS.length) select(HudManager.ELEMENTS[next]);
+            else if (next == HudManager.ELEMENTS.length) selectDungeonMap();
+            else selectFirstPersonItem();
         }
     }
 }

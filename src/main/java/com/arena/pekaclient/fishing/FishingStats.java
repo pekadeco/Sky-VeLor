@@ -5,13 +5,7 @@ import com.arena.pekaclient.config.ConfigFiles;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Properties;
@@ -23,7 +17,6 @@ import java.util.Properties;
  */
 public final class FishingStats {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     static final String FILE_NAME = "skyvelor-fishing.properties";
     /** The same creature announced twice within this window counts once (chat can repeat). */
     static final long DUPLICATE_WINDOW_MS = 750L;
@@ -152,11 +145,7 @@ public final class FishingStats {
             p.setProperty("count." + creature.name(), Long.toString(count(creature)));
         }
         p.setProperty("festival.best", Long.toString(festivalBest()));
-        try (OutputStream out = new FileOutputStream(new File(dir(), FILE_NAME))) {
-            p.store(out, "Sky VeLor fishing counters");
-        } catch (IOException e) {
-            LOG.warn("Could not save fishing counters", e);
-        }
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor fishing counters");
     }
 
     /** Clears every counter and the festival best. */

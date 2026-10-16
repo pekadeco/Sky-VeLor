@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7.6v]
 """
 
 import argparse
@@ -38,8 +38,8 @@ import zipfile
 
 MOD_PACKAGE = 'com/arena/pekaclient/'
 
-# Classes the release must contain: the mod core, the first-person held-item
-# feature, and the Terminal GUI that came in with the Beta-0.10.6.5v baseline.
+# Classes the release must contain: the core, first-person renderer configuration, read-only terminal
+# overlay, and the imported live dungeon-map/puzzle implementation.
 REQUIRED_CLASSES = [
     'PekaClientMod',
     'PekaVersion',
@@ -47,17 +47,24 @@ REQUIRED_CLASSES = [
     'feature/FirstPersonItem',
     'gui/AppleHubScreen',
     'gui/AppleGuiButton',
-    'gui/TerminalScreen',
-    'gui/DungeonHudScreen',
+    'gui/HudEditorScreen',
     'dungeon/TerminalSolver',
-    'hud/ClickInOrderHud',
-    'command/TerminalCommand',
+    'dungeon/DungeonMapOverlay',
+    'dungeon/PuzzleRoomDatabase',
+    'dungeon/PuzzleRoomMatcher',
     'render/CustomItemRenderer',
     'render/FirstPersonItemSetup',
 ]
 
-# Removed in Beta-0.10.7v: dead code whose own comments admitted it could not work.
-FORBIDDEN_CLASSES = ['render/FirstPersonItemRendererProxy']
+# Old terminal replacements must stay absent: the release highlights real chest slots without taking over
+# a container. The renderer proxy was already dead code in the older baseline.
+FORBIDDEN_CLASSES = [
+    'render/FirstPersonItemRendererProxy',
+    'gui/TerminalScreen',
+    'gui/DungeonHudScreen',
+    'hud/ClickInOrderHud',
+    'command/TerminalCommand',
+]
 
 # Minecraft members this mod really calls or overrides. Reobfuscation must have
 # replaced every one of them with an SRG name; if a name survives as an actual
@@ -172,7 +179,7 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7.6v')
     args = ap.parse_args()
 
     path = args.jar
@@ -237,6 +244,8 @@ def main():
     # Resources: keybind labels would fall back to raw translation keys without these.
     r.check('assets/pekaclient/lang/en_US.lang' in names,
             'English keybind labels packaged')
+    r.check('assets/pekaclient/dungeons/rooms.json' in names,
+            'dungeon puzzle-room templates packaged')
 
     # --- the decisive mapping check --------------------------------------
     srg, mcp_hits, parsed, unparsed = set(), [], 0, []
@@ -274,11 +283,14 @@ def main():
                 'CustomItemRenderer calls remapped Minecraft members',
                 'the override must bind in the obfuscated runtime')
         r.check('getItemScale' in cir,
-                'CustomItemRenderer reads the Sky VeLor scale setting',
-                'the item-scale slider must reach the renderer')
+                'CustomItemRenderer reads the Sky VeLor size setting',
+                'the size slider must reach the renderer')
+        r.check(all(name in cir for name in ('getItemX', 'getItemY', 'getItemZ')),
+                'CustomItemRenderer reads the X/Y/Z renderer position settings',
+                'all three HUD-editor position controls must reach the renderer')
         r.check('getAnimationSpeed' in cir,
                 'CustomItemRenderer reads the Sky VeLor animation-speed setting',
-                'the animation-speed slider must reach the renderer')
+                'the visual-only animation-speed slider must reach the renderer')
     if MOD_PACKAGE + 'render/FirstPersonItemSetup.class' in names:
         fps = members_of('render/FirstPersonItemSetup')
         r.check('<init>' in fps, 'FirstPersonItemSetup constructs the custom renderer')

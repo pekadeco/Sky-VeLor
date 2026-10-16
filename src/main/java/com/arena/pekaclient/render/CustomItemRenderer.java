@@ -16,16 +16,15 @@ import java.lang.reflect.Modifier;
  * <p>A plain subclass of the vanilla {@link ItemRenderer}. {@link FirstPersonItemSetup} installs one
  * instance into the field that Minecraft 1.8.9 actually renders from, so the inherited state machine
  * ({@code itemToRender}, {@code equippedProgress}, the map/bow/block/eat branches) keeps running
- * exactly as vanilla wrote it. Only the two settings below are layered on top.
+ * exactly as vanilla wrote it. Only the visual position, size, and animation-tempo settings below are layered on top.
  *
  * <p>Both settings are strictly visual and default to vanilla:
  * <ul>
- *   <li><b>Item scale</b> wraps {@code renderItemInFirstPerson} in a uniform scale. Uniform, so
- *       rotations and lighting normals are unaffected, and it is applied outside the vanilla
- *       push/pop pair, which leaves the matrix stack exactly as it was found. Swords, tools, blocks,
- *       bows, maps and the bare arm all scale together because they share this one call.
- *       {@code renderOverlays} (the water, fire and pumpkin screens) is a separate call from
- *       {@code EntityRenderer} and is deliberately not scaled.</li>
+ *   <li><b>Position and size</b> wrap {@code renderItemInFirstPerson} in a renderer-space translation and
+ *       uniform scale. Translation is applied before scaling, so X/Y/Z stay stable as size changes. The
+ *       transform is outside the vanilla push/pop pair and leaves the matrix stack exactly as it was found.
+ *       Swords, tools, blocks, bows, maps and the bare arm share this one visual call. {@code renderOverlays}
+ *       (water, fire and pumpkin screens) is separate and deliberately unaffected.</li>
  *   <li><b>Animation speed</b> rescales the per-tick step of the equip transition, so the item
  *       slides out and back in faster or slower. It never touches swing progress, item-use counts or
  *       any server-visible timer, so attack speed, blocking, eating and bow draw are unchanged.</li>
@@ -61,12 +60,20 @@ public class CustomItemRenderer extends ItemRenderer {
     @Override
     public void renderItemInFirstPerson(float partialTicks) {
         float scale = FirstPersonItem.getItemScale();
-        if (scale <= 0.0f || scale == 1.0f) {
+        float x = FirstPersonItem.getItemX();
+        float y = FirstPersonItem.getItemY();
+        float z = FirstPersonItem.getItemZ();
+        if (!FirstPersonItem.hasVisualTransform()) {
             super.renderItemInFirstPerson(partialTicks);
             return;
         }
         GlStateManager.pushMatrix();
-        GlStateManager.scale(scale, scale, scale);
+        // Translate before scaling so X/Y/Z remain predictable renderer-space offsets even when Size changes.
+        // This is visual matrix state only: no player, inventory, packet, swing, or attack state is modified.
+        GlStateManager.translate(x, y, z);
+        if (scale > 0.0f && scale != 1.0f) {
+            GlStateManager.scale(scale, scale, scale);
+        }
         try {
             super.renderItemInFirstPerson(partialTicks);
         } finally {
