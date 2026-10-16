@@ -1,0 +1,97 @@
+name: Build Sky VeLor
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build with Java 8
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository at commit 131e5ae
+        uses: actions/checkout@v4
+        with:
+          ref: 131e5ae
+          fetch-depth: 0
+      
+      - name: Set up Java 8 JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'gradle'
+      
+      - name: Verify Java version
+        run: |
+          echo "Java version:"
+          java -version
+          echo "Javac version:"
+          javac -version
+      
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+      
+      - name: Build with Gradle
+        id: build
+        run: |
+          ./gradlew build --stacktrace
+        continue-on-error: true
+      
+      - name: List build outputs
+        run: |
+          echo "=== Build directory contents ==="
+          ls -la build/ 2>/dev/null || echo "build/ directory not found"
+          echo "=== build/libs/ contents ==="
+          ls -la build/libs/ 2>/dev/null || echo "build/libs/ directory not found"
+      
+      - name: Check for JAR file
+        id: check_jar
+        run: |
+          JAR_PATH="build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar"
+          if [ -f "$JAR_PATH" ]; then
+            echo "JAR_FOUND=true" >> $GITHUB_OUTPUT
+            echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
+            echo "::notice::JAR found at $JAR_PATH"
+            ls -lh "$JAR_PATH"
+            
+            # Verify version metadata
+            echo "=== JAR contents check ==="
+            jar tf "$JAR_PATH" | grep -E "PekaVersion\.class|PekaClientMod\.class" && echo "::notice::Version classes found in JAR"
+            
+            # Check version string in JAR
+            unzip -p "$JAR_PATH" com/arena/pekaclient/PekaVersion.class 2>/dev/null | strings | grep "Beta-0.10" && echo "::notice::Version string Beta-0.10.7v confirmed" || echo "::warning::Version string not found in JAR"
+          else
+            echo "JAR_FOUND=false" >> $GITHUB_OUTPUT
+            echo "::error::JAR not found at expected path: $JAR_PATH"
+            find build -name "*.jar" -type f 2>/dev/null || echo "::error::No JAR files found in build/"
+          fi
+      
+      - name: Upload JAR artifact
+        if: steps.check_jar.outputs.JAR_FOUND == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkyVeLor-1.8.9-Beta-0.10.7v
+          path: build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar
+          retention-days: 30
+      
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            build/logs/
+            build/reports/
+          retention-days: 7
+      
+      - name: Fail workflow if JAR not found
+        if: steps.check_jar.outputs.JAR_FOUND != 'true'
+        run: |
+          echo "::error::Build failed - JAR not created at expected path"
+          echo "::error::Check build-logs artifact for details"
+          exit 1
