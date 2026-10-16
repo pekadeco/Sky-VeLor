@@ -151,6 +151,8 @@ jobs:
           done
           cat ci-evidence/decomp-status.txt
           ls -l ci-evidence/mc-*.java 2>/dev/null || echo "no decompiled sources captured"
+          echo "note: decompiled Minecraft sources are used inside this run only and are"
+          echo "      gitignored, so they are never committed to the repository."
           if [ -f ci-evidence/mc-ItemRenderer.java ]; then
             echo "::notice title=DECOMP::ItemRenderer source captured $(wc -l < ci-evidence/mc-ItemRenderer.java) lines"
           else
@@ -298,7 +300,10 @@ jobs:
             tail -200 ci-evidence/gradle-decomp.log > ci-evidence/gradle-decomp.log.tail
             mv ci-evidence/gradle-decomp.log.tail ci-evidence/gradle-decomp.log
           fi
-          git add -A ci-evidence
+          # ci-evidence/mc-*.java and gradle-decomp.log are gitignored: ForgeGradle can
+          # decompile Minecraft for inspection, but that output is derived from Mojang's
+          # code and must not be committed to this repository.
+          git add -A ci-evidence dist
           git status --porcelain | head -40
           git commit -m "CI evidence for $(git rev-parse --short HEAD) run $GITHUB_RUN_ID [skip ci]"
           git log --oneline -1
