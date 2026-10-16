@@ -8,7 +8,9 @@ name: Build Sky VeLor
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - 'arena/**'
   pull_request:
     branches: [ main ]
 
