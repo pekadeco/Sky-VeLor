@@ -7,6 +7,7 @@ import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.slayer.SlayerType;
+import com.arena.pekaclient.feature.FirstPersonItem;
 import com.arena.pekaclient.feature.MiningTracker;
 import com.arena.pekaclient.hud.BalanceSource;
 import com.arena.pekaclient.hud.HudElement;
@@ -294,17 +295,24 @@ public class AppleHubScreen extends AppleScreen {
 
         rows.add(Row.header("First-person held item"));
         rows.add(Row.item("Item scale", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.firstPersonItemScaleOn, v -> AppleSettings.firstPersonItemScaleOn = v)));
-        rows.add(Row.item("Item scale value", "Size of the first-person held item",
+                new AppleToggle(() -> AppleSettings.firstPersonItemScaleOn,
+                        v -> AppleSettings.firstPersonItemScaleOn = v)));
+        rows.add(Row.item("Item scale value", "Size of the item held in first person",
                 gated(new AppleSlider(50, 200, 10, "%", 150f,
                         () -> AppleSettings.firstPersonItemScale,
-                        v -> AppleSettings.firstPersonItemScale = v), () -> AppleSettings.firstPersonItemScaleOn)));
-        rows.add(Row.item("Animation speed", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.firstPersonAnimSpeedOn, v -> AppleSettings.firstPersonAnimSpeedOn = v)));
-        rows.add(Row.item("Animation speed value", "Speed of first-person item animations",
+                        v -> AppleSettings.firstPersonItemScale = v),
+                        () -> AppleSettings.firstPersonItemScaleOn)));
+        rows.add(Row.item("Held-item animation speed", "On: use the slider. Off: 100%",
+                new AppleToggle(() -> AppleSettings.firstPersonAnimSpeedOn,
+                        v -> AppleSettings.firstPersonAnimSpeedOn = v)));
+        rows.add(Row.item("Held-item animation speed value",
+                "Tempo of the first-person equip and hold animation. Swing and attack timing are unchanged",
                 gated(new AppleSlider(50, 200, 10, "%", 150f,
                         () -> AppleSettings.firstPersonAnimSpeed,
-                        v -> AppleSettings.firstPersonAnimSpeed = v), () -> AppleSettings.firstPersonAnimSpeedOn)));
+                        v -> AppleSettings.firstPersonAnimSpeed = v),
+                        () -> AppleSettings.firstPersonAnimSpeedOn)));
+        rows.add(Row.item("Reset held item", "Back to 100% size and 100% animation speed",
+                button("Reset", FirstPersonItem::resetToDefaults)));
 
         rows.add(Row.header("Live"));
         rows.add(Row.custom(76f, this::paintGraph));
@@ -693,6 +701,7 @@ public class AppleHubScreen extends AppleScreen {
         openAnim.update(dt, 10f);
         fadeAnim.update(dt, 14f);
         indicator.update(dt, 10f);
+        search.update(dt);
         for (int i = 0; i < navSel.length; i++) {
             navSel[i].to(!searching && i == pageIndex ? 1f : 0f);
             navSel[i].update(dt, 14f);

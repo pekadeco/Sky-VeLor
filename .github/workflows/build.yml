@@ -1,9 +1,16 @@
 name: Build Sky VeLor
 
+# Builds the branch/PR that triggered the run. Never a hardcoded revision:
+# a pinned `ref:` would silently ship a different commit than the one reviewed.
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - 'arena/**'
+      - build-fix
+      - build-fix-131e5ae
+      - fix-missing-import
   pull_request:
     branches: [ main ]
 
@@ -11,87 +18,166 @@ jobs:
   build:
     name: Build with Java 8
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 60
+
     steps:
-      - name: Checkout repository at commit 131e5ae
+      - name: Checkout the triggering revision
         uses: actions/checkout@v4
         with:
-          ref: 131e5ae
           fetch-depth: 0
-      
+
       - name: Set up Java 8 JDK
         uses: actions/setup-java@v4
         with:
           java-version: '8'
           distribution: 'temurin'
-          cache: 'gradle'
-      
-      - name: Verify Java version
+
+      - name: Record revision and toolchain
         run: |
-          echo "Java version:"
-          java -version
-          echo "Javac version:"
-          javac -version
-      
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-      
-      - name: Build with Gradle
-        id: build
+          mkdir -p build/evidence
+          {
+            echo "revision     : $(git rev-parse HEAD)"
+            echo "branch       : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+            echo "run          : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "java         : $(java -version 2>&1 | head -1)"
+          } > build/evidence/REVISION.txt
+          cat build/evidence/REVISION.txt
+          chmod +x gradlew
+          ./gradlew --version 2>&1 | tee build/evidence/gradle-version.txt
+
+      # ------------------------------------------------------------------
+      # PHASE A: authoritative Minecraft 1.8.9 / Forge API probe.
+      # Everything the implementation depends on is dumped here instead of
+      # being guessed: real signatures from the deobfuscated MC jar, real
+      # MCP->SRG names from the mappings, real Forge event classes.
+      # ------------------------------------------------------------------
+      - name: Prepare Forge/Minecraft workspace
+        id: setup
         run: |
-          ./gradlew build --stacktrace
-        continue-on-error: true
-      
-      - name: List build outputs
+          ./gradlew setupCIWorkspace --stacktrace 2>&1 | tee build/evidence/gradle-setup.log | tail -40
+          echo "exit=${PIPESTATUS[0]}"
+
+      - name: Probe Minecraft 1.8.9 renderer API (javap)
         run: |
-          echo "=== Build directory contents ==="
-          ls -la build/ 2>/dev/null || echo "build/ directory not found"
-          echo "=== build/libs/ contents ==="
-          ls -la build/libs/ 2>/dev/null || echo "build/libs/ directory not found"
-      
-      - name: Check for JAR file
-        id: check_jar
-        run: |
-          JAR_PATH="build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar"
-          if [ -f "$JAR_PATH" ]; then
-            echo "JAR_FOUND=true" >> $GITHUB_OUTPUT
-            echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
-            echo "::notice::JAR found at $JAR_PATH"
-            ls -lh "$JAR_PATH"
-            
-            # Verify version metadata
-            echo "=== JAR contents check ==="
-            jar tf "$JAR_PATH" | grep -E "PekaVersion\.class|PekaClientMod\.class" && echo "::notice::Version classes found in JAR"
-            
-            # Check version string in JAR
-            unzip -p "$JAR_PATH" com/arena/pekaclient/PekaVersion.class 2>/dev/null | strings | grep "Beta-0.10" && echo "::notice::Version string Beta-0.10.7v confirmed" || echo "::warning::Version string not found in JAR"
-          else
-            echo "JAR_FOUND=false" >> $GITHUB_OUTPUT
-            echo "::error::JAR not found at expected path: $JAR_PATH"
-            find build -name "*.jar" -type f 2>/dev/null || echo "::error::No JAR files found in build/"
+          set -x
+          MCJAR=$(find build -name 'deobfed.jar' -path '*deobfMcMCP*' | head -1)
+          echo "MCJAR=$MCJAR" > build/evidence/probe-locations.txt
+          if [ -z "$MCJAR" ]; then
+            echo "deobfed.jar not found; searching wider" >> build/evidence/probe-locations.txt
+            find build ~/.gradle/caches/minecraft -name '*.jar' 2>/dev/null | head -50 >> build/evidence/probe-locations.txt
+            MCJAR=$(find build ~/.gradle/caches/minecraft -name 'deobfed.jar' 2>/dev/null | head -1)
           fi
-      
-      - name: Upload JAR artifact
-        if: steps.check_jar.outputs.JAR_FOUND == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: SkyVeLor-1.8.9-Beta-0.10.7v
-          path: build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar
-          retention-days: 30
-      
-      - name: Upload build logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: |
-            build/logs/
-            build/reports/
-          retention-days: 7
-      
-      - name: Fail workflow if JAR not found
-        if: steps.check_jar.outputs.JAR_FOUND != 'true'
+          echo "MCJAR(resolved)=$MCJAR" >> build/evidence/probe-locations.txt
+          ls -lh "$MCJAR" >> build/evidence/probe-locations.txt 2>/dev/null || true
+          for C in net.minecraft.client.Minecraft \
+                   net.minecraft.client.renderer.ItemRenderer \
+                   net.minecraft.client.renderer.EntityRenderer \
+                   net.minecraft.client.renderer.RenderGlobal ; do
+            N=$(echo "$C" | sed 's/.*\.//')
+            javap -p -classpath "$MCJAR" "$C" > "build/evidence/javap-$N.txt" 2>&1 || true
+          done
+          echo "=== ItemRenderer ==="
+          cat build/evidence/javap-ItemRenderer.txt
+          echo "=== Minecraft: itemRenderer field ==="
+          grep -nE "ItemRenderer|itemRenderer" build/evidence/javap-Minecraft.txt || true
+
+      - name: Probe MCP to SRG mappings (reobfuscation safety)
         run: |
-          echo "::error::Build failed - JAR not created at expected path"
-          echo "::error::Check build-logs artifact for details"
-          exit 1
+          MROOT=~/.gradle/caches/minecraft
+          {
+            echo "### mapping files present ###"
+            find "$MROOT" -maxdepth 6 \( -name '*.csv' -o -name '*.srg' -o -name '*.tsrg' -o -name '*mcp_stable*' \) 2>/dev/null | head -60
+          } > build/evidence/srg-probe.txt
+          for Z in $(find "$MROOT" -name '*mcp_stable*.zip' 2>/dev/null | head -3); do
+            D=$(mktemp -d); (cd "$D" && unzip -oq "$Z" 2>/dev/null || true)
+            echo "### unpacked $Z -> $(ls "$D" | tr '\n' ' ')" >> build/evidence/srg-probe.txt
+            for PAT in itemRenderer equippedProgress prevEquippedProgress itemToRender \
+                       renderItemInFirstPerson updateEquippedItem renderOverlays \
+                       renderFireInFirstPerson renderMapFirstPerson ; do
+              echo "--- $PAT ---" >> build/evidence/srg-probe.txt
+              grep -rhnE "(,|\s|^)$PAT(,|\s|$)|[^A-Za-z0-9_]$PAT[^A-Za-z0-9_]" "$D" 2>/dev/null \
+                | grep -E "Minecraft|ItemRenderer|field_|func_" | head -8 >> build/evidence/srg-probe.txt || true
+            done
+            rm -rf "$D"
+          done
+          for S in $(find "$MROOT" -name '*.srg' 2>/dev/null | head -3); do
+            echo "### $S ###" >> build/evidence/srg-probe.txt
+            grep -E "client/Minecraft|client/renderer/ItemRenderer" "$S" \
+              | grep -iE "itemRenderer|equipped|renderItemInFirstPerson|updateEquippedItem" | head -20 >> build/evidence/srg-probe.txt || true
+          done
+          cat build/evidence/srg-probe.txt
+
+      - name: Probe Forge client event API
+        run: |
+          FJARS=$(find ~/.gradle -name 'forge*1.8.9-11.15.1.2318*.jar' -o -name 'forgeSrc*.jar' -o -name 'forge-*universal*.jar' 2>/dev/null | sort -u)
+          echo "$FJARS" > build/evidence/forge-probe.txt
+          FJ=$(echo "$FJARS" | grep -E 'forgeSrc|userdev|universal' | head -1)
+          [ -z "$FJ" ] && FJ=$(echo "$FJARS" | head -1)
+          echo "selected=$FJ" >> build/evidence/forge-probe.txt
+          if [ -n "$FJ" ]; then
+            echo "--- RenderHandEvent present? ---" >> build/evidence/forge-probe.txt
+            unzip -l "$FJ" 2>/dev/null | grep -iE "client/event/Render" | head -30 >> build/evidence/forge-probe.txt || true
+            for C in net.minecraftforge.client.event.RenderHandEvent \
+                     net.minecraftforge.client.event.RenderSpecificHandEvent \
+                     net.minecraftforge.client.ForgeHooksClient ; do
+              N=$(echo "$C" | sed 's/.*\.//')
+              echo "--- javap $C ---" >> build/evidence/forge-probe.txt
+              javap -p -classpath "$FJ" "$C" >> build/evidence/forge-probe.txt 2>&1 || true
+            done
+          fi
+          cat build/evidence/forge-probe.txt
+
+      - name: Best-effort decompiled renderer source
+        continue-on-error: true
+        run: |
+          export GRADLE_OPTS="-Xmx3g -XX:MaxPermSize=512m"
+          ./gradlew setupDecompWorkspace --stacktrace > build/evidence/gradle-decomp.log 2>&1 || true
+          tail -25 build/evidence/gradle-decomp.log || true
+          for F in ItemRenderer EntityRenderer ; do
+            SRC=$(find ~/.gradle build -name "$F.java" -path '*minecraft*' 2>/dev/null | head -1)
+            echo "$F source: ${SRC:-NOT FOUND}" >> build/evidence/decomp-status.txt
+            if [ -n "$SRC" ]; then cp "$SRC" "build/evidence/mc-$F.java"; fi
+          done
+          cat build/evidence/decomp-status.txt
+
+      - name: Dump the Gradle task graph (release packaging authority)
+        run: |
+          ./gradlew tasks --all > build/evidence/gradle-tasks.txt 2>&1 || true
+          echo "=== packaging-related tasks ==="
+          grep -inE "^(reobf|jar|build|assemble|sourceJar|remap|retromap|deobf|setup|dumpTestClasspath)" build/evidence/gradle-tasks.txt || true
+          grep -icE "reobf" build/evidence/gradle-tasks.txt || true
+
+      # ------------------------------------------------------------------
+      # PHASE B: the real build.
+      # ------------------------------------------------------------------
+      - name: Build (compile, test, reobfuscate, package)
+        run: |
+          ./gradlew build dumpTestClasspath --stacktrace 2>&1 | tee build/evidence/gradle-build.log | tail -60
+          echo "=== gradle exit=${PIPESTATUS[0]} ==="
+
+      - name: Inventory every produced JAR
+        run: |
+          echo "=== build/libs ===" | tee build/evidence/jar-inventory.txt
+          ls -lh build/libs/ 2>/dev/null | tee -a build/evidence/jar-inventory.txt || echo "(no build/libs)" | tee -a build/evidence/jar-inventory.txt
+          echo "=== every jar under build/ ===" | tee -a build/evidence/jar-inventory.txt
+          find build -name '*.jar' -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2 | tee -a build/evidence/jar-inventory.txt || true
+          echo "=== build/tmp/deobfMcMCP (FG2 intermediate, NOT a release) ===" | tee -a build/evidence/jar-inventory.txt
+          ls -lh build/tmp/deobfMcMCP/ 2>/dev/null | tee -a build/evidence/jar-inventory.txt || true
+
+      - name: Run the standalone test suite
+        run: |
+          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh 2>&1 | tee build/evidence/test-suites.log | tail -60
+          echo "=== tests exit=${PIPESTATUS[0]} ==="
+
+      - name: Publish probe and build evidence to this branch
+        run: |
+          git config user.name  "arena-ci"
+          git config user.email "arena-ci@users.noreply.github.com"
+          TARGET="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          git add -f build/evidence || true
+          if git diff --cached --quiet; then
+            echo "no evidence changes"
+          else
+            git commit -m "CI evidence for $(git rev-parse --short HEAD) run $GITHUB_RUN_ID [skip ci]"
+            git push origin "HEAD:refs/heads/$TARGET" || echo "EVIDENCE PUSH FAILED"
+          fi

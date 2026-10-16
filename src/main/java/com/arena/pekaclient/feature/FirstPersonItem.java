@@ -3,44 +3,57 @@ package com.arena.pekaclient.feature;
 import com.arena.pekaclient.config.AppleSettings;
 
 /**
- * Utility class for first-person held item customization.
- * Provides helper methods for accessing and manipulating first-person item settings.
+ * Settings bridge for the first-person held-item customization.
+ *
+ * <p>The GUI and the properties file store whole percentages; the renderer needs float multipliers.
+ * Keeping both conversions here means there is exactly one place that decides what 100% means, and the
+ * default always resolves to a {@code 1.0f} multiplier, i.e. untouched vanilla rendering.
+ *
+ * <p>Everything in here is purely visual. No potion effect is applied and no gameplay timer, swing
+ * progress or attack cooldown is touched, so servers and combat behaviour are unaffected.
  */
-public class FirstPersonItem {
+public final class FirstPersonItem {
 
-    /** Default scale factor (1.0 = normal size) */
-    public static final float DEFAULT_SCALE = 1.0f;
-    
-    /** Default animation speed (1.0 = normal speed) */
-    public static final float DEFAULT_ANIM_SPEED = 1.0f;
+    /** Lower bound of both sliders, in percent. */
+    public static final int MIN_PERCENT = 50;
+    /** Upper bound of both sliders, in percent. */
+    public static final int MAX_PERCENT = 200;
+
+    /** 100% keeps the held item at its vanilla size. */
+    public static final int DEFAULT_SCALE_PERCENT = AppleSettings.DEFAULT_FIRST_PERSON_ITEM_SCALE;
+    /** 100% keeps the equip animation at its vanilla tempo. */
+    public static final int DEFAULT_ANIM_SPEED_PERCENT = AppleSettings.DEFAULT_FIRST_PERSON_ANIM_SPEED;
+
+    private FirstPersonItem() {
+    }
+
+    /** Clamps a percent value into the supported slider range. */
+    public static int clamp(int value) {
+        return Math.max(MIN_PERCENT, Math.min(MAX_PERCENT, value));
+    }
 
     /**
-     * Gets the effective item scale from settings.
-     * Converts from percentage (stored in settings) to float multiplier.
+     * The held-item size multiplier in use, or {@code 1.0f} when the switch is off. A result of
+     * {@code 1.0f} means the renderer must not add any transform at all.
      */
     public static float getItemScale() {
         return AppleSettings.effectiveFirstPersonItemScale() / 100.0f;
     }
 
     /**
-     * Gets the effective animation speed from settings.
-     * Converts from percentage (stored in settings) to float multiplier.
+     * The equip-animation tempo multiplier in use, or {@code 1.0f} when the switch is off. Values
+     * above 1 finish the equip transition sooner; values below 1 stretch it out.
      */
     public static float getAnimationSpeed() {
         return AppleSettings.effectiveFirstPersonAnimSpeed() / 100.0f;
     }
 
-    /**
-     * Clamps a scale value to valid range and converts to percentage.
-     */
-    public static int clampScale(int value) {
-        return Math.max(50, Math.min(200, value));
-    }
-
-    /**
-     * Clamps an animation speed value to valid range and converts to percentage.
-     */
-    public static int clampAnimSpeed(int value) {
-        return Math.max(50, Math.min(200, value));
+    /** Restores both sliders and both switches to their defaults and persists the result. */
+    public static void resetToDefaults() {
+        AppleSettings.firstPersonItemScale = DEFAULT_SCALE_PERCENT;
+        AppleSettings.firstPersonAnimSpeed = DEFAULT_ANIM_SPEED_PERCENT;
+        AppleSettings.firstPersonItemScaleOn = true;
+        AppleSettings.firstPersonAnimSpeedOn = true;
+        AppleSettings.save();
     }
 }
