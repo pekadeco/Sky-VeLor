@@ -35,6 +35,10 @@ jobs:
     steps:
       - name: Checkout the revision this run was triggered by
         uses: actions/checkout@v4
+        with:
+          # The release step below has to prove that the tag it is publishing is already on
+          # main, which needs real history rather than a single-commit checkout. 58 commits.
+          fetch-depth: 0
 
       - name: Set up Java 8 JDK
         uses: actions/setup-java@v4
@@ -202,6 +206,49 @@ jobs:
               --title "Sky VeLor $VERSION" --notes-file release-notes.txt
           fi
           echo "::notice title=RELEASE::$TAG published with $JAR_NAME"
+
+      # A squash merge into main is performed through the API, and GitHub does not always
+      # schedule a workflow run for it - which leaves the release created but carrying no
+      # assets. This closes that gap from a branch build: if the release tag already exists
+      # and is on main, upload what main carries at that tag.
+      #
+      # The assets come from the tag, not from this branch's rebuild, so a release can never
+      # be populated from unmerged work. The rebuild is only used as a cross-check: if this
+      # branch compiles the same source into different bytes, that is worth failing on.
+      - name: Attach the tagged artifacts to the release (tag already on main)
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          TAG="SkyVeLor-$VERSION"
+          git fetch --no-tags --force origin \
+            '+refs/heads/main:refs/remotes/origin/main' '+refs/tags/*:refs/tags/*'
+          if ! git rev-parse -q --verify "refs/tags/$TAG^{commit}" >/dev/null; then
+            echo "no tag $TAG yet - nothing to attach from $GITHUB_REF_NAME"
+            exit 0
+          fi
+          TAG_SHA=$(git rev-list -n1 "$TAG")
+          if ! git merge-base --is-ancestor "$TAG_SHA" origin/main; then
+            echo "tag $TAG ($TAG_SHA) is not on main - refusing to publish a release from $GITHUB_REF_NAME"
+            exit 0
+          fi
+          mkdir -p release-assets
+          git show "$TAG:dist/$JAR_NAME" > "release-assets/$JAR_NAME"
+          git show "$TAG:dist/BUILD-REPORT.txt" > release-assets/BUILD-REPORT.txt
+          WANT=$(sha256sum "release-assets/$JAR_NAME" | cut -d' ' -f1)
+          GOT=$(sha256sum "build/libs/$JAR_NAME" | cut -d' ' -f1)
+          echo "jar published on main at $TAG : $WANT"
+          echo "jar rebuilt by this run       : $GOT"
+          if [ "$WANT" != "$GOT" ]; then
+            echo "::error title=RELEASE::$GITHUB_REF_NAME rebuilt a jar that differs from the one on main at $TAG - not attaching anything"
+            exit 1
+          fi
+          echo "identical - attaching main's own artifacts to $TAG"
+          gh release upload "$TAG" "release-assets/$JAR_NAME" release-assets/BUILD-REPORT.txt --clobber
+          gh release view "$TAG" --json name,tagName,assets \
+            --jq '"release \(.name) (\(.tagName)) carries: " + ([.assets[] | "\(.name) \(.size) bytes"] | join(", "))'
+          echo "::notice title=RELEASE::attached $JAR_NAME to $TAG"
 
       - name: Upload the release jar as a workflow artifact
         uses: actions/upload-artifact@v4
