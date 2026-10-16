@@ -1,0 +1,64 @@
+
+passed 70, failed 0
+[10:35:17] [main/WARN] [SkyVeLor]: HUD config mining.enabled=maybe is not true/false; using true
+[10:35:17] [main/WARN] [SkyVeLor]: HUD config mining.ax=SIDEWAYS is not a valid anchor; using START
+[10:35:17] [main/WARN] [SkyVeLor]: HUD config mining.ox=abc is not a whole number; using 6
+[10:35:17] [main/WARN] [SkyVeLor]: HUD config mining.scale=big is not a whole number; using 100
+[10:35:17] [main/WARN] [SkyVeLor]: HUD config mining.opacity= is not a whole number; using 100
+[10:35:17] [main/WARN] [SkyVeLor]: HUD config mining.window=five is not a whole number; using 1
+[10:35:17] [main/WARN] [SkyVeLor]: HUD config mining.ox=99999999999999 is not a whole number; using 6
+
+config: passed 24, failed 0
+
+leap text: passed 89, failed 0
+
+leap identity: passed 23, failed 0
+
+leap class cache: passed 18, failed 0
+[10:35:17] [main/INFO] [SkyVeLor]: Migrating settings from pekaclient.properties to skyvelor.properties
+[10:35:17] [main/WARN] [SkyVeLor]: Could not read /tmp/skyvelor-test2232049167129389815/skyvelor.properties; using default settings
+java.lang.IllegalArgumentException: Malformed \uxxxx encoding.
+	at java.util.Properties.loadConvert(Properties.java:574) ~[?:1.8.0_504]
+	at java.util.Properties.load0(Properties.java:391) ~[?:1.8.0_504]
+	at java.util.Properties.load(Properties.java:341) ~[?:1.8.0_504]
+	at com.arena.pekaclient.config.ConfigFiles.read(ConfigFiles.java:47) [main/:?]
+	at com.arena.pekaclient.config.ConfigFilesTests.unreadableFileGivesEmptySet(ConfigFilesTests.java:79) [tmp.iTkPDSJrTc/:?]
+	at com.arena.pekaclient.config.ConfigFilesTests.main(ConfigFilesTests.java:24) [tmp.iTkPDSJrTc/:?]
+
+config files: passed 7, failed 0
+
+apple settings: passed 9, failed 0
+
+theme: passed 11, failed 0
+[10:35:19] [main/WARN] [SkyVeLor]: HUD config doll.angle=abc is not a whole number; using 0
+
+doll config: passed 14, failed 0
+
+leap class: passed 27, failed 0
+
+spirit leap: passed 12, failed 0
+
+dungeon context: passed 7, failed 0
+
+first person item: passed 27, failed 0
+
+mob markers: passed 8, failed 0
+
+leap layout: passed 2890, failed 0
+
+leap palette: passed 9, failed 0
+
+leap preview data: passed 6, failed 0
+
+stats text: passed 10, failed 0
+
+startup timing: passed 12, failed 0
+
+fishing: passed 15, failed 0
+
+dragon kill: passed 5, failed 0
+
+slayer: passed 25, failed 0
+search field: passed 14, failed 0
+widget interactions: passed 12, failed 0
+tests exit=0

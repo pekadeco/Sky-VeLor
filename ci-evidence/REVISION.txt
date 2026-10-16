@@ -1,0 +1,4 @@
+revision     : 712a12acaee868e365ba03a0f0d415361029cce3
+branch       : arena/75b84f43-sky-velor
+run          : https://github.com/pekadeco/Sky-VeLor/actions/runs/38887653543
+java         : openjdk version "1.8.0_504"

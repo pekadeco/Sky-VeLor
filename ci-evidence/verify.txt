@@ -1,0 +1,177 @@
+jar          : /home/runner/work/Sky-VeLor/Sky-VeLor/build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar
+size         : 284176 bytes
+sha256       : 7136bc74b918ebefc41ec618f836801806b45e066ae15fad0937605ea03c6b69
+
+=== MANIFEST ===
+Manifest-Version: 1.0
+
+=== mcmod.info ===
+[
+  {
+    "modid": "pekaclient",
+    "name": "Sky VeLor",
+    "description": "Client-side HUD, settings, dungeon, fishing and gameplay utilities for Minecraft 1.8.9.",
+    "version": "Beta-0.10.7v",
+    "mcversion": "1.8.9",
+    "authorList": ["Sky VeLor contributors"],
+    "credits": "Built for Minecraft 1.8.9 with Forge.",
+    "clientSideOnly": true,
+    "useDependencyInformation": false
+  }
+]
+=== entry list ===
+Archive:  /home/runner/work/Sky-VeLor/Sky-VeLor/build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  1970-01-01 00:00   META-INF/
+       25  1970-01-01 00:00   META-INF/MANIFEST.MF
+        0  1970-01-01 00:00   com/
+        0  1970-01-01 00:00   com/arena/
+        0  1970-01-01 00:00   com/arena/pekaclient/
+        0  1970-01-01 00:00   com/arena/pekaclient/slayer/
+      624  1970-01-01 00:00   com/arena/pekaclient/slayer/SlayerTracker$DropEntry.class
+     4465  1970-01-01 00:00   com/arena/pekaclient/slayer/SlayerType.class
+     4437  1970-01-01 00:00   com/arena/pekaclient/slayer/SlayerFormat.class
+     5658  1970-01-01 00:00   com/arena/pekaclient/slayer/SlayerHud.class
+     6778  1970-01-01 00:00   com/arena/pekaclient/slayer/DropMessageParser.class
+    10997  1970-01-01 00:00   com/arena/pekaclient/slayer/SlayerTracker.class
+        0  1970-01-01 00:00   com/arena/pekaclient/feature/
+     5687  1970-01-01 00:00   com/arena/pekaclient/feature/LeapIdentity.class
+    12088  1970-01-01 00:00   com/arena/pekaclient/feature/LeapText.class
+     3060  1970-01-01 00:00   com/arena/pekaclient/feature/LeapClass.class
+      248  1970-01-01 00:00   com/arena/pekaclient/feature/LeapClassCache$1.class
+     1206  1970-01-01 00:00   com/arena/pekaclient/feature/MobMarkers$Kind.class
+     6027  1970-01-01 00:00   com/arena/pekaclient/feature/LeapClassCache.class
+     1170  1970-01-01 00:00   com/arena/pekaclient/feature/LeapClassCache$Resolution.class
+     3180  1970-01-01 00:00   com/arena/pekaclient/feature/MiningTracker.class
+      886  1970-01-01 00:00   com/arena/pekaclient/feature/LeapText$VisibleText.class
+     3027  1970-01-01 00:00   com/arena/pekaclient/feature/LeapDiagnostics.class
+     3014  1970-01-01 00:00   com/arena/pekaclient/feature/DungeonContext.class
+     1141  1970-01-01 00:00   com/arena/pekaclient/feature/LeapUse.class
+     1170  1970-01-01 00:00   com/arena/pekaclient/feature/FirstPersonItem.class
+     3112  1970-01-01 00:00   com/arena/pekaclient/feature/SpiritLeap.class
+     1752  1970-01-01 00:00   com/arena/pekaclient/feature/BlockBreakCounter.class
+      706  1970-01-01 00:00   com/arena/pekaclient/feature/LeapClassCache$Entry.class
+     1385  1970-01-01 00:00   com/arena/pekaclient/feature/MobMarkers.class
+        0  1970-01-01 00:00   com/arena/pekaclient/hud/
+     4849  1970-01-01 00:00   com/arena/pekaclient/hud/InventoryHud.class
+     4229  1970-01-01 00:00   com/arena/pekaclient/hud/BalanceSource.class
+     5448  1970-01-01 00:00   com/arena/pekaclient/hud/DollarsHud.class
+     7746  1970-01-01 00:00   com/arena/pekaclient/hud/HudManager.class
+     2897  1970-01-01 00:00   com/arena/pekaclient/hud/HotbarHud.class
+     1619  1970-01-01 00:00   com/arena/pekaclient/hud/ItemSlots.class
+     3670  1970-01-01 00:00   com/arena/pekaclient/hud/PlayerDollHud.class
+    10491  1970-01-01 00:00   com/arena/pekaclient/hud/HudElement.class
+     3493  1970-01-01 00:00   com/arena/pekaclient/hud/StatsHud.class
+      765  1970-01-01 00:00   com/arena/pekaclient/hud/HudPlacement$1.class
+     4248  1970-01-01 00:00   com/arena/pekaclient/hud/MiningHud.class
+     1270  1970-01-01 00:00   com/arena/pekaclient/hud/StatsText.class
+     1215  1970-01-01 00:00   com/arena/pekaclient/hud/HudPlacement$Anchor.class
+     4738  1970-01-01 00:00   com/arena/pekaclient/hud/HudPlacement.class
+        0  1970-01-01 00:00   com/arena/pekaclient/render/
+     2514  1970-01-01 00:00   com/arena/pekaclient/render/SkinHead.class
+      816  1970-01-01 00:00   com/arena/pekaclient/render/MobHighlight$1.class
+     4180  1970-01-01 00:00   com/arena/pekaclient/render/FirstPersonItemSetup.class
+     1084  1970-01-01 00:00   com/arena/pekaclient/render/Anim.class
+    10872  1970-01-01 00:00   com/arena/pekaclient/render/UIRender.class
+      969  1970-01-01 00:00   com/arena/pekaclient/render/CustomItemRenderer.class
+     3649  1970-01-01 00:00   com/arena/pekaclient/render/WorldBox.class
+     3413  1970-01-01 00:00   com/arena/pekaclient/render/PlayerPreview.class
+     3547  1970-01-01 00:00   com/arena/pekaclient/render/Icons.class
+     2007  1970-01-01 00:00   com/arena/pekaclient/render/Theme.class
+     5355  1970-01-01 00:00   com/arena/pekaclient/render/MobHighlight.class
+        0  1970-01-01 00:00   com/arena/pekaclient/config/
+     7450  1970-01-01 00:00   com/arena/pekaclient/config/AppleSettings.class
+     2450  1970-01-01 00:00   com/arena/pekaclient/config/ConfigFiles.class
+        0  1970-01-01 00:00   com/arena/pekaclient/fishing/
+     2618  1970-01-01 00:00   com/arena/pekaclient/fishing/FishingSessionTracker.class
+     3425  1970-01-01 00:00   com/arena/pekaclient/fishing/LegendaryCreature.class
+      833  1970-01-01 00:00   com/arena/pekaclient/fishing/SeaCreatureParser$Entry.class
+     1210  1970-01-01 00:00   com/arena/pekaclient/fishing/SeaCreatureHud$1.class
+     5789  1970-01-01 00:00   com/arena/pekaclient/fishing/SeaCreatureParser.class
+     7020  1970-01-01 00:00   com/arena/pekaclient/fishing/SeaCreatureHud.class
+     7166  1970-01-01 00:00   com/arena/pekaclient/fishing/FishingStats.class
+     3538  1970-01-01 00:00   com/arena/pekaclient/fishing/FishingHud.class
+        0  1970-01-01 00:00   com/arena/pekaclient/gui/
+     4123  1970-01-01 00:00   com/arena/pekaclient/gui/WindowDots.class
+     2125  1970-01-01 00:00   com/arena/pekaclient/gui/ScrollState.class
+      531  1970-01-01 00:00   com/arena/pekaclient/gui/LeapPalette.class
+     3366  1970-01-01 00:00   com/arena/pekaclient/gui/LeapLayout.class
+    24687  1970-01-01 00:00   com/arena/pekaclient/gui/HudSettingsBuilder.class
+     1619  1970-01-01 00:00   com/arena/pekaclient/gui/LeapPreviewData.class
+      221  1970-01-01 00:00   com/arena/pekaclient/gui/Row$Painter.class
+     5598  1970-01-01 00:00   com/arena/pekaclient/gui/LoadingScreen.class
+     1938  1970-01-01 00:00   com/arena/pekaclient/gui/Gesture.class
+      650  1970-01-01 00:00   com/arena/pekaclient/gui/HudEditorScreen$Entry.class
+    33141  1970-01-01 00:00   com/arena/pekaclient/gui/LeapScreen.class
+     1865  1970-01-01 00:00   com/arena/pekaclient/gui/Row.class
+      706  1970-01-01 00:00   com/arena/pekaclient/gui/LeapScreen$BoardDetection.class
+     4209  1970-01-01 00:00   com/arena/pekaclient/gui/AppleGuiButton.class
+     1620  1970-01-01 00:00   com/arena/pekaclient/gui/LeapScreen$1.class
+      568  1970-01-01 00:00   com/arena/pekaclient/gui/LeapScreen$BoardEntry.class
+      642  1970-01-01 00:00   com/arena/pekaclient/gui/HudSettingsBuilder$Item.class
+    19900  1970-01-01 00:00   com/arena/pekaclient/gui/HudEditorScreen.class
+    56744  1970-01-01 00:00   com/arena/pekaclient/gui/AppleHubScreen.class
+     2443  1970-01-01 00:00   com/arena/pekaclient/gui/AppleScreen.class
+     1236  1970-01-01 00:00   com/arena/pekaclient/gui/LeapScreen$Card.class
+        0  1970-01-01 00:00   com/arena/pekaclient/notes/
+      828  1970-01-01 00:00   com/arena/pekaclient/notes/QuickNoteStore$NotePage.class
+     7576  1970-01-01 00:00   com/arena/pekaclient/notes/QuickNoteStore.class
+    17312  1970-01-01 00:00   com/arena/pekaclient/notes/QuickNoteScreen.class
+      912  1970-01-01 00:00   com/arena/pekaclient/notes/QuickNotes.class
+        0  1970-01-01 00:00   com/arena/pekaclient/widget/
+     7211  1970-01-01 00:00   com/arena/pekaclient/widget/AppleDropdown.class
+     3646  1970-01-01 00:00   com/arena/pekaclient/widget/AppleSegmented.class
+     5540  1970-01-01 00:00   com/arena/pekaclient/widget/AppleSlider.class
+     3397  1970-01-01 00:00   com/arena/pekaclient/widget/AppleToggle.class
+     2908  1970-01-01 00:00   com/arena/pekaclient/widget/AppleButton.class
+     4272  1970-01-01 00:00   com/arena/pekaclient/widget/SearchField.class
+     4583  1970-01-01 00:00   com/arena/pekaclient/widget/Widget.class
+        0  1970-01-01 00:00   com/arena/pekaclient/startup/
+      645  1970-01-01 00:00   com/arena/pekaclient/startup/StartupTasks$Task.class
+     4247  1970-01-01 00:00   com/arena/pekaclient/startup/StartupTasks.class
+        0  1970-01-01 00:00   com/arena/pekaclient/dungeon/
+     1184  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7OverlayRenderer$M7Outline.class
+     1569  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7OverlayRenderer$M7HitboxTarget.class
+     1564  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7Settings$1.class
+     6641  1970-01-01 00:00   com/arena/pekaclient/dungeon/DragonKillAlert.class
+      917  1970-01-01 00:00   com/arena/pekaclient/dungeon/DragonKillAlert$DragonSighting.class
+     1045  1970-01-01 00:00   com/arena/pekaclient/dungeon/DragonKillAlert$1.class
+     1999  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7OverlayRenderer$M7DragonStatue.class
+      922  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7OverlayRenderer$M7Candidate.class
+    24619  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7OverlayRenderer.class
+     2370  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7OverlayRenderer$M7DragonKillArea.class
+     5916  1970-01-01 00:00   com/arena/pekaclient/dungeon/M7Settings.class
+        0  1970-01-01 00:00   com/arena/pekaclient/command/
+     1814  1970-01-01 00:00   com/arena/pekaclient/command/SvCommand.class
+     1184  1970-01-01 00:00   com/arena/pekaclient/command/ClientActions.class
+     1922  1970-01-01 00:00   com/arena/pekaclient/command/QuickNoteCommand.class
+     4597  1970-01-01 00:00   com/arena/pekaclient/command/PriceSetCommand.class
+      428  1970-01-01 00:00   com/arena/pekaclient/PekaVersion.class
+    11390  1970-01-01 00:00   com/arena/pekaclient/PekaClientMod.class
+        0  1970-01-01 00:00   assets/
+        0  1970-01-01 00:00   assets/pekaclient/
+        0  1970-01-01 00:00   assets/pekaclient/lang/
+      107  1970-01-01 00:00   assets/pekaclient/lang/en_US.lang
+      399  1970-01-01 00:00   mcmod.info
+---------                     -------
+   520022                     131 files
+=== nested archives (must be none) ===
+Archive:  /home/runner/work/Sky-VeLor/Sky-VeLor/build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar
+=== mod class count ===
+109
+
+=== mapping check ===
+distinct SRG member names referenced : 0
+class files still containing MCP renderer member names : 0
+PRESENT com/arena/pekaclient/render/CustomItemRenderer.class
+PRESENT com/arena/pekaclient/render/FirstPersonItemSetup.class
+PRESENT com/arena/pekaclient/feature/FirstPersonItem.class
+PRESENT com/arena/pekaclient/config/AppleSettings.class
+PRESENT com/arena/pekaclient/gui/AppleHubScreen.class
+PRESENT com/arena/pekaclient/gui/AppleGuiButton.class
+PRESENT com/arena/pekaclient/PekaClientMod.class
+PRESENT com/arena/pekaclient/PekaVersion.class
+dead FirstPersonItemRendererProxy correctly absent
+"version": "Beta-0.10.7v"
+'/home/runner/work/Sky-VeLor/Sky-VeLor/build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar' -> 'ci-evidence/dist/SkyVeLor-1.8.9-Beta-0.10.7v.jar'
