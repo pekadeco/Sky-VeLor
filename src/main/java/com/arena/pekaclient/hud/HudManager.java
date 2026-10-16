@@ -38,9 +38,14 @@ public final class HudManager {
     public static final FishingHud FISHING = new FishingHud();
     public static final SeaCreatureHud SEA_HP = new SeaCreatureHud();
     public static final SlayerHud SLAYER = new SlayerHud();
+    public static final ClickInOrderHud CLICK_IN_ORDER = new ClickInOrderHud();
 
-    /** Every element, in draw order. */
+    /** Elements shown in the normal HUD editor, in draw order. The Click in order panel is edited on the Dungeon HUD screen only. */
     public static final HudElement[] ELEMENTS = {MINING, DOLLARS, INVENTORY, HOTBAR, DOLL, STATS, FISHING, SEA_HP, SLAYER};
+
+    /** Every element with saved settings, including the Dungeon-only Click in order panel. */
+    private static final HudElement[] SETTINGS_ELEMENTS = {MINING, DOLLARS, INVENTORY, HOTBAR, DOLL, STATS, FISHING,
+            SEA_HP, SLAYER, CLICK_IN_ORDER};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient-hud.properties";
@@ -64,7 +69,7 @@ public final class HudManager {
 
     public static void load() {
         Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME));
-        for (HudElement e : ELEMENTS) {
+        for (HudElement e : SETTINGS_ELEMENTS) {
             e.load(p);
         }
         BalanceSource.manualMode = "manual".equalsIgnoreCase(p.getProperty("balance.source", "auto").trim());
@@ -75,7 +80,7 @@ public final class HudManager {
 
     public static void save() {
         Properties p = new Properties();
-        for (HudElement e : ELEMENTS) {
+        for (HudElement e : SETTINGS_ELEMENTS) {
             e.save(p);
         }
         p.setProperty("balance.source", BalanceSource.manualMode ? "manual" : "auto");
@@ -118,7 +123,8 @@ public final class HudManager {
     public static void render(ScaledResolution sr) {
         UIRender.beginFrame();
         for (HudElement e : ELEMENTS) {
-            if (e.enabled) {
+            // The Click in order panel is drawn only over an open terminal, so it is skipped here.
+            if (e.enabled && e != CLICK_IN_ORDER) {
                 e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
             }
         }
@@ -149,13 +155,13 @@ public final class HudManager {
     }
 
     public static void resetPositions() {
-        for (HudElement e : ELEMENTS) {
+        for (HudElement e : SETTINGS_ELEMENTS) {
             e.resetPosition();
         }
     }
 
     public static void resetAll() {
-        for (HudElement e : ELEMENTS) {
+        for (HudElement e : SETTINGS_ELEMENTS) {
             e.resetAll();
         }
         BalanceSource.manualMode = false;
