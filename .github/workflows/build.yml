@@ -5,6 +5,11 @@ name: Build Sky VeLor
 # builds the mod with the project's own Gradle wrapper, runs the standalone logic tests, verifies that
 # the output really is the Sky VeLor mod JAR, and uploads it.
 
+# The dist/ publish step commits the built JAR back to the branch, so the workflow needs write access
+# to the repository contents.
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
