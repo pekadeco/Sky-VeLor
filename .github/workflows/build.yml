@@ -13,11 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository at commit 131e5ae
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: 131e5ae
           fetch-depth: 0
+      
+      - name: Reset to commit 131e5ae
+        run: |
+          git checkout 131e5ae
+          git log --oneline -1
       
       - name: Set up Java 8 JDK
         uses: actions/setup-java@v4
