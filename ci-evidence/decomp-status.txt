@@ -1,2 +1,3 @@
 ItemRenderer .java on disk: build/tmp/recompileMc/sources/net/minecraft/client/renderer/ItemRenderer.java
 EntityRenderer .java on disk: build/tmp/recompileMc/sources/net/minecraft/client/renderer/EntityRenderer.java
+Minecraft .java on disk: build/tmp/recompileMc/sources/net/minecraft/client/Minecraft.java

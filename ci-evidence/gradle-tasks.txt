@@ -238,4 +238,4 @@ Pattern: upload<ConfigurationName>: Assembles and uploads the artifacts belongin
 
 BUILD SUCCESSFUL
 
-Total time: 3.62 secs
+Total time: 3.457 secs
