@@ -10,10 +10,16 @@ import net.minecraft.inventory.ContainerChest;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Floor 7 / M7 "Click in order" terminal helper. It only draws over the real chest slots: the number to click
@@ -177,26 +183,129 @@ public final class TerminalSolver {
         UIRender.endFrame();
     }
 
-    /** The number on a stack (1 to size), or 0 when it is not a numbered item. */
+    /**
+     * The number on a stack (1 to size), or 0 when it is not a numbered item.
+     *
+     * The number is read from the item itself first: the display name, then the lore. Only when the item
+     * carries no number is a stained glass pane or block read by its stack size, which is how the Click in
+     * order terminal states the number when the items are unnumbered panes.
+     */
     public static int numberOf(ItemStack stack, int size) {
-        if (stack == null || stack.getDisplayName() == null) {
+        int n = explicitNumber(stack, size);
+        if (n > 0) {
+            return n;
+        }
+        return stackNumber(stack, size);
+    }
+
+    /**
+     * The number written on the item itself (1 to size), or 0 when the item does not carry one. The display
+     * name is checked first, then every lore line. A number anywhere in the text is accepted as long as it is
+     * a standalone one or two digit token, so "1", "§a1" and "Click 3" all work, while "Red Stained Glass
+     * Pane" and "Terminal 1/14" style names do not accidentally read as something else.
+     */
+    public static int explicitNumber(ItemStack stack, int size) {
+        if (stack == null || size <= 0) {
             return 0;
         }
-        String text = EnumChatFormatting.getTextWithoutFormattingCodes(stack.getDisplayName());
+        int n = numberInText(stack.getDisplayName());
+        if (n >= 1 && n <= size) {
+            return n;
+        }
+        for (String line : loreLines(stack)) {
+            n = numberInText(line);
+            if (n >= 1 && n <= size) {
+                return n;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * A stained glass pane or block whose stack size is its number (1 to size), or 0. Items that are already
+     * clicked are skipped: their stack size is not the number any more, and their slot must not be used as a
+     * click target.
+     */
+    public static int stackNumber(ItemStack stack, int size) {
+        if (stack == null || size <= 0 || stack.stackSize < 1 || stack.stackSize > size) {
+            return 0;
+        }
+        if (!isNumberedPane(stack) || isClicked(stack)) {
+            return 0;
+        }
+        return stack.stackSize;
+    }
+
+    /** True when the stack is a pane or glass block, the items the Click in order terminal uses. */
+    public static boolean isNumberedPane(ItemStack stack) {
+        if (stack == null) {
+            return false;
+        }
+        Item item = stack.getItem();
+        return item != null
+                && (item == Item.getItemFromBlock(Blocks.stained_glass_pane)
+                || item == Item.getItemFromBlock(Blocks.stained_glass)
+                || item == Item.getItemFromBlock(Blocks.glass_pane));
+    }
+
+    /** The first standalone one or two digit number in a text, or 0 when there is none. */
+    static int numberInText(String text) {
         if (text == null) {
             return 0;
         }
-        String t = text.trim();
-        if (t.isEmpty() || t.length() > 2) {
+        String stripped = EnumChatFormatting.getTextWithoutFormattingCodes(text);
+        if (stripped == null) {
             return 0;
         }
-        for (int k = 0; k < t.length(); k++) {
-            if (!Character.isDigit(t.charAt(k))) {
-                return 0;
-            }
+        String t = stripped.trim();
+        if (t.isEmpty() || t.length() > 64) {
+            return 0;
         }
-        int n = Integer.parseInt(t);
-        return n >= 1 && n <= size ? n : 0;
+        int start = -1;
+        for (int k = 0; k <= t.length(); k++) {
+            boolean digit = k < t.length() && Character.isDigit(t.charAt(k));
+            if (digit) {
+                if (start < 0) {
+                    start = k;
+                }
+                continue;
+            }
+            if (start < 0) {
+                continue;
+            }
+            int end = k - 1;
+            if (end - start + 1 <= 2
+                    && (start == 0 || !Character.isLetterOrDigit(t.charAt(start - 1)))
+                    && (k == t.length() || !Character.isLetterOrDigit(t.charAt(k)))) {
+                int n = Integer.parseInt(t.substring(start, end + 1));
+                if (n >= 1) {
+                    return n;
+                }
+            }
+            start = -1;
+        }
+        return 0;
+    }
+
+    /** The lore lines of a stack, or an empty list when it has none. */
+    private static List<String> loreLines(ItemStack stack) {
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null || !tag.hasKey("display", 10)) {
+            return Collections.emptyList();
+        }
+        NBTTagCompound display = tag.getCompoundTag("display");
+        if (display == null || !display.hasKey("Lore", 9)) {
+            return Collections.emptyList();
+        }
+        NBTTagList lore = display.getTagList("Lore", 8);
+        if (lore == null || lore.tagCount() == 0) {
+            return Collections.emptyList();
+        }
+        List<String> lines = new ArrayList<>(lore.tagCount());
+        for (int i = 0; i < lore.tagCount(); i++) {
+            lines.add(lore.getStringTagAt(i));
+        }
+        return lines;
     }
 
     /** True when the stack is a lime stained glass pane, the colour a clicked number turns into. */

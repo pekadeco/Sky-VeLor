@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.6v
+# Sky VeLor — Beta-0.10.6.5v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, and quick notes.
 
@@ -47,7 +47,7 @@ The mod JAR is written to `build/libs/`. The generated `build/` and `.gradle/` d
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.6v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.6.5v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Compatibility and testing limits

@@ -1,5 +1,10 @@
 name: Build Sky VeLor
 
+# The ForgeGradle 2.1 / Minecraft 1.8.9 toolchain needs a JDK 8 and network access to the Forge Maven
+# and Mojang's asset servers. This workflow is that environment: it checks out the branch it runs on,
+# builds the mod with the project's own Gradle wrapper, runs the standalone logic tests, verifies that
+# the output really is the Sky VeLor mod JAR, and uploads it.
+
 on:
   workflow_dispatch:
   push:
@@ -11,87 +16,103 @@ jobs:
   build:
     name: Build with Java 8
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout repository at commit 131e5ae
+      - name: Checkout the branch this run was started from
         uses: actions/checkout@v4
-        with:
-          ref: 131e5ae
-          fetch-depth: 0
-      
+
       - name: Set up Java 8 JDK
         uses: actions/setup-java@v4
         with:
           java-version: '8'
           distribution: 'temurin'
-          cache: 'gradle'
-      
-      - name: Verify Java version
+
+      - name: Verify the Java version
         run: |
           echo "Java version:"
           java -version
           echo "Javac version:"
           javac -version
-      
+
+      - name: Cache the Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle8-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle8-
+
       - name: Make gradlew executable
         run: chmod +x gradlew
-      
-      - name: Build with Gradle
+
+      - name: Build the mod (ForgeGradle 2.1, Minecraft 1.8.9)
         id: build
+        run: ./gradlew clean build dumpTestClasspath --stacktrace
+
+      - name: Show the build output
+        if: always()
         run: |
-          ./gradlew build --stacktrace
-        continue-on-error: true
-      
-      - name: List build outputs
+          echo "=== build/libs ==="
+          ls -la build/libs/ 2>/dev/null || echo "build/libs not found"
+          echo "=== every jar produced ==="
+          find build -name '*.jar' -type f 2>/dev/null | sort
+
+      - name: Run the standalone logic tests
+        run: TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
+
+      - name: Verify the release JAR
+        id: verify
         run: |
-          echo "=== Build directory contents ==="
-          ls -la build/ 2>/dev/null || echo "build/ directory not found"
-          echo "=== build/libs/ contents ==="
-          ls -la build/libs/ 2>/dev/null || echo "build/libs/ directory not found"
-      
-      - name: Check for JAR file
-        id: check_jar
-        run: |
-          JAR_PATH="build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar"
-          if [ -f "$JAR_PATH" ]; then
-            echo "JAR_FOUND=true" >> $GITHUB_OUTPUT
-            echo "JAR_PATH=$JAR_PATH" >> $GITHUB_OUTPUT
-            echo "::notice::JAR found at $JAR_PATH"
-            ls -lh "$JAR_PATH"
-            
-            # Verify version metadata
-            echo "=== JAR contents check ==="
-            jar tf "$JAR_PATH" | grep -E "PekaVersion\.class|PekaClientMod\.class" && echo "::notice::Version classes found in JAR"
-            
-            # Check version string in JAR
-            unzip -p "$JAR_PATH" com/arena/pekaclient/PekaVersion.class 2>/dev/null | strings | grep "Beta-0.10" && echo "::notice::Version string Beta-0.10.7v confirmed" || echo "::warning::Version string not found in JAR"
-          else
-            echo "JAR_FOUND=false" >> $GITHUB_OUTPUT
-            echo "::error::JAR not found at expected path: $JAR_PATH"
-            find build -name "*.jar" -type f 2>/dev/null || echo "::error::No JAR files found in build/"
+          set -e
+          JAR="build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
+          if [ ! -f "$JAR" ]; then
+            echo "::error::$JAR was not produced"
+            exit 1
           fi
-      
-      - name: Upload JAR artifact
-        if: steps.check_jar.outputs.JAR_FOUND == 'true'
+          ls -lh "$JAR"
+
+          echo "=== mod classes ==="
+          unzip -l "$JAR" | grep -E "com/arena/pekaclient/(PekaClientMod|PekaVersion|gui/TerminalScreen|gui/DungeonHudScreen|dungeon/TerminalSolver|hud/ClickInOrderHud)\.class"
+
+          echo "=== resources ==="
+          unzip -l "$JAR" | grep -E "mcmod.info|assets/pekaclient/lang/en_US.lang"
+
+          echo "=== mcmod.info ==="
+          unzip -p "$JAR" mcmod.info
+
+          echo "=== version metadata inside the compiled class ==="
+          unzip -p "$JAR" com/arena/pekaclient/PekaVersion.class | grep -a "Beta-0.10.6.5v"
+
+          echo "=== the JAR must be the mod, not an intermediate Minecraft jar ==="
+          if unzip -l "$JAR" | grep -q "net/minecraft/"; then
+            echo "::error::the JAR contains Minecraft classes, so it is an intermediate jar"
+            exit 1
+          fi
+          if unzip -l "$JAR" | grep -qE "deobf|deobfed"; then
+            echo "::error::the JAR looks like a deobfuscated intermediate jar"
+            exit 1
+          fi
+
+          echo "class count in the JAR: $(unzip -l "$JAR" | grep -c '\.class$')"
+          echo "::notice::$JAR verified"
+
+      - name: Upload the release JAR
         uses: actions/upload-artifact@v4
         with:
-          name: SkyVeLor-1.8.9-Beta-0.10.7v
-          path: build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar
-          retention-days: 30
-      
-      - name: Upload build logs
+          name: SkyVeLor-1.8.9-Beta-0.10.6.5v
+          path: build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload the build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
           path: |
-            build/logs/
             build/reports/
-          retention-days: 7
-      
-      - name: Fail workflow if JAR not found
-        if: steps.check_jar.outputs.JAR_FOUND != 'true'
-        run: |
-          echo "::error::Build failed - JAR not created at expected path"
-          echo "::error::Check build-logs artifact for details"
-          exit 1
+            build/logs/
+          if-no-files-found: ignore
+          retention-days: 14

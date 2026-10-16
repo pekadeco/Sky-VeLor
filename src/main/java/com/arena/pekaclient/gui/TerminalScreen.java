@@ -2,15 +2,12 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.dungeon.TerminalSolver;
 import net.minecraft.client.Minecraft;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
+import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.inventory.ContainerChest;
 import net.minecraft.item.ItemStack;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.inventory.ContainerChest;
-import net.minecraft.inventory.Slot;
-import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
@@ -20,6 +17,11 @@ import java.io.IOException;
  * The number to click now is green, the one after it is yellow, and every other button is black.
  * A wrong click flashes red and counts as a mistake, but does not move you on.
  * The panel scales with the window. The Transparent button makes the panel see-through. R restarts and Esc closes.
+ *
+ * The fourteen buttons are part of the panel itself and are always drawn, in the practice panel from /terminal
+ * and in the panel that stands in for a live Click in order chest. Reading the live chest only decides which
+ * number is next, which ones are already clicked and where a click is sent; when the chest cannot be read the
+ * panel still draws and still counts clicks, so the grid can never disappear.
  */
 public final class TerminalScreen extends GuiScreen {
     private static final int COUNT = 14;
@@ -52,6 +54,15 @@ public final class TerminalScreen extends GuiScreen {
     private static final int ALPHA_SOLID = 0xFF;
     private static final int ALPHA_CLEAR = 0x40;
 
+    /** The smallest and largest scale the panel is drawn at. The layout is designed at 1x. */
+    private static final float MIN_SCALE = 0.25F;
+    private static final float MAX_SCALE = 2.0F;
+
+    /** How the chest states which number each item is. */
+    private static final int FORMAT_NONE = 0;
+    private static final int FORMAT_ITEMS = 1;
+    private static final int FORMAT_STACKS = 2;
+
     /** The number shown in each cell, cell 0 is top left. */
     private final int[] numbers = new int[COUNT];
     private final boolean[] done = new boolean[COUNT];
@@ -69,11 +80,16 @@ public final class TerminalScreen extends GuiScreen {
     private final int[] slotFor = new int[COUNT + 1];
     /** Last time a click was sent for each number, so one press is not sent twice. */
     private final long[] sentAt = new long[COUNT + 1];
-    /** How many numbers the live chest has, counted from 1 without gaps. */
-    private int liveCount = COUNT;
+    /** Item signature taken when a click was sent, so a changed slot counts as clicked. */
+    private final long[] sentSignature = new long[COUNT + 1];
+    /** How many numbers the live chest has, counted from 1 without gaps. Used for logging only. */
+    private int liveCount;
+    /** How the live chest was read the last time it was looked at. */
+    private int format = FORMAT_NONE;
     private static final long SEND_COOLDOWN_MS = 400L;
     private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     private final long openedAt = System.currentTimeMillis();
+    private boolean loggedMapping;
     private boolean dumpedSlots;
 
     /** The practice panel from /terminal. */
@@ -95,6 +111,11 @@ public final class TerminalScreen extends GuiScreen {
             done[i] = false;
             wrongUntil[i] = 0L;
         }
+        for (int n = 0; n <= COUNT; n++) {
+            slotFor[n] = -1;
+            sentAt[n] = 0L;
+            sentSignature[n] = 0L;
+        }
         next = 1;
         mistakes = 0;
         started = false;
@@ -104,22 +125,25 @@ public final class TerminalScreen extends GuiScreen {
 
     /**
      * The scale for this window. The layout is designed at 1x, and the whole panel grows or shrinks to fit the
-     * window, between half size and double size.
+     * window, between half size and double size at normal resolutions, and always fits a small one.
      */
     private float scale() {
+        if (width <= 0 || height <= 0) {
+            return 1.0F;
+        }
         float fitW = width / (float) (designW() + 40);
         float fitH = height / (float) (designH() + 60);
         float s = Math.min(fitW, fitH);
-        return Math.max(0.5F, Math.min(2.0F, s));
+        return Math.max(MIN_SCALE, Math.min(MAX_SCALE, s));
     }
 
     /** Window size in design units (1x pixels), so the layout code can use the same numbers at any scale. */
     private int logicalW() {
-        return (int) (width / scale());
+        return Math.max(1, (int) (width / scale()));
     }
 
     private int logicalH() {
-        return (int) (height / scale());
+        return Math.max(1, (int) (height / scale()));
     }
 
     private int designW() {
@@ -176,72 +200,142 @@ public final class TerminalScreen extends GuiScreen {
         return (a << 24) | (color & 0x00FFFFFF);
     }
 
+    /** The stack in a chest slot, or null when the slot is empty or not part of the chest. */
+    private ItemStack stackAt(int slot) {
+        if (live == null || slot < 0 || slot >= live.inventorySlots.size()) {
+            return null;
+        }
+        return live.getSlot(slot).getStack();
+    }
+
+    /** A cheap fingerprint of a stack, used to notice that a clicked slot changed. */
+    private static long signature(ItemStack stack) {
+        if (stack == null) {
+            return 0L;
+        }
+        long sig = 17L;
+        sig = sig * 31L + stack.getItem().hashCode();
+        sig = sig * 31L + stack.getMetadata();
+        sig = sig * 31L + stack.stackSize;
+        String name = stack.getDisplayName();
+        sig = sig * 31L + (name == null ? 0 : name.hashCode());
+        sig = sig * 31L + (stack.getTagCompound() == null ? 0 : stack.getTagCompound().hashCode());
+        return sig == 0L ? 1L : sig;
+    }
+
+    /** True when the slot of this number changed after a click was sent to it. */
+    private boolean changedSinceClick(int n, ItemStack stack) {
+        return sentSignature[n] != 0L && signature(stack) != sentSignature[n];
+    }
+
+    /** True while a click that was just sent for this number may still be on its way to the chest. */
+    private boolean justSent(int n, long now) {
+        return sentAt[n] != 0L && now - sentAt[n] < SEND_COOLDOWN_MS;
+    }
+
     /**
-     * Finds each number's slot. By name: the item's name is the number. By stack: a glass pane's stack size is
-     * the number. Returns how many numbers from 1 are found without a gap.
+     * Finds each number's slot in the live chest and works out which numbers are already clicked.
+     *
+     * Two readings are supported. In the first, the item itself says which number it is (its name or its lore).
+     * In the second, the numbers are unnumbered stained glass panes whose stack size is the number, so the panes
+     * that are still there say which numbers are left. When neither reading finds anything, the panel keeps its
+     * own count and the chest contents are written to the log once, so the cause can be checked.
      */
-    private int mapSlots(int size, boolean byStack) {
+    private void syncLive() {
+        int size = live.getLowerChestInventory().getSizeInventory();
+        int chestSlots = Math.min(size, live.inventorySlots.size());
+        int[] stackSlots = new int[COUNT + 1];
         for (int n = 0; n <= COUNT; n++) {
             slotFor[n] = -1;
+            stackSlots[n] = -1;
         }
-        for (int i = 0; i < size && i < live.inventorySlots.size(); i++) {
-            ItemStack st = live.getSlot(i).getStack();
+        int onItems = 0;
+        int byStack = 0;
+        for (int i = 0; i < chestSlots; i++) {
+            ItemStack st = stackAt(i);
             if (st == null) {
                 continue;
             }
-            int n;
-            if (byStack) {
-                if (st.getItem() != Item.getItemFromBlock(Blocks.stained_glass_pane)) {
-                    continue;
+            int n = TerminalSolver.explicitNumber(st, size);
+            if (n > 0) {
+                if (n <= COUNT && slotFor[n] < 0) {
+                    slotFor[n] = i;
+                    onItems++;
                 }
-                n = st.stackSize;
-            } else {
-                n = TerminalSolver.numberOf(st, size);
+                continue;
             }
-            if (n > 0 && n <= COUNT && slotFor[n] < 0) {
-                slotFor[n] = i;
+            n = TerminalSolver.stackNumber(st, size);
+            if (n > 0 && n <= COUNT && stackSlots[n] < 0) {
+                stackSlots[n] = i;
+                byStack++;
             }
         }
-        int count = 0;
-        while (count < COUNT && slotFor[count + 1] >= 0) {
-            count++;
+        format = onItems > 0 ? FORMAT_ITEMS : (byStack > 0 ? FORMAT_STACKS : FORMAT_NONE);
+        if (format == FORMAT_STACKS) {
+            // The panes that are still unclicked are exactly the numbers that are left, so a number with no
+            // pane of that size is already clicked.
+            System.arraycopy(stackSlots, 0, slotFor, 0, slotFor.length);
         }
-        return count;
-    }
+        liveCount = 0;
+        while (liveCount < COUNT && slotFor[liveCount + 1] >= 0) {
+            liveCount++;
+        }
 
-    /** Reads the live chest: where each number is, which are clicked, and the next one to click. */
-    private void syncLive() {
-        int size = live.getLowerChestInventory().getSizeInventory();
-        // By name first. If no name is a number, read the glass panes' stack sizes instead (how NEF reads it).
-        int found = mapSlots(size, false);
-        if (found == 0) {
-            found = mapSlots(size, true);
-        }
-        liveCount = found;
-        boolean anyDone = false;
-        for (int n = 1; n <= COUNT; n++) {
-            boolean clicked = n <= liveCount && TerminalSolver.isClicked(live.getSlot(slotFor[n]).getStack());
-            done[n - 1] = clicked;
-            anyDone |= clicked;
-        }
-        next = 1;
-        while (next <= liveCount && done[next - 1]) {
-            next++;
-        }
         long now = System.currentTimeMillis();
-        if (anyDone && !started) {
+        boolean progress = false;
+        for (int n = 1; n <= COUNT; n++) {
+            boolean clicked = done[n - 1];
+            if (format == FORMAT_ITEMS) {
+                if (slotFor[n] >= 0) {
+                    ItemStack st = stackAt(slotFor[n]);
+                    clicked = st == null || TerminalSolver.isClicked(st) || changedSinceClick(n, st);
+                    if (!clicked && justSent(n, now)) {
+                        // The click that was just sent has not reached the chest yet.
+                        clicked = true;
+                    }
+                } else if (sentAt[n] != 0L) {
+                    // The number is no longer in the chest as this number: our click was taken.
+                    clicked = true;
+                }
+                done[n - 1] = clicked;
+            } else if (format == FORMAT_STACKS) {
+                // The unclicked panes are the numbers that are left, so a number with no pane of that size is
+                // already clicked. A short grace window keeps a tile marked while a click is on its way.
+                clicked = slotFor[n] < 0 || justSent(n, now);
+                done[n - 1] = clicked;
+            }
+            // FORMAT_NONE keeps the panel's own count.
+            progress |= clicked;
+        }
+        if (format != FORMAT_NONE) {
+            int n = 1;
+            while (n <= COUNT && done[n - 1]) {
+                n++;
+            }
+            next = n;
+        }
+
+        if (progress && !started) {
             started = true;
             startedAt = now;
         }
-        if (liveCount > 0 && next > liveCount && finishedAt == 0L) {
+        if (format != FORMAT_NONE && next > COUNT && finishedAt == 0L) {
             finishedAt = now;
         }
-        // No numbers after two seconds: write what the chest slots hold, so the cause can be checked in the log.
-        if (liveCount == 0 && !dumpedSlots && now - openedAt > 2000L) {
+        // One line per panel, so a terminal in the game can be checked from the log: which reading worked and
+        // how many numbers were found. When nothing is found, the whole chest is listed once after two seconds.
+        if (!loggedMapping) {
+            loggedMapping = true;
+            LOG.info("[ClickInOrder] chest with " + size + " slots: "
+                    + (format == FORMAT_ITEMS ? "numbers on the items" : format == FORMAT_STACKS
+                    ? "numbers from the pane stack sizes" : "no numbers found")
+                    + ", " + liveCount + " of " + COUNT + " numbers mapped");
+        }
+        if (format == FORMAT_NONE && !dumpedSlots && now - openedAt > 2000L) {
             dumpedSlots = true;
             LOG.info("[ClickInOrder] no numbers found in chest with " + size + " slots");
-            for (int i = 0; i < size && i < live.inventorySlots.size(); i++) {
-                ItemStack st = live.getSlot(i).getStack();
+            for (int i = 0; i < chestSlots; i++) {
+                ItemStack st = stackAt(i);
                 String name = st == null ? "(empty)" : String.valueOf(st.getDisplayName());
                 int sz = st == null ? 0 : st.stackSize;
                 LOG.info("[ClickInOrder] slot " + i + " name=" + name + " stackSize=" + sz);
@@ -260,6 +354,9 @@ public final class TerminalScreen extends GuiScreen {
         GlStateManager.scale(s, s, 1.0F);
         drawPanel(mouseX / s, mouseY / s);
         GlStateManager.popMatrix();
+        // Leave the state the rest of the GUI expects: white tint, textures on, no scale left behind.
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.enableTexture2D();
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
@@ -284,11 +381,11 @@ public final class TerminalScreen extends GuiScreen {
                 py + (HEADER - 8) / 2, COLOR_HINT);
 
         long now = System.currentTimeMillis();
-        int count = live == null ? COUNT : liveCount;
-        for (int i = 0; i < count; i++) {
+        // Every one of the fourteen buttons is drawn, whatever the live chest contains. Only the colour of a
+        // button follows the chest: green is the number to click now, yellow the one after it, black the rest.
+        for (int i = 0; i < COUNT; i++) {
             int x = cellX(i);
             int y = cellY(i);
-            // Green: the number to click now. Yellow: the one after it. Everything else is black.
             int fill = COLOR_BLACK;
             int text = done[i] ? COLOR_DONE_TEXT : COLOR_TEXT;
             if (!done[i] && numbers[i] == next) {
@@ -301,23 +398,25 @@ public final class TerminalScreen extends GuiScreen {
             if (!done[i] && now < wrongUntil[i]) {
                 fill = COLOR_WRONG;
             }
-            drawRoundRect(x, y, x + CELL_W, y + CELL_H, 6, withMode(COLOR_TOGGLE_EDGE, ALPHA_SOLID));
-            drawRoundRect(x + 1, y + 1, x + CELL_W - 1, y + CELL_H - 1, 5, withMode(fill, ALPHA_SOLID));
+            // The buttons keep their own colour and their own numbers in both panel modes: the Transparent
+            // button only fades the panel behind them, so the grid stays readable.
+            drawRoundRect(x, y, x + CELL_W, y + CELL_H, 6, COLOR_TOGGLE_EDGE);
+            drawRoundRect(x + 1, y + 1, x + CELL_W - 1, y + CELL_H - 1, 5, fill);
             String label = String.valueOf(numbers[i]);
-            drawBigNumber(label, x + CELL_W / 2, y + CELL_H / 2, withMode(text, ALPHA_SOLID));
+            drawBigNumber(label, x + CELL_W / 2, y + CELL_H / 2, text);
         }
 
         // Transparency button under the panel.
         int tx = toggleX();
         int ty = toggleY();
         boolean hover = inside(Math.round(mouseX), Math.round(mouseY), tx, ty, TOGGLE_W, TOGGLE_H);
-        drawRoundRect(tx, ty, tx + TOGGLE_W, ty + TOGGLE_H, 5, withMode(COLOR_TOGGLE_EDGE, ALPHA_SOLID));
+        drawRoundRect(tx, ty, tx + TOGGLE_W, ty + TOGGLE_H, 5, COLOR_TOGGLE_EDGE);
         drawRoundRect(tx + 1, ty + 1, tx + TOGGLE_W - 1, ty + TOGGLE_H - 1, 4,
-                withMode(hover ? 0xFF35353C : COLOR_TOGGLE, ALPHA_SOLID));
+                hover ? 0xFF35353C : COLOR_TOGGLE);
         String toggleLabel = "Transparent: " + (transparent ? "On" : "Off");
         drawCenteredString(fontRendererObj, toggleLabel, tx + TOGGLE_W / 2, ty + (TOGGLE_H - 8) / 2, COLOR_TEXT);
 
-        String hint = live == null ? "Click 1 to 14 in order. R restarts. Esc closes." : "Click 1 to 14 in order. Esc closes.";
+        String hint = "Click 1 to 14 in order. R restarts. Esc closes.";
         drawCenteredString(fontRendererObj, hint, logicalW() / 2, ty + TOGGLE_H + 8, COLOR_HINT);
     }
 
@@ -337,8 +436,8 @@ public final class TerminalScreen extends GuiScreen {
         if (finishedAt > 0L) {
             return;
         }
-        int count = live == null ? COUNT : liveCount;
-        for (int i = 0; i < count; i++) {
+        // The hit boxes are the same fourteen cells that were just drawn, at any scale or window size.
+        for (int i = 0; i < COUNT; i++) {
             if (inside(mouseX, mouseY, cellX(i), cellY(i), CELL_W, CELL_H)) {
                 press(i);
                 return;
@@ -347,36 +446,8 @@ public final class TerminalScreen extends GuiScreen {
     }
 
     private void press(int i) {
-        if (live != null) {
-            pressLive(i);
-            return;
-        }
+        int n = numbers[i];
         if (done[i]) {
-            return;
-        }
-        if (!started) {
-            started = true;
-            startedAt = System.currentTimeMillis();
-        }
-        if (numbers[i] == next) {
-            done[i] = true;
-            next++;
-            if (next > COUNT) {
-                finishedAt = System.currentTimeMillis();
-            }
-        } else {
-            mistakes++;
-            wrongUntil[i] = System.currentTimeMillis() + WRONG_MS;
-        }
-    }
-
-    /**
-     * A press on the live panel. The right number is sent to the chest as a click. A wrong one only flashes
-     * red and counts as a mistake, the same as the practice panel.
-     */
-    private void pressLive(int i) {
-        int n = i + 1;
-        if (done[i] || n > liveCount) {
             return;
         }
         if (n != next) {
@@ -384,31 +455,59 @@ public final class TerminalScreen extends GuiScreen {
             wrongUntil[i] = System.currentTimeMillis() + WRONG_MS;
             return;
         }
+        if (!started) {
+            started = true;
+            startedAt = System.currentTimeMillis();
+        }
+        int slot = live == null ? -1 : slotFor[n];
+        if (slot >= 0) {
+            sendClick(n, slot);
+            return;
+        }
+        // No slot for this number: the practice panel, and a live chest whose numbers could not be read.
+        // The panel keeps counting on its own so the grid stays usable either way.
+        advance(i, n);
+    }
+
+    /** Sends one window click to the chest slot of this number. The server still validates it. */
+    private void sendClick(int n, int slot) {
         long now = System.currentTimeMillis();
         if (now - sentAt[n] < SEND_COOLDOWN_MS) {
             return;
         }
-        sentAt[n] = now;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.playerController == null || mc.thePlayer == null) {
             return;
         }
-        mc.playerController.windowClick(live.windowId, slotFor[n], 0, 0, mc.thePlayer);
+        sentAt[n] = now;
+        sentSignature[n] = signature(stackAt(slot));
+        mc.playerController.windowClick(live.windowId, slot, 0, 0, mc.thePlayer);
+    }
+
+    /** Marks a number as clicked on the panel itself. The next look at the chest may correct this. */
+    private void advance(int i, int n) {
+        done[i] = true;
+        next = n + 1;
+        if (next > COUNT) {
+            finishedAt = System.currentTimeMillis();
+        }
     }
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (live != null) {
-            if (keyCode == Keyboard.KEY_ESCAPE) {
-                // Close the chest the proper way, so the server knows the window is closed.
-                Minecraft.getMinecraft().thePlayer.closeScreen();
-                return;
-            }
-            super.keyTyped(typedChar, keyCode);
+        if (keyCode == Keyboard.KEY_R) {
+            // Restart the panel's own count and timer. A live chest is read again on the next frame.
+            reset();
             return;
         }
-        if (keyCode == Keyboard.KEY_R) {
-            reset();
+        if (live != null && keyCode == Keyboard.KEY_ESCAPE) {
+            // Close the chest the proper way, so the server knows the window is closed.
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.thePlayer != null) {
+                mc.thePlayer.closeScreen();
+            } else {
+                mc.displayGuiScreen(null);
+            }
             return;
         }
         super.keyTyped(typedChar, keyCode);
