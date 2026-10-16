@@ -1,0 +1,13 @@
+[
+  {
+    "modid": "pekaclient",
+    "name": "Sky VeLor",
+    "description": "Client-side HUD, settings, dungeon, fishing and gameplay utilities for Minecraft 1.8.9.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "authorList": ["Sky VeLor contributors"],
+    "credits": "Built for Minecraft 1.8.9 with Forge.",
+    "clientSideOnly": true,
+    "useDependencyInformation": false
+  }
+]
