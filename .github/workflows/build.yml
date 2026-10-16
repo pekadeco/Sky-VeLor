@@ -1,12 +1,15 @@
 name: Build Sky VeLor
 
-# The ForgeGradle 2.1 / Minecraft 1.8.9 toolchain needs a JDK 8 and network access to the Forge Maven
-# and Mojang's asset servers. This workflow is that environment: it checks out the branch it runs on,
-# builds the mod with the project's own Gradle wrapper, runs the standalone logic tests, verifies that
-# the output really is the Sky VeLor mod JAR, and uploads it.
-
-# The dist/ publish step commits the built JAR back to the branch, so the workflow needs write access
-# to the repository contents.
+# The ForgeGradle 2.1 / Minecraft 1.8.9 toolchain needs a JDK 8 and network access to the Forge
+# Maven and Mojang's servers. This workflow is that environment: it checks out the revision it was
+# triggered by, builds with the project's own Gradle wrapper, runs the standalone tests, verifies
+# that the output really is the reobfuscated Sky VeLor mod jar, and publishes it.
+#
+# Nothing here hardcodes a version or a revision. The version is read from PekaVersion.NAME, which
+# build.gradle also reads, so the jar name, mcmod.info, the release tag and the verification all
+# follow the source automatically.
+#
+# The dist/ publish step commits the built jar back to the branch, so this needs write access.
 permissions:
   contents: write
 
@@ -19,13 +22,18 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  # Resolved once and reused; never hardcoded, so a version bump needs no workflow edit.
+  VERSION_FILE: src/main/java/com/arena/pekaclient/PekaVersion.java
+
 jobs:
   build:
     name: Build with Java 8
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
-      - name: Checkout the branch this run was started from
+      - name: Checkout the revision this run was triggered by
         uses: actions/checkout@v4
 
       - name: Set up Java 8 JDK
@@ -33,13 +41,6 @@ jobs:
         with:
           java-version: '8'
           distribution: 'temurin'
-
-      - name: Verify the Java version
-        run: |
-          echo "Java version:"
-          java -version
-          echo "Javac version:"
-          javac -version
 
       - name: Cache the Gradle caches
         uses: actions/cache@v4
@@ -51,149 +52,163 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle8-
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
+      - name: Resolve the release version from source
+        run: |
+          set -e
+          VERSION=$(grep -oE 'NAME *= *"[^"]+"' "$VERSION_FILE" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          if [ -z "$VERSION" ]; then
+            echo "::error title=VERSION::could not read PekaVersion.NAME from $VERSION_FILE"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "JAR_NAME=SkyVeLor-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
+          {
+            echo "revision : $(git rev-parse HEAD)"
+            echo "branch   : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+            echo "version  : $VERSION"
+            echo "java     : $(java -version 2>&1 | head -1)"
+          } | tee "$RUNNER_TEMP/revision.txt"
 
       - name: Build the mod (ForgeGradle 2.1, Minecraft 1.8.9)
-        id: build
         run: |
           set -o pipefail
+          chmod +x gradlew
+          ./gradlew --version 2>&1 | tee "$RUNNER_TEMP/gradle-version.txt"
           ./gradlew clean build dumpTestClasspath --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"
-          echo "=== reobfuscation and jar tasks ==="
-          grep -E "^:(reobf|jar|makeStart|build|deobf)" "$RUNNER_TEMP/build.log" || true
+          echo "=== tasks that produced the jar ==="
+          grep -E "^:(compileJava|jar|reobfJar|sourceJar|assemble|check|build)" "$RUNNER_TEMP/build.log" || true
+          tail -6 "$RUNNER_TEMP/build.log"
 
-      - name: Show the build output
+      - name: Inventory every jar produced
         if: always()
         run: |
           echo "=== build/libs ==="
-          ls -la build/libs/ 2>/dev/null || echo "build/libs not found"
-          echo "=== every jar produced ==="
-          find build -name '*.jar' -type f 2>/dev/null | sort
+          ls -lh build/libs/ 2>/dev/null || echo "build/libs not found"
+          echo "=== every jar under build/ ==="
+          # build/tmp/deobfMcMCP/deobfed.jar is ForgeGradle's deobfuscated Minecraft, about 11 MB.
+          # It is NOT the mod. A previous release was published from it by mistake.
+          find build -name '*.jar' -type f -printf '%10s  %p\n' 2>/dev/null | sort -k2
 
       - name: Run the standalone logic tests
-        run: TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
-
-      - name: Verify the release JAR
-        id: verify
         run: |
-          set -e
-          JAR="build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
+          set -o pipefail
+          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          echo "=== suites ==="
+          grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" | tail -40
+
+      - name: Verify the release jar is really the reobfuscated mod
+        run: |
+          # GitHub's default shell is `bash -e -o pipefail`, which would abort on the verifier's
+          # first nonzero status before it printed why. Report first, then fail.
+          set +e +o pipefail
+          JAR="$PWD/build/libs/$JAR_NAME"
+          echo "expected artifact: $JAR"
           if [ ! -f "$JAR" ]; then
-            echo "::error::$JAR was not produced"
+            echo "::error title=JAR::$JAR_NAME was not produced"
+            find "$PWD/build" -name '*.jar' -printf '%10s %p\n' | sort -k2
             exit 1
           fi
-          ls -lh "$JAR"
-
-          echo "=== mod classes ==="
-          unzip -l "$JAR" | grep -E "com/arena/pekaclient/(PekaClientMod|PekaVersion|gui/TerminalScreen|gui/DungeonHudScreen|dungeon/TerminalSolver|hud/ClickInOrderHud)\.class"
-
-          echo "=== resources ==="
-          unzip -l "$JAR" | grep -E "mcmod.info|assets/pekaclient/lang/en_US.lang"
-
-          echo "=== mcmod.info ==="
-          unzip -p "$JAR" mcmod.info
-
-          echo "=== version metadata inside the compiled class ==="
-          unzip -p "$JAR" com/arena/pekaclient/PekaVersion.class | grep -a "Beta-0.10.6.5v"
-
-          echo "=== the JAR must be the mod, not an intermediate Minecraft jar ==="
-          if unzip -l "$JAR" | grep -q "net/minecraft/"; then
-            echo "::error::the JAR contains Minecraft classes, so it is an intermediate jar"
-            exit 1
+          python3 tools/verify_release_jar.py "$JAR" --version "$VERSION" > "$RUNNER_TEMP/verify.txt" 2>&1
+          RC=$?
+          cat "$RUNNER_TEMP/verify.txt"
+          grep '^  FAIL' "$RUNNER_TEMP/verify.txt" | while read -r line; do
+            echo "::error title=JAR-VERIFY::${line}"
+          done
+          tail -1 "$RUNNER_TEMP/verify.txt" | while read -r line; do
+            echo "::notice title=JAR-VERIFY::${line}"
+          done
+          if [ "$RC" != "0" ]; then
+            echo "::error title=JAR::release verification failed with exit $RC"
+            exit "$RC"
           fi
-          if unzip -l "$JAR" | grep -qE "deobf|deobfed"; then
-            echo "::error::the JAR looks like a deobfuscated intermediate jar"
-            exit 1
-          fi
-
-          echo "class count in the JAR: $(unzip -l "$JAR" | grep -c '\.class$')"
-          echo "::notice::$JAR verified"
+          echo "::notice title=JAR::verified $JAR_NAME $(stat -c%s "$JAR") bytes version=$VERSION"
 
       - name: Write the build report
         run: |
           set -e
-          JAR="build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
+          JAR="build/libs/$JAR_NAME"
           {
-            echo "Sky VeLor Beta-0.10.6.5v build report"
-            echo "===================================="
-            echo "commit:  $GITHUB_SHA"
-            echo "ref:     $GITHUB_REF"
-            echo "runner:  $(uname -a)"
-            echo
-            echo "java -version:"
-            java -version 2>&1
+            echo "Sky VeLor $VERSION build report"
+            echo "================================"
+            cat "$RUNNER_TEMP/revision.txt"
+            echo "run      : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
             echo "gradle:"
-            ./gradlew --version 2>&1 | sed -n '1,12p'
+            sed -n '1,12p' "$RUNNER_TEMP/gradle-version.txt"
             echo
-            echo "jar:     $JAR"
-            echo "sha256:  $(sha256sum "$JAR" | cut -d' ' -f1)"
-            echo "size:    $(stat -c%s "$JAR") bytes"
+            echo "jar      : dist/$JAR_NAME"
+            echo "size     : $(stat -c%s "$JAR") bytes"
+            echo "sha256   : $(sha256sum "$JAR" | cut -d' ' -f1)"
             echo
             echo "gradle tasks that produced the jar:"
-            grep -E "^:(reobf|jar|makeStart|build|deobf)" "$RUNNER_TEMP/build.log" || echo "(none listed)"
+            grep -E "^:(compileJava|jar|reobfJar|sourceJar|assemble|check|build)" "$RUNNER_TEMP/build.log" || echo "(none listed)"
             echo
-            echo "jar contents:"
-            unzip -l "$JAR"
+            echo "reobfuscated: yes - tools/verify_release_jar.py confirmed SRG member references"
+            echo "              and no development (MCP) member names left in the packaged classes."
             echo
-            echo "mcmod.info:"
-            unzip -p "$JAR" mcmod.info
+            echo "test suites:"
+            grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" || true
             echo
-            echo "version string in PekaVersion.class:"
-            unzip -p "$JAR" com/arena/pekaclient/PekaVersion.class | grep -a "Beta-0.10.6.5v" || true
-            echo
-            echo "minecraft classes in the jar (must be 0):"
-            unzip -l "$JAR" | grep -c "net/minecraft/" || true
+            echo "verification:"
+            cat "$RUNNER_TEMP/verify.txt"
           } > BUILD-REPORT.txt
-          cat BUILD-REPORT.txt
+          grep -vE '^      (func|field)_' BUILD-REPORT.txt | tail -45
 
-      - name: Publish the release JAR into dist/ on this branch
+      - name: Publish the jar and report into dist/ on this branch
         if: github.event_name == 'push'
         run: |
-          set -e
+          set +e +o pipefail
           mkdir -p dist
-          cp "build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar" "dist/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
-          cp BUILD-REPORT.txt dist/BUILD-REPORT.txt
+          cp -v "build/libs/$JAR_NAME" "dist/$JAR_NAME"
+          cp -v BUILD-REPORT.txt dist/BUILD-REPORT.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f dist/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar dist/BUILD-REPORT.txt
+          git add -f "dist/$JAR_NAME" dist/BUILD-REPORT.txt
           if git diff --cached --quiet; then
             echo "dist/ is already up to date"
             exit 0
           fi
-          git commit -m "Publish SkyVeLor-1.8.9-Beta-0.10.6.5v.jar built from $GITHUB_SHA [skip ci]"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          git commit -m "Publish $JAR_NAME built from $GITHUB_SHA [skip ci]"
+          git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          RC=$?
+          echo "push exit=$RC"
+          if [ "$RC" != "0" ]; then
+            echo "::error title=DIST::could not publish dist/ (exit $RC)"
+            exit "$RC"
+          fi
+          echo "::notice title=DIST::published dist/$JAR_NAME"
 
-      - name: Attach the JAR to the GitHub release
+      - name: Attach the jar to a GitHub release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          JAR="build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
-          TAG="SkyVeLor-Beta-0.10.6.5v"
+          JAR="dist/$JAR_NAME"
+          TAG="SkyVeLor-$VERSION"
           printf '%s\n' \
-            "Minecraft 1.8.9 Forge mod JAR built by the Build Sky VeLor workflow." \
+            "Minecraft 1.8.9 Forge mod jar built by the Build Sky VeLor workflow." \
             "" \
-            "Fixes the Terminal GUI: the fourteen numbered buttons were not drawn when the Click in order chest could not be read, so the panel appeared empty. The numbered grid is now always drawn and always clickable." \
+            "Built from commit $GITHUB_SHA. See dist/BUILD-REPORT.txt for the sha256, the Gradle task" \
+            "graph, the test results and the artifact verification." \
             "" \
-            "Install: put SkyVeLor-1.8.9-Beta-0.10.6.5v.jar in the Minecraft mods folder." \
-            "Requires Minecraft 1.8.9 with Forge 11.15.1.2318." > release-notes.txt
+            "Install: put $JAR_NAME in the Minecraft mods folder." \
+            "Requires Minecraft 1.8.9 with Forge 11.15.1.2318 and Java 8." > release-notes.txt
           cat release-notes.txt
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$JAR" --clobber
+            gh release upload "$TAG" "$JAR" dist/BUILD-REPORT.txt --clobber
           else
-            gh release create "$TAG" "$JAR" --title "Sky VeLor Beta-0.10.6.5v" --notes-file release-notes.txt
+            gh release create "$TAG" "$JAR" dist/BUILD-REPORT.txt \
+              --title "Sky VeLor $VERSION" --notes-file release-notes.txt
           fi
+          echo "::notice title=RELEASE::$TAG published with $JAR_NAME"
 
-      - name: Upload the release JAR
+      - name: Upload the release jar as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SkyVeLor-1.8.9-Beta-0.10.6.5v
+          name: SkyVeLor-1.8.9-${{ env.VERSION }}
           path: |
-            build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar
+            build/libs/${{ env.JAR_NAME }}
             BUILD-REPORT.txt
           if-no-files-found: error
           retention-days: 90

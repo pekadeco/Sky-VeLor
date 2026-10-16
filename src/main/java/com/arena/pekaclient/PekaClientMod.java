@@ -14,12 +14,13 @@ import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.feature.LeapUse;
 import com.arena.pekaclient.feature.SpiritLeap;
-import com.arena.pekaclient.gui.AppleHubScreen;
 import com.arena.pekaclient.gui.AppleGuiButton;
+import com.arena.pekaclient.gui.AppleHubScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
+import com.arena.pekaclient.render.FirstPersonItemSetup;
 import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.startup.StartupTasks;
@@ -101,6 +102,7 @@ public class PekaClientMod {
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
+        StartupTasks.add("Setting up first-person item customization", FirstPersonItemSetup::init);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
         ClientCommandHandler.instance.registerCommand(new TerminalCommand());
@@ -123,6 +125,9 @@ public class PekaClientMod {
                 mc.displayGuiScreen(new LoadingScreen(mc.currentScreen));
             }
             // Before the world moves. Also resets mining counts on world change, respawn and disconnect.
+            // EntityRenderer is built during startGame(), so the first-person renderer swap retries
+            // until it is in place; afterwards this is a single boolean test per tick.
+            FirstPersonItemSetup.init();
             HudManager.tick(mc);
             DungeonContext.tick(mc);
             dragonKill.tick(System.currentTimeMillis());

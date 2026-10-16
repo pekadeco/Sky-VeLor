@@ -8,3 +8,11 @@ crash-reports/
 hs_err_pid*.log
 replay_pid*.log
 tools/terminal-verify/out/
+
+# CI evidence is committed explicitly from the workflow, never picked up locally.
+
+# ForgeGradle can decompile Minecraft for inspection. That output is derived from
+# Mojang's code and the MCP mappings, so it must never be committed here. The CI
+# workflow may still generate it under ci-evidence/ for use within a single run.
+ci-evidence/mc-*.java
+ci-evidence/gradle-decomp.log

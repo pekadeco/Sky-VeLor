@@ -47,6 +47,15 @@ public final class AppleSettings {
     public static final boolean DEFAULT_ADAPTIVE_QUALITY = false;
     public static final boolean DEFAULT_PERFORMANCE_BOOST_BETA = true;
     public static final int DEFAULT_SCROLL_SPEED = 100;
+    
+    // First-person held item customization. Both are percentages; 100% is untouched vanilla.
+    public static final int DEFAULT_FIRST_PERSON_ITEM_SCALE = 100;  // 100% = normal size
+    public static final int DEFAULT_FIRST_PERSON_ANIM_SPEED = 100;  // 100% = normal speed
+    /** Shared range for both sliders, so the GUI, the loader and the clamps cannot drift apart. */
+    public static final int FIRST_PERSON_MIN = 50;
+    public static final int FIRST_PERSON_MAX = 200;
+    public static boolean firstPersonItemScaleOn = true;
+    public static boolean firstPersonAnimSpeedOn = true;
 
     /** Corner radius in use: the slider value when its switch is on, otherwise the default. */
     public static int effectiveCornerRadius() {
@@ -64,6 +73,15 @@ public final class AppleSettings {
     public static int effectiveScrollSpeed() {
         return scrollSpeedOn ? scrollSpeed : DEFAULT_SCROLL_SPEED;
     }
+    
+    public static int effectiveFirstPersonItemScale() {
+        return firstPersonItemScaleOn ? firstPersonItemScale : DEFAULT_FIRST_PERSON_ITEM_SCALE;
+    }
+    
+    public static int effectiveFirstPersonAnimSpeed() {
+        return firstPersonAnimSpeedOn ? firstPersonAnimSpeed : DEFAULT_FIRST_PERSON_ANIM_SPEED;
+    }
+    
     /** Panel opacity in percent (60..100). Higher is more solid, lower shows more of the game. */
     public static int glassOpacity = DEFAULT_GLASS_OPACITY;
     public static boolean animations = true;
@@ -72,6 +90,11 @@ public final class AppleSettings {
     public static boolean shadows = true;
     public static boolean adaptive = DEFAULT_ADAPTIVE_QUALITY; // auto-lower detail when FPS drops
     public static int scrollSpeed = 100;      // 50..300 (%), wheel and swipe speed (keys are fixed)
+    
+    // First-person item customization settings (50..200%)
+    public static int firstPersonItemScale = DEFAULT_FIRST_PERSON_ITEM_SCALE;  // 50..200 (%)
+    public static int firstPersonAnimSpeed = DEFAULT_FIRST_PERSON_ANIM_SPEED;  // 50..200 (%)
+    
     /** Dungeon tab: replace the server's Spirit Leap menu with the teammate selector. On by default. */
     public static boolean leapMenu = true;
     /** Dungeon tab: outline dungeon mobs (named mobs with a level tag). On by default. Overlay only. */
@@ -115,6 +138,15 @@ public final class AppleSettings {
         shadows = readBool(p, "shadows", shadows);
         loadPerformanceSettings(p);
         scrollSpeed = readInt(p, "scrollSpeed", scrollSpeed, 50, 300);
+        
+        // First-person item customization
+        firstPersonItemScaleOn = readBool(p, "firstPersonItemScaleOn", firstPersonItemScaleOn);
+        firstPersonAnimSpeedOn = readBool(p, "firstPersonAnimSpeedOn", firstPersonAnimSpeedOn);
+        firstPersonItemScale = readInt(p, "firstPersonItemScale", firstPersonItemScale,
+                FIRST_PERSON_MIN, FIRST_PERSON_MAX);
+        firstPersonAnimSpeed = readInt(p, "firstPersonAnimSpeed", firstPersonAnimSpeed,
+                FIRST_PERSON_MIN, FIRST_PERSON_MAX);
+        
         leapMenu = readBool(p, "leapMenu", leapMenu);
         mobHighlights = readBool(p, "mobHighlights", mobHighlights);
         leapKey = readBool(p, "leapKey", leapKey);
@@ -145,6 +177,13 @@ public final class AppleSettings {
         p.setProperty("shadows", Boolean.toString(shadows));
         p.setProperty("adaptive", Boolean.toString(adaptive));
         p.setProperty("scrollSpeed", Integer.toString(scrollSpeed));
+        
+        // First-person item customization
+        p.setProperty("firstPersonItemScaleOn", Boolean.toString(firstPersonItemScaleOn));
+        p.setProperty("firstPersonAnimSpeedOn", Boolean.toString(firstPersonAnimSpeedOn));
+        p.setProperty("firstPersonItemScale", Integer.toString(firstPersonItemScale));
+        p.setProperty("firstPersonAnimSpeed", Integer.toString(firstPersonAnimSpeed));
+        
         p.setProperty("leapMenu", Boolean.toString(leapMenu));
         p.setProperty("mobHighlights", Boolean.toString(mobHighlights));
         p.setProperty("experimentalPerformance", Boolean.toString(experimentalPerformance));
