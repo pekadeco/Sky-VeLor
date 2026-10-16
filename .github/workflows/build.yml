@@ -51,7 +51,11 @@ jobs:
 
       - name: Build the mod (ForgeGradle 2.1, Minecraft 1.8.9)
         id: build
-        run: ./gradlew clean build dumpTestClasspath --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew clean build dumpTestClasspath --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"
+          echo "=== reobfuscation and jar tasks ==="
+          grep -E "^:(reobf|jar|makeStart|build|deobf)" "$RUNNER_TEMP/build.log" || true
 
       - name: Show the build output
         if: always()
@@ -100,11 +104,92 @@ jobs:
           echo "class count in the JAR: $(unzip -l "$JAR" | grep -c '\.class$')"
           echo "::notice::$JAR verified"
 
+      - name: Write the build report
+        run: |
+          set -e
+          JAR="build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
+          {
+            echo "Sky VeLor Beta-0.10.6.5v build report"
+            echo "===================================="
+            echo "commit:  $GITHUB_SHA"
+            echo "ref:     $GITHUB_REF"
+            echo "runner:  $(uname -a)"
+            echo
+            echo "java -version:"
+            java -version 2>&1
+            echo
+            echo "gradle:"
+            ./gradlew --version 2>&1 | sed -n '1,12p'
+            echo
+            echo "jar:     $JAR"
+            echo "sha256:  $(sha256sum "$JAR" | cut -d' ' -f1)"
+            echo "size:    $(stat -c%s "$JAR") bytes"
+            echo
+            echo "gradle tasks that produced the jar:"
+            grep -E "^:(reobf|jar|makeStart|build|deobf)" "$RUNNER_TEMP/build.log" || echo "(none listed)"
+            echo
+            echo "jar contents:"
+            unzip -l "$JAR"
+            echo
+            echo "mcmod.info:"
+            unzip -p "$JAR" mcmod.info
+            echo
+            echo "version string in PekaVersion.class:"
+            unzip -p "$JAR" com/arena/pekaclient/PekaVersion.class | grep -a "Beta-0.10.6.5v" || true
+            echo
+            echo "minecraft classes in the jar (must be 0):"
+            unzip -l "$JAR" | grep -c "net/minecraft/" || true
+          } > BUILD-REPORT.txt
+          cat BUILD-REPORT.txt
+
+      - name: Publish the release JAR into dist/ on this branch
+        if: github.event_name == 'push'
+        run: |
+          set -e
+          mkdir -p dist
+          cp "build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar" "dist/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
+          cp BUILD-REPORT.txt dist/BUILD-REPORT.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dist/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar dist/BUILD-REPORT.txt
+          if git diff --cached --quiet; then
+            echo "dist/ is already up to date"
+            exit 0
+          fi
+          git commit -m "Publish SkyVeLor-1.8.9-Beta-0.10.6.5v.jar built from $GITHUB_SHA [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Attach the JAR to the GitHub release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          JAR="build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar"
+          TAG="SkyVeLor-Beta-0.10.6.5v"
+          printf '%s\n' \
+            "Minecraft 1.8.9 Forge mod JAR built by the Build Sky VeLor workflow." \
+            "" \
+            "Fixes the Terminal GUI: the fourteen numbered buttons were not drawn when the Click in order chest could not be read, so the panel appeared empty. The numbered grid is now always drawn and always clickable." \
+            "" \
+            "Install: put SkyVeLor-1.8.9-Beta-0.10.6.5v.jar in the Minecraft mods folder." \
+            "Requires Minecraft 1.8.9 with Forge 11.15.1.2318." > release-notes.txt
+          cat release-notes.txt
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$JAR" --clobber
+          else
+            gh release create "$TAG" "$JAR" --title "Sky VeLor Beta-0.10.6.5v" --notes-file release-notes.txt
+          fi
+
       - name: Upload the release JAR
         uses: actions/upload-artifact@v4
         with:
           name: SkyVeLor-1.8.9-Beta-0.10.6.5v
-          path: build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar
+          path: |
+            build/libs/SkyVeLor-1.8.9-Beta-0.10.6.5v.jar
+            BUILD-REPORT.txt
           if-no-files-found: error
           retention-days: 90
 
