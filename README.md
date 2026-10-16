@@ -8,6 +8,10 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Smooth, frame-rate-independent UI motion: soft hover and press feedback, animated toggles and sliders, a sliding segmented selector, a gently appearing dropdown, and responsive search-field focus.
 - Rounded animated buttons in the main/pause menu and Quick Note screen, with distinct primary, secondary and destructive styles.
 - Spirit Leap teammate picker, class labels, player heads and isolated preview.
+- A 1-14 Click in order terminal: a panel with fourteen numbered buttons in two rows of seven that takes
+  over the Floor VII / M7 Click in order chest, with the number to click now in green, the one after it in
+  yellow, a mistake counter, a timer, restart on `R`, close on `Esc` and a transparency toggle. `/terminal`
+  opens the same panel for practice.
 - Dungeon mob highlights, Floor VII overlays and dragon alerts.
 - Fishing and Slayer trackers, plus quick notes and client commands.
 
@@ -53,6 +57,14 @@ The mod JAR is written to `build/libs/`. The generated `build/` and `.gradle/` d
 ## Compatibility and testing limits
 
 The project targets desktop Java 8. Android/Pojav compatibility is not verified. Automated tests cover logic, settings and configuration; they do not launch Minecraft or verify live-server behavior. Test rendering and gameplay in Minecraft 1.8.9 before publishing a release.
+
+## Terminal GUI fix in Beta-0.10.6.5v
+
+The fourteen numbered buttons were not drawn when the Click in order chest could not be read, so the panel
+appeared empty in game while the `/terminal` preview was fine. The buttons are now always drawn and always
+clickable, and the number of each item is read from its name, its lore or a stained glass pane's stack
+size. The root cause, the change and the full verification (including the offline GUI test rig in
+`tools/terminal-verify` and the release build report) are in `VERIFICATION.md`.
 
 ## License and credits
 
