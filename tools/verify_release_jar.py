@@ -54,13 +54,16 @@ REQUIRED_CLASSES = [
     'feature/ChatTabLayout',
     'feature/ChatWindowLayout',
     'feature/ChatFontPolicy',
+    'feature/ChatInteractionModel',
     'feature/ChatChannelTabs',
     'feature/ChattingAnimationBridge',
     'command/ItemDebugCommand',
     'gui/AppleHubScreen',
     'gui/ChatUiModel',
     'gui/ChatEditorLayout',
+    'gui/ChatEditorPanelLayout',
     'gui/ChatEditorScreen',
+    'gui/GlobalFontSettingsScreen',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -71,6 +74,7 @@ REQUIRED_CLASSES = [
     'dungeon/DungeonMapOverlay',
     'dungeon/PuzzleRoomDatabase',
     'dungeon/PuzzleRoomMatcher',
+    'render/GlobalFontManager',
     'render/itemanimation/ItemAnimationHooks',
     'render/itemanimation/ItemAnimationHookStatus',
     'render/itemanimation/ItemAnimationLoadingPlugin',
@@ -290,7 +294,12 @@ def main():
             'dungeon puzzle-room templates packaged')
     for resource in ('META-INF/LICENSE-CHATTING-GPL-3.0.txt',
                      'META-INF/LICENSE-SKYTILS-AGPL-3.0.txt',
-                     'META-INF/THIRD_PARTY_NOTICES-CHAT.txt'):
+                     'META-INF/THIRD_PARTY_NOTICES-CHAT.txt',
+                     'THIRD_PARTY_LICENSES.md',
+                     'assets/skyvelor/fonts/OFL-Abel.txt',
+                     'assets/skyvelor/fonts/OFL-ArchitectsDaughter.txt',
+                     'assets/skyvelor/fonts/smooth-abel-regular.ttf',
+                     'assets/skyvelor/fonts/doodle-architects-daughter.ttf'):
         r.check(resource in names, 'packaged legal resource: %s' % resource)
 
     # --- the decisive mapping check --------------------------------------
@@ -369,7 +378,7 @@ def main():
     chat_ui_constants = constants_of('gui/ChatUiModel')
     r.check(all(value in chat_ui_constants for value in
                 ('Chat QoL', 'Chat Tabs', 'Separate Chats', 'Smooth Messages', 'Hover Highlight',
-                 'Right Click Menu', 'Custom Font', 'Open Chat Editor'))
+                 'Right Click Menu', 'Global Font', 'Open Font Settings', 'Open Chat Editor'))
                 and 'Chatting animation bridge' not in chat_ui_constants,
             'ChatUiModel packages exactly the native Chat QoL hub controls')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
@@ -379,6 +388,22 @@ def main():
                 and b'com/arena/pekaclient/gui/ChatEditorLayout' in chat_editor_raw
                 and len(chat_editor_layout_raw) > 0,
             'ChatEditorScreen packages all compact editor sections through the shared non-overlap layout')
+    interaction_constants = constants_of('feature/ChatInteractionModel')
+    interaction_raw = raw_of('feature/ChatInteractionModel')
+    tabs_raw = raw_of('feature/ChatChannelTabs')
+    r.check(all(value in interaction_constants for value in
+                ('Copy to clipboard', 'Copy to chat box')) and b'ChatInteractionModel' in tabs_raw,
+            'Chat QoL packages one shared default/Chat 1/Chat 2 interaction model with exactly two copy labels')
+    r.check(b'Copy clean' not in tabs_raw and b'Copy colours' not in tabs_raw and b'Copy to box' not in tabs_raw,
+            'Chat QoL excludes retired alternate copy actions from the runtime menu')
+    r.check(all(value in chat_editor_raw for value in
+                (b'Default Chat', b'Link all', b'Copy from', b'Open Font Settings'))
+                and b'com/arena/pekaclient/gui/ChatEditorPanelLayout' in chat_editor_raw,
+            'Chat Editor packages target selection, link/copy controls, global font route and panel geometry')
+    font_raw = raw_of('render/GlobalFontManager')
+    r.check(all(value in font_raw for value in
+                (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'skyvelor/fonts')),
+            'GlobalFontManager packages bundled and config-folder font paths with cached atlas fallback')
     r.check(b'com/arena/pekaclient/gui/ChatUiModel' in hub_raw
                 and b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw,
             'AppleHubScreen uses the Chat QoL ownership model and routes to Chat Editor')
