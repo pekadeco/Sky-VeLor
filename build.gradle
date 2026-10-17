@@ -69,3 +69,14 @@ processResources {
         exclude 'mcmod.info'
     }
 }
+
+// Item Animation must hook the authoritative 1.8.9 hand/equip methods before the regular mod starts.
+// These standard Forge manifest attributes register the narrowly scoped coremod without packaging Minecraft.
+jar {
+    manifest {
+        attributes(
+                'FMLCorePlugin': 'com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin',
+                'FMLCorePluginContainsFMLMod': 'true'
+        )
+    }
+}

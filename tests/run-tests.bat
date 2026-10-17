@@ -37,7 +37,7 @@ call :run com.arena.pekaclient.hud.DollConfigTests || goto fail
 call :run com.arena.pekaclient.feature.LeapClassTests || goto fail
 call :run com.arena.pekaclient.feature.SpiritLeapTests || goto fail
 call :run com.arena.pekaclient.feature.DungeonContextTests || goto fail
-call :run com.arena.pekaclient.feature.FirstPersonItemTests || goto fail
+call :run com.arena.pekaclient.feature.ItemAnimationTests || goto fail
 call :run com.arena.pekaclient.feature.MobMarkersTests || goto fail
 call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPaletteTests || goto fail

@@ -7,7 +7,6 @@ import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.slayer.SlayerType;
-import com.arena.pekaclient.feature.FirstPersonItem;
 import com.arena.pekaclient.feature.MiningTracker;
 import com.arena.pekaclient.hud.BalanceSource;
 import com.arena.pekaclient.hud.HudElement;
@@ -205,7 +204,6 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     private List<Row> qolPage() {
-        final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
 
         rows.add(Row.section("Overview"));
@@ -256,6 +254,7 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.svCommand, v -> AppleSettings.svCommand = v)));
         rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
+        rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
 
         rows.add(Row.header("Scrolling"));
         rows.add(Row.item("Scroll speed", "On: use the slider. Off: 100%",
@@ -296,30 +295,6 @@ public class AppleHubScreen extends AppleScreen {
                 "Lower-cost Sky VeLor GUI/HUD settings. Entity and world rendering are unchanged",
                 new AppleToggle(() -> AppleSettings.experimentalPerformance,
                         v -> AppleSettings.experimentalPerformance = v)));
-
-        rows.add(Row.header("First-Person Item — Renderer"));
-        rows.add(Row.item("X/Y/Z renderer position", "Visual-only positioning lives in the HUD editor",
-                new AppleButton("Editor", 84f, 26f, false,
-                        () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
-        rows.add(Row.item("Item size", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.firstPersonItemScaleOn,
-                        v -> AppleSettings.firstPersonItemScaleOn = v)));
-        rows.add(Row.item("Item size value", "Visual size of the item held in first person",
-                gated(new AppleSlider(50, 200, 10, "%", 150f,
-                        () -> AppleSettings.firstPersonItemScale,
-                        v -> AppleSettings.firstPersonItemScale = FirstPersonItem.clamp(v)),
-                        () -> AppleSettings.firstPersonItemScaleOn)));
-        rows.add(Row.item("Held-item animation speed", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.firstPersonAnimSpeedOn,
-                        v -> AppleSettings.firstPersonAnimSpeedOn = v)));
-        rows.add(Row.item("Held-item animation speed value",
-                "Tempo of the first-person equip and hold animation. Swing and attack timing are unchanged",
-                gated(new AppleSlider(50, 200, 10, "%", 150f,
-                        () -> AppleSettings.firstPersonAnimSpeed,
-                        v -> AppleSettings.firstPersonAnimSpeed = FirstPersonItem.clamp(v)),
-                        () -> AppleSettings.firstPersonAnimSpeedOn)));
-        rows.add(Row.item("Reset held item", "Back to 100% size/animation and zero X/Y/Z position",
-                button("Reset", FirstPersonItem::resetToDefaults)));
 
         rows.add(Row.header("Live"));
         rows.add(Row.custom(76f, this::paintGraph));

@@ -42,20 +42,19 @@ public final class AppleSettings {
     public static final boolean DEFAULT_PERFORMANCE_BOOST_BETA = true;
     public static final int DEFAULT_SCROLL_SPEED = 100;
     
-    // First-person held item customization. Both are percentages; 100% is untouched vanilla.
-    public static final int DEFAULT_FIRST_PERSON_ITEM_SCALE = 100;  // 100% = normal size
-    public static final int DEFAULT_FIRST_PERSON_ANIM_SPEED = 100;  // 100% = normal speed
-    /** Shared range for both sliders, so the GUI, the loader and the clamps cannot drift apart. */
-    public static final int FIRST_PERSON_MIN = 50;
-    public static final int FIRST_PERSON_MAX = 200;
-    /** Renderer translation is stored in hundredths of a first-person render unit. */
-    public static final int FIRST_PERSON_OFFSET_MIN = -100;
-    public static final int FIRST_PERSON_OFFSET_MAX = 100;
-    public static final int DEFAULT_FIRST_PERSON_ITEM_X = 0;
-    public static final int DEFAULT_FIRST_PERSON_ITEM_Y = 0;
-    public static final int DEFAULT_FIRST_PERSON_ITEM_Z = 0;
-    public static boolean firstPersonItemScaleOn = true;
-    public static boolean firstPersonAnimSpeedOn = true;
+    // Item Animation. Percent controls use 100% for untouched vanilla; offsets are hundredths of a
+    // first-person render unit. Keeping the bounds here makes loading, exact-value entry and sliders agree.
+    public static final int DEFAULT_ITEM_ANIMATION_SIZE = 100;
+    public static final int DEFAULT_ITEM_ANIMATION_SPEED = 100;
+    public static final int ITEM_ANIMATION_MIN_PERCENT = 50;
+    public static final int ITEM_ANIMATION_MAX_PERCENT = 200;
+    public static final int ITEM_ANIMATION_OFFSET_MIN = -75;
+    public static final int ITEM_ANIMATION_OFFSET_MAX = 75;
+    public static final int DEFAULT_ITEM_ANIMATION_X = 0;
+    public static final int DEFAULT_ITEM_ANIMATION_Y = 0;
+    public static final int DEFAULT_ITEM_ANIMATION_Z = 0;
+    public static boolean itemAnimationSizeOn = true;
+    public static boolean itemAnimationSpeedOn = true;
 
     /** Corner radius in use: the slider value when its switch is on, otherwise the default. */
     public static int effectiveCornerRadius() {
@@ -74,14 +73,16 @@ public final class AppleSettings {
         return scrollSpeedOn ? scrollSpeed : DEFAULT_SCROLL_SPEED;
     }
     
-    public static int effectiveFirstPersonItemScale() {
-        return firstPersonItemScaleOn ? Math.max(FIRST_PERSON_MIN,
-                Math.min(FIRST_PERSON_MAX, firstPersonItemScale)) : DEFAULT_FIRST_PERSON_ITEM_SCALE;
+    /** Effective Item Animation size; an off switch is the exact vanilla value. */
+    public static int effectiveItemAnimationSize() {
+        return itemAnimationSizeOn ? Math.max(ITEM_ANIMATION_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSize)) : DEFAULT_ITEM_ANIMATION_SIZE;
     }
 
-    public static int effectiveFirstPersonAnimSpeed() {
-        return firstPersonAnimSpeedOn ? Math.max(FIRST_PERSON_MIN,
-                Math.min(FIRST_PERSON_MAX, firstPersonAnimSpeed)) : DEFAULT_FIRST_PERSON_ANIM_SPEED;
+    /** Effective Item Animation equip-transition speed; it never affects attacks or gameplay. */
+    public static int effectiveItemAnimationSpeed() {
+        return itemAnimationSpeedOn ? Math.max(ITEM_ANIMATION_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSpeed)) : DEFAULT_ITEM_ANIMATION_SPEED;
     }
     
     /** Panel opacity in percent (60..100). Higher is more solid, lower shows more of the game. */
@@ -93,13 +94,13 @@ public final class AppleSettings {
     public static boolean adaptive = DEFAULT_ADAPTIVE_QUALITY; // auto-lower detail when FPS drops
     public static int scrollSpeed = 100;      // 50..300 (%), wheel and swipe speed (keys are fixed)
     
-    // First-person item customization settings (50..200%)
-    public static int firstPersonItemScale = DEFAULT_FIRST_PERSON_ITEM_SCALE;  // 50..200 (%)
-    public static int firstPersonAnimSpeed = DEFAULT_FIRST_PERSON_ANIM_SPEED;  // 50..200 (%)
-    /** X/Y/Z visual offsets, in 1/100ths of a first-person render unit. */
-    public static int firstPersonItemX = DEFAULT_FIRST_PERSON_ITEM_X;
-    public static int firstPersonItemY = DEFAULT_FIRST_PERSON_ITEM_Y;
-    public static int firstPersonItemZ = DEFAULT_FIRST_PERSON_ITEM_Z;
+    // Item Animation renderer settings. They are read live by the first-person render and equip hooks.
+    public static int itemAnimationSize = DEFAULT_ITEM_ANIMATION_SIZE;      // 50..200 (%)
+    public static int itemAnimationSpeed = DEFAULT_ITEM_ANIMATION_SPEED;    // 50..200 (%)
+    /** X/Y/Z visual offsets, in 1/100ths of a first-person render unit (-75..75). */
+    public static int itemAnimationX = DEFAULT_ITEM_ANIMATION_X;
+    public static int itemAnimationY = DEFAULT_ITEM_ANIMATION_Y;
+    public static int itemAnimationZ = DEFAULT_ITEM_ANIMATION_Z;
     
     /** Dungeon tab: replace the server's Spirit Leap menu with the teammate selector. On by default. */
     public static boolean leapMenu = true;
@@ -143,6 +144,9 @@ public final class AppleSettings {
     public static boolean fishingFestival = true;      // Festival Great White count and best
     public static boolean fishingJawbusAlert = true;   // title when Lord Jawbus arrives
 
+    /** Set while a legacy firstPerson* key was read; load immediately writes its Item Animation replacement. */
+    private static boolean itemAnimationMigrationPending;
+
     private AppleSettings() {
     }
 
@@ -151,6 +155,7 @@ public final class AppleSettings {
     }
 
     public static void load() {
+        itemAnimationMigrationPending = false;
         Properties p = ConfigFiles.read(readFile());
         accent = readInt(p, "accent", accent, 0, ACCENT_COLORS.length - 1);
         darkMode = readBool(p, "darkMode", darkMode);
@@ -167,19 +172,22 @@ public final class AppleSettings {
         loadPerformanceSettings(p);
         scrollSpeed = readInt(p, "scrollSpeed", scrollSpeed, 50, 300);
         
-        // First-person item customization
-        firstPersonItemScaleOn = readBool(p, "firstPersonItemScaleOn", firstPersonItemScaleOn);
-        firstPersonAnimSpeedOn = readBool(p, "firstPersonAnimSpeedOn", firstPersonAnimSpeedOn);
-        firstPersonItemScale = readInt(p, "firstPersonItemScale", firstPersonItemScale,
-                FIRST_PERSON_MIN, FIRST_PERSON_MAX);
-        firstPersonAnimSpeed = readInt(p, "firstPersonAnimSpeed", firstPersonAnimSpeed,
-                FIRST_PERSON_MIN, FIRST_PERSON_MAX);
-        firstPersonItemX = readInt(p, "firstPersonItemX", firstPersonItemX,
-                FIRST_PERSON_OFFSET_MIN, FIRST_PERSON_OFFSET_MAX);
-        firstPersonItemY = readInt(p, "firstPersonItemY", firstPersonItemY,
-                FIRST_PERSON_OFFSET_MIN, FIRST_PERSON_OFFSET_MAX);
-        firstPersonItemZ = readInt(p, "firstPersonItemZ", firstPersonItemZ,
-                FIRST_PERSON_OFFSET_MIN, FIRST_PERSON_OFFSET_MAX);
+        // Item Animation. New category names win when both names exist; old firstPerson* keys are read once
+        // and then atomically rewritten by save() so existing player settings survive the rename.
+        itemAnimationSizeOn = readItemAnimationBool(p, "itemAnimation.sizeOn", "firstPersonItemScaleOn",
+                itemAnimationSizeOn);
+        itemAnimationSpeedOn = readItemAnimationBool(p, "itemAnimation.speedOn", "firstPersonAnimSpeedOn",
+                itemAnimationSpeedOn);
+        itemAnimationSize = readItemAnimationInt(p, "itemAnimation.size", "firstPersonItemScale",
+                itemAnimationSize, ITEM_ANIMATION_MIN_PERCENT, ITEM_ANIMATION_MAX_PERCENT);
+        itemAnimationSpeed = readItemAnimationInt(p, "itemAnimation.speed", "firstPersonAnimSpeed",
+                itemAnimationSpeed, ITEM_ANIMATION_MIN_PERCENT, ITEM_ANIMATION_MAX_PERCENT);
+        itemAnimationX = readItemAnimationInt(p, "itemAnimation.x", "firstPersonItemX",
+                itemAnimationX, ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX);
+        itemAnimationY = readItemAnimationInt(p, "itemAnimation.y", "firstPersonItemY",
+                itemAnimationY, ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX);
+        itemAnimationZ = readItemAnimationInt(p, "itemAnimation.z", "firstPersonItemZ",
+                itemAnimationZ, ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX);
 
         leapMenu = readBool(p, "leapMenu", leapMenu);
         mobHighlights = readBool(p, "mobHighlights", mobHighlights);
@@ -217,9 +225,25 @@ public final class AppleSettings {
         fishingFestival = readBool(p, "fishing.festival", fishingFestival);
         fishingJawbusAlert = readBool(p, "fishing.jawbusAlert", fishingJawbusAlert);
         M7Settings.load(p);
+        // A legacy config is not merely read: persist the clean Item Animation category immediately. The
+        // atomic writer preserves a valid file even if the client is interrupted while migrating.
+        if (itemAnimationMigrationPending) {
+            save();
+        }
     }
 
     public static void save() {
+        // Keep programmatic edits as safe as slider/loader edits before the atomic writer persists them.
+        itemAnimationSize = Math.max(ITEM_ANIMATION_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSize));
+        itemAnimationSpeed = Math.max(ITEM_ANIMATION_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSpeed));
+        itemAnimationX = Math.max(ITEM_ANIMATION_OFFSET_MIN,
+                Math.min(ITEM_ANIMATION_OFFSET_MAX, itemAnimationX));
+        itemAnimationY = Math.max(ITEM_ANIMATION_OFFSET_MIN,
+                Math.min(ITEM_ANIMATION_OFFSET_MAX, itemAnimationY));
+        itemAnimationZ = Math.max(ITEM_ANIMATION_OFFSET_MIN,
+                Math.min(ITEM_ANIMATION_OFFSET_MAX, itemAnimationZ));
         Properties p = new Properties();
         p.setProperty("accent", Integer.toString(accent));
         p.setProperty("darkMode", Boolean.toString(darkMode));
@@ -236,14 +260,14 @@ public final class AppleSettings {
         p.setProperty("adaptive", Boolean.toString(adaptive));
         p.setProperty("scrollSpeed", Integer.toString(scrollSpeed));
         
-        // First-person item customization
-        p.setProperty("firstPersonItemScaleOn", Boolean.toString(firstPersonItemScaleOn));
-        p.setProperty("firstPersonAnimSpeedOn", Boolean.toString(firstPersonAnimSpeedOn));
-        p.setProperty("firstPersonItemScale", Integer.toString(firstPersonItemScale));
-        p.setProperty("firstPersonAnimSpeed", Integer.toString(firstPersonAnimSpeed));
-        p.setProperty("firstPersonItemX", Integer.toString(firstPersonItemX));
-        p.setProperty("firstPersonItemY", Integer.toString(firstPersonItemY));
-        p.setProperty("firstPersonItemZ", Integer.toString(firstPersonItemZ));
+        // Item Animation. Save only the renamed category; old firstPerson* keys are deliberately retired.
+        p.setProperty("itemAnimation.sizeOn", Boolean.toString(itemAnimationSizeOn));
+        p.setProperty("itemAnimation.speedOn", Boolean.toString(itemAnimationSpeedOn));
+        p.setProperty("itemAnimation.size", Integer.toString(itemAnimationSize));
+        p.setProperty("itemAnimation.speed", Integer.toString(itemAnimationSpeed));
+        p.setProperty("itemAnimation.x", Integer.toString(itemAnimationX));
+        p.setProperty("itemAnimation.y", Integer.toString(itemAnimationY));
+        p.setProperty("itemAnimation.z", Integer.toString(itemAnimationZ));
 
         p.setProperty("leapMenu", Boolean.toString(leapMenu));
         p.setProperty("mobHighlights", Boolean.toString(mobHighlights));
@@ -371,6 +395,22 @@ public final class AppleSettings {
         return ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME);
     }
 
+    private static boolean readItemAnimationBool(Properties p, String key, String legacyKey, boolean def) {
+        if (p.containsKey(legacyKey)) {
+            itemAnimationMigrationPending = true;
+        }
+        return p.containsKey(key) ? readBool(p, key, def) : readBool(p, legacyKey, def);
+    }
+
+    private static int readItemAnimationInt(Properties p, String key, String legacyKey,
+                                            int def, int min, int max) {
+        if (p.containsKey(legacyKey)) {
+            itemAnimationMigrationPending = true;
+        }
+        return p.containsKey(key) ? readInt(p, key, def, min, max)
+                : readInt(p, legacyKey, def, min, max);
+    }
+
     private static int readInt(Properties p, String key, int def, int min, int max) {
         try {
             int v = Integer.parseInt(p.getProperty(key, Integer.toString(def)).trim());
@@ -387,6 +427,17 @@ public final class AppleSettings {
     }
 
     static boolean readBool(Properties p, String key, boolean def) {
-        return Boolean.parseBoolean(p.getProperty(key, Boolean.toString(def)));
+        String raw = p.getProperty(key);
+        if (raw == null) {
+            return def;
+        }
+        raw = raw.trim();
+        if ("true".equalsIgnoreCase(raw)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(raw)) {
+            return false;
+        }
+        return def;
     }
 }

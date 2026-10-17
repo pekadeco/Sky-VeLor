@@ -2,7 +2,7 @@
   {
     "modid": "pekaclient",
     "name": "Sky VeLor",
-    "description": "Client-side HUD, settings, dungeon, fishing and gameplay utilities for Minecraft 1.8.9.",
+    "description": "Client-side HUD, Item Animation, dungeon and fishing utilities for Minecraft 1.8.9.",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "authorList": ["Sky VeLor contributors"],

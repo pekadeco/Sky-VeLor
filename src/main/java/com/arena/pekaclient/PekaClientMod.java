@@ -1,6 +1,7 @@
 package com.arena.pekaclient;
 
 import com.arena.pekaclient.command.ClientActions;
+import com.arena.pekaclient.command.ItemDebugCommand;
 import com.arena.pekaclient.command.PriceSetCommand;
 import com.arena.pekaclient.command.QuickNoteCommand;
 import com.arena.pekaclient.command.SvCommand;
@@ -21,7 +22,6 @@ import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
-import com.arena.pekaclient.render.FirstPersonItemSetup;
 import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.startup.StartupTasks;
@@ -58,7 +58,9 @@ import org.lwjgl.input.Keyboard;
  *  - a loading screen that runs Sky VeLor's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,
  *  - fishing counters, Festival best, Sea Creature HP and the Lord Jawbus alert.
- * All hooks are standard Forge 1.8.9 events. No reflection and no mixins. Entity rendering is not changed.
+ * HUD/world features use standard Forge 1.8.9 events. Item Animation has one isolated Forge coremod hook around
+ * Minecraft's real first-person hand renderer and equipped-progress update; it does not replace renderers, mutate
+ * final fields, or change entity/world/gameplay rendering.
  */
 @Mod(modid = PekaClientMod.MODID,
         name = PekaClientMod.NAME,
@@ -105,8 +107,8 @@ public class PekaClientMod {
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
         StartupTasks.add("Loading dungeon map templates", PuzzleRoomDatabase::load);
-        StartupTasks.add("Setting up first-person item customization", FirstPersonItemSetup::init);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
+        ClientCommandHandler.instance.registerCommand(new ItemDebugCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("priceset"));
@@ -128,9 +130,8 @@ public class PekaClientMod {
                 mc.displayGuiScreen(new LoadingScreen(mc.currentScreen));
             }
             // Before the world moves. Also resets mining counts on world change, respawn and disconnect.
-            // EntityRenderer is built during startGame(), so the first-person renderer swap retries
-            // until it is in place; afterwards this is a single boolean test per tick.
-            FirstPersonItemSetup.init();
+            // Item Animation is woven into Minecraft's authoritative hand/equip methods at class-load time; it has
+            // no per-tick installation retry and its live settings are read only from those renderer callbacks.
             HudManager.tick(mc);
             DungeonContext.tick(mc);
             dragonKill.tick(System.currentTimeMillis());

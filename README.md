@@ -1,6 +1,6 @@
-# Sky VeLor — Beta-0.10.7.6v
+# Sky VeLor — Beta-0.10.7.7v
 
-Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and first-person held-item customization.
+Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
 ## Features
 
@@ -11,7 +11,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - A passive Floor VII / M7 Click in order helper: it parses the live chest and outlines only the next real slot. It never replaces the chest, clicks, blocks input, or changes inventory behavior.
 - Dungeon map with room/puzzle templates, party labels, plus mob highlights, Floor VII overlays and dragon alerts.
 - Fishing and Slayer trackers, plus quick notes and client commands.
-- First-person held-item renderer customization: visual X/Y/Z position, size and animation-tempo controls, with clamped saved values and reset actions.
+- Item Animation: live first-person X/Y/Z position, size and equip-animation controls, exact-value entry, clamped persistence and reset actions.
 
 ## Requirements
 
@@ -55,7 +55,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.7.6v.jar --version Beta-0.10.7.6v
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.7.7v.jar --version Beta-0.10.7.7v
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -66,38 +66,34 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.7.6v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.7.7v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
-## First-Person Item — Renderer
+## Item Animation — Renderer
 
-The **First-Person Item** target in the HUD editor is explicitly renderer configuration, not a screen-HUD
-placement. Its size (50–200%), X/Y/Z visual position (-100–100%), and visual-only animation multiplier
-(50–200%) update the renderer immediately and persist in `skyvelor.properties`; hand-edited values are
-clamped while loading. **Reset held item** restores size to 100%, X/Y/Z to 0%, and animation to 100%.
-Size and animation each retain their own switch; an off switch gives the exact vanilla 100% value.
+**Item Animation** lives exclusively in the HUD editor as a clearly labelled, non-draggable renderer panel.
+It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -75 through 75), Size and
+Animation Speed (50–200%). Every slider has a visible numeric value and a nearby exact-value field; Enter
+applies and saves a typed value. **Reset Item Animation** restores X/Y/Z to 0 and Size/Speed to 100%.
+Legacy `firstPerson*` config keys are read once and atomically migrated to the `itemAnimation.*` category.
 
-- **Position and size** translate before uniformly scaling `ItemRenderer.renderItemInFirstPerson`, so the
-  chosen X/Y/Z position stays predictable as size changes. Swords, tools, blocks, bows, maps and the bare
-  arm share that visual draw call. Water, fire and pumpkin overlays, other players, and third-person items
-  are deliberately unaffected.
-- **Animation multiplier** changes only the local equip-transition tempo (the slide out/back in when a held
-  item changes). It does not send a packet or modify gameplay state.
+- **Position and size** wrap Minecraft's actual `ItemRenderer.renderItemInFirstPerson` call. The hook reads
+  live values every hand frame and applies only that first-person matrix, so swords, tools, blocks, bows,
+  maps and the bare arm use the same visual adjustment. Third-person items, world rendering and overlays are
+  left on the vanilla path.
+- **Animation Speed** changes only the first-person equipped-progress interpolation calculated by
+  `ItemRenderer.updateEquippedItem`. It neither sends packets nor changes attack speed, item use, block
+  breaking, server timing or other gameplay state. The adjusted progress is bounded to vanilla's 0–1 range to
+  prevent high-speed overshoot and visual jitter.
 
-Deliberately **not** affected: arm swings, bow draw, eating/drinking, attack cooldowns, block breaking,
-and any server-observable mechanic. No potion effect is applied and there is no Haste option.
-
-Implementation note: Minecraft 1.8.9 keeps two references to the first-person renderer.
-`EntityRenderer` captures one in its own `final` field during construction and every render and update
-call goes through that field, while `Minecraft.itemRenderer` is only where the instance is created.
-`FirstPersonItemSetup` installs the custom renderer into the `EntityRenderer` field that is actually
-read, and points `Minecraft`'s field at the same instance so both agree. It locates those fields by
-declared type rather than by name, because the release jar is reobfuscated to SRG names and a
-development name such as `itemRenderer` does not exist at runtime.
+The release registers a minimal Forge 1.8.9 coremod through the JAR manifest. It injects balanced callbacks
+around the authoritative hand call and its equipped-progress update instead of replacing `ItemRenderer` or
+reflectively writing final renderer fields. `/velor itemdebug` prints the same live values used by those callbacks
+and reports whether the real hand/equip hook has been reached.
 
 ## Compatibility and testing limits
 
-The project targets desktop Java 8. Android/Pojav compatibility is a goal but is not verified; the renderer swap uses `java.lang.reflect` to clear a `final` modifier, which is a Java 8 technique and is not guaranteed on a newer runtime.
+The project targets desktop Java 8. Android/Pojav compatibility is a goal but is not verified; Item Animation uses Forge 1.8.9 bytecode hooks rather than reflection, and still needs a real-client compatibility pass.
 
 Automated tests cover logic, settings and configuration. They do not launch Minecraft, so they cannot prove what the held item looks like on screen. The release jar is verified structurally with `tools/verify_release_jar.py`, which confirms the artifact is the mod and not a ForgeGradle intermediate, that it carries the right version metadata, and that it was really reobfuscated to SRG names. Rendering and gameplay still need a human pass in Minecraft 1.8.9 with Forge before a release is published.
 

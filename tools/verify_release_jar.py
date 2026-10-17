@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7.6v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7.7v]
 """
 
 import argparse
@@ -38,13 +38,14 @@ import zipfile
 
 MOD_PACKAGE = 'com/arena/pekaclient/'
 
-# Classes the release must contain: the core, first-person renderer configuration, read-only terminal
-# overlay, and the imported live dungeon-map/puzzle implementation.
+# Classes the release must contain: the core, direct Item Animation hook, read-only terminal overlay,
+# and the imported live dungeon-map/puzzle implementation.
 REQUIRED_CLASSES = [
     'PekaClientMod',
     'PekaVersion',
     'config/AppleSettings',
-    'feature/FirstPersonItem',
+    'feature/ItemAnimation',
+    'command/ItemDebugCommand',
     'gui/AppleHubScreen',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -52,13 +53,18 @@ REQUIRED_CLASSES = [
     'dungeon/DungeonMapOverlay',
     'dungeon/PuzzleRoomDatabase',
     'dungeon/PuzzleRoomMatcher',
-    'render/CustomItemRenderer',
-    'render/FirstPersonItemSetup',
+    'render/itemanimation/ItemAnimationHooks',
+    'render/itemanimation/ItemAnimationLoadingPlugin',
+    'render/itemanimation/ItemAnimationTransformer',
 ]
 
-# Old terminal replacements must stay absent: the release highlights real chest slots without taking over
-# a container. The renderer proxy was already dead code in the older baseline.
+# Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
+# real chest slots without taking over a container, and Item Animation must hook Minecraft directly instead of
+# reflectively replacing its final ItemRenderer field.
 FORBIDDEN_CLASSES = [
+    'feature/FirstPersonItem',
+    'render/CustomItemRenderer',
+    'render/FirstPersonItemSetup',
     'render/FirstPersonItemRendererProxy',
     'gui/TerminalScreen',
     'gui/DungeonHudScreen',
@@ -79,6 +85,8 @@ MCP_MEMBER_NAMES = {
     'updateEquippedItem',
     'resetEquippedProgress',
     'getItemRenderer',
+    'getRenderItem',
+    'renderItemAndEffectIntoGUI',
 }
 
 # Minecraft-owned types whose names must also have been remapped out of member
@@ -179,7 +187,7 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7.6v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7.7v')
     args = ap.parse_args()
 
     path = args.jar
@@ -241,6 +249,15 @@ def main():
     else:
         r.check(False, 'mcmod.info present')
 
+    # Coremod manifest: without both values Forge would package the classes but never wire the real hand hook.
+    manifest = zf.read('META-INF/MANIFEST.MF').decode('utf-8', 'replace') if 'META-INF/MANIFEST.MF' in names else ''
+    # JAR manifests fold long attributes by starting the continuation line with one space.
+    manifest = re.sub(r'\r?\n ', '', manifest)
+    r.check('FMLCorePlugin: com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin' in manifest,
+            'manifest registers the Item Animation loading plugin')
+    r.check('FMLCorePluginContainsFMLMod: true' in manifest,
+            'manifest declares the regular Forge mod alongside the coremod')
+
     # Resources: keybind labels would fall back to raw translation keys without these.
     r.check('assets/pekaclient/lang/en_US.lang' in names,
             'English keybind labels packaged')
@@ -272,34 +289,22 @@ def main():
     r.check(not mcp_hits, 'no Minecraft development (MCP) member calls left',
             '; '.join(sorted(set('%s -> %s' % h for h in mcp_hits[:6]))) or 'clean')
 
-    # The feature's own entry points must really reach Minecraft and the settings.
     def members_of(cls):
         got = parse_class(zf.read(MOD_PACKAGE + cls + '.class'))
         return got[1] if got else set()
 
-    if MOD_PACKAGE + 'render/CustomItemRenderer.class' in names:
-        cir = members_of('render/CustomItemRenderer')
-        r.check(any(SRG_RE.match(m) for m in cir),
-                'CustomItemRenderer calls remapped Minecraft members',
-                'the override must bind in the obfuscated runtime')
-        r.check('getItemScale' in cir,
-                'CustomItemRenderer reads the Sky VeLor size setting',
-                'the size slider must reach the renderer')
-        r.check(all(name in cir for name in ('getItemX', 'getItemY', 'getItemZ')),
-                'CustomItemRenderer reads the X/Y/Z renderer position settings',
-                'all three HUD-editor position controls must reach the renderer')
-        r.check('getAnimationSpeed' in cir,
-                'CustomItemRenderer reads the Sky VeLor animation-speed setting',
-                'the visual-only animation-speed slider must reach the renderer')
-    if MOD_PACKAGE + 'render/FirstPersonItemSetup.class' in names:
-        fps = members_of('render/FirstPersonItemSetup')
-        r.check('<init>' in fps, 'FirstPersonItemSetup constructs the custom renderer')
-        # The install mechanism: find the renderer field by type, then write it.
-        r.check('getDeclaredFields' in fps,
-                'FirstPersonItemSetup resolves the renderer field by declared type',
-                'name-based lookup cannot survive reobfuscation')
-        r.check('setAccessible' in fps and 'set' in fps,
-                'FirstPersonItemSetup writes the renderer field')
+    # The feature's direct callbacks must really reach the live settings bridge. The old renderer subclass and
+    # reflection installer are forbidden above, so this also proves the packaged path is the direct core hook.
+    if MOD_PACKAGE + 'render/itemanimation/ItemAnimationHooks.class' in names:
+        hooks = members_of('render/itemanimation/ItemAnimationHooks')
+        r.check(all(name in hooks for name in ('getX', 'getY', 'getZ', 'getSize')),
+                'ItemAnimationHooks reads live X/Y/Z/Size values each hand render')
+        r.check('getSpeed' in hooks,
+                'ItemAnimationHooks reads the live visual equip-speed multiplier')
+    if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:
+        debug = members_of('command/ItemDebugCommand')
+        r.check(all(name in debug for name in ('getX', 'getY', 'getZ', 'getSize', 'getSpeed')),
+                '/velor itemdebug reads the same live Item Animation values as the renderer')
 
     print()
     print('verify release jar: passed %d, failed %d' % (r.passed, r.failed))
