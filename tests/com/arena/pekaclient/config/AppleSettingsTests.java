@@ -49,6 +49,7 @@ public final class AppleSettingsTests {
         AppleSettings.saveItemAnimationSettings(migrated);
         check("obsolete Auto Fix key is not written back", !migrated.containsKey("itemAnimation.autoFixHitSlash"));
 
+        fishingSettingsCompatibility();
         chatSettingsCompatibility();
 
         System.out.println();
@@ -56,6 +57,28 @@ public final class AppleSettingsTests {
         if (failed > 0) {
             System.exit(1);
         }
+    }
+
+    private static void fishingSettingsCompatibility() {
+        AppleSettings.fishingNearbyEncounterAlert = true;
+        AppleSettings.loadFishingSettings(new Properties());
+        check("old fishing config keeps nearby encounter titles opt-in", !AppleSettings.fishingNearbyEncounterAlert);
+
+        Properties saved = new Properties();
+        saved.setProperty("fishing.counter", "false");
+        saved.setProperty("fishing.festival", "false");
+        saved.setProperty("fishing.jawbusAlert", "true");
+        saved.setProperty("fishing.nearbyEncounterAlert", "true");
+        AppleSettings.loadFishingSettings(saved);
+        check("nearby encounter title choice loads", !AppleSettings.fishingCounter
+                && !AppleSettings.fishingFestival && AppleSettings.fishingJawbusAlert
+                && AppleSettings.fishingNearbyEncounterAlert);
+
+        Properties rewritten = new Properties();
+        AppleSettings.saveFishingSettings(rewritten);
+        check("nearby encounter title has one stable config key",
+                "true".equals(rewritten.getProperty("fishing.nearbyEncounterAlert"))
+                        && rewritten.size() == 4);
     }
 
     private static void chatSettingsCompatibility() {

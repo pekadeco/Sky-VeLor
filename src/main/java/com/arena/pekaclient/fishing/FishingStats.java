@@ -22,6 +22,8 @@ public final class FishingStats {
     static final long DUPLICATE_WINDOW_MS = 750L;
     /** The Jawbus arrival line can repeat; the title shows once per window. */
     static final long JAWBUS_WINDOW_MS = 3000L;
+    static final String LORD_JAWBUS_TITLE = "\u00A7c\u00A7lLORD JAWBUS";
+    static final String YETI_TITLE = "\u00A7b\u00A7lYETI";
 
     public static final FishingSessionTracker FESTIVAL = new FishingSessionTracker();
 
@@ -99,7 +101,7 @@ public final class FishingStats {
         if (systemMessage && SeaCreatureParser.isLordJawbusArrival(message)) {
             if (AppleSettings.fishingJawbusAlert && (lastJawbusAt == 0L || now - lastJawbusAt >= JAWBUS_WINDOW_MS)) {
                 lastJawbusAt = now;
-                showJawbusTitle();
+                showCreatureTitle(LORD_JAWBUS_TITLE);
             }
         }
         LegendaryCreature creature = SeaCreatureParser.detectLegendaryCreature(message);
@@ -122,10 +124,14 @@ public final class FishingStats {
         return creature;
     }
 
-    private static void showJawbusTitle() {
+    /** Displays the local encounter title shared by chat-arrival and optional nearby-nameplate alerts. */
+    static void showCreatureTitle(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft != null && minecraft.ingameGUI != null) {
-            minecraft.ingameGUI.displayTitle("\u00A7c\u00A7lLORD JAWBUS", "", 1, 45, 1);
+            minecraft.ingameGUI.displayTitle(title, "", 1, 45, 1);
         }
     }
 

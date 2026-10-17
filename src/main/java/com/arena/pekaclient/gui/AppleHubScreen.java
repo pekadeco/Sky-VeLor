@@ -472,10 +472,10 @@ public class AppleHubScreen extends AppleScreen {
     private List<Row> fishingPage() {
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Catch counter"));
-        rows.add(Row.item("Count sea-creature pulls",
+        rows.add(Row.item(FishingUiModel.label("catch-counter"),
                 "Counts Legendary/Mythic separately and Common through Epic in the optional CC HUD row",
                 new AppleToggle(() -> AppleSettings.fishingCounter, v -> AppleSettings.fishingCounter = v)));
-        rows.add(Row.item("Festival best",
+        rows.add(Row.item(FishingUiModel.label("festival-best"),
                 "Great White Sharks caught in the current Festival, and your best. Festival ends in chat",
                 new AppleToggle(() -> AppleSettings.fishingFestival, v -> AppleSettings.fishingFestival = v)));
         rows.add(Row.item("Reset counters", "Clears every catch count and the Festival best",
@@ -484,10 +484,16 @@ public class AppleHubScreen extends AppleScreen {
                 })));
 
         rows.add(Row.header("Lord Jawbus"));
-        rows.add(Row.item("Arrival alert",
+        rows.add(Row.item(FishingUiModel.label("jawbus-arrival-alert"),
                 "Shows a title when Lord Jawbus arrives. Uses the chat line, shows once per arrival",
                 new AppleToggle(() -> AppleSettings.fishingJawbusAlert,
                         v -> AppleSettings.fishingJawbusAlert = v)));
+
+        rows.add(Row.header("Nearby encounters"));
+        rows.add(Row.item(FishingUiModel.label("nearby-encounter-alert"),
+                "Optional local title when their compatible HP nameplate first appears. Off by default",
+                new AppleToggle(() -> AppleSettings.fishingNearbyEncounterAlert,
+                        v -> AppleSettings.fishingNearbyEncounterAlert = v)));
 
         GuiSettingsAuditModel.Feature fishingHud = GuiSettingsAuditModel.find("fishing");
         rows.add(Row.header(fishingHud.getTitle()));

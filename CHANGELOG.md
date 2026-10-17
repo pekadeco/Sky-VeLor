@@ -1,5 +1,11 @@
 # Changelog
 
+## Beta-0.10.8.2v — 2026-10-17
+
+- Improved **Sea Creature HP** resilience for compatible Fakepixel-style nameplates: health-bearing display text now wins over a name-only tag, the scoreboard-composed entity name is considered, and the last valid rows persist for a bounded 1.5 seconds during entity replacement.
+- Excluded **Water Hydra** and **Reindrake** from the Sea Creature HP compatibility profile by explicit review decision; Yeti and Lord Jawbus HP labels remain supported, including Corrupted/Corrupt forms already recognised by the parser.
+- Added an optional, default-off local **Nearby Yeti / Lord Jawbus titles** toggle. It is transition-only, sends no packets, and does not change the established Lord Jawbus chat-arrival alert.
+
 ## Beta-0.10.8.1v — 2026-10-17
 
 - Added **AllNonLegendaryCC**: Common through Epic sea-creature pulls are counted alongside existing Legendary/Mythic catches and shown in one optional compact **Common Creature (CC)** HUD row. Existing Festival rows and saved counters remain intact.

@@ -101,6 +101,30 @@ public final class ItemAnimationReachabilityTests {
         check("chat GUI keeps only feature on/off toggles", chat.size() == 2
                 && chatEntry(chat, "chat-tabs", true)
                 && chatEntry(chat, "chat-animation-bridge", true));
+
+        List<FishingUiModel.Entry> fishingToggles = FishingUiModel.buildFeatureToggleModel();
+        check("nearby encounter alert appears as one Fishing-tab feature toggle",
+                fishingToggle(fishingToggles, "nearby-encounter-alert"));
+        check("Fishing tab adds no HUD customization duplicate", fishingToggles.size() == 4
+                && allFishingEntriesAreMasterToggles(fishingToggles));
+    }
+
+    private static boolean fishingToggle(List<FishingUiModel.Entry> entries, String id) {
+        for (FishingUiModel.Entry entry : entries) {
+            if (id.equals(entry.getId())) {
+                return entry.isMasterToggle();
+            }
+        }
+        return false;
+    }
+
+    private static boolean allFishingEntriesAreMasterToggles(List<FishingUiModel.Entry> entries) {
+        for (FishingUiModel.Entry entry : entries) {
+            if (!entry.isMasterToggle()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean chatEntry(List<ChatUiModel.Entry> entries, String id, boolean master) {

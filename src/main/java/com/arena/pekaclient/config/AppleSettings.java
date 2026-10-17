@@ -157,6 +157,9 @@ public final class AppleSettings {
     public static boolean fishingCounter = true;       // count sea-creature pulls
     public static boolean fishingFestival = true;      // Festival Great White count and best
     public static boolean fishingJawbusAlert = true;   // title when Lord Jawbus arrives
+    /** New nearby-nameplate alerts are opt-in; the established chat-arrival alert remains unchanged. */
+    public static final boolean DEFAULT_FISHING_NEARBY_ENCOUNTER_ALERT = false;
+    public static boolean fishingNearbyEncounterAlert = DEFAULT_FISHING_NEARBY_ENCOUNTER_ALERT;
 
     // Optional chat features. New installs are deliberately opt-in because chat-line reflection and an external
     // animation runtime should never change a player's chat without an explicit choice.
@@ -236,9 +239,7 @@ public final class AppleSettings {
         slayerBossTimer = readBool(p, "slayer.bossTimer", slayerBossTimer);
         slayerPricing = readBool(p, "slayer.pricing", slayerPricing);
         qnCommand = readBool(p, "cmd.qn", qnCommand);
-        fishingCounter = readBool(p, "fishing.counter", fishingCounter);
-        fishingFestival = readBool(p, "fishing.festival", fishingFestival);
-        fishingJawbusAlert = readBool(p, "fishing.jawbusAlert", fishingJawbusAlert);
+        loadFishingSettings(p);
         loadChatSettings(p);
         M7Settings.load(p);
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
@@ -294,6 +295,30 @@ public final class AppleSettings {
         p.setProperty("itemAnimation.x", Integer.toString(itemAnimationX));
         p.setProperty("itemAnimation.y", Integer.toString(itemAnimationY));
         p.setProperty("itemAnimation.z", Integer.toString(itemAnimationZ));
+    }
+
+    /**
+     * Loads fishing toggles while making the new proximity alert safe for existing configurations: no key means off.
+     * Package-visible so the headless compatibility suite can prove an old properties file remains harmless.
+     */
+    static void loadFishingSettings(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        fishingCounter = readBool(p, "fishing.counter", fishingCounter);
+        fishingFestival = readBool(p, "fishing.festival", fishingFestival);
+        fishingJawbusAlert = readBool(p, "fishing.jawbusAlert", fishingJawbusAlert);
+        fishingNearbyEncounterAlert = readBool(p, "fishing.nearbyEncounterAlert",
+                DEFAULT_FISHING_NEARBY_ENCOUNTER_ALERT);
+    }
+
+    /** Writes all supported fishing keys without modifying any HUD element placement or style keys. */
+    static void saveFishingSettings(Properties p) {
+        if (p == null) {
+            return;
+        }
+        p.setProperty("fishing.counter", Boolean.toString(fishingCounter));
+        p.setProperty("fishing.festival", Boolean.toString(fishingFestival));
+        p.setProperty("fishing.jawbusAlert", Boolean.toString(fishingJawbusAlert));
+        p.setProperty("fishing.nearbyEncounterAlert", Boolean.toString(fishingNearbyEncounterAlert));
     }
 
     /**
@@ -403,9 +428,7 @@ public final class AppleSettings {
         p.setProperty("slayer.bossTimer", Boolean.toString(slayerBossTimer));
         p.setProperty("slayer.pricing", Boolean.toString(slayerPricing));
         p.setProperty("cmd.qn", Boolean.toString(qnCommand));
-        p.setProperty("fishing.counter", Boolean.toString(fishingCounter));
-        p.setProperty("fishing.festival", Boolean.toString(fishingFestival));
-        p.setProperty("fishing.jawbusAlert", Boolean.toString(fishingJawbusAlert));
+        saveFishingSettings(p);
         saveChatSettings(p);
         M7Settings.save(p);
         ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor settings");

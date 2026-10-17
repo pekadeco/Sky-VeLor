@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.1v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.2v]
 """
 
 import argparse
@@ -52,6 +52,7 @@ REQUIRED_CLASSES = [
     'command/ItemDebugCommand',
     'gui/AppleHubScreen',
     'gui/ChatUiModel',
+    'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
     'gui/HudEditorLayout',
@@ -199,7 +200,7 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.1v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.2v')
     args = ap.parse_args()
 
     path = args.jar
@@ -278,6 +279,10 @@ def main():
             'English keybind labels packaged')
     r.check('assets/pekaclient/dungeons/rooms.json' in names,
             'dungeon puzzle-room templates packaged')
+    for resource in ('META-INF/LICENSE-CHATTING-GPL-3.0.txt',
+                     'META-INF/LICENSE-SKYTILS-AGPL-3.0.txt',
+                     'META-INF/THIRD_PARTY_NOTICES-CHAT.txt'):
+        r.check(resource in names, 'packaged legal resource: %s' % resource)
 
     # --- the decisive mapping check --------------------------------------
     srg, mcp_hits, parsed, unparsed = set(), [], 0, []
@@ -382,6 +387,17 @@ def main():
     sea_constants = constants_of('fishing/SeaCreatureHud')
     r.check('shouldScan' in sea_constants,
             'Sea Creature HP packages the overflow-safe scan scheduler')
+    r.check(all(value in sea_constants for value in
+                ('keepPreviousDetection', 'betterEntry', 'EncounterState')),
+            'Sea Creature HP packages bounded nameplate grace and health-bearing fallback selection')
+    parser_constants = constants_of('fishing/SeaCreatureParser')
+    r.check('Water Hydra' not in parser_constants and 'Reindrake' not in parser_constants
+                and all(value in parser_constants for value in ('Yeti', 'Lord Jawbus')),
+            'CorruptedHP profile excludes Water Hydra/Reindrake while retaining Yeti and Lord Jawbus labels')
+    fishing_ui_constants = constants_of('gui/FishingUiModel')
+    r.check('Nearby encounter titles' in fishing_ui_constants
+                and b'com/arena/pekaclient/gui/FishingUiModel' in hub_raw,
+            'AppleHubScreen uses the toggle-only Fishing ownership model for nearby encounter titles')
 
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at
@@ -445,6 +461,8 @@ def main():
         r.check(all(value in settings_constants for value in
                     ('chat.tabs.enabled', 'chat.tabMode', 'chat.animation.enabled')),
                 'AppleSettings persists safe opt-in chat-tab and Chatting bridge configuration')
+        r.check('fishing.nearbyEncounterAlert' in settings_constants,
+                'AppleSettings persists the safe-default nearby encounter title toggle')
     if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:
         debug = members_of('command/ItemDebugCommand')
         r.check(all(name in debug for name in ('isEnabled', 'getX', 'getY', 'getZ', 'getSize', 'getSpeed',
