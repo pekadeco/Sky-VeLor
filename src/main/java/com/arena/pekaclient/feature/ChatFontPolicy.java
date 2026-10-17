@@ -1,26 +1,32 @@
 package com.arena.pekaclient.feature;
 
+import com.arena.pekaclient.config.ChatQolSettings;
+
 /**
- * Font choice normalisation for Chat QoL. Minecraft 1.8.9 supplies the actual renderer, so no bundled font files or
- * unsafe platform lookups are needed. Unknown persisted names fall back to Minecraft instead of failing chat draw.
+ * Compatibility adapter for saved pre-0.10.8.4 Chat QoL font names. New code uses the global font settings and
+ * GlobalFontManager; this class stays intentionally tiny because old profiles and standalone migration tests refer
+ * to it directly.
  */
 public final class ChatFontPolicy {
 
-    public static final String MINECRAFT = "Minecraft";
-    public static final String UNICODE = "Unicode";
-    public static final String COMPACT = "Compact";
+    public static final String MINECRAFT = ChatQolSettings.FONT_MINECRAFT_DEFAULT;
+    public static final String UNICODE = "Unicode"; // historic value: migrated to Minecraft Default
+    public static final String COMPACT = "Compact"; // historic value: migrated to Smooth
+    public static final String SMOOTH = ChatQolSettings.FONT_SMOOTH;
+    public static final String DOODLE = ChatQolSettings.FONT_DOODLE;
 
     private ChatFontPolicy() {
     }
 
+    /** Safe migration/fallback policy. Unknown names always use Minecraft Default rather than a platform font. */
     public static String resolve(String requested) {
-        if (UNICODE.equalsIgnoreCase(requested)) return UNICODE;
-        if (COMPACT.equalsIgnoreCase(requested)) return COMPACT;
+        if (SMOOTH.equalsIgnoreCase(requested) || COMPACT.equalsIgnoreCase(requested)) return SMOOTH;
+        if (DOODLE.equalsIgnoreCase(requested)) return DOODLE;
         return MINECRAFT;
     }
 
-    /** Compact is a safe spacing policy over Minecraft's renderer, not a downloaded or embedded third-party font. */
+    /** Legacy Compact had a smaller chat scale. Preserve that visual intent after migration without loading a font. */
     public static float scaleFor(String resolved) {
-        return COMPACT.equals(resolve(resolved)) ? 0.86f : 1.0f;
+        return SMOOTH.equals(resolve(resolved)) ? 1.0f : 1.0f;
     }
 }

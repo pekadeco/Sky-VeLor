@@ -56,7 +56,8 @@ public final class ChatUiModel {
         entries.add(new Entry("smooth-messages", "Smooth Messages", TOGGLE));
         entries.add(new Entry("hover-highlight", "Hover Highlight", TOGGLE));
         entries.add(new Entry("right-click-menu", "Right Click Menu", TOGGLE));
-        entries.add(new Entry("custom-font", "Custom Font", TOGGLE));
+        entries.add(new Entry("global-font", "Global Font", TOGGLE));
+        entries.add(new Entry("open-font-settings", "Open Font Settings", EDITOR));
         entries.add(new Entry("open-chat-editor", "Open Chat Editor", EDITOR));
         return Collections.unmodifiableList(entries);
     }

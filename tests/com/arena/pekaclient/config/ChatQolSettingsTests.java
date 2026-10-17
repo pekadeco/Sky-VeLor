@@ -14,6 +14,8 @@ public final class ChatQolSettingsTests {
         freshDefaults();
         legacyMigration();
         nativeClampingAndPersistence();
+        targetSettingsLinkCopyAndFontMigration();
+        editorPanelPersistence();
 
         System.out.println("chat QoL settings: passed " + passed + ", failed " + failed);
         if (failed > 0) System.exit(1);
@@ -98,6 +100,56 @@ public final class ChatQolSettingsTests {
         check("editor can hide an individual tab", !ChatQolSettings.showAll);
         ChatQolSettings.setSelectedTab(ChatQolSettings.TAB_ALL);
         check("hidden selected tab falls back to visible target", ChatQolSettings.selectedTab != ChatQolSettings.TAB_ALL);
+    }
+
+    private static void targetSettingsLinkCopyAndFontMigration() {
+        Properties legacy = new Properties();
+        legacy.setProperty("chat.qol.font.enabled", "true");
+        legacy.setProperty("chat.qol.font.name", "Compact");
+        legacy.setProperty("chat.qol.background.opacity", "61");
+        legacy.setProperty("chat.qol.background.radius", "7");
+        ChatQolSettings.load(legacy);
+        check("chat-only Compact migrates to global Smooth", ChatQolSettings.globalFontEnabled
+                && ChatQolSettings.FONT_SMOOTH.equals(ChatQolSettings.globalFontName));
+        check("legacy shared background migrates to both native targets", ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_1).backgroundOpacity() == 61
+                && ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_2).radius() == 7);
+        check("default target stays vanilla-shaped after migration", ChatQolSettings.appearance(ChatQolSettings.TARGET_DEFAULT).backgroundOpacity() == 0
+                && ChatQolSettings.appearance(ChatQolSettings.TARGET_DEFAULT).radius() == 0);
+
+        ChatQolSettings.linkAll = false;
+        ChatQolSettings.editAppearance(ChatQolSettings.TARGET_CHAT_1, appearance -> appearance.setTextScale(135));
+        check("target edits stay independent", ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_1).textScale() == 135
+                && ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_2).textScale() != 135);
+        ChatQolSettings.copyAppearanceFrom(ChatQolSettings.TARGET_CHAT_2, ChatQolSettings.TARGET_CHAT_1);
+        check("copy settings from clones target policy", ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_2).textScale() == 135);
+        ChatQolSettings.linkAll = true;
+        ChatQolSettings.editAppearance(ChatQolSettings.TARGET_DEFAULT, appearance -> appearance.setHoverOpacity(71));
+        check("Link all fans an edit to all targets", ChatQolSettings.appearance(ChatQolSettings.TARGET_DEFAULT).hoverOpacity() == 71
+                && ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_1).hoverOpacity() == 71
+                && ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_2).hoverOpacity() == 71);
+
+        Properties saved = new Properties();
+        ChatQolSettings.save(saved);
+        ChatQolSettings.load(saved);
+        check("per-target appearance survives save/load", ChatQolSettings.appearance(ChatQolSettings.TARGET_CHAT_2).textScale() == 135
+                && ChatQolSettings.appearance(ChatQolSettings.TARGET_DEFAULT).hoverOpacity() == 71);
+        Properties badFont = new Properties();
+        badFont.setProperty("chat.qol.globalFont.name", "External:../../unsafe.ttf");
+        badFont.setProperty("chat.qol.globalFont.enabled", "true");
+        ChatQolSettings.load(badFont);
+        check("unknown global font fails closed", ChatQolSettings.FONT_MINECRAFT_DEFAULT.equals(ChatQolSettings.globalFontName)
+                && ChatQolSettings.globalFontEnabled);
+    }
+
+    private static void editorPanelPersistence() {
+        ChatQolSettings.resetDefaults();
+        ChatQolSettings.editorPanel(0).set(2, 4200, 3300, true);
+        Properties saved = new Properties();
+        ChatQolSettings.save(saved);
+        ChatQolSettings.load(saved);
+        check("editor panel position persists by scale", ChatQolSettings.editorPanel(0).x(2) == 4200
+                && ChatQolSettings.editorPanel(0).y(2) == 3300);
+        check("editor panel collapse persists by scale", ChatQolSettings.editorPanel(0).collapsed(2));
     }
 
     private static void check(String name, boolean ok) {

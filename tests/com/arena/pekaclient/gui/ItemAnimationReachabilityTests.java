@@ -102,8 +102,10 @@ public final class ItemAnimationReachabilityTests {
         check("Chat QoL exposes requested Smooth Messages toggle", chatEntry(chat, "smooth-messages", false));
         check("Chat QoL exposes requested Hover Highlight toggle", chatEntry(chat, "hover-highlight", false));
         check("Chat QoL exposes requested Right Click Menu toggle", chatEntry(chat, "right-click-menu", false));
-        check("Chat QoL exposes requested Custom Font toggle", chatEntry(chat, "custom-font", false));
-        check("Chat QoL exposes only requested switches and editor route", chat.size() == 8
+        check("Chat QoL exposes requested Global Font toggle", chatEntry(chat, "global-font", false));
+        check("Chat QoL exposes Global Font Settings route", findChat(chat, "open-font-settings") != null
+                && findChat(chat, "open-font-settings").isEditorRoute());
+        check("Chat QoL exposes global-font settings and editor routes", chat.size() == 9
                 && findChat(chat, "open-chat-editor") != null && findChat(chat, "open-chat-editor").isEditorRoute());
 
         List<FishingUiModel.Entry> fishingToggles = FishingUiModel.buildFeatureToggleModel();

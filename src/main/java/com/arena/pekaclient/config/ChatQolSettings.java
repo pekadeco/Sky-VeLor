@@ -1,6 +1,7 @@
 package com.arena.pekaclient.config;
 
 import com.arena.pekaclient.feature.ChatPatternRules;
+import com.arena.pekaclient.gui.ChatEditorPanelLayout;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +24,15 @@ public final class ChatQolSettings {
     public static final int SCALE_MIN = 1;
     public static final int SCALE_MAX = 4;
 
+    /** Appearance targets deliberately mirror the shared interaction surfaces. */
+    public static final int TARGET_DEFAULT = 0;
+    public static final int TARGET_CHAT_1 = 1;
+    public static final int TARGET_CHAT_2 = 2;
+    public static final int TARGET_COUNT = 3;
+    public static final String FONT_MINECRAFT_DEFAULT = "Minecraft Default";
+    public static final String FONT_SMOOTH = "Smooth";
+    public static final String FONT_DOODLE = "Doodle";
+
     private static final int POSITION_MIN = 0;
     private static final int POSITION_MAX = 10000;
     private static final int SIZE_MIN = 1000;
@@ -39,7 +49,22 @@ public final class ChatQolSettings {
     public static boolean smoothMessages;
     public static boolean hoverHighlight;
     public static boolean rightClickMenu;
+    /** Retained as a migration alias for pre-0.10.8.4 chat-only font profiles. */
     public static boolean customFont;
+
+    /** Selected target and Link all are editor state; target values themselves stay independent. */
+    public static int editorTarget;
+    public static boolean linkAll;
+
+    /** Global Sky VeLor font settings. Vanilla text is never intercepted unless a future safe bridge is available. */
+    public static boolean globalFontEnabled;
+    public static String globalFontName;
+    public static boolean applyAllMinecraftText;
+    public static int fontUiScale;
+    public static int fontHudScale;
+    public static int fontEditorScale;
+    public static int fontTabScale;
+    public static int fontChatScale;
 
     public static int selectedTab;
     public static boolean showAll;
@@ -56,6 +81,19 @@ public final class ChatQolSettings {
     public static String fontName;
     public static int smoothDuration;
 
+    private static final Appearance[] APPEARANCES = {
+            new Appearance(TARGET_DEFAULT), new Appearance(TARGET_CHAT_1), new Appearance(TARGET_CHAT_2)
+    };
+    private static final ChatEditorPanelLayout.State[] EDITOR_PANELS = {
+            new ChatEditorPanelLayout.State(2500, 1200),
+            new ChatEditorPanelLayout.State(800, 1700),
+            new ChatEditorPanelLayout.State(800, 3300),
+            new ChatEditorPanelLayout.State(800, 5100),
+            new ChatEditorPanelLayout.State(800, 6900),
+            new ChatEditorPanelLayout.State(800, 8400),
+            new ChatEditorPanelLayout.State(5500, 500)
+    };
+
     private static final Window CHAT_1 = new Window("Chat 1", 2, 56, 45, 35);
     private static final Window CHAT_2 = new Window("Chat 2", 52, 56, 45, 35);
     private static final List<ChatPatternRules.Rule> PATTERNS = new ArrayList<ChatPatternRules.Rule>();
@@ -63,6 +101,158 @@ public final class ChatQolSettings {
     private static boolean migrationPending;
 
     private ChatQolSettings() {
+    }
+
+    /**
+     * Independent visual/input policy for one chat target. Colours are RGB (alpha is supplied by their paired
+     * opacity), scales are percentages, and every mutator clamps malformed config before it reaches rendering.
+     */
+    public static final class Appearance {
+        private final int target;
+        private int textColor;
+        private int textScale;
+        private int backgroundColor;
+        private int backgroundOpacity;
+        private int radius;
+        private int borderColor;
+        private int borderOpacity;
+        private int lineSpacing;
+        private boolean shadow;
+        private String appearStyle;
+        private int appearSpeed;
+        private int fadeSeconds;
+        private int hoverColor;
+        private int hoverOpacity;
+        private int scrollSpeed;
+        private boolean smoothScroll;
+
+        private Appearance(int target) {
+            this.target = target;
+            reset();
+        }
+
+        public int target() { return target; }
+        public int textColor() { return textColor; }
+        public int textScale() { return textScale; }
+        public int backgroundColor() { return backgroundColor; }
+        public int backgroundOpacity() { return backgroundOpacity; }
+        public int radius() { return radius; }
+        public int borderColor() { return borderColor; }
+        public int borderOpacity() { return borderOpacity; }
+        public int lineSpacing() { return lineSpacing; }
+        public boolean shadow() { return shadow; }
+        public String appearStyle() { return appearStyle; }
+        public int appearSpeed() { return appearSpeed; }
+        public int fadeSeconds() { return fadeSeconds; }
+        public int hoverColor() { return hoverColor; }
+        public int hoverOpacity() { return hoverOpacity; }
+        public int scrollSpeed() { return scrollSpeed; }
+        public boolean smoothScroll() { return smoothScroll; }
+
+        /** Only Default Chat uses this to decide whether cancelling vanilla draw is necessary. */
+        public boolean needsCustomDefaultRenderer() {
+            return target == TARGET_DEFAULT && (textColor != 0xFFFFFF || textScale != 100 || backgroundOpacity != 0
+                    || radius != 0 || borderOpacity != 0 || lineSpacing != 0 || shadow
+                    || !"VANILLA".equals(appearStyle) || appearSpeed != 120 || fadeSeconds != 10
+                    || scrollSpeed != 100 || smoothScroll);
+        }
+
+        public void setTextColor(int value) { textColor = colour(value, 0xFFFFFF); }
+        public void setTextScale(int value) { textScale = clamp(value, 50, 200); }
+        public void setBackgroundColor(int value) { backgroundColor = colour(value, 0x15171B); }
+        public void setBackgroundOpacity(int value) { backgroundOpacity = clamp(value, 0, 100); }
+        public void setRadius(int value) { radius = clamp(value, 0, 16); }
+        public void setBorderColor(int value) { borderColor = colour(value, 0x4A4A50); }
+        public void setBorderOpacity(int value) { borderOpacity = clamp(value, 0, 100); }
+        public void setLineSpacing(int value) { lineSpacing = clamp(value, -2, 12); }
+        public void setShadow(boolean value) { shadow = value; }
+        public void setAppearStyle(String value) {
+            appearStyle = "SLIDE".equalsIgnoreCase(value) ? "SLIDE"
+                    : "FADE".equalsIgnoreCase(value) ? "FADE" : "VANILLA";
+        }
+        public void setAppearSpeed(int value) { appearSpeed = clamp(value, 0, 1000); }
+        public void setFadeSeconds(int value) { fadeSeconds = clamp(value, 0, 60); }
+        public void setHoverColor(int value) { hoverColor = colour(value, 0x64D2FF); }
+        public void setHoverOpacity(int value) { hoverOpacity = clamp(value, 0, 100); }
+        public void setScrollSpeed(int value) { scrollSpeed = clamp(value, 25, 400); }
+        public void setSmoothScroll(boolean value) { smoothScroll = value; }
+
+        private void reset() {
+            textColor = 0xFFFFFF;
+            textScale = 100;
+            backgroundColor = 0x15171B;
+            backgroundOpacity = target == TARGET_DEFAULT ? 0 : 48;
+            radius = target == TARGET_DEFAULT ? 0 : 4;
+            borderColor = target == TARGET_CHAT_1 ? 0x30D158 : target == TARGET_CHAT_2 ? 0x64D2FF : 0x4A4A50;
+            borderOpacity = target == TARGET_DEFAULT ? 0 : 80;
+            lineSpacing = 0;
+            shadow = target != TARGET_DEFAULT;
+            appearStyle = "VANILLA";
+            appearSpeed = 120;
+            fadeSeconds = 10;
+            hoverColor = 0x64D2FF;
+            hoverOpacity = 35;
+            scrollSpeed = 100;
+            smoothScroll = false;
+        }
+
+        private void copyFrom(Appearance source) {
+            if (source == null || source == this) return;
+            textColor = source.textColor;
+            textScale = source.textScale;
+            backgroundColor = source.backgroundColor;
+            backgroundOpacity = source.backgroundOpacity;
+            radius = source.radius;
+            borderColor = source.borderColor;
+            borderOpacity = source.borderOpacity;
+            lineSpacing = source.lineSpacing;
+            shadow = source.shadow;
+            appearStyle = source.appearStyle;
+            appearSpeed = source.appearSpeed;
+            fadeSeconds = source.fadeSeconds;
+            hoverColor = source.hoverColor;
+            hoverOpacity = source.hoverOpacity;
+            scrollSpeed = source.scrollSpeed;
+            smoothScroll = source.smoothScroll;
+        }
+
+        private void load(Properties p, String prefix) {
+            setTextColor(readColour(p, prefix + "text.color", textColor));
+            setTextScale(readInt(p, prefix + "text.scale", textScale, 50, 200));
+            setBackgroundColor(readColour(p, prefix + "background.color", backgroundColor));
+            setBackgroundOpacity(readInt(p, prefix + "background.opacity", backgroundOpacity, 0, 100));
+            setRadius(readInt(p, prefix + "background.radius", radius, 0, 16));
+            setBorderColor(readColour(p, prefix + "border.color", borderColor));
+            setBorderOpacity(readInt(p, prefix + "border.opacity", borderOpacity, 0, 100));
+            setLineSpacing(readInt(p, prefix + "line.spacing", lineSpacing, -2, 12));
+            setShadow(readBool(p, prefix + "shadow", shadow));
+            setAppearStyle(readString(p, prefix + "appear.style", appearStyle, 12));
+            setAppearSpeed(readInt(p, prefix + "appear.speed", appearSpeed, 0, 1000));
+            setFadeSeconds(readInt(p, prefix + "fade", fadeSeconds, 0, 60));
+            setHoverColor(readColour(p, prefix + "hover.color", hoverColor));
+            setHoverOpacity(readInt(p, prefix + "hover.opacity", hoverOpacity, 0, 100));
+            setScrollSpeed(readInt(p, prefix + "scroll.speed", scrollSpeed, 25, 400));
+            setSmoothScroll(readBool(p, prefix + "scroll.smooth", smoothScroll));
+        }
+
+        private void save(Properties p, String prefix) {
+            p.setProperty(prefix + "text.color", colourString(textColor));
+            p.setProperty(prefix + "text.scale", Integer.toString(textScale));
+            p.setProperty(prefix + "background.color", colourString(backgroundColor));
+            p.setProperty(prefix + "background.opacity", Integer.toString(backgroundOpacity));
+            p.setProperty(prefix + "background.radius", Integer.toString(radius));
+            p.setProperty(prefix + "border.color", colourString(borderColor));
+            p.setProperty(prefix + "border.opacity", Integer.toString(borderOpacity));
+            p.setProperty(prefix + "line.spacing", Integer.toString(lineSpacing));
+            p.setProperty(prefix + "shadow", Boolean.toString(shadow));
+            p.setProperty(prefix + "appear.style", appearStyle);
+            p.setProperty(prefix + "appear.speed", Integer.toString(appearSpeed));
+            p.setProperty(prefix + "fade", Integer.toString(fadeSeconds));
+            p.setProperty(prefix + "hover.color", colourString(hoverColor));
+            p.setProperty(prefix + "hover.opacity", Integer.toString(hoverOpacity));
+            p.setProperty(prefix + "scroll.speed", Integer.toString(scrollSpeed));
+            p.setProperty(prefix + "scroll.smooth", Boolean.toString(smoothScroll));
+        }
     }
 
     /** A window's position and size are percentages stored independently for every Minecraft GUI scale. */
@@ -196,6 +386,65 @@ public final class ChatQolSettings {
         return CHAT_2;
     }
 
+    /** Returns the independent appearance for Default Chat, Chat 1 or Chat 2. */
+    public static Appearance appearance(int target) {
+        return APPEARANCES[targetIndex(target)];
+    }
+
+    public static void setEditorTarget(int target) {
+        editorTarget = targetIndex(target);
+    }
+
+    /** Applies one edit to the selected target or atomically to all three targets when Link all is enabled. */
+    public interface AppearanceEdit {
+        void apply(Appearance appearance);
+    }
+
+    public static void editAppearance(int target, AppearanceEdit edit) {
+        if (edit == null) return;
+        if (linkAll) {
+            for (int i = 0; i < TARGET_COUNT; i++) edit.apply(APPEARANCES[i]);
+        } else {
+            edit.apply(APPEARANCES[targetIndex(target)]);
+        }
+        syncLegacyAppearanceAliases();
+    }
+
+    /** Copies every target-specific visual/input setting from one source. Link all deliberately fans out the copy. */
+    public static void copyAppearanceFrom(int target, int source) {
+        Appearance from = appearance(source);
+        if (linkAll) {
+            for (int i = 0; i < TARGET_COUNT; i++) if (i != targetIndex(source)) APPEARANCES[i].copyFrom(from);
+        } else {
+            appearance(target).copyFrom(from);
+        }
+        syncLegacyAppearanceAliases();
+    }
+
+    /** Resets a target only; Link all makes reset intentionally apply to every target. */
+    public static void resetAppearance(int target) {
+        if (linkAll) {
+            for (Appearance appearance : APPEARANCES) appearance.reset();
+        } else {
+            appearance(target).reset();
+        }
+        syncLegacyAppearanceAliases();
+    }
+
+    /** Per-GUI-scale geometry/collapse state for the Chat Editor panels. */
+    public static ChatEditorPanelLayout.State editorPanel(int panel) {
+        int safe = panel < 0 ? 0 : (panel >= EDITOR_PANELS.length ? EDITOR_PANELS.length - 1 : panel);
+        return EDITOR_PANELS[safe];
+    }
+
+    public static int editorPanelCount() {
+        return EDITOR_PANELS.length;
+    }
+
+    public static void resetEditorPanels() {
+        for (ChatEditorPanelLayout.State panel : EDITOR_PANELS) panel.resetAll();
+    }
+
     public static boolean isEnabled() {
         return enabled;
     }
@@ -303,8 +552,15 @@ public final class ChatQolSettings {
     }
 
     public static void resetBackground() {
-        backgroundOpacity = 48;
-        backgroundRadius = 4;
+        editAppearance(editorTarget, new AppearanceEdit() {
+            @Override
+            public void apply(Appearance appearance) {
+                appearance.setBackgroundColor(0x15171B);
+                appearance.setBackgroundOpacity(appearance.target() == TARGET_DEFAULT ? 0 : 48);
+                appearance.setRadius(appearance.target() == TARGET_DEFAULT ? 0 : 4);
+                appearance.setBorderOpacity(appearance.target() == TARGET_DEFAULT ? 0 : 80);
+            }
+        });
     }
 
     public static void resetMessages() {
@@ -312,12 +568,29 @@ public final class ChatQolSettings {
         CHAT_2.setMessageLimit(100);
         CHAT_1.setFadeSeconds(10);
         CHAT_2.setFadeSeconds(10);
+        editAppearance(editorTarget, new AppearanceEdit() {
+            @Override
+            public void apply(Appearance appearance) {
+                appearance.setLineSpacing(0);
+                appearance.setShadow(appearance.target() != TARGET_DEFAULT);
+                appearance.setAppearStyle("VANILLA");
+                appearance.setAppearSpeed(120);
+                appearance.setFadeSeconds(10);
+                appearance.setScrollSpeed(100);
+                appearance.setSmoothScroll(false);
+            }
+        });
         smoothDuration = 120;
         resetPatterns();
     }
 
     public static void resetFont() {
-        fontName = "Minecraft";
+        globalFontEnabled = false;
+        globalFontName = FONT_MINECRAFT_DEFAULT;
+        fontName = globalFontName;
+        customFont = false;
+        applyAllMinecraftText = false;
+        fontUiScale = fontHudScale = fontEditorScale = fontTabScale = fontChatScale = 100;
     }
 
     public static void resetTabs() {
@@ -329,7 +602,15 @@ public final class ChatQolSettings {
     }
 
     public static void resetHoverMenu() {
+        editAppearance(editorTarget, new AppearanceEdit() {
+            @Override
+            public void apply(Appearance appearance) {
+                appearance.setHoverColor(0x64D2FF);
+                appearance.setHoverOpacity(35);
+            }
+        });
         highlightOpacity = 35;
+        // The legacy setting is retained only so old config files load; extra menu variants are never exposed.
         copyWithColours = false;
     }
 
@@ -347,6 +628,16 @@ public final class ChatQolSettings {
         hoverHighlight = false;
         rightClickMenu = false;
         customFont = false;
+        editorTarget = TARGET_DEFAULT;
+        linkAll = false;
+        globalFontEnabled = false;
+        globalFontName = FONT_MINECRAFT_DEFAULT;
+        applyAllMinecraftText = false;
+        fontUiScale = 100;
+        fontHudScale = 100;
+        fontEditorScale = 100;
+        fontTabScale = 100;
+        fontChatScale = 100;
         selectedTab = TAB_ALL;
         showAll = true;
         showParty = true;
@@ -357,8 +648,10 @@ public final class ChatQolSettings {
         backgroundRadius = 4;
         highlightOpacity = 35;
         copyWithColours = false;
-        fontName = "Minecraft";
+        fontName = FONT_MINECRAFT_DEFAULT;
         smoothDuration = 120;
+        for (Appearance appearance : APPEARANCES) appearance.reset();
+        resetEditorPanels();
         CHAT_1.reset();
         CHAT_2.reset();
         resetPatterns();
@@ -388,7 +681,18 @@ public final class ChatQolSettings {
         smoothMessages = readBool(p, PREFIX + "smooth", readBool(p, "chat.animation.messages", smoothMessages));
         hoverHighlight = readBool(p, PREFIX + "hover", hoverHighlight);
         rightClickMenu = readBool(p, PREFIX + "menu", rightClickMenu);
+        // Pre-0.10.8.4 stored a chat-only font switch/name. It becomes the global Sky VeLor selection on load.
         customFont = readBool(p, PREFIX + "font.enabled", customFont);
+        globalFontEnabled = readBool(p, PREFIX + "globalFont.enabled", customFont);
+        globalFontName = normalizeGlobalFontName(readString(p, PREFIX + "globalFont.name",
+                readString(p, PREFIX + "font.name", globalFontName, 48), 48));
+        applyAllMinecraftText = readBool(p, PREFIX + "globalFont.allMinecraft", false);
+        fontUiScale = readInt(p, PREFIX + "globalFont.scale.ui", 100, 50, 200);
+        fontHudScale = readInt(p, PREFIX + "globalFont.scale.hud", 100, 50, 200);
+        fontEditorScale = readInt(p, PREFIX + "globalFont.scale.editor", 100, 50, 200);
+        fontTabScale = readInt(p, PREFIX + "globalFont.scale.tab", 100, 50, 200);
+        fontChatScale = readInt(p, PREFIX + "globalFont.scale.chat", 100, 50, 200);
+        customFont = globalFontEnabled;
 
         selectedTab = mapSelectedTab(p);
         showAll = readBool(p, PREFIX + "tabs.all", showAll);
@@ -402,11 +706,27 @@ public final class ChatQolSettings {
         backgroundOpacity = readInt(p, PREFIX + "background.opacity", backgroundOpacity, 0, 100);
         backgroundRadius = readInt(p, PREFIX + "background.radius", backgroundRadius, 0, 12);
         highlightOpacity = readInt(p, PREFIX + "hover.opacity", highlightOpacity, 0, 100);
-        copyWithColours = readBool(p, PREFIX + "menu.colours", copyWithColours);
-        fontName = readString(p, PREFIX + "font.name", fontName, 24);
+        // This retired key is intentionally consumed but not honoured: the menu has exactly two actions now.
+        copyWithColours = false;
+        fontName = globalFontName;
         smoothDuration = readInt(p, PREFIX + "smooth.duration", smoothDuration, 0, 1000);
         CHAT_1.load(p, PREFIX + "window1.");
         CHAT_2.load(p, PREFIX + "window2.");
+
+        editorTarget = readInt(p, PREFIX + "editor.target", TARGET_DEFAULT, TARGET_DEFAULT, TARGET_CHAT_2);
+        linkAll = readBool(p, PREFIX + "editor.linkAll", false);
+        boolean hasTargetAppearance = hasPrefix(p, PREFIX + "target.");
+        if (hasTargetAppearance) {
+            appearance(TARGET_DEFAULT).load(p, PREFIX + "target.default.");
+            appearance(TARGET_CHAT_1).load(p, PREFIX + "target.chat1.");
+            appearance(TARGET_CHAT_2).load(p, PREFIX + "target.chat2.");
+        } else {
+            // Compatibility migration: shared 0.10.8.3 appearance becomes both native windows. Default chat stays
+            // visually vanilla until deliberately customised.
+            migrateLegacyAppearance(backgroundOpacity, backgroundRadius, highlightOpacity, smoothDuration);
+        }
+        loadEditorPanels(p);
+        syncLegacyAppearanceAliases();
 
         List<ChatPatternRules.Rule> loaded = new ArrayList<ChatPatternRules.Rule>();
         int count = readInt(p, PREFIX + "patterns.count", -1, -1, 16);
@@ -432,7 +752,16 @@ public final class ChatQolSettings {
         p.setProperty(PREFIX + "smooth", Boolean.toString(smoothMessages));
         p.setProperty(PREFIX + "hover", Boolean.toString(hoverHighlight));
         p.setProperty(PREFIX + "menu", Boolean.toString(rightClickMenu));
-        p.setProperty(PREFIX + "font.enabled", Boolean.toString(customFont));
+        // Keep this legacy alias for one release cycle so an older install can still read the opt-in state.
+        p.setProperty(PREFIX + "font.enabled", Boolean.toString(globalFontEnabled));
+        p.setProperty(PREFIX + "globalFont.enabled", Boolean.toString(globalFontEnabled));
+        p.setProperty(PREFIX + "globalFont.name", normalizeGlobalFontName(globalFontName));
+        p.setProperty(PREFIX + "globalFont.allMinecraft", Boolean.toString(applyAllMinecraftText));
+        p.setProperty(PREFIX + "globalFont.scale.ui", Integer.toString(fontUiScale));
+        p.setProperty(PREFIX + "globalFont.scale.hud", Integer.toString(fontHudScale));
+        p.setProperty(PREFIX + "globalFont.scale.editor", Integer.toString(fontEditorScale));
+        p.setProperty(PREFIX + "globalFont.scale.tab", Integer.toString(fontTabScale));
+        p.setProperty(PREFIX + "globalFont.scale.chat", Integer.toString(fontChatScale));
         p.setProperty(PREFIX + "tabs.selected", Integer.toString(selectedTab));
         p.setProperty(PREFIX + "tabs.all", Boolean.toString(showAll));
         p.setProperty(PREFIX + "tabs.party", Boolean.toString(showParty));
@@ -442,9 +771,15 @@ public final class ChatQolSettings {
         p.setProperty(PREFIX + "background.opacity", Integer.toString(backgroundOpacity));
         p.setProperty(PREFIX + "background.radius", Integer.toString(backgroundRadius));
         p.setProperty(PREFIX + "hover.opacity", Integer.toString(highlightOpacity));
-        p.setProperty(PREFIX + "menu.colours", Boolean.toString(copyWithColours));
-        p.setProperty(PREFIX + "font.name", fontName);
+        // Do not write the removed colour-copy option back. It cannot re-enable a third menu action.
+        p.setProperty(PREFIX + "font.name", globalFontName);
         p.setProperty(PREFIX + "smooth.duration", Integer.toString(smoothDuration));
+        p.setProperty(PREFIX + "editor.target", Integer.toString(editorTarget));
+        p.setProperty(PREFIX + "editor.linkAll", Boolean.toString(linkAll));
+        appearance(TARGET_DEFAULT).save(p, PREFIX + "target.default.");
+        appearance(TARGET_CHAT_1).save(p, PREFIX + "target.chat1.");
+        appearance(TARGET_CHAT_2).save(p, PREFIX + "target.chat2.");
+        saveEditorPanels(p);
         CHAT_1.save(p, PREFIX + "window1.");
         CHAT_2.save(p, PREFIX + "window2.");
         p.setProperty(PREFIX + "patterns.count", Integer.toString(PATTERNS.size()));
@@ -459,12 +794,112 @@ public final class ChatQolSettings {
     private static void normalise() {
         setSelectedTab(selectedTab);
         setTabOrder(tabOrder);
-        backgroundOpacity = clamp(backgroundOpacity, 0, 100);
-        backgroundRadius = clamp(backgroundRadius, 0, 12);
-        highlightOpacity = clamp(highlightOpacity, 0, 100);
+        editorTarget = targetIndex(editorTarget);
+        globalFontName = normalizeGlobalFontName(globalFontName);
+        globalFontEnabled = globalFontEnabled;
+        customFont = globalFontEnabled;
+        fontName = globalFontName;
+        fontUiScale = clamp(fontUiScale, 50, 200);
+        fontHudScale = clamp(fontHudScale, 50, 200);
+        fontEditorScale = clamp(fontEditorScale, 50, 200);
+        fontTabScale = clamp(fontTabScale, 50, 200);
+        fontChatScale = clamp(fontChatScale, 50, 200);
+        copyWithColours = false;
         smoothDuration = clamp(smoothDuration, 0, 1000);
+        syncLegacyAppearanceAliases();
         CHAT_1.setName(CHAT_1.getName());
         CHAT_2.setName(CHAT_2.getName());
+    }
+
+    private static void migrateLegacyAppearance(int oldOpacity, int oldRadius, int oldHoverOpacity, int oldAppearSpeed) {
+        for (int target = TARGET_CHAT_1; target <= TARGET_CHAT_2; target++) {
+            Appearance appearance = appearance(target);
+            appearance.setBackgroundOpacity(oldOpacity);
+            appearance.setRadius(oldRadius);
+            appearance.setHoverOpacity(oldHoverOpacity);
+            appearance.setAppearSpeed(oldAppearSpeed);
+            appearance.setFadeSeconds(target == TARGET_CHAT_1 ? CHAT_1.getFadeSeconds() : CHAT_2.getFadeSeconds());
+        }
+    }
+
+    private static void syncLegacyAppearanceAliases() {
+        Appearance primary = appearance(TARGET_CHAT_1);
+        backgroundOpacity = primary.backgroundOpacity();
+        backgroundRadius = primary.radius();
+        highlightOpacity = primary.hoverOpacity();
+        smoothDuration = primary.appearSpeed();
+        fontName = normalizeGlobalFontName(globalFontName);
+        customFont = globalFontEnabled;
+    }
+
+    private static void loadEditorPanels(Properties p) {
+        for (int panel = 0; panel < EDITOR_PANELS.length; panel++) {
+            ChatEditorPanelLayout.State state = EDITOR_PANELS[panel];
+            for (int scale = SCALE_MIN; scale <= SCALE_MAX; scale++) {
+                String prefix = PREFIX + "editor.panel." + panel + ".s" + scale + ".";
+                state.set(scale,
+                        readInt(p, prefix + "x", state.x(scale), 0, 10000),
+                        readInt(p, prefix + "y", state.y(scale), 0, 10000),
+                        readBool(p, prefix + "collapsed", state.collapsed(scale)));
+            }
+        }
+    }
+
+    private static void saveEditorPanels(Properties p) {
+        for (int panel = 0; panel < EDITOR_PANELS.length; panel++) {
+            ChatEditorPanelLayout.State state = EDITOR_PANELS[panel];
+            for (int scale = SCALE_MIN; scale <= SCALE_MAX; scale++) {
+                String prefix = PREFIX + "editor.panel." + panel + ".s" + scale + ".";
+                p.setProperty(prefix + "x", Integer.toString(state.x(scale)));
+                p.setProperty(prefix + "y", Integer.toString(state.y(scale)));
+                p.setProperty(prefix + "collapsed", Boolean.toString(state.collapsed(scale)));
+            }
+        }
+    }
+
+    private static int targetIndex(int target) {
+        return clamp(target, TARGET_DEFAULT, TARGET_CHAT_2);
+    }
+
+    private static int colour(int value, int fallback) {
+        return value < 0 || value > 0xFFFFFF ? fallback : value;
+    }
+
+    private static int readColour(Properties p, String key, int fallback) {
+        String raw = p.getProperty(key);
+        if (raw == null) return fallback;
+        String value = raw.trim();
+        if (value.startsWith("#")) value = value.substring(1);
+        if (value.startsWith("0x") || value.startsWith("0X")) value = value.substring(2);
+        try {
+            return colour((int) Long.parseLong(value, 16), fallback);
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static String colourString(int value) {
+        String hex = Integer.toHexString(colour(value, 0));
+        StringBuilder out = new StringBuilder("#");
+        for (int i = hex.length(); i < 6; i++) out.append('0');
+        return out.append(hex.toUpperCase(java.util.Locale.ROOT)).toString();
+    }
+
+    private static String normalizeGlobalFontName(String requested) {
+        if (requested == null) return FONT_MINECRAFT_DEFAULT;
+        String value = requested.trim();
+        if (FONT_SMOOTH.equalsIgnoreCase(value) || "Compact".equalsIgnoreCase(value)) return FONT_SMOOTH;
+        if (FONT_DOODLE.equalsIgnoreCase(value)) return FONT_DOODLE;
+        if (value.startsWith("External:")) {
+            String file = value.substring("External:".length());
+            String lower = file.toLowerCase(java.util.Locale.ROOT);
+            if (file.length() >= 5 && file.length() <= 96 && file.indexOf('/') < 0 && file.indexOf('\\') < 0
+                    && file.indexOf("..") < 0 && (lower.endsWith(".ttf") || lower.endsWith(".otf"))) {
+                return "External:" + file;
+            }
+        }
+        // Old Minecraft/Unicode chat choices never cause a font-load attempt on migration.
+        return FONT_MINECRAFT_DEFAULT;
     }
 
     private static int firstVisibleTab() {

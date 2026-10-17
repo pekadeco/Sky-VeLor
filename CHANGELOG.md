@@ -1,5 +1,15 @@
 # Changelog
 
+## Beta-0.10.8.4v — 2026-10-18
+
+- Unified Default Chat, Chat 1, and Chat 2 message hit testing, eased hover state, right-click handling, and bounded scrolling through one native interaction model. Default vanilla-layout chat now receives the same opt-in highlight/menu path when Separate Chats is off.
+- Replaced the copy menu with exactly **Copy to clipboard** (clean text) and **Copy to chat box** (inserts clean text). The menu is clamped, eased, dismisses on outside click/Escape, and right-click never fires a message component action.
+- Restored native component behavior in Chat 1/Chat 2: wrapped/moved/scaled rows resolve the clicked component and forward left clicks through vanilla-compatible `run_command`, `suggest_command`, and `open_url` handling; native hover events show a safe tooltip.
+- Added independent Default Chat / Chat 1 / Chat 2 appearance and scrolling profiles, Link all, Copy settings from, per-target resets, and a real customized Default Chat draw pass that keeps its cached vanilla wrapped lines and vanilla-compatible scroll/component lookup.
+- Added draggable, screen-clamped, GUI-scale-persisted Chat Editor panel state with title double-click reset and persisted collapse state; the editor now exposes target selection, per-target colors/scale/background/border/spacing/shadow/appearance/fade/hover/scroll controls.
+- Replaced the chat-only font preference with global Sky VeLor font settings and an **Open Font Settings** route. Added Minecraft Default, bundled OFL-licensed Smooth (Abel) and Doodle (Architects Daughter) fonts, external config-folder `.ttf`/`.otf` discovery, cached bilinear glyph atlases, safe fallback, per-area scales, and an optional fail-closed all-Minecraft-text switch.
+- Added headless checks for all three interaction surfaces, exactly two menu labels, moved/scaled hit coordinates, one wheel application, draggable/clamped/resettable panel state, independent/linked/copied target settings, target persistence, and font migration/fallback.
+
 ## Beta-0.10.8.3v — 2026-10-17
 
 - Replaced the previous separate chat pages with one compact **QoL → Chat QoL** dropdown: a safe master switch, **Chat Tabs**, **Separate Chats**, **Smooth Messages**, **Hover Highlight**, **Right Click Menu**, **Custom Font**, and **Open Chat Editor**. All customization now belongs only to the editor.

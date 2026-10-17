@@ -412,6 +412,15 @@ public final class UIRender {
      * Non-1 scales are applied with a matrix push/pop so the font's own quads stay sharp.
      */
     public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow) {
+        text(fr, s, x, y, color, scale, shadow, GlobalFontManager.Area.UI);
+    }
+
+    /**
+     * Sky VeLor-owned typography path. GlobalFontManager returns false on every unsafe/missing-font path, leaving
+     * Minecraft's renderer untouched; this is why vanilla text is never globally replaced by this helper.
+     */
+    public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow,
+                            GlobalFontManager.Area area) {
         if (s == null || s.isEmpty()) {
             return;
         }
@@ -422,14 +431,16 @@ public final class UIRender {
         flush();
         GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();
-        if (scale == 1f) {
-            fr.drawString(s, (float) Math.round(x), (float) Math.round(y), c, shadow);
-        } else {
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(x, y, 0f);
-            GlStateManager.scale(scale, scale, 1f);
-            fr.drawString(s, 0f, 0f, c, shadow);
-            GlStateManager.popMatrix();
+        if (!GlobalFontManager.draw(s, x, y, c, scale, shadow, area)) {
+            if (scale == 1f) {
+                fr.drawString(s, (float) Math.round(x), (float) Math.round(y), c, shadow);
+            } else {
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(x, y, 0f);
+                GlStateManager.scale(scale, scale, 1f);
+                fr.drawString(s, 0f, 0f, c, shadow);
+                GlStateManager.popMatrix();
+            }
         }
         GlStateManager.disableAlpha();
         GlStateManager.disableTexture2D();

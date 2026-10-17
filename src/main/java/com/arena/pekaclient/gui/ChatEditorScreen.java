@@ -4,6 +4,7 @@ import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.feature.ChatFilterRules;
 import com.arena.pekaclient.feature.ChatFontPolicy;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.feature.ChatPatternRules;
 import com.arena.pekaclient.feature.ChatWindowLayout;
 import com.arena.pekaclient.render.Theme;
@@ -33,8 +34,10 @@ public final class ChatEditorScreen extends AppleScreen {
     private static final String[] SECTION_NAMES = {
             "Windows", "Background", "Messages", "Font", "Tabs", "Hover / menu"
     };
-    private static final int[] SECTION_ROWS = {5, 3, 9, 2, 5, 3};
-    private static final String[] FONT_OPTIONS = {"Minecraft", "Unicode", "Compact"};
+    private static final int[] SECTION_ROWS = {5, 6, 16, 3, 5, 3};
+    private static final String[] FONT_OPTIONS = {"Minecraft Default", "Smooth", "Doodle"};
+    private static final String[] TARGET_OPTIONS = {"Default Chat", "Chat 1", "Chat 2"};
+    private static final String[] APPEAR_OPTIONS = {"Vanilla", "Slide", "Fade"};
     private static final String[] ORDER_OPTIONS = {
             "All, Party, Reply", "All, Reply, Party", "Party, All, Reply",
             "Party, Reply, All", "Reply, All, Party", "Reply, Party, All"
@@ -65,9 +68,19 @@ public final class ChatEditorScreen extends AppleScreen {
     private final SearchField chat2Name = new SearchField("Chat 2 name");
     private final SearchField patternExpression = new SearchField("Regular expression, blank tests defaults");
     private final SearchField patternSample = new SearchField("Sample message to classify");
+    private final SearchField textColour = new SearchField("#FFFFFF");
+    private final SearchField backgroundColour = new SearchField("#15171B");
+    private final SearchField borderColour = new SearchField("#4A4A50");
+    private final SearchField hoverColour = new SearchField("#64D2FF");
     private final AppleDropdown patternTarget;
     private final AppleDropdown fontChoice;
     private final AppleDropdown tabOrderChoice;
+    private final AppleDropdown targetChoice;
+    private final AppleDropdown copyFromChoice;
+    private final AppleDropdown appearChoice;
+    private final AppleToggle linkAllToggle;
+    private final AppleButton openFontSettings;
+
     private final ChatWindowLayout.Rect chat1Rect = new ChatWindowLayout.Rect();
     private final ChatWindowLayout.Rect chat2Rect = new ChatWindowLayout.Rect();
 
@@ -89,6 +102,11 @@ public final class ChatEditorScreen extends AppleScreen {
     private float grabY;
     private String patternStatus = "Add a rule, then use Test before saving it.";
     private long lastNs;
+    private boolean draggingEditor;
+    private float editorGrabX;
+    private float editorGrabY;
+    private long lastEditorTitleClick;
+
 
     public ChatEditorScreen(GuiScreen parent) {
         this.parent = parent;
@@ -96,11 +114,32 @@ public final class ChatEditorScreen extends AppleScreen {
         fields.add(chat2Name);
         fields.add(patternExpression);
         fields.add(patternSample);
+        fields.add(textColour);
+        fields.add(backgroundColour);
+        fields.add(borderColour);
+        fields.add(hoverColour);
         patternTarget = new AppleDropdown(new String[]{"Chat 1 player", "Chat 2 system"}, null, 120f, 22f,
                 () -> ChatPatternRules.CHAT_2.equals(patternTargetValue()) ? 1 : 0,
                 value -> patternTargetValue(value == 1 ? ChatPatternRules.CHAT_2 : ChatPatternRules.CHAT_1));
-        fontChoice = new AppleDropdown(FONT_OPTIONS, null, 120f, 22f, this::fontChoiceIndex,
-                value -> ChatQolSettings.fontName = FONT_OPTIONS[Math.max(0, Math.min(value, FONT_OPTIONS.length - 1))]);
+        fontChoice = new AppleDropdown(FONT_OPTIONS, null, 132f, 22f, this::fontChoiceIndex,
+                value -> {
+                    ChatQolSettings.globalFontName = FONT_OPTIONS[Math.max(0, Math.min(value, FONT_OPTIONS.length - 1))];
+                    ChatQolSettings.fontName = ChatQolSettings.globalFontName;
+                    GlobalFontManager.reload();
+                });
+        targetChoice = new AppleDropdown(TARGET_OPTIONS, null, 112f, 22f,
+                () -> ChatQolSettings.editorTarget, ChatQolSettings::setEditorTarget);
+        copyFromChoice = new AppleDropdown(TARGET_OPTIONS, null, 112f, 22f,
+                () -> ChatQolSettings.editorTarget, value -> {
+                    ChatQolSettings.copyAppearanceFrom(ChatQolSettings.editorTarget, value);
+                    syncAppearanceFields();
+                });
+        appearChoice = new AppleDropdown(APPEAR_OPTIONS, null, 112f, 22f, this::appearChoiceIndex,
+                value -> ChatQolSettings.editAppearance(ChatQolSettings.editorTarget,
+                        appearance -> appearance.setAppearStyle(value == 1 ? "SLIDE" : value == 2 ? "FADE" : "VANILLA")));
+        linkAllToggle = new AppleToggle(() -> ChatQolSettings.linkAll, value -> ChatQolSettings.linkAll = value);
+        openFontSettings = new AppleButton("Open Font Settings", 126f, 22f, true,
+                () -> Minecraft.getMinecraft().displayGuiScreen(new GlobalFontSettingsScreen(this)));
         tabOrderChoice = new AppleDropdown(ORDER_OPTIONS, null, 148f, 22f, this::tabOrderIndex,
                 value -> ChatQolSettings.setTabOrder(ORDER_VALUES[Math.max(0, Math.min(value, ORDER_VALUES.length - 1))]));
         buildEntries();
@@ -117,7 +156,7 @@ public final class ChatEditorScreen extends AppleScreen {
     }
 
     private void buildEntries() {
-        // Windows: positions persist per GUI scale and can be directly dragged/resized on the game-size preview.
+        // Window placement stays separate from visual target settings so the legacy Chat 1/Chat 2 geometry survives.
         entries.add(new Entry(ChatEditorLayout.WINDOWS, "Snap to edges", new AppleToggle(
                 () -> ChatQolSettings.snapWindows, value -> ChatQolSettings.snapWindows = value)));
         entries.add(new Entry(ChatEditorLayout.WINDOWS, "Chat 1 name", chat1Name));
@@ -125,34 +164,53 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.WINDOWS, "Arrange windows", new AppleButton("Arrange", 82f, 22f,
                 true, () -> arrangingWindows = !arrangingWindows)));
         entries.add(new Entry(ChatEditorLayout.WINDOWS, "Reset windows", new AppleButton("Reset", 64f, 22f,
-                false, () -> ChatQolSettings.resetWindows())));
+                false, ChatQolSettings::resetWindows)));
 
+        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Background colour", backgroundColour));
         entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Opacity", new AppleSlider(0, 100, 5, "%", 142f,
-                () -> ChatQolSettings.backgroundOpacity, value -> ChatQolSettings.backgroundOpacity = value)));
-        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Corner radius", new AppleSlider(0, 12, 1, " px", 142f,
-                () -> ChatQolSettings.backgroundRadius, value -> ChatQolSettings.backgroundRadius = value)));
+                () -> appearance().backgroundOpacity(), value -> editAppearance(a -> a.setBackgroundOpacity(value)))));
+        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Corner radius", new AppleSlider(0, 16, 1, " px", 142f,
+                () -> appearance().radius(), value -> editAppearance(a -> a.setRadius(value)))));
+        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Border colour", borderColour));
+        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Border opacity", new AppleSlider(0, 100, 5, "%", 142f,
+                () -> appearance().borderOpacity(), value -> editAppearance(a -> a.setBorderOpacity(value)))));
         entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Reset background", new AppleButton("Reset", 64f, 22f,
                 false, ChatQolSettings::resetBackground)));
 
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Text colour", textColour));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Text scale", new AppleSlider(50, 200, 5, "%", 142f,
+                () -> appearance().textScale(), value -> editAppearance(a -> a.setTextScale(value)))));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Line spacing", new AppleSlider(-2, 12, 1, " px", 142f,
+                () -> appearance().lineSpacing(), value -> editAppearance(a -> a.setLineSpacing(value)))));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Text shadow", new AppleToggle(
+                () -> appearance().shadow(), value -> editAppearance(a -> a.setShadow(value)))));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Appear style", appearChoice));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Appear speed", new AppleSlider(0, 1000, 20, " ms", 142f,
+                () -> appearance().appearSpeed(), value -> editAppearance(a -> a.setAppearSpeed(value)))));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Fade-out", new AppleSlider(0, 60, 1, " s", 142f,
+                () -> appearance().fadeSeconds(), value -> editAppearance(a -> a.setFadeSeconds(value)))));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Scroll speed", new AppleSlider(25, 400, 25, "%", 142f,
+                () -> appearance().scrollSpeed(), value -> editAppearance(a -> a.setScrollSpeed(value)))));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Smooth scrolling", new AppleToggle(
+                () -> appearance().smoothScroll(), value -> editAppearance(a -> a.setSmoothScroll(value)))));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Chat 1 lines", new AppleSlider(10, 300, 5, "", 142f,
                 () -> ChatQolSettings.chat1().getMessageLimit(), value -> ChatQolSettings.chat1().setMessageLimit(value))));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Chat 2 lines", new AppleSlider(10, 300, 5, "", 142f,
                 () -> ChatQolSettings.chat2().getMessageLimit(), value -> ChatQolSettings.chat2().setMessageLimit(value))));
-        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Chat 1 fade", new AppleSlider(0, 60, 1, " s", 142f,
-                () -> ChatQolSettings.chat1().getFadeSeconds(), value -> ChatQolSettings.chat1().setFadeSeconds(value))));
-        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Chat 2 fade", new AppleSlider(0, 60, 1, " s", 142f,
-                () -> ChatQolSettings.chat2().getFadeSeconds(), value -> ChatQolSettings.chat2().setFadeSeconds(value))));
-        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Smooth duration", new AppleSlider(0, 1000, 20, " ms", 142f,
-                () -> ChatQolSettings.smoothDuration, value -> ChatQolSettings.smoothDuration = value)));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Rule target", patternTarget));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Rule expression", patternExpression));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Rule sample", patternSample));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Test / add", new AppleButton("Test + add", 82f, 22f,
                 true, this::testAndAddPattern)));
 
-        entries.add(new Entry(ChatEditorLayout.FONT, "Chat font", fontChoice));
-        entries.add(new Entry(ChatEditorLayout.FONT, "Reset font", new AppleButton("Reset", 64f, 22f,
-                false, ChatQolSettings::resetFont)));
+        entries.add(new Entry(ChatEditorLayout.FONT, "Use global font", new AppleToggle(
+                () -> ChatQolSettings.globalFontEnabled, value -> {
+                    ChatQolSettings.globalFontEnabled = value;
+                    ChatQolSettings.customFont = value;
+                    GlobalFontManager.reload();
+                })));
+        entries.add(new Entry(ChatEditorLayout.FONT, "Font", fontChoice));
+        entries.add(new Entry(ChatEditorLayout.FONT, "Open Font Settings", openFontSettings));
 
         entries.add(new Entry(ChatEditorLayout.TABS, "Show All", new AppleToggle(
                 () -> ChatQolSettings.showAll, value -> ChatQolSettings.setTabVisible(ChatQolSettings.TAB_ALL, value))));
@@ -164,12 +222,19 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.TABS, "Reset tabs", new AppleButton("Reset", 64f, 22f,
                 false, ChatQolSettings::resetTabs)));
 
+        entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Hover colour", hoverColour));
         entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Highlight opacity", new AppleSlider(0, 100, 5, "%", 142f,
-                () -> ChatQolSettings.highlightOpacity, value -> ChatQolSettings.highlightOpacity = value)));
-        entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Copy colours", new AppleToggle(
-                () -> ChatQolSettings.copyWithColours, value -> ChatQolSettings.copyWithColours = value)));
+                () -> appearance().hoverOpacity(), value -> editAppearance(a -> a.setHoverOpacity(value)))));
         entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Reset hover/menu", new AppleButton("Reset", 64f, 22f,
                 false, ChatQolSettings::resetHoverMenu)));
+    }
+
+    private ChatQolSettings.Appearance appearance() {
+        return ChatQolSettings.appearance(ChatQolSettings.editorTarget);
+    }
+
+    private void editAppearance(ChatQolSettings.AppearanceEdit edit) {
+        ChatQolSettings.editAppearance(ChatQolSettings.editorTarget, edit);
     }
 
     private void testAndAddPattern() {
@@ -220,17 +285,60 @@ public final class ChatEditorScreen extends AppleScreen {
     private void syncFields() {
         if (!chat1Name.isFocused()) chat1Name.setText(ChatQolSettings.chat1().getName());
         if (!chat2Name.isFocused()) chat2Name.setText(ChatQolSettings.chat2().getName());
+        syncAppearanceFields();
+    }
+
+    private void syncAppearanceFields() {
+        ChatQolSettings.Appearance current = appearance();
+        if (!textColour.isFocused()) textColour.setText(colourText(current.textColor()));
+        if (!backgroundColour.isFocused()) backgroundColour.setText(colourText(current.backgroundColor()));
+        if (!borderColour.isFocused()) borderColour.setText(colourText(current.borderColor()));
+        if (!hoverColour.isFocused()) hoverColour.setText(colourText(current.hoverColor()));
     }
 
     private void commitFields() {
         ChatQolSettings.chat1().setName(chat1Name.text());
         ChatQolSettings.chat2().setName(chat2Name.text());
+        Integer text = parseColour(textColour.text());
+        Integer background = parseColour(backgroundColour.text());
+        Integer border = parseColour(borderColour.text());
+        Integer hover = parseColour(hoverColour.text());
+        if (text != null) editAppearance(a -> a.setTextColor(text));
+        if (background != null) editAppearance(a -> a.setBackgroundColor(background));
+        if (border != null) editAppearance(a -> a.setBorderColor(border));
+        if (hover != null) editAppearance(a -> a.setHoverColor(hover));
+        syncAppearanceFields();
+    }
+
+    private static Integer parseColour(String source) {
+        if (source == null) return null;
+        String value = source.trim();
+        if (value.startsWith("#")) value = value.substring(1);
+        if (value.startsWith("0x") || value.startsWith("0X")) value = value.substring(2);
+        try {
+            int result = (int) Long.parseLong(value, 16);
+            return result >= 0 && result <= 0xFFFFFF ? Integer.valueOf(result) : null;
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static String colourText(int value) {
+        String hex = Integer.toHexString(value & 0xFFFFFF).toUpperCase(java.util.Locale.ROOT);
+        StringBuilder out = new StringBuilder("#");
+        for (int i = hex.length(); i < 6; i++) out.append('0');
+        return out.append(hex).toString();
     }
 
     private int fontChoiceIndex() {
-        String resolved = ChatFontPolicy.resolve(ChatQolSettings.fontName);
+        String resolved = ChatFontPolicy.resolve(ChatQolSettings.globalFontName);
         for (int i = 0; i < FONT_OPTIONS.length; i++) if (FONT_OPTIONS[i].equals(resolved)) return i;
         return 0;
+    }
+
+    private int appearChoiceIndex() {
+        String style = appearance().appearStyle();
+        return "SLIDE".equals(style) ? 1 : "FADE".equals(style) ? 2 : 0;
     }
 
     private int tabOrderIndex() {
@@ -242,15 +350,27 @@ public final class ChatEditorScreen extends AppleScreen {
     private void updateLayout() {
         ww = Math.max(150f, Math.min(width - 12f, 470f));
         wh = Math.max(116f, Math.min(height - 12f, 372f));
-        wx = (width - ww) * 0.5f;
-        wy = (height - wh) * 0.5f;
+        int guiScale = Math.max(1, Math.min(4, Math.round(sf)));
+        ChatEditorPanelLayout.Rect panel = new ChatEditorPanelLayout.Rect();
+        ChatEditorPanelLayout.resolve(panel, ChatQolSettings.editorPanel(0), guiScale, ww, wh, width, height);
+        wx = panel.x;
+        wy = panel.y;
         viewX = wx + 10f;
-        viewY = wy + 39f;
+        viewY = wy + 66f;
         viewW = Math.max(1f, ww - 20f);
-        viewH = Math.max(1f, wh - 49f);
+        viewH = Math.max(1f, wh - 76f);
+        for (int i = 0; i < expanded.length; i++) {
+            expanded[i] = !ChatQolSettings.editorPanel(i + 1).collapsed(guiScale);
+        }
         ChatEditorLayout.update(layout, viewX, viewY, viewW, viewH, expanded, SECTION_ROWS, scroll);
         scroll = layout.scroll;
         positionControls();
+        targetChoice.x = wx + 56f;
+        targetChoice.y = wy + 38f;
+        linkAllToggle.x = wx + 212f;
+        linkAllToggle.y = wy + 39f;
+        copyFromChoice.x = Math.min(wx + ww - copyFromChoice.w - 9f, wx + 334f);
+        copyFromChoice.y = wy + 38f;
     }
 
     private void positionControls() {
@@ -274,6 +394,9 @@ public final class ChatEditorScreen extends AppleScreen {
 
     private void updateWidgets(float dt) {
         syncFields();
+        targetChoice.update(dt);
+        linkAllToggle.update(dt);
+        copyFromChoice.update(dt);
         for (Entry entry : entries) {
             if (entryVisible(entry)) entry.widget.update(dt);
         }
@@ -305,31 +428,51 @@ public final class ChatEditorScreen extends AppleScreen {
         ChatWindowLayout.update(chat1Rect, ChatQolSettings.chat1(), scale, width, height);
         ChatWindowLayout.update(chat2Rect, ChatQolSettings.chat2(), scale, width, height);
         if (!arrangingWindows) return;
-        drawPreviewWindow(chat1Rect, ChatQolSettings.chat1().getName(), mx, my, 0xB030D158);
-        drawPreviewWindow(chat2Rect, ChatQolSettings.chat2().getName(), mx, my, 0xB064D2FF);
+        drawPreviewWindow(chat1Rect, ChatQolSettings.chat1().getName(), ChatQolSettings.TARGET_CHAT_1, mx, my);
+        drawPreviewWindow(chat2Rect, ChatQolSettings.chat2().getName(), ChatQolSettings.TARGET_CHAT_2, mx, my);
         UIRender.text(fr(), "Arrange: drag a window; drag its lower-right corner to resize; edge snap is optional.",
                 8f, 8f, Theme.textPrimary, 0.85f, true);
     }
 
-    private void drawPreviewWindow(ChatWindowLayout.Rect rect, String name, int mx, int my, int accent) {
+    private void drawPreviewWindow(ChatWindowLayout.Rect rect, String name, int target, int mx, int my) {
+        ChatQolSettings.Appearance appearance = ChatQolSettings.appearance(target);
         boolean hot = rect.contains(mx, my);
-        int fill = hot ? 0x68202428 : 0x50202428;
-        UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, Math.min(6f, ChatQolSettings.backgroundRadius),
-                fill, fill, accent);
-        UIRender.text(fr(), fit(fr(), name, rect.w - 12f), rect.x + 6f, rect.y + 6f, 0xFFFFFFFF, 0.9f, true);
+        int alpha = Math.round(appearance.backgroundOpacity() * (hot ? 1.25f : 1f) * 2.55f);
+        alpha = Math.max(0, Math.min(255, alpha));
+        int fill = (alpha << 24) | appearance.backgroundColor();
+        int border = (Math.max(0, Math.min(255, Math.round(appearance.borderOpacity() * 2.55f))) << 24)
+                | appearance.borderColor();
+        UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, Math.min(appearance.radius(), 6f),
+                fill, fill, border);
+        UIRender.text(fr(), fit(fr(), name, rect.w - 12f), rect.x + 6f, rect.y + 6f,
+                0xFF000000 | appearance.textColor(), appearance.textScale() / 100f, appearance.shadow(),
+                GlobalFontManager.Area.EDITOR);
         UIRender.line(rect.x + rect.w - 8f, rect.y + rect.h - 2f, rect.x + rect.w - 2f, rect.y + rect.h - 8f,
-                1f, accent);
+                1f, border);
     }
 
     private void drawWindow(int mx, int my) {
         UIRender.shadow(wx, wy, ww, wh, Math.min(Theme.radius, 12f));
         UIRender.roundRect(wx, wy, ww, wh, Theme.radius, Theme.windowTop, Theme.windowBottom, 0.6f);
         UIRender.roundRectRing(wx, wy, ww, wh, Theme.radius, 1f, Theme.border);
-        UIRender.text(fr(), "Chat Editor", wx + 14f, wy + 12f, Theme.textPrimary, 1.0f, false);
-        String mode = arrangingWindows ? "Arranging windows" : "Chat QoL customization";
-        UIRender.text(fr(), mode, wx + 14f, wy + 25f, arrangingWindows ? Theme.accent : Theme.textSecondary, 0.72f, false);
-        UIRender.text(fr(), "Done", wx + ww - 40f, wy + 13f, Theme.accent, 0.85f, false);
+        UIRender.text(fr(), "Chat Editor", wx + 14f, wy + 12f, Theme.textPrimary, 1.0f, false,
+                GlobalFontManager.Area.EDITOR);
+        String mode = arrangingWindows ? "Arranging windows" : "Drag title to move · double-click title to reset";
+        UIRender.text(fr(), mode, wx + 14f, wy + 25f, arrangingWindows ? Theme.accent : Theme.textSecondary, 0.67f, false,
+                GlobalFontManager.Area.EDITOR);
+        UIRender.text(fr(), "Done", wx + ww - 40f, wy + 13f, Theme.accent, 0.85f, false,
+                GlobalFontManager.Area.EDITOR);
         UIRender.rect(wx + 1f, wy + 34f, ww - 2f, 1f, Theme.divider);
+        UIRender.text(fr(), "Target", wx + 12f, wy + 46f, Theme.textSecondary, 0.72f, false,
+                GlobalFontManager.Area.EDITOR);
+        targetChoice.draw(mx, my);
+        UIRender.text(fr(), "Link all", wx + 258f, wy + 46f, Theme.textSecondary, 0.72f, false,
+                GlobalFontManager.Area.EDITOR);
+        linkAllToggle.draw(mx, my);
+        UIRender.text(fr(), "Copy from", copyFromChoice.x - 57f, wy + 46f, Theme.textSecondary, 0.66f, false,
+                GlobalFontManager.Area.EDITOR);
+        copyFromChoice.draw(mx, my);
+        UIRender.rect(wx + 1f, wy + 62f, ww - 2f, 1f, Theme.divider);
 
         UIRender.scissorBegin(viewX, viewY, viewW, viewH, sf);
         for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
@@ -345,7 +488,7 @@ public final class ChatEditorScreen extends AppleScreen {
         }
         if (expanded[ChatEditorLayout.MESSAGES]) {
             ChatEditorLayout.Rect body = layout.bodies[ChatEditorLayout.MESSAGES];
-            float infoY = body.y + 8 * ChatEditorLayout.ROW_H + 21f;
+            float infoY = body.y + 15 * ChatEditorLayout.ROW_H + 8f;
             UIRender.text(fr(), fit(fr(), "Rules: " + ChatQolSettings.patternRuleCount() + " — " + patternStatus,
                     body.w), body.x, infoY, Theme.textTertiary, 0.68f, false);
         }
@@ -392,6 +535,27 @@ public final class ChatEditorScreen extends AppleScreen {
             close();
             return;
         }
+        // The main settings card is a real draggable/clamped panel. A double-click title reset is scale-specific.
+        if (inside(mx, my, wx, wy, ww - 52f, 34f)) {
+            long now = System.currentTimeMillis();
+            if (now - lastEditorTitleClick < 300L) {
+                ChatQolSettings.editorPanel(0).resetScale(guiScale());
+                draggingEditor = false;
+            } else {
+                draggingEditor = true;
+                editorGrabX = mx - wx;
+                editorGrabY = my - wy;
+            }
+            lastEditorTitleClick = now;
+            return;
+        }
+        Widget toolbar = toolbarAt(mx, my);
+        if (toolbar != null) {
+            for (SearchField field : fields) field.setFocused(false);
+            active = toolbar;
+            active.onPress(mx, my);
+            return;
+        }
         if (arrangingWindows && !inside(mx, my, wx, wy, ww, wh)) {
             beginWindowDrag(mx, my);
             if (draggedWindow != null) return;
@@ -402,7 +566,8 @@ public final class ChatEditorScreen extends AppleScreen {
             if (mx >= bounds.x + bounds.w - 48f) {
                 resetSection(header);
             } else {
-                expanded[header] = !expanded[header];
+                ChatQolSettings.editorPanel(header + 1).toggleCollapsed(guiScale());
+                expanded[header] = !ChatQolSettings.editorPanel(header + 1).collapsed(guiScale());
             }
             return;
         }
@@ -410,6 +575,17 @@ public final class ChatEditorScreen extends AppleScreen {
         for (SearchField field : fields) field.setFocused(entry != null && entry.widget == field);
         active = entry == null ? null : entry.widget;
         if (active != null) active.onPress(mx, my);
+    }
+
+    private Widget toolbarAt(int mx, int my) {
+        if (targetChoice.contains(mx, my)) return targetChoice;
+        if (linkAllToggle.contains(mx, my)) return linkAllToggle;
+        if (copyFromChoice.contains(mx, my)) return copyFromChoice;
+        return null;
+    }
+
+    private int guiScale() {
+        return Math.max(1, Math.min(4, Math.round(sf)));
     }
 
     private void beginWindowDrag(int mx, int my) {
@@ -429,6 +605,10 @@ public final class ChatEditorScreen extends AppleScreen {
 
     @Override
     protected void mouseClickMove(int mx, int my, int button, long timeSinceLastClick) {
+        if (draggingEditor) {
+            ChatQolSettings.editorPanel(0).move(guiScale(), mx - editorGrabX, my - editorGrabY, ww, wh, width, height);
+            return;
+        }
         if (draggedWindow != null) {
             int scale = new ScaledResolution(Minecraft.getMinecraft()).getScaleFactor();
             ChatWindowLayout.Rect current = draggedWindow == ChatQolSettings.chat1() ? chat1Rect : chat2Rect;
@@ -446,6 +626,10 @@ public final class ChatEditorScreen extends AppleScreen {
 
     @Override
     protected void mouseReleased(int mx, int my, int button) {
+        if (draggingEditor) {
+            draggingEditor = false;
+            return;
+        }
         if (draggedWindow != null) {
             draggedWindow = null;
             return;

@@ -259,9 +259,17 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item(ChatUiModel.label("right-click-menu"),
                 "Safe text-only copy menu for native chat lines",
                 new AppleToggle(() -> ChatQolSettings.rightClickMenu, value -> ChatQolSettings.rightClickMenu = value)));
-        rows.add(Row.item(ChatUiModel.label("custom-font"),
-                "Use the selected safe Minecraft font spacing in native windows",
-                new AppleToggle(() -> ChatQolSettings.customFont, value -> ChatQolSettings.customFont = value)));
+        rows.add(Row.item(ChatUiModel.label("global-font"),
+                "Apply a selected font to Sky VeLor UI, HUD, editors, tabs and custom chat",
+                new AppleToggle(() -> ChatQolSettings.globalFontEnabled, value -> {
+                    ChatQolSettings.globalFontEnabled = value;
+                    ChatQolSettings.customFont = value;
+                    com.arena.pekaclient.render.GlobalFontManager.reload();
+                })));
+        rows.add(Row.item(ChatUiModel.label("open-font-settings"),
+                "Minecraft Default, Smooth, Doodle, external fonts and per-area scales",
+                new AppleButton("Open", 84f, 26f, false,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(new GlobalFontSettingsScreen(this)))));
         rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
                 "Windows, background, messages, font, tabs, hover and copy options",
                 new AppleButton("Open", 84f, 26f, true,

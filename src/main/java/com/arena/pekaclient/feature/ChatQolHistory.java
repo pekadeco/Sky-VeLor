@@ -12,8 +12,12 @@ public final class ChatQolHistory {
         public String clean = "";
         public int kind = ChatFilterRules.SYSTEM;
         public long receivedAt;
-        /** Original component is held only for a right-click copy action; no click event is invoked from it. */
+        /** Original component is held for shared copy, hover and left-click forwarding. */
         public Object component;
+        /** Cached wrapped component rows for Chat 1/Chat 2; invalidated on receipt and width/style changes. */
+        public final Object[] wrappedLines = new Object[2];
+        public final int[] wrappedWidth = {-1, -1};
+        public final int[] wrappedScale = {-1, -1};
     }
 
     private final Message[] messages = new Message[CAPACITY];
@@ -34,6 +38,10 @@ public final class ChatQolHistory {
         message.clean = ChatFilterRules.stripFormatting(message.formatted);
         message.kind = kind;
         message.component = component;
+        message.wrappedLines[0] = null;
+        message.wrappedLines[1] = null;
+        message.wrappedWidth[0] = message.wrappedWidth[1] = -1;
+        message.wrappedScale[0] = message.wrappedScale[1] = -1;
         message.receivedAt = receivedAt;
         next = (next + 1) % messages.length;
         if (size < messages.length) size++;
