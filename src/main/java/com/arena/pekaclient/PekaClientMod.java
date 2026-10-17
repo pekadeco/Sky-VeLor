@@ -1,12 +1,14 @@
 package com.arena.pekaclient;
 
 import com.arena.pekaclient.command.ClientActions;
+import com.arena.pekaclient.command.ItemDebugCommand;
 import com.arena.pekaclient.command.PriceSetCommand;
 import com.arena.pekaclient.command.QuickNoteCommand;
-import com.arena.pekaclient.command.TerminalCommand;
 import com.arena.pekaclient.command.SvCommand;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.dungeon.DragonKillAlert;
+import com.arena.pekaclient.dungeon.DungeonMapOverlay;
+import com.arena.pekaclient.dungeon.PuzzleRoomDatabase;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.TerminalSolver;
 import com.arena.pekaclient.fishing.FishingStats;
@@ -20,9 +22,9 @@ import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
-import com.arena.pekaclient.render.FirstPersonItemSetup;
 import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.Theme;
+import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.startup.StartupTasks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
@@ -57,7 +59,9 @@ import org.lwjgl.input.Keyboard;
  *  - a loading screen that runs Sky VeLor's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,
  *  - fishing counters, Festival best, Sea Creature HP and the Lord Jawbus alert.
- * All hooks are standard Forge 1.8.9 events. No reflection and no mixins. Entity rendering is not changed.
+ * HUD/world features use standard Forge 1.8.9 events. Item Animation has one isolated Forge coremod hook around
+ * Minecraft's real first-person hand renderer and equipped-progress update; it does not replace renderers, mutate
+ * final fields, or change entity/world/gameplay rendering.
  */
 @Mod(modid = PekaClientMod.MODID,
         name = PekaClientMod.NAME,
@@ -78,6 +82,10 @@ public class PekaClientMod {
     public static final KeyBinding OPEN_KEY =
             new KeyBinding("key.pekaclient.open", Keyboard.KEY_RSHIFT, "key.categories.pekaclient");
 
+    /** Opens the HUD editor directly on Item Animation. It is deliberately unbound on a fresh install. */
+    public static final KeyBinding ITEM_ANIMATION_KEY =
+            new KeyBinding("key.pekaclient.itemanimation", Keyboard.KEY_NONE, "key.categories.pekaclient");
+
     /**
      * Use Spirit Leap: default unbound. Pressing it while holding a Spirit Leap item sends the same right-click
      * the game sends. The server still opens its own leap menu first, and only then can the teammate picker show.
@@ -86,9 +94,12 @@ public class PekaClientMod {
             new KeyBinding("key.pekaclient.leap", Keyboard.KEY_NONE, "key.categories.pekaclient");
 
     private boolean loadingShown;
+    /** The world identity already given the explicit Item Animation launcher/hook diagnosis. */
+    private Object itemAnimationReportedWorld;
     private final M7OverlayRenderer m7Overlay = new M7OverlayRenderer();
+    private final DungeonMapOverlay dungeonMapOverlay = new DungeonMapOverlay();
     private final DragonKillAlert dragonKill = new DragonKillAlert(m7Overlay);
-    private final TerminalSolver terminalSolver = new TerminalSolver(m7Overlay);
+    private final TerminalSolver terminalSolver = new TerminalSolver();
     private final FishingStats fishingStats = new FishingStats();
     private final SlayerTracker slayerTracker = new SlayerTracker();
 
@@ -98,18 +109,20 @@ public class PekaClientMod {
         AppleSettings.load();
         Theme.refresh();
         ClientRegistry.registerKeyBinding(OPEN_KEY);
+        ClientRegistry.registerKeyBinding(ITEM_ANIMATION_KEY);
         ClientRegistry.registerKeyBinding(LEAP_KEY);
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
-        StartupTasks.add("Setting up first-person item customization", FirstPersonItemSetup::init);
+        StartupTasks.add("Loading dungeon map templates", PuzzleRoomDatabase::load);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
+        ClientCommandHandler.instance.registerCommand(new ItemDebugCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
-        ClientCommandHandler.instance.registerCommand(new TerminalCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("priceset"));
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(m7Overlay);
+        MinecraftForge.EVENT_BUS.register(dungeonMapOverlay);
         MinecraftForge.EVENT_BUS.register(terminalSolver);
         MinecraftForge.EVENT_BUS.register(fishingStats);
         MinecraftForge.EVENT_BUS.register(slayerTracker);
@@ -119,15 +132,15 @@ public class PekaClientMod {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
         if (event.phase == TickEvent.Phase.START) {
+            reportItemAnimationWorldJoin(mc);
             if (!loadingShown && StartupTasks.hasWork()) {
                 // Show the loading screen only while real startup tasks are pending. Shown once per launch.
                 loadingShown = true;
                 mc.displayGuiScreen(new LoadingScreen(mc.currentScreen));
             }
             // Before the world moves. Also resets mining counts on world change, respawn and disconnect.
-            // EntityRenderer is built during startGame(), so the first-person renderer swap retries
-            // until it is in place; afterwards this is a single boolean test per tick.
-            FirstPersonItemSetup.init();
+            // Item Animation is woven into Minecraft's authoritative hand/equip methods at class-load time; it has
+            // no per-tick installation retry and its live settings are read only from those renderer callbacks.
             HudManager.tick(mc);
             DungeonContext.tick(mc);
             dragonKill.tick(System.currentTimeMillis());
@@ -137,11 +150,47 @@ public class PekaClientMod {
         if (OPEN_KEY.isPressed() && mc.currentScreen == null) {
             mc.displayGuiScreen(new AppleHubScreen(null));
         }
+        while (ITEM_ANIMATION_KEY.isPressed()) {
+            if (mc.currentScreen == null) {
+                ClientActions.requestItemAnimation();
+            }
+        }
         while (LEAP_KEY.isPressed()) {
             if (mc.currentScreen == null && AppleSettings.leapKey) {
                 useSpiritLeap(mc);
             }
         }
+    }
+
+    /**
+     * Emits the real launcher/coremod state once per joined world. Persisted sliders alone are not evidence that
+     * Forge accepted the transformer, so both the client log and in-game chat show ACTIVE or FAILED plus why.
+     */
+    private void reportItemAnimationWorldJoin(Minecraft mc) {
+        if (mc.theWorld == null || mc.thePlayer == null) {
+            if (mc.theWorld == null) {
+                itemAnimationReportedWorld = null;
+            }
+            return;
+        }
+        if (itemAnimationReportedWorld == mc.theWorld) {
+            return;
+        }
+        itemAnimationReportedWorld = mc.theWorld;
+        // Resolve lazy transformer diagnostics before taking the state/reason used in the single visible join line.
+        ItemAnimationHookStatus.worldJoinReport();
+        String version = PekaVersion.NAME;
+        if (version.startsWith("Beta-")) {
+            version = version.substring("Beta-".length());
+        }
+        if (version.endsWith("v")) {
+            version = version.substring(0, version.length() - 1);
+        }
+        String state = ItemAnimationHookStatus.isActive() ? "ACTIVE" : "FAILED";
+        String line = "Sky VeLor " + version + " | Item Animation: /velor itemanimation | Hook: " + state
+                + " " + ItemAnimationHookStatus.getReason();
+        System.out.println("[Sky VeLor] " + line);
+        mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b" + line));
     }
 
     /**

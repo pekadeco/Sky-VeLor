@@ -7,13 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -30,7 +24,6 @@ import java.util.Properties;
  */
 public final class SlayerTracker {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     static final int MAX_TRACKED_DROPS = 4;
     /** The same drop seen twice within this window counts once (chat can repeat). */
     static final long DUPLICATE_DROP_WINDOW_MS = 750L;
@@ -275,11 +268,7 @@ public final class SlayerTracker {
         for (Map.Entry<String, Long> e : PRICES.entrySet()) {
             p.setProperty(PRICE_PREFIX + e.getKey(), Long.toString(e.getValue()));
         }
-        try (OutputStream out = new FileOutputStream(new File(dir(), PRICE_FILE))) {
-            p.store(out, "Sky VeLor Slayer prices");
-        } catch (IOException e) {
-            LOG.warn("Could not save Slayer prices", e);
-        }
+        ConfigFiles.writeAtomic(new File(dir(), PRICE_FILE), p, "Sky VeLor Slayer prices");
     }
 
     private static File dir() {

@@ -66,6 +66,7 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "JAR_NAME=SkyVeLor-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=SkyVeLor-1.8.9-$VERSION.zip" >> "$GITHUB_ENV"
           {
             echo "revision : $(git rev-parse HEAD)"
             echo "branch   : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
@@ -158,16 +159,39 @@ jobs:
           } > BUILD-REPORT.txt
           grep -vE '^      (func|field)_' BUILD-REPORT.txt | tail -45
 
-      - name: Publish the jar and report into dist/ on this branch
+      - name: Create the delivery zip
+        run: |
+          set -e
+          JAR="build/libs/$JAR_NAME"
+          ZIP="build/delivery/$ZIP_NAME"
+          mkdir -p build/delivery
+          python3 - "$JAR" "$ZIP" BUILD-REPORT.txt <<'PY'
+          import os
+          import sys
+          import zipfile
+          jar, output, report = sys.argv[1:]
+          with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
+              archive.write(jar, os.path.basename(jar))
+              archive.write(report, os.path.basename(report))
+          with zipfile.ZipFile(output) as archive:
+              print('delivery zip:', output)
+              for item in archive.infolist():
+                  print('  %s %d bytes' % (item.filename, item.file_size))
+          PY
+
+      - name: Publish only the jar and zip into dist/ on this branch
         if: github.event_name == 'push'
         run: |
           set +e +o pipefail
+          # A release directory is deliberately a two-file delivery surface: the new JAR and its ZIP.
+          # Remove every prior artifact only after build, tests, and JAR verification have passed.
+          rm -rf dist
           mkdir -p dist
           cp -v "build/libs/$JAR_NAME" "dist/$JAR_NAME"
-          cp -v BUILD-REPORT.txt dist/BUILD-REPORT.txt
+          cp -v "build/delivery/$ZIP_NAME" "dist/$ZIP_NAME"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f "dist/$JAR_NAME" dist/BUILD-REPORT.txt
+          git add -f -A dist
           if git diff --cached --quiet; then
             echo "dist/ is already up to date"
             exit 0
@@ -180,7 +204,7 @@ jobs:
             echo "::error title=DIST::could not publish dist/ (exit $RC)"
             exit "$RC"
           fi
-          echo "::notice title=DIST::published dist/$JAR_NAME"
+          echo "::notice title=DIST::published dist/$JAR_NAME and $ZIP_NAME"
 
       - name: Attach the jar to a GitHub release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -189,23 +213,23 @@ jobs:
         run: |
           set -e
           JAR="dist/$JAR_NAME"
+          ZIP="dist/$ZIP_NAME"
           TAG="SkyVeLor-$VERSION"
           printf '%s\n' \
-            "Minecraft 1.8.9 Forge mod jar built by the Build Sky VeLor workflow." \
+            "Minecraft 1.8.9 Forge mod built by the Build Sky VeLor workflow." \
             "" \
-            "Built from commit $GITHUB_SHA. See dist/BUILD-REPORT.txt for the sha256, the Gradle task" \
-            "graph, the test results and the artifact verification." \
+            "Built from commit $GITHUB_SHA. The release carries the verified JAR and delivery ZIP." \
             "" \
             "Install: put $JAR_NAME in the Minecraft mods folder." \
             "Requires Minecraft 1.8.9 with Forge 11.15.1.2318 and Java 8." > release-notes.txt
           cat release-notes.txt
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$JAR" dist/BUILD-REPORT.txt --clobber
+            gh release upload "$TAG" "$JAR" "$ZIP" --clobber
           else
-            gh release create "$TAG" "$JAR" dist/BUILD-REPORT.txt \
+            gh release create "$TAG" "$JAR" "$ZIP" \
               --title "Sky VeLor $VERSION" --notes-file release-notes.txt
           fi
-          echo "::notice title=RELEASE::$TAG published with $JAR_NAME"
+          echo "::notice title=RELEASE::$TAG published with $JAR_NAME and $ZIP_NAME"
 
       # A squash merge into main is performed through the API, and GitHub does not always
       # schedule a workflow run for it - which leaves the release created but carrying no
@@ -235,7 +259,7 @@ jobs:
           fi
           mkdir -p release-assets
           git show "$TAG:dist/$JAR_NAME" > "release-assets/$JAR_NAME"
-          git show "$TAG:dist/BUILD-REPORT.txt" > release-assets/BUILD-REPORT.txt
+          git show "$TAG:dist/$ZIP_NAME" > "release-assets/$ZIP_NAME"
           WANT=$(sha256sum "release-assets/$JAR_NAME" | cut -d' ' -f1)
           GOT=$(sha256sum "build/libs/$JAR_NAME" | cut -d' ' -f1)
           echo "jar published on main at $TAG : $WANT"
@@ -245,10 +269,10 @@ jobs:
             exit 1
           fi
           echo "identical - attaching main's own artifacts to $TAG"
-          gh release upload "$TAG" "release-assets/$JAR_NAME" release-assets/BUILD-REPORT.txt --clobber
+          gh release upload "$TAG" "release-assets/$JAR_NAME" "release-assets/$ZIP_NAME" --clobber
           gh release view "$TAG" --json name,tagName,assets \
             --jq '"release \(.name) (\(.tagName)) carries: " + ([.assets[] | "\(.name) \(.size) bytes"] | join(", "))'
-          echo "::notice title=RELEASE::attached $JAR_NAME to $TAG"
+          echo "::notice title=RELEASE::attached $JAR_NAME and $ZIP_NAME to $TAG"
 
       - name: Upload the release jar as a workflow artifact
         uses: actions/upload-artifact@v4
@@ -256,6 +280,7 @@ jobs:
           name: SkyVeLor-1.8.9-${{ env.VERSION }}
           path: |
             build/libs/${{ env.JAR_NAME }}
+            build/delivery/${{ env.ZIP_NAME }}
             BUILD-REPORT.txt
           if-no-files-found: error
           retention-days: 90

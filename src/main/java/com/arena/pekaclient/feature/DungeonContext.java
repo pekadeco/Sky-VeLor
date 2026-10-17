@@ -20,6 +20,7 @@ public final class DungeonContext {
     static final int SCAN_EVERY_TICKS = 20;
     private static int ticksSinceScan = SCAN_EVERY_TICKS;
     private static boolean inDungeon;
+    private static boolean f7OrM7;
 
     private DungeonContext() {
     }
@@ -29,10 +30,16 @@ public final class DungeonContext {
         return inDungeon;
     }
 
+    /** True only when the cached Catacombs sidebar scan identifies Floor VII or Master Mode VII. */
+    public static boolean inF7OrM7() {
+        return inDungeon && f7OrM7;
+    }
+
     /** Called once per client tick. Resets when the world is gone. */
     public static void tick(Minecraft mc) {
         if (mc.theWorld == null || mc.thePlayer == null) {
             inDungeon = false;
+            f7OrM7 = false;
             ticksSinceScan = SCAN_EVERY_TICKS;
             return;
         }
@@ -44,6 +51,7 @@ public final class DungeonContext {
     }
 
     private static boolean scan(Scoreboard board) {
+        f7OrM7 = false;
         if (board == null) {
             return false;
         }
@@ -51,10 +59,15 @@ public final class DungeonContext {
         if (sidebar == null) {
             return false;
         }
+        String title = LeapText.strip(sidebar.getDisplayName()).toLowerCase(Locale.ROOT);
+        if (isFloorSevenText(title)) {
+            f7OrM7 = true;
+        }
         Collection<Score> scores = board.getSortedScores(sidebar);
         if (scores == null) {
             return false;
         }
+        boolean foundDungeon = title.contains("catacombs");
         for (Score s : scores) {
             if (s == null) {
                 continue;
@@ -63,11 +76,25 @@ public final class DungeonContext {
             // name alone is often only a hidden key, so the team text must be added before matching.
             String holder = s.getPlayerName();
             String line = ScorePlayerTeam.formatPlayerName(board.getPlayersTeam(holder), holder);
+            String clean = LeapText.strip(line).toLowerCase(Locale.ROOT);
             if (isCatacombsLine(line)) {
-                return true;
+                foundDungeon = true;
+            }
+            if (isFloorSevenText(clean)) {
+                f7OrM7 = true;
             }
         }
-        return false;
+        return foundDungeon;
+    }
+
+    private static boolean isFloorSevenText(String clean) {
+        if (clean == null) {
+            return false;
+        }
+        return clean.matches(".*\\bcatacombs\\s*\\(\\s*f7\\s*\\).*")
+                || clean.matches(".*\\bmaster\\s*mode\\s*7\\b.*")
+                || clean.matches(".*(?:^|[^a-z0-9])m7(?:$|[^a-z0-9]).*")
+                || clean.matches(".*\\bfloor\\s*(?:7|vii)\\b.*");
     }
 
     /** Pure check used by the scan and by tests. Colour codes are removed before matching. */

@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.0.1v]
 """
 
 import argparse
@@ -38,26 +38,44 @@ import zipfile
 
 MOD_PACKAGE = 'com/arena/pekaclient/'
 
-# Classes the release must contain: the mod core, the first-person held-item
-# feature, and the Terminal GUI that came in with the Beta-0.10.6.5v baseline.
+# Classes the release must contain: the core, direct Item Animation hook, read-only terminal overlay,
+# and the imported live dungeon-map/puzzle implementation.
 REQUIRED_CLASSES = [
     'PekaClientMod',
     'PekaVersion',
     'config/AppleSettings',
-    'feature/FirstPersonItem',
+    'feature/ItemAnimation',
+    'feature/VisualSwingStateMachine',
+    'command/ItemDebugCommand',
     'gui/AppleHubScreen',
     'gui/AppleGuiButton',
-    'gui/TerminalScreen',
-    'gui/DungeonHudScreen',
+    'gui/HudEditorScreen',
+    'gui/HudEditorLayout',
+    'gui/ItemAnimationUiModel',
+    'gui/GuiSettingsAuditModel',
     'dungeon/TerminalSolver',
-    'hud/ClickInOrderHud',
-    'command/TerminalCommand',
-    'render/CustomItemRenderer',
-    'render/FirstPersonItemSetup',
+    'dungeon/DungeonMapOverlay',
+    'dungeon/PuzzleRoomDatabase',
+    'dungeon/PuzzleRoomMatcher',
+    'render/itemanimation/ItemAnimationHooks',
+    'render/itemanimation/ItemAnimationHookStatus',
+    'render/itemanimation/ItemAnimationLoadingPlugin',
+    'render/itemanimation/ItemAnimationTransformer',
 ]
 
-# Removed in Beta-0.10.7v: dead code whose own comments admitted it could not work.
-FORBIDDEN_CLASSES = ['render/FirstPersonItemRendererProxy']
+# Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
+# real chest slots without taking over a container, and Item Animation must hook Minecraft directly instead of
+# reflectively replacing its final ItemRenderer field.
+FORBIDDEN_CLASSES = [
+    'feature/FirstPersonItem',
+    'render/CustomItemRenderer',
+    'render/FirstPersonItemSetup',
+    'render/FirstPersonItemRendererProxy',
+    'gui/TerminalScreen',
+    'gui/DungeonHudScreen',
+    'hud/ClickInOrderHud',
+    'command/TerminalCommand',
+]
 
 # Minecraft members this mod really calls or overrides. Reobfuscation must have
 # replaced every one of them with an SRG name; if a name survives as an actual
@@ -72,6 +90,8 @@ MCP_MEMBER_NAMES = {
     'updateEquippedItem',
     'resetEquippedProgress',
     'getItemRenderer',
+    'getRenderItem',
+    'renderItemAndEffectIntoGUI',
 }
 
 # Minecraft-owned types whose names must also have been remapped out of member
@@ -99,10 +119,12 @@ class Result(object):
 
 
 def parse_class(data):
-    """Return (class_name, member_names) from a class file, or None.
+    """Return (class_name, member_names, utf8_constants) from a class file, or None.
 
     member_names holds only names reached through a Fieldref, Methodref or
-    InterfaceMethodref constant, i.e. members this class actually touches.
+    InterfaceMethodref constant, i.e. members this class actually touches. UTF8
+    constants are returned separately for explicit ASM target-name proof; they
+    are never used by the reobfuscation mapping check.
     """
     if len(data) < 10 or data[:4] != b'\xca\xfe\xba\xbe':
         return None
@@ -166,13 +188,14 @@ def parse_class(data):
             name = nat_name(val[1])
             if name:
                 members.add(name)
-    return class_name, members
+    utf8_constants = set(val for tag, val in pool.values() if tag == 1)
+    return class_name, members, utf8_constants
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.0.1v')
     args = ap.parse_args()
 
     path = args.jar
@@ -234,9 +257,23 @@ def main():
     else:
         r.check(False, 'mcmod.info present')
 
+    # Coremod manifest: without both values Forge would package the classes but never wire the real hand hook.
+    manifest = zf.read('META-INF/MANIFEST.MF').decode('utf-8', 'replace') if 'META-INF/MANIFEST.MF' in names else ''
+    # JAR manifests fold long attributes by starting the continuation line with one space.
+    manifest = re.sub(r'\r?\n ', '', manifest)
+    r.check('FMLCorePlugin: com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin' in manifest,
+            'manifest registers the Item Animation loading plugin')
+    r.check('FMLCorePluginContainsFMLMod: true' in manifest,
+            'manifest declares the regular Forge mod alongside the coremod')
+    if args.version:
+        r.check('Implementation-Version: %s' % args.version in manifest,
+                'manifest build metadata version matches the release', args.version)
+
     # Resources: keybind labels would fall back to raw translation keys without these.
     r.check('assets/pekaclient/lang/en_US.lang' in names,
             'English keybind labels packaged')
+    r.check('assets/pekaclient/dungeons/rooms.json' in names,
+            'dungeon puzzle-room templates packaged')
 
     # --- the decisive mapping check --------------------------------------
     srg, mcp_hits, parsed, unparsed = set(), [], 0, []
@@ -263,31 +300,115 @@ def main():
     r.check(not mcp_hits, 'no Minecraft development (MCP) member calls left',
             '; '.join(sorted(set('%s -> %s' % h for h in mcp_hits[:6]))) or 'clean')
 
-    # The feature's own entry points must really reach Minecraft and the settings.
+    def parsed_class(cls):
+        path = MOD_PACKAGE + cls + '.class'
+        return parse_class(zf.read(path)) if path in names else None
+
     def members_of(cls):
-        got = parse_class(zf.read(MOD_PACKAGE + cls + '.class'))
+        got = parsed_class(cls)
         return got[1] if got else set()
 
-    if MOD_PACKAGE + 'render/CustomItemRenderer.class' in names:
-        cir = members_of('render/CustomItemRenderer')
-        r.check(any(SRG_RE.match(m) for m in cir),
-                'CustomItemRenderer calls remapped Minecraft members',
-                'the override must bind in the obfuscated runtime')
-        r.check('getItemScale' in cir,
-                'CustomItemRenderer reads the Sky VeLor scale setting',
-                'the item-scale slider must reach the renderer')
-        r.check('getAnimationSpeed' in cir,
-                'CustomItemRenderer reads the Sky VeLor animation-speed setting',
-                'the animation-speed slider must reach the renderer')
-    if MOD_PACKAGE + 'render/FirstPersonItemSetup.class' in names:
-        fps = members_of('render/FirstPersonItemSetup')
-        r.check('<init>' in fps, 'FirstPersonItemSetup constructs the custom renderer')
-        # The install mechanism: find the renderer field by type, then write it.
-        r.check('getDeclaredFields' in fps,
-                'FirstPersonItemSetup resolves the renderer field by declared type',
-                'name-based lookup cannot survive reobfuscation')
-        r.check('setAccessible' in fps and 'set' in fps,
-                'FirstPersonItemSetup writes the renderer field')
+    def constants_of(cls):
+        got = parsed_class(cls)
+        return got[2] if got else set()
+
+    def raw_of(cls):
+        path = MOD_PACKAGE + cls + '.class'
+        return zf.read(path) if path in names else b''
+
+    # --- Item Animation GUI reachability and ownership proof -----------------
+    # A standalone Item Animation class is not enough: both real GUI entry points must reference the pure models,
+    # the Hub must use its shared collapsible section, and customization may not be duplicated in a GUI tab.
+    ui_constants = constants_of('gui/ItemAnimationUiModel')
+    r.check(all(value in ui_constants for value in
+                ('Item Animation', 'Open the HUD editor', 'Open Item Animation Editor', 'Scale', 'Position',
+                 'Animation', 'Options', 'X', 'Y', 'Z', 'Reset Position', 'Remove Haste Effect',
+                 'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Preview Swing', 'Reset to Defaults')),
+            'ItemAnimationUiModel packages the required compact HUD/editor labels and controls')
+    r.check('Open Item Animation Settings' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants,
+            'ItemAnimationUiModel excludes the removed settings launcher and Auto Fix option')
+    model_ref = b'com/arena/pekaclient/gui/ItemAnimationUiModel'
+    audit_ref = b'com/arena/pekaclient/gui/GuiSettingsAuditModel'
+    layout_ref = b'com/arena/pekaclient/gui/HudEditorLayout'
+    hub_raw = raw_of('gui/AppleHubScreen')
+    hub_members = members_of('gui/AppleHubScreen')
+    r.check(model_ref in hub_raw and audit_ref in hub_raw
+                and all(name in hub_members for name in ('buildHudTabModel', 'buildHudItemAnimationDropdownModel')),
+            'AppleHubScreen bytecode builds the shared Item Animation dropdown and uses the tab/editor ownership audit')
+    r.check(b'HudSettingsBuilder' not in hub_raw,
+            'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
+    editor_members = members_of('gui/HudEditorScreen')
+    editor_raw = raw_of('gui/HudEditorScreen')
+    r.check(model_ref in editor_raw and layout_ref in editor_raw
+                and all(name in editor_members for name in ('buildHudEditorTargetList', 'panelControlLabel')),
+            'HudEditorScreen bytecode keeps Item Animation in the target list and builds its compact shared layout')
+    r.check(b'Open Item Animation Settings' not in editor_raw,
+            'HudEditorScreen has no redundant Item Animation settings launcher')
+
+    # --- explicit direct ItemRenderer proof --------------------------------
+    # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at
+    # launcher time. Checking all three names and the descriptors proves this is not the old caller-shape guess.
+    transformer_constants = constants_of('render/itemanimation/ItemAnimationTransformer')
+    r.check(all(value in transformer_constants for value in
+                ('net.minecraft.client.renderer.ItemRenderer', 'bfn', 'renderItemInFirstPerson',
+                 'func_78440_a', 'a', '(F)V')),
+            'transformer carries explicit MCP/SRG/notch ItemRenderer render target names and (F)V')
+    r.check(all(value in transformer_constants for value in
+                ('updateEquippedItem', 'func_78441_a', '()V')),
+            'transformer carries explicit MCP/SRG/notch equip target names and ()V')
+    r.check('net.minecraft.client.renderer.EntityRenderer' not in transformer_constants,
+            'transformer no longer targets EntityRenderer caller guesses')
+    r.check(all(value in transformer_constants for value in
+                ('beforeFirstPersonRender', 'afterFirstPersonRender', 'visualSwingProgress',
+                 'scaleEquipProgress')),
+            'transformer carries balanced matrix, visual swing, and equip hook entry points')
+
+    loading_constants = constants_of('render/itemanimation/ItemAnimationLoadingPlugin')
+    r.check('com.arena.pekaclient.render.itemanimation' in loading_constants,
+            'loading plugin declares a transformer exclusion for its own coremod package')
+    # Coremod setup classes must not link a Minecraft client/world class before LaunchClassLoader installs them.
+    for cls in ('render/itemanimation/ItemAnimationLoadingPlugin',
+                'render/itemanimation/ItemAnimationTransformer',
+                'render/itemanimation/ItemAnimationHookStatus'):
+        class_path = MOD_PACKAGE + cls + '.class'
+        if class_path in names:
+            raw = zf.read(class_path)
+            r.check(b'Lnet/minecraft/client/' not in raw and b'Lnet/minecraft/world/' not in raw,
+                    'coremod-safe: %s has no eager Minecraft client/world class descriptor' % cls)
+
+    # The feature's direct callbacks must really reach the live settings bridge. The old renderer subclass and
+    # reflection installer are forbidden above, so this also proves the packaged path is the direct core hook.
+    if MOD_PACKAGE + 'render/itemanimation/ItemAnimationHooks.class' in names:
+        hooks = members_of('render/itemanimation/ItemAnimationHooks')
+        hook_constants = constants_of('render/itemanimation/ItemAnimationHooks')
+        r.check(all(name in hooks for name in ('getConfiguredX', 'getConfiguredY', 'getConfiguredZ',
+                                                'getConfiguredSize', 'getConfiguredSpeed', 'isEnabled')),
+                'ItemAnimationHooks refreshes live primitive X/Y/Z/Size/Speed/master settings each hand render')
+        r.check(all(name in hook_constants for name in ('beforeFirstPersonRender', 'afterFirstPersonRender',
+                                                        'visualSwingProgress', 'scaleEquipProgress')),
+                'ItemAnimationHooks packages all direct render/swing/equip callbacks')
+        hook_raw = raw_of('render/itemanimation/ItemAnimationHooks')
+        r.check('advance' in hooks and b'VisualSwingStateMachine' in hook_raw,
+                'ItemAnimationHooks uses the allocation-free visual swing state machine')
+        r.check(b'AutoFix' not in hook_raw and b'autoFix' not in hook_raw,
+                'ItemAnimationHooks keeps the corrected visual swing behavior permanently enabled')
+        r.check('func_179094_E' in hooks and 'func_179121_F' in hooks,
+                'ItemAnimationHooks contains balanced reobfuscated pushMatrix/popMatrix calls')
+        r.check(b'java/lang/reflect' not in zf.read(MOD_PACKAGE
+                + 'render/itemanimation/ItemAnimationHooks.class'),
+                'ItemAnimationHooks uses no reflection on the frame path')
+    if MOD_PACKAGE + 'config/AppleSettings.class' in names:
+        settings_constants = constants_of('config/AppleSettings')
+        settings_raw = raw_of('config/AppleSettings')
+        r.check('itemAnimation.enabled' in settings_constants,
+                'default-on Item Animation master toggle is persisted')
+        r.check(b'itemAnimationAutoFixHitSlash' not in settings_raw,
+                'AppleSettings retains no hidden Auto Fix setting state')
+    if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:
+        debug = members_of('command/ItemDebugCommand')
+        r.check(all(name in debug for name in ('isEnabled', 'getX', 'getY', 'getZ', 'getSize', 'getSpeed',
+                                                'getRenderCallsLastSecond', 'getVisualSwingProgress')),
+                '/velor itemdebug reads master, live renderer values, calls/second, and visual swing progress')
 
     print()
     print('verify release jar: passed %d, failed %d' % (r.passed, r.failed))

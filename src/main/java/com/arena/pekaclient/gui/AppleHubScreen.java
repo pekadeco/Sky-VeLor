@@ -7,12 +7,9 @@ import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.slayer.SlayerType;
-import com.arena.pekaclient.feature.FirstPersonItem;
 import com.arena.pekaclient.feature.MiningTracker;
-import com.arena.pekaclient.hud.BalanceSource;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
-import com.arena.pekaclient.hud.PlayerDollHud;
 import com.arena.pekaclient.render.Anim;
 import com.arena.pekaclient.render.Icons;
 import com.arena.pekaclient.render.Theme;
@@ -47,9 +44,9 @@ import java.util.Set;
  * screens), a search field and scrollable grouped cards.
  *
  * Tabs, in order: QoL, HUD, Farming, Dungeon, Slayer, Fishing. QoL holds the overview, appearance,
- * performance (including the BETA mode), scroll speed and the About card. HUD holds the
- * element switches, the HUD editor and the element settings, with a live preview for the player doll.
- * Farming holds Mining BPS. Dungeon holds the Spirit Leap teammate selector. Slayer and Fishing have no
+ * performance (including the BETA mode), scroll speed and the About card. HUD holds visibility switches and
+ * routes every visual customization to the HUD editor. Farming holds Mining BPS. Dungeon holds the Spirit Leap
+ * teammate selector. Slayer and Fishing have no
  * modules yet, so they show an empty state rather than placeholder modules.
  *
  * Window buttons: red closes the hub, yellow collapses it to the title bar, green zooms it to the
@@ -82,18 +79,6 @@ public class AppleHubScreen extends AppleScreen {
     private static final HudElement[] HUD_OVERVIEW = {
             HudManager.DOLL, HudManager.INVENTORY, HudManager.MINING, HudManager.DOLLARS, HudManager.HOTBAR,
             HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER};
-    private static final String[] HUD_NAMES = {
-            "Player Doll", "Inventory HUD", "Mining BPS", "Player Dollars", "Hotbar",
-            "Fishing counter", "Sea Creature HP", "Slayer tracker"};
-    private static final String[] HUD_DESCS = {
-            "A live model of you, with your armour and held item",
-            "The 27 main inventory slots, optional armour",
-            "Blocks you finish mining per second. Not walking speed",
-            "Purse from the scoreboard, or a typed value",
-            "The 9 hotbar slots as a separate element",
-            "Legendary catches, Festival and Festival best",
-            "Nearby sea creatures: name, level and health",
-            "Active Slayer drops, total profit and boss timer"};
     private static final int HUD_MINING = 2; // index into HUD_OVERVIEW
     private static final int[] PAGE_ICONS = {
             Icons.BOLT, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
@@ -119,7 +104,6 @@ public class AppleHubScreen extends AppleScreen {
     private int pageIndex;
 
     private final SearchField search = new SearchField("Search settings");
-    private final SearchField balanceField = new SearchField("Enter amount");
     private final List<Row> searchRows = new ArrayList<Row>();
     private int searchVersion = -1;
     private boolean searching;
@@ -134,15 +118,6 @@ public class AppleHubScreen extends AppleScreen {
     // Window state. Collapsed hides everything but the title bar. Zoomed fills the screen.
     private boolean collapsed;
     private boolean zoomed;
-
-    // Player doll preview in the HUD tab: drag to turn.
-    private boolean dollVisible;
-    private boolean dollDragging;
-    private float dollLastX;
-    private float dollX;
-    private float dollY;
-    private float dollW;
-    private float dollH;
 
     private final Anim openAnim = new Anim(0f);
     private final Anim fadeAnim = new Anim(1f);
@@ -179,8 +154,6 @@ public class AppleHubScreen extends AppleScreen {
 
     public AppleHubScreen(GuiScreen parent) {
         this.parent = parent;
-        balanceField.w = HudSettingsBuilder.CONTROL_W;
-        balanceField.h = HudSettingsBuilder.CONTROL_H;
         Theme.refresh();
         openAnim.to(1f);
         for (int i = 0; i < PAGE_NAMES.length; i++) {
@@ -205,7 +178,6 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     private List<Row> qolPage() {
-        final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
 
         rows.add(Row.section("Overview"));
@@ -256,6 +228,7 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.svCommand, v -> AppleSettings.svCommand = v)));
         rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
+        rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
 
         rows.add(Row.header("Scrolling"));
         rows.add(Row.item("Scroll speed", "On: use the slider. Off: 100%",
@@ -297,27 +270,6 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.experimentalPerformance,
                         v -> AppleSettings.experimentalPerformance = v)));
 
-        rows.add(Row.header("First-person held item"));
-        rows.add(Row.item("Item scale", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.firstPersonItemScaleOn,
-                        v -> AppleSettings.firstPersonItemScaleOn = v)));
-        rows.add(Row.item("Item scale value", "Size of the item held in first person",
-                gated(new AppleSlider(50, 200, 10, "%", 150f,
-                        () -> AppleSettings.firstPersonItemScale,
-                        v -> AppleSettings.firstPersonItemScale = FirstPersonItem.clamp(v)),
-                        () -> AppleSettings.firstPersonItemScaleOn)));
-        rows.add(Row.item("Held-item animation speed", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.firstPersonAnimSpeedOn,
-                        v -> AppleSettings.firstPersonAnimSpeedOn = v)));
-        rows.add(Row.item("Held-item animation speed value",
-                "Tempo of the first-person equip and hold animation. Swing and attack timing are unchanged",
-                gated(new AppleSlider(50, 200, 10, "%", 150f,
-                        () -> AppleSettings.firstPersonAnimSpeed,
-                        v -> AppleSettings.firstPersonAnimSpeed = FirstPersonItem.clamp(v)),
-                        () -> AppleSettings.firstPersonAnimSpeedOn)));
-        rows.add(Row.item("Reset held item", "Back to 100% size and 100% animation speed",
-                button("Reset", FirstPersonItem::resetToDefaults)));
-
         rows.add(Row.header("Live"));
         rows.add(Row.custom(76f, this::paintGraph));
 
@@ -357,32 +309,45 @@ public class AppleHubScreen extends AppleScreen {
         }
         final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.section("HUD editor"));
-        rows.add(Row.item("Open the HUD editor", "Drag, resize and style each element on the game screen",
-                new AppleButton("Open", 84f, 26f, true, () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
-        rows.add(Row.item("Reset positions", "Put every element back in its default place",
-                button("Reset", HudManager::resetPositions)));
 
+        // The editor comes first. Its Item Animation section is the shared hub dropdown style, not a bespoke panel.
+        List<ItemAnimationUiModel.Entry> hudModel = ItemAnimationUiModel.buildHudTabModel();
+        rows.add(Row.section(hudModel.get(0).getLabel()));
+        rows.add(Row.item(hudModel.get(1).getLabel(), "Drag, resize and style each element on the game screen",
+                new AppleButton("Open", 84f, 26f, true, () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
+
+        rows.add(Row.header(hudModel.get(2).getLabel()));
+        List<ItemAnimationUiModel.Entry> itemAnimationDropdown =
+                ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
+        rows.add(Row.item(itemAnimationDropdown.get(0).getLabel(),
+                "Visual first-person transforms only; it never changes packets, attacks, or gameplay",
+                new AppleToggle(() -> AppleSettings.itemAnimationEnabled, value -> {
+                    AppleSettings.itemAnimationEnabled = value;
+                    AppleSettings.save();
+                })));
+        rows.add(Row.item(itemAnimationDropdown.get(1).getLabel(),
+                "Scale, Position, Animation, Options, preview, and reset",
+                new AppleButton(itemAnimationDropdown.get(1).getLabel(), 166f, 26f, true,
+                        () -> mc.displayGuiScreen(HudEditorScreen.openItemAnimation(this)))));
+
+        // Every HUD element keeps only visibility and the route to its single source of customization: the editor.
         for (int i = 0; i < HUD_OVERVIEW.length; i++) {
             final HudElement el = HUD_OVERVIEW[i];
-            rows.add(Row.header(HUD_NAMES[i]));
-            rows.add(Row.item("Show on screen", HUD_DESCS[i],
+            GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find(el.id);
+            final String title = feature == null ? el.name : feature.getTitle();
+            final String description = feature == null ? "Shown on screen" : feature.getDescription();
+            rows.add(Row.header(title));
+            rows.add(Row.item("Show on screen", description,
                     new AppleToggle(() -> el.enabled, v -> el.enabled = v)));
-            for (HudSettingsBuilder.Item it : HudSettingsBuilder.build(el, balanceField,
-                    () -> { }, this::applyBalance, false)) {
-                // Action rows have no label. Use "" so search can always read the label.
-                rows.add(Row.item(it.label == null ? "" : it.label, null, it.control));
-            }
-            if (el == HudManager.DOLL) {
-                rows.add(Row.custom(132f, this::paintDollPreview));
-            }
+            rows.add(Row.item("Open in HUD Editor", "Position and all styling live in the HUD editor",
+                    new AppleButton("Open in HUD Editor", 142f, 26f, false,
+                            () -> mc.displayGuiScreen(HudEditorScreen.openElement(this, el)))));
         }
         return rows;
     }
 
     /** HUD tab, Dungeon category: the dungeon screen features, with the same switches as the Dungeon tab. */
     private List<Row> hudDungeonPage() {
-        final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Dungeon"));
         rows.add(Row.item("Back to elements", "Return to the HUD element list",
@@ -399,41 +364,28 @@ public class AppleHubScreen extends AppleScreen {
 
         rows.add(Row.header("Terminals"));
         rows.add(Row.item("Click in order solver",
-                "Floor VII and M7 terminals: green is the number to click now, yellow is the one after it",
+                "Outlines only the next parsed live chest slot on Floor VII and M7. It never replaces, clicks, or blocks the chest",
                 new AppleToggle(M7Settings::isTerminalSolverEnabled, M7Settings::setTerminalSolverEnabled)));
-        rows.add(Row.item("Terminal GUI", "Opens the 1 to 14 terminal. Also /terminal",
-                new AppleButton("Open", 84f, 26f, false,
-                        () -> mc.displayGuiScreen(new com.arena.pekaclient.gui.TerminalScreen()))));
-
-        rows.add(Row.header("Click in order panel"));
-        rows.add(Row.item("Show on terminals",
-                "Movable, resizable 1 to 14 panel drawn over Floor VII and M7 Click in order terminals",
-                new AppleToggle(() -> HudManager.CLICK_IN_ORDER.enabled,
-                        v -> HudManager.CLICK_IN_ORDER.enabled = v)));
-        for (HudSettingsBuilder.Item it : HudSettingsBuilder.build(HudManager.CLICK_IN_ORDER, balanceField,
-                () -> { }, this::applyBalance, false)) {
-            rows.add(Row.item(it.label == null ? "" : it.label, null, it.control));
-        }
         return rows;
     }
 
-    /** Expands a HUD group in place and switches to the HUD tab. */
+    /** Opens one HUD element at its only customization surface: the HUD editor. */
     private void openHud(int index) {
-        expanded.add(HUD_NAMES[index]);
-        openDropdown = null;
-        pendingHeader = null;
-        selectPage(PAGE_HUD);
-        scroll.reset();
+        if (index < 0 || index >= HUD_OVERVIEW.length) {
+            return;
+        }
+        Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HUD_OVERVIEW[index]));
     }
 
     private List<Row> farmingPage() {
         List<Row> rows = new ArrayList<Row>();
+        GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find("mining");
         rows.add(Row.section("Mining"));
-        rows.add(Row.item("Mining BPS",
-                "Blocks you finish mining per second. Shown on screen when on",
+        rows.add(Row.header(feature.getTitle()));
+        rows.add(Row.item("Show on screen", feature.getDescription(),
                 new AppleToggle(() -> HudManager.MINING.enabled, v -> HudManager.MINING.enabled = v)));
-        rows.add(Row.item("Mining BPS settings", "Label, rolling window and decimals",
-                new AppleButton("Open", 84f, 26f, false, () -> openHud(HUD_MINING))));
+        rows.add(Row.item("Open in HUD Editor", "Label, rolling window and decimals live in the HUD editor",
+                new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_MINING))));
         return rows;
     }
 
@@ -451,6 +403,14 @@ public class AppleHubScreen extends AppleScreen {
                 "Opens the real 2x2 picker with isolated test data. N/P cycles all five classes; no packets or teleports",
                 new AppleButton("Preview", 96f, 26f, false,
                         () -> mc.displayGuiScreen(LeapScreen.createPreview(this)))));
+
+        GuiSettingsAuditModel.Feature dungeonMap = GuiSettingsAuditModel.find("dungeon-map");
+        rows.add(Row.header(dungeonMap.getTitle()));
+        rows.add(Row.item("Show dungeon map", dungeonMap.getDescription(),
+                new AppleToggle(() -> AppleSettings.dungeonMap, v -> AppleSettings.dungeonMap = v)));
+        rows.add(Row.item("Open in HUD Editor", "Position, scale, zoom and labels live in the HUD editor",
+                new AppleButton("Open in HUD Editor", 142f, 26f, false,
+                        () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)))));
 
         rows.add(Row.header("Mob highlights"));
         rows.add(Row.item("Outline dungeon mobs",
@@ -510,14 +470,21 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.fishingJawbusAlert,
                         v -> AppleSettings.fishingJawbusAlert = v)));
 
-        rows.add(Row.header("On screen"));
-        rows.add(Row.item("Fishing counter",
-                HudManager.FISHING.enabled ? "On: shown on screen"
-                        : "Off: hidden. Also in HUD, Fishing counter",
+        GuiSettingsAuditModel.Feature fishingHud = GuiSettingsAuditModel.find("fishing");
+        rows.add(Row.header(fishingHud.getTitle()));
+        rows.add(Row.item("Show on screen", fishingHud.getDescription(),
                 new AppleToggle(() -> HudManager.FISHING.enabled, v -> HudManager.FISHING.enabled = v)));
-        rows.add(Row.item("Sea Creature HP",
-                "Lists nearby sea creatures with level and health. Scans within 64 blocks",
+        rows.add(Row.item("Open in HUD Editor", "Catches, Festival, position and style live in the HUD editor",
+                new AppleButton("Open in HUD Editor", 142f, 26f, false,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.FISHING)))));
+
+        GuiSettingsAuditModel.Feature seaHpHud = GuiSettingsAuditModel.find("seahp");
+        rows.add(Row.header(seaHpHud.getTitle()));
+        rows.add(Row.item("Show on screen", seaHpHud.getDescription(),
                 new AppleToggle(() -> HudManager.SEA_HP.enabled, v -> HudManager.SEA_HP.enabled = v)));
+        rows.add(Row.item("Open in HUD Editor", "Range, rows, position and style live in the HUD editor",
+                new AppleButton("Open in HUD Editor", 142f, 26f, false,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SEA_HP)))));
         return rows;
     }
 
@@ -532,9 +499,13 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Track slayer drops",
                 "Records rare drops for each Slayer from chat. Kept until you clear them",
                 new AppleToggle(() -> AppleSettings.slayerTracker, v -> AppleSettings.slayerTracker = v)));
-        rows.add(Row.item("Slayer tracker on screen",
-                HudManager.SLAYER.enabled ? "On: shown on screen" : "Off: hidden. Also in HUD, Slayer tracker",
+        GuiSettingsAuditModel.Feature slayerHud = GuiSettingsAuditModel.find("slayer");
+        rows.add(Row.header(slayerHud.getTitle()));
+        rows.add(Row.item("Show on screen", slayerHud.getDescription(),
                 new AppleToggle(() -> HudManager.SLAYER.enabled, v -> HudManager.SLAYER.enabled = v)));
+        rows.add(Row.item("Open in HUD Editor", "Drops, profit, timer, position and style live in the HUD editor",
+                new AppleButton("Open in HUD Editor", 142f, 26f, false,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SLAYER)))));
 
         rows.add(Row.header("Boss timer"));
         rows.add(Row.item("Boss timer",
@@ -557,38 +528,12 @@ public class AppleHubScreen extends AppleScreen {
         return rows;
     }
 
-    /** Painter for the doll preview. Records the rectangle so a drag on it turns the doll. */
-    private void paintDollPreview(float x, float y, float w, float h) {
-        FontRenderer fr = fr();
-        dollVisible = true;
-        dollX = x;
-        dollY = y;
-        dollW = w;
-        dollH = h;
-        UIRender.roundRectBorder(x, y, w, h, cardRadius(), Theme.card, Theme.card, Theme.border);
-        UIRender.text(fr, "Drag to turn", x + 12f, y + 10f, Theme.textTertiary, 0.8f, false);
-        PlayerDollHud.drawDoll(x + w * 0.5f, y + h - 14f, 40f, HudManager.DOLL.effectiveAngle());
-        if (Minecraft.getMinecraft().thePlayer == null) {
-            String none = "Join a world to see your doll";
-            UIRender.text(fr, none, x + (w - fr.getStringWidth(none)) * 0.5f, y + h * 0.5f,
-                    Theme.textSecondary, 1f, false);
-        }
-    }
-
     /** Empty state for a category with no modules. Honest: no fake settings. */
     private List<Row> emptyPage(String name, final int icon) {
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Modules"));
         rows.add(Row.custom(64f, (x, y, w, h) -> paintEmpty(x, y, w, h, icon)));
         return rows;
-    }
-
-    private void applyBalance() {
-        if (BalanceSource.applyTyped(balanceField.text())) {
-            balanceField.clear();
-            balanceField.setFocused(false);
-            HudManager.save();
-        }
     }
 
     private List<Row> currentRows() {
@@ -615,7 +560,6 @@ public class AppleHubScreen extends AppleScreen {
         openDropdown = null;
         search.clear();
         search.setFocused(false);
-        balanceField.setFocused(false);
         fadeAnim.snap(0f);
         fadeAnim.to(1f);
     }
@@ -662,7 +606,6 @@ public class AppleHubScreen extends AppleScreen {
         UIRender.beginFrame();
         float open = openAnim.get();
         float fade = fadeAnim.get();
-        dollVisible = false;
 
         // Both themes: the vanilla backdrop shows through a translucent veil (dark or milky white).
         UIRender.alphaMul = open;
@@ -1190,11 +1133,6 @@ public class AppleHubScreen extends AppleScreen {
         if (collapsed) {
             return;
         }
-        if (dollVisible && inside(mx, my, vx, vy, vw, vh) && inside(mx, my, dollX, dollY, dollW, dollH)) {
-            dollDragging = true;
-            dollLastX = mx;
-            return;
-        }
         int nav = navIndexAt(mx, my);
         if (nav >= 0) {
             selectPage(nav);
@@ -1202,15 +1140,12 @@ public class AppleHubScreen extends AppleScreen {
         }
         if (search.contains(mx, my)) {
             search.setFocused(true);
-            balanceField.setFocused(false);
             return;
         }
         search.setFocused(false);
         if (!inside(mx, my, vx, vy, vw, vh)) {
-            balanceField.setFocused(false);
             return;
         }
-        balanceField.setFocused(balanceField.contains(mx, my));
 
         Row header = headerAt(mx, my);
         if (header != null) {
@@ -1233,12 +1168,6 @@ public class AppleHubScreen extends AppleScreen {
 
     @Override
     protected void mouseClickMove(int mx, int my, int button, long timeSinceLastClick) {
-        if (dollDragging) {
-            // Horizontal drag turns the doll. About 1.2 degrees per pixel.
-            HudManager.DOLL.dragBy((mx - dollLastX) * 1.2f);
-            dollLastX = mx;
-            return;
-        }
         if (!gestureActive) {
             return;
         }
@@ -1263,11 +1192,6 @@ public class AppleHubScreen extends AppleScreen {
 
     @Override
     protected void mouseReleased(int mx, int my, int button) {
-        if (dollDragging) {
-            dollDragging = false;
-            HudManager.save();
-            return;
-        }
         if (active != null) {
             if (active instanceof AppleSlider && gesture.kind == Gesture.PENDING) {
                 // A tap on a slider sets it where the finger lifted.
@@ -1319,20 +1243,6 @@ public class AppleHubScreen extends AppleScreen {
     @Override
     protected void keyTyped(char c, int code) throws IOException {
         if (collapsed && code != Keyboard.KEY_ESCAPE) {
-            return;
-        }
-        if (balanceField.isFocused()) {
-            if (code == Keyboard.KEY_ESCAPE) {
-                balanceField.setFocused(false);
-                return;
-            }
-            if (code == Keyboard.KEY_RETURN || code == Keyboard.KEY_NUMPADENTER) {
-                applyBalance();
-                return;
-            }
-            if (BalanceSource.acceptsKey(c, code)) {
-                balanceField.keyTyped(c, code);
-            }
             return;
         }
         if (search.isFocused()) {
@@ -1430,9 +1340,7 @@ public class AppleHubScreen extends AppleScreen {
         active = null;
         gestureActive = false;
         sliderEngaged = false;
-        dollDragging = false;
         search.setFocused(false);
-        balanceField.setFocused(false);
     }
 
     private int navIndexAt(int mx, int my) {
