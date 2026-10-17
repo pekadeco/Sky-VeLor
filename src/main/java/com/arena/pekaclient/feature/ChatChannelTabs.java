@@ -185,7 +185,7 @@ public final class ChatChannelTabs {
             return;
         }
         for (int tab = ChatFilterRules.ALL; tab <= ChatFilterRules.REPLY; tab++) {
-            GuiButton button = new ChatTabButton(FIRST_BUTTON_ID + tab, "");
+            ChatTabButton button = new ChatTabButton(FIRST_BUTTON_ID + tab, "");
             tabButtons.add(button);
             event.buttonList.add(button);
         }
@@ -550,7 +550,6 @@ public final class ChatChannelTabs {
         int my = chatOpen ? resolution.getScaledHeight() - Mouse.getY() * resolution.getScaledHeight()
                 / Math.max(1, mc.displayHeight) - 1 : -10000;
         hoveredMessage = null;
-        hoveredWindow = 0;
 
         UIRender.beginFrame();
         drawChatWindow(chat1Rect, ChatQolSettings.chat1(), true, chatOpen, mx, my);
@@ -570,7 +569,7 @@ public final class ChatChannelTabs {
         FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
         String name = settings.getName();
         if ((first ? chat1Scroll : chat2Scroll) > 0) name += "  ↑";
-        UIRender.text(font, fit(font, name, rect.w - 12f), rect.x + 6f, rect.y + 5f, Theme.textSecondary, 0.78f, false);
+        UIRender.text(font, fit(font, name, rect.w - 12), rect.x + 6f, rect.y + 5f, Theme.textSecondary, 0.78f, false);
 
         float fontScale = ChatQolSettings.customFont ? ChatFontPolicy.scaleFor(ChatQolSettings.fontName) : 1f;
         int lineH = Math.max(9, Math.round(10f * fontScale));
@@ -594,7 +593,7 @@ public final class ChatChannelTabs {
                 lineY += (1f - age) * lineH;
             }
             if (lineY < rect.y + 17) break;
-            String fitted = fit(font, message.display, rect.w - 12f);
+            String fitted = fit(font, message.display, rect.w - 12);
             boolean hot = chatOpen && mx >= rect.x + 3 && mx < rect.x + rect.w - 3
                     && my >= lineY - 1 && my < lineY + lineH;
             if (hot) {
@@ -606,7 +605,6 @@ public final class ChatChannelTabs {
                 // Menu hit-testing does not invoke a component's link/click/hover event and works independently of
                 // the cosmetic highlight switch.
                 hoveredMessage = message;
-                hoveredWindow = first ? 1 : 2;
             }
             float oldAlpha = UIRender.alphaMul;
             UIRender.alphaMul = oldAlpha * opacity;
