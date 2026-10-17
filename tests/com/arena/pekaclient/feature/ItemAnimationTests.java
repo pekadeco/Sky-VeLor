@@ -46,21 +46,21 @@ public final class ItemAnimationTests {
         AppleSettings.itemAnimationSpeedOn = true;
         check("switch back on restores the animation slider value", ItemAnimation.getSpeed() == 1.7f);
 
-        check("clamp leaves an in-range value alone", ItemAnimation.clampPercent(120) == 120);
-        check("clamp raises a too-small value to the minimum",
-                ItemAnimation.clampPercent(0) == ItemAnimation.MIN_PERCENT);
-        check("clamp lowers a too-large value to the maximum",
-                ItemAnimation.clampPercent(999) == ItemAnimation.MAX_PERCENT);
-        check("clamp handles negative input", ItemAnimation.clampPercent(-500) == ItemAnimation.MIN_PERCENT);
-        check("clamp bounds match the GUI slider bounds",
-                ItemAnimation.MIN_PERCENT == 50 && ItemAnimation.MAX_PERCENT == 200);
-        check("clamp bounds mirror the range the loader clamps to",
-                ItemAnimation.MIN_PERCENT == AppleSettings.ITEM_ANIMATION_MIN_PERCENT
-                        && ItemAnimation.MAX_PERCENT == AppleSettings.ITEM_ANIMATION_MAX_PERCENT);
+        check("size clamp leaves an in-range value alone", ItemAnimation.clampSize(120) == 120);
+        check("size clamp raises a too-small value to the minimum",
+                ItemAnimation.clampSize(0) == ItemAnimation.MIN_SIZE_PERCENT);
+        check("size clamp lowers a too-large value to the maximum",
+                ItemAnimation.clampSize(999) == ItemAnimation.MAX_SIZE_PERCENT);
+        check("size clamp handles negative input", ItemAnimation.clampSize(-500) == ItemAnimation.MIN_SIZE_PERCENT);
+        check("size clamp bounds match the GUI slider bounds",
+                ItemAnimation.MIN_SIZE_PERCENT == 30 && ItemAnimation.MAX_SIZE_PERCENT == 200);
+        check("size clamp bounds mirror the range the loader clamps to",
+                ItemAnimation.MIN_SIZE_PERCENT == AppleSettings.ITEM_ANIMATION_SIZE_MIN_PERCENT
+                        && ItemAnimation.MAX_SIZE_PERCENT == AppleSettings.ITEM_ANIMATION_SIZE_MAX_PERCENT);
         check("defaults sit inside the clamp bounds",
-                ItemAnimation.clampPercent(ItemAnimation.DEFAULT_SIZE_PERCENT)
+                ItemAnimation.clampSize(ItemAnimation.DEFAULT_SIZE_PERCENT)
                         == ItemAnimation.DEFAULT_SIZE_PERCENT
-                        && ItemAnimation.clampPercent(ItemAnimation.DEFAULT_SPEED_PERCENT)
+                        && ItemAnimation.clampSpeed(ItemAnimation.DEFAULT_SPEED_PERCENT)
                         == ItemAnimation.DEFAULT_SPEED_PERCENT);
 
         AppleSettings.itemAnimationSize = 200;

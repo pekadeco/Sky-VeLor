@@ -19,6 +19,9 @@ public final class ItemAnimationLoadingPlugin implements IFMLLoadingPlugin {
 
     @Override
     public String[] getASMTransformerClass() {
+        // This status class deliberately has no Minecraft references, so the launcher diagnostic cannot force an
+        // early ItemRenderer/Minecraft load before Forge installs the exclusion and transformer.
+        ItemAnimationHookStatus.noteCoremodRegistered();
         return new String[]{ItemAnimationTransformer.class.getName()};
     }
 

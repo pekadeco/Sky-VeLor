@@ -9,6 +9,7 @@ import com.arena.pekaclient.hud.HudPlacement;
 import com.arena.pekaclient.render.Anim;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
+import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleSlider;
@@ -22,6 +23,7 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -74,6 +76,28 @@ public final class HudEditorScreen extends AppleScreen {
         }
     }
 
+    /** A non-clickable launcher status strip. Inactive is intentionally red inside the renderer panel. */
+    private static final class ItemAnimationHookWidget extends Widget {
+        ItemAnimationHookWidget(float width) {
+            super(width, 22f);
+        }
+
+        @Override
+        public void draw(int mouseX, int mouseY) {
+            boolean active = ItemAnimationHookStatus.isActive();
+            int accent = active ? 0xFF30D158 : 0xFFFF453A;
+            int fill = active ? 0x2830D158 : 0x38FF453A;
+            UIRender.roundRectBorder(x, y, w, h, 5f, fill, fill, accent);
+            UIRender.text(font(), ItemAnimationHookStatus.getDisplay(), x + 7f, y + 7f,
+                    active ? 0xFFD7FFE4 : 0xFFFFD7D1, 0.72f, false);
+        }
+
+        @Override
+        public void onPress(int mouseX, int mouseY) {
+            // Status is informational. It must not look like a toggle or hide an injection failure.
+        }
+    }
+
     private final GuiScreen parent;
     private final Anim openAnim = new Anim(0f);
     private final List<Entry> entries = new ArrayList<Entry>();
@@ -81,11 +105,11 @@ public final class HudEditorScreen extends AppleScreen {
     private final SearchField manualField = new SearchField("Enter amount");
     // Exact-value fields deliberately live in the same inspector card as their sliders. Clicking one starts a
     // fresh numeric entry, so touch users do not need cursor-selection support to replace a value exactly.
-    private final SearchField itemAnimationXField = new SearchField("Type -75 to 75");
-    private final SearchField itemAnimationYField = new SearchField("Type -75 to 75");
-    private final SearchField itemAnimationZField = new SearchField("Type -75 to 75");
-    private final SearchField itemAnimationSizeField = new SearchField("Type 50 to 200");
-    private final SearchField itemAnimationSpeedField = new SearchField("Type 50 to 200");
+    private final SearchField itemAnimationXField = new SearchField("Type -150 to 150");
+    private final SearchField itemAnimationYField = new SearchField("Type -150 to 150");
+    private final SearchField itemAnimationZField = new SearchField("Type -150 to 150");
+    private final SearchField itemAnimationSizeField = new SearchField("Type 30 to 200");
+    private final SearchField itemAnimationSpeedField = new SearchField("Type 25 to 400");
     private final AppleDropdown chooser;
     private final AppleButton resetAllBtn;
     private final AppleButton doneBtn;
@@ -185,6 +209,12 @@ public final class HudEditorScreen extends AppleScreen {
         Keyboard.enableRepeatEvents(true);
         HudManager.ensureLoaded();
         rebuild();
+    }
+
+    /** Keep the first-person render/tick path live behind the editor so slider changes are immediately visible. */
+    @Override
+    public boolean doesGuiPauseGame() {
+        return false;
     }
 
     @Override
@@ -319,38 +349,65 @@ public final class HudEditorScreen extends AppleScreen {
      * the next hand/equip callback, while Enter applies an exact integer value and persists it right away.
      */
     private void buildItemAnimationEntries() {
-        // This status pill is deliberately non-actionable: Item Animation changes a renderer, never a HUD position.
-        entries.add(new Entry("Panel", new AppleButton("Renderer only · no drag", CONTROL_W, CONTROL_H, false, null)));
+        // Item Animation is a first-person renderer target, never a draggable HUD element or combat setting.
+        entries.add(new Entry("Panel", new AppleButton("First-person renderer · no drag", CONTROL_W, CONTROL_H,
+                false, null)));
+        entries.add(new Entry("Hook", new ItemAnimationHookWidget(CONTROL_W)));
+        entries.add(new Entry("Enable Item Animation", new AppleToggle(ItemAnimation::isEnabled, value -> {
+            AppleSettings.itemAnimationEnabled = value;
+            changed();
+        })));
+        entries.add(new Entry(null, new AppleButton("Shift = fine · double-click slider = reset", CONTROL_W,
+                CONTROL_H, false, null)));
+
         entries.add(new Entry("X offset (1/100)", new AppleSlider(ItemAnimation.MIN_OFFSET,
-                ItemAnimation.MAX_OFFSET, 1, "", CONTROL_W, () -> AppleSettings.itemAnimationX, value -> {
+                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationX, value -> {
                     AppleSettings.itemAnimationX = ItemAnimation.clampOffset(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
                     changed();
                 })));
         entries.add(new Entry("X exact", itemAnimationXField));
         entries.add(new Entry("Y offset (1/100)", new AppleSlider(ItemAnimation.MIN_OFFSET,
-                ItemAnimation.MAX_OFFSET, 1, "", CONTROL_W, () -> AppleSettings.itemAnimationY, value -> {
+                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationY, value -> {
                     AppleSettings.itemAnimationY = ItemAnimation.clampOffset(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
                     changed();
                 })));
         entries.add(new Entry("Y exact", itemAnimationYField));
         entries.add(new Entry("Z offset (1/100)", new AppleSlider(ItemAnimation.MIN_OFFSET,
-                ItemAnimation.MAX_OFFSET, 1, "", CONTROL_W, () -> AppleSettings.itemAnimationZ, value -> {
+                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationZ, value -> {
                     AppleSettings.itemAnimationZ = ItemAnimation.clampOffset(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
                     changed();
                 })));
         entries.add(new Entry("Z exact", itemAnimationZField));
-        entries.add(new Entry("Size", new AppleSlider(ItemAnimation.MIN_PERCENT, ItemAnimation.MAX_PERCENT,
-                1, "%", CONTROL_W, AppleSettings::effectiveItemAnimationSize, value -> {
+        entries.add(new Entry("Size", new AppleSlider(ItemAnimation.MIN_SIZE_PERCENT,
+                ItemAnimation.MAX_SIZE_PERCENT, 5, "%", CONTROL_W, AppleSettings::effectiveItemAnimationSize,
+                value -> {
                     AppleSettings.itemAnimationSizeOn = true;
-                    AppleSettings.itemAnimationSize = ItemAnimation.clampPercent(value);
+                    AppleSettings.itemAnimationSize = ItemAnimation.clampSize(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationSizeOn = true;
+                    AppleSettings.itemAnimationSize = ItemAnimation.DEFAULT_SIZE_PERCENT;
                     changed();
                 })));
         entries.add(new Entry("Size exact", itemAnimationSizeField));
-        entries.add(new Entry("Animation Speed", new AppleSlider(ItemAnimation.MIN_PERCENT,
-                ItemAnimation.MAX_PERCENT, 1, "%", CONTROL_W, AppleSettings::effectiveItemAnimationSpeed,
+        entries.add(new Entry("Animation Speed", new AppleSlider(ItemAnimation.MIN_SPEED_PERCENT,
+                ItemAnimation.MAX_SPEED_PERCENT, 5, "%", CONTROL_W, AppleSettings::effectiveItemAnimationSpeed,
                 value -> {
                     AppleSettings.itemAnimationSpeedOn = true;
-                    AppleSettings.itemAnimationSpeed = ItemAnimation.clampPercent(value);
+                    AppleSettings.itemAnimationSpeed = ItemAnimation.clampSpeed(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationSpeedOn = true;
+                    AppleSettings.itemAnimationSpeed = ItemAnimation.DEFAULT_SPEED_PERCENT;
                     changed();
                 })));
         entries.add(new Entry("Speed exact", itemAnimationSpeedField));
@@ -456,12 +513,12 @@ public final class HudEditorScreen extends AppleScreen {
                 AppleSettings.itemAnimationZ = applied;
                 break;
             case SIZE:
-                applied = ItemAnimation.clampPercent(requested);
+                applied = ItemAnimation.clampSize(requested);
                 AppleSettings.itemAnimationSizeOn = true;
                 AppleSettings.itemAnimationSize = applied;
                 break;
             case SPEED:
-                applied = ItemAnimation.clampPercent(requested);
+                applied = ItemAnimation.clampSpeed(requested);
                 AppleSettings.itemAnimationSpeedOn = true;
                 AppleSettings.itemAnimationSpeed = applied;
                 break;
@@ -941,12 +998,13 @@ public final class HudEditorScreen extends AppleScreen {
         if (held == null || itemRenderer == null) {
             return;
         }
-        // Render Minecraft's real held ItemStack model, not a synthetic placeholder. Z has no practical depth in
-        // a flat GUI projection, so the small scale cue keeps all five live controls legible in this preview.
-        float previewScale = ItemAnimation.getSize() * (1.0F + ItemAnimation.getZ() * 0.12F);
+        // Render Minecraft's real held ItemStack model, not a synthetic placeholder. The direct hook leaves map
+        // paths fully vanilla, so this preview does too. Z has no practical depth in flat GUI projection.
+        boolean map = held.getItem() == Items.filled_map || held.getItem() == Items.map;
+        float previewScale = map ? 1.0F : ItemAnimation.getSize() * (1.0F + ItemAnimation.getZ() * 0.12F);
         previewScale = Math.max(0.35F, Math.min(2.25F, previewScale));
-        float iconX = panelX + 106f + ItemAnimation.getX() * 24f;
-        float iconY = panelY + 29f - ItemAnimation.getY() * 24f;
+        float iconX = panelX + 106f + (map ? 0.0F : ItemAnimation.getX() * 24f);
+        float iconY = panelY + 29f - (map ? 0.0F : ItemAnimation.getY() * 24f);
         GlStateManager.pushMatrix();
         try {
             GlStateManager.translate(iconX, iconY, 200f);

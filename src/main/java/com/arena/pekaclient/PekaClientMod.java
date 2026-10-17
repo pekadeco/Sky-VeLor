@@ -24,6 +24,7 @@ import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.Theme;
+import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.startup.StartupTasks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
@@ -89,6 +90,8 @@ public class PekaClientMod {
             new KeyBinding("key.pekaclient.leap", Keyboard.KEY_NONE, "key.categories.pekaclient");
 
     private boolean loadingShown;
+    /** The world identity already given the explicit Item Animation launcher/hook diagnosis. */
+    private Object itemAnimationReportedWorld;
     private final M7OverlayRenderer m7Overlay = new M7OverlayRenderer();
     private final DungeonMapOverlay dungeonMapOverlay = new DungeonMapOverlay();
     private final DragonKillAlert dragonKill = new DragonKillAlert(m7Overlay);
@@ -124,6 +127,7 @@ public class PekaClientMod {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
         if (event.phase == TickEvent.Phase.START) {
+            reportItemAnimationWorldJoin(mc);
             if (!loadingShown && StartupTasks.hasWork()) {
                 // Show the loading screen only while real startup tasks are pending. Shown once per launch.
                 loadingShown = true;
@@ -146,6 +150,26 @@ public class PekaClientMod {
                 useSpiritLeap(mc);
             }
         }
+    }
+
+    /**
+     * Emits the real launcher/coremod state once per joined world. Persisted sliders alone are not evidence that
+     * Forge accepted the transformer, so both the client log and in-game chat show ACTIVE or FAILED plus why.
+     */
+    private void reportItemAnimationWorldJoin(Minecraft mc) {
+        if (mc.theWorld == null || mc.thePlayer == null) {
+            if (mc.theWorld == null) {
+                itemAnimationReportedWorld = null;
+            }
+            return;
+        }
+        if (itemAnimationReportedWorld == mc.theWorld) {
+            return;
+        }
+        itemAnimationReportedWorld = mc.theWorld;
+        String report = ItemAnimationHookStatus.worldJoinReport();
+        System.out.println("[Sky VeLor] Item Animation hook " + report);
+        chat(mc, "Item Animation hook " + report);
     }
 
     /**

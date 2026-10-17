@@ -1,5 +1,11 @@
 # Changelog
 
+## Beta-0.10.7.8v — 2026-10-17
+
+- Repaired Item Animation with an explicit Forge 1.8.9 `ItemRenderer.renderItemInFirstPerson(float)` MCP/SRG/notch transformer target instead of the old caller-shape guess.
+- Added balanced direct held-item matrix hooks, map/empty-arm exclusion, anchor-preserving scale, visual swing/equip speed handling, coremod status diagnostics, master toggle, and the HUD-editor inactive warning.
+- Expanded the Item Animation editor to the safe X/Y/Z, size, and speed ranges with Shift fine control, double-click per-value reset, exact entries, and persisted default-on state.
+
 ## Beta-0.10.7.7v — 2026-10-17
 
 - Repaired and renamed the first-person feature as **Item Animation**.

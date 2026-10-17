@@ -1,20 +1,43 @@
 package com.arena.pekaclient.render.itemanimation;
 
 import com.arena.pekaclient.feature.ItemAnimation;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 
 /**
- * The two tiny callbacks woven into Minecraft's real 1.8.9 first-person renderer.
+ * Runtime callbacks woven directly into Minecraft 1.8.9's {@code ItemRenderer}.
  *
- * <p>They intentionally read {@link ItemAnimation} on every invocation instead of caching a renderer or a
- * setting snapshot. A slider drag or exact-value entry therefore changes the very next hand/equip frame.
- * No world, player, packet, attack, or third-person method is touched.
+ * <p>The callbacks run only from the first-person ItemRenderer methods. They use no reflection, allocate no
+ * objects per frame, and never modify EntityLivingBase, attack speed, Haste, packets, world rendering, or any
+ * gameplay state. Primitive setting values are refreshed on each live render/update so sliders and typed values
+ * apply immediately.
  */
 public final class ItemAnimationHooks {
 
-    private static final int INITIAL_RENDER_STACK = 4;
+    private static final float ANCHOR_X = 0.56F;
+    private static final float ANCHOR_Y = -0.52F;
+    private static final float ANCHOR_Z = -0.72F;
+    private static final float VANILLA_SWING_TICKS = 6.0F;
+
+    // Fixed stack bits cover any theoretical nested ItemRenderer calls without growing an array on the render path.
     private static int renderDepth;
-    private static boolean[] pushedMatrix = new boolean[INITIAL_RENDER_STACK];
+    private static long pushedMatrixBits;
+
+    private static boolean cachedEnabled;
+    private static float cachedX;
+    private static float cachedY;
+    private static float cachedZ;
+    private static float cachedSize = 1.0F;
+    private static float cachedSpeed = 1.0F;
+
+    private static boolean sawVanillaSwing;
+    private static boolean visualSwingActive;
+    private static boolean visualSwingComplete;
+    private static int visualSwingStartTick;
+    private static volatile float lastSwingProgress;
 
     private static volatile boolean renderHookReached;
     private static volatile boolean equipHookReached;
@@ -32,74 +55,153 @@ public final class ItemAnimationHooks {
     }
 
     /**
-     * Called immediately before Minecraft invokes its actual ItemRenderer first-person draw method.
-     * The object and partial-tick arguments preserve the original bytecode stack without tying this core hook to
-     * an MCP/obfuscated ItemRenderer descriptor.
+     * Called immediately after ItemRenderer's vanilla outer {@code pushMatrix()}, before any map/item/arm branch.
+     * The matching callback is woven immediately before vanilla's {@code popMatrix()} (and defensively before an
+     * unexpected return), so a custom push can never leak into the next frame.
      */
-    public static void beforeFirstPersonRender(Object ignoredRenderer, float partialTicks) {
-        float x = ItemAnimation.getX();
-        float y = ItemAnimation.getY();
-        float z = ItemAnimation.getZ();
-        float size = ItemAnimation.getSize();
-        boolean apply = x != 0.0F || y != 0.0F || z != 0.0F || size != 1.0F;
+    public static void beforeFirstPersonRender(Object renderedStack, float partialTicks) {
+        refreshSettings();
+        ItemStack held = renderedStack instanceof ItemStack ? (ItemStack) renderedStack : null;
+        boolean map = isMap(held);
+        boolean offsets = cachedX != 0.0F || cachedY != 0.0F || cachedZ != 0.0F;
+        // ItemRenderer's own itemToRender field is passed by the transformer. Null arms and map rendering remain
+        // exactly vanilla; scale and offsets apply only to the non-map held-item branch.
+        boolean scaleHeldItem = held != null && !map && cachedSize != 1.0F;
+        boolean apply = cachedEnabled && held != null && !map && (offsets || scaleHeldItem);
 
         renderHookReached = true;
         renderCalls++;
         lastRenderNanos = System.nanoTime();
-        lastX = x;
-        lastY = y;
-        lastZ = z;
-        lastSize = size;
+        lastX = cachedX;
+        lastY = cachedY;
+        lastZ = cachedZ;
+        lastSize = cachedSize;
+        ItemAnimationHookStatus.onRenderCallback();
 
         int slot = renderDepth++;
-        if (slot >= pushedMatrix.length) {
-            boolean[] expanded = new boolean[pushedMatrix.length * 2];
-            System.arraycopy(pushedMatrix, 0, expanded, 0, pushedMatrix.length);
-            pushedMatrix = expanded;
-        }
-        pushedMatrix[slot] = apply;
-        if (apply) {
-            // Translation first keeps the familiar X/Y/Z controls anchored at the vanilla hand position;
-            // scaling then enlarges/shrinks the item around the normal first-person origin.
+        if (slot >= 0 && slot < Long.SIZE && apply) {
+            pushedMatrixBits |= 1L << slot;
             GlStateManager.pushMatrix();
-            GlStateManager.translate(x, y, z);
-            GlStateManager.scale(size, size, size);
+            // Offset stays outside the anchor scale, so X/Y/Z retain their exact user-facing meaning.
+            GlStateManager.translate(cachedX, cachedY, cachedZ);
+            if (scaleHeldItem) {
+                // T(anchor) * S * T(-anchor): resize about the vanilla held-item anchor, not the screen origin.
+                GlStateManager.translate(ANCHOR_X, ANCHOR_Y, ANCHOR_Z);
+                GlStateManager.scale(cachedSize, cachedSize, cachedSize);
+                GlStateManager.translate(-ANCHOR_X, -ANCHOR_Y, -ANCHOR_Z);
+            }
         }
     }
 
-    /** Called immediately after the real first-person draw; balances only a matrix this hook pushed. */
+    /** Balances exactly one matrix pushed by {@link #beforeFirstPersonRender(Object, float)}. */
     public static void afterFirstPersonRender() {
         if (renderDepth <= 0) {
-            // A malformed third-party transformer must not underflow our state or pop a Minecraft matrix.
+            // Protect vanilla's matrix stack if another coremod produced an unexpected callback ordering.
             return;
         }
         int slot = --renderDepth;
-        boolean apply = pushedMatrix[slot];
-        pushedMatrix[slot] = false;
-        if (apply) {
+        if (slot >= 0 && slot < Long.SIZE && (pushedMatrixBits & (1L << slot)) != 0L) {
+            pushedMatrixBits &= ~(1L << slot);
             GlStateManager.popMatrix();
         }
     }
 
     /**
-     * Called after vanilla computes its per-tick equipped-progress change. It adjusts only that visual
-     * interpolation: attack cooldown, swing progress, item use and all gameplay timing remain untouched.
+     * Replaces only the local swing value used by ItemRenderer's hand math. A new visual timeline starts when
+     * vanilla starts swinging and advances from game ticks plus partial ticks at {@code speed}; it never writes
+     * EntityLivingBase swing fields. Speed 1.0 returns vanilla's original float byte-for-byte.
+     */
+    public static float visualSwingProgress(float vanillaProgress, float partialTicks) {
+        refreshSettings();
+        if (!cachedEnabled || cachedSpeed == 1.0F || Float.isNaN(cachedSpeed)
+                || Float.isInfinite(cachedSpeed)) {
+            sawVanillaSwing = false;
+            visualSwingActive = false;
+            visualSwingComplete = false;
+            lastSwingProgress = vanillaProgress;
+            return vanillaProgress;
+        }
+
+        Minecraft mc = Minecraft.getMinecraft();
+        EntityPlayerSP player = mc == null ? null : mc.thePlayer;
+        if (player == null) {
+            sawVanillaSwing = false;
+            visualSwingActive = false;
+            visualSwingComplete = false;
+            lastSwingProgress = vanillaProgress;
+            return vanillaProgress;
+        }
+
+        boolean vanillaSwinging = player.isSwingInProgress;
+        if (vanillaSwinging && !sawVanillaSwing) {
+            visualSwingStartTick = player.ticksExisted;
+            visualSwingActive = true;
+            visualSwingComplete = false;
+        }
+        sawVanillaSwing = vanillaSwinging;
+
+        if (visualSwingComplete) {
+            if (vanillaSwinging) {
+                lastSwingProgress = 1.0F;
+                return 1.0F;
+            }
+            visualSwingComplete = false;
+            lastSwingProgress = vanillaProgress;
+            return vanillaProgress;
+        }
+        if (!visualSwingActive) {
+            lastSwingProgress = vanillaProgress;
+            return vanillaProgress;
+        }
+
+        float elapsedTicks = (player.ticksExisted - visualSwingStartTick) + partialTicks;
+        float visual = elapsedTicks * cachedSpeed / VANILLA_SWING_TICKS;
+        if (visual >= 1.0F) {
+            visualSwingActive = false;
+            visualSwingComplete = true;
+            lastSwingProgress = 1.0F;
+            return 1.0F;
+        }
+        if (visual <= 0.0F) {
+            lastSwingProgress = 0.0F;
+            return 0.0F;
+        }
+        lastSwingProgress = visual;
+        return visual;
+    }
+
+    /**
+     * Called after vanilla computes ItemRenderer.equippedProgress. This changes only the visible interpolation;
+     * it does not alter attack cooldown, swinging state, Haste, packets, inventory state, or use actions.
      */
     public static float scaleEquipProgress(float previous, float vanillaCurrent) {
-        float speed = ItemAnimation.getSpeed();
+        refreshSettings();
         equipHookReached = true;
         equipCalls++;
         lastEquipNanos = System.nanoTime();
-        lastSpeed = speed;
+        lastSpeed = cachedSpeed;
 
-        // The exact 1.0 path avoids needless floating-point drift at vanilla defaults.
-        if (speed == 1.0F || Float.isNaN(speed) || Float.isInfinite(speed)) {
+        if (!cachedEnabled || cachedSpeed == 1.0F || Float.isNaN(cachedSpeed)
+                || Float.isInfinite(cachedSpeed)) {
             return vanillaCurrent;
         }
-        float adjusted = previous + (vanillaCurrent - previous) * speed;
-        // Vanilla equipped progress is [0, 1]. Clamping prevents a high multiplier from overshooting its target
-        // and bouncing on the next tick, which would otherwise look like a hand jitter/stutter.
+        float adjusted = previous + (vanillaCurrent - previous) * cachedSpeed;
+        // ItemRenderer's visible equipped progress is bounded by vanilla's [0, 1] interval.
         return Math.max(0.0F, Math.min(1.0F, adjusted));
+    }
+
+    /** Reads every live setting into primitive fields; no snapshot object/reflection is created on the render path. */
+    private static void refreshSettings() {
+        cachedEnabled = ItemAnimation.isEnabled();
+        cachedX = cachedEnabled ? ItemAnimation.getConfiguredX() : 0.0F;
+        cachedY = cachedEnabled ? ItemAnimation.getConfiguredY() : 0.0F;
+        cachedZ = cachedEnabled ? ItemAnimation.getConfiguredZ() : 0.0F;
+        cachedSize = cachedEnabled ? ItemAnimation.getConfiguredSize() : 1.0F;
+        cachedSpeed = cachedEnabled ? ItemAnimation.getConfiguredSpeed() : 1.0F;
+    }
+
+    private static boolean isMap(ItemStack held) {
+        return held != null && (held.getItem() == Items.filled_map || held.getItem() == Items.map);
     }
 
     public static boolean hasRenderHookRun() {
@@ -112,6 +214,10 @@ public final class ItemAnimationHooks {
 
     public static long getRenderCalls() {
         return renderCalls;
+    }
+
+    public static int getRenderCallsLastSecond() {
+        return ItemAnimationHookStatus.getRenderCallsLastSecond();
     }
 
     public static long getEquipCalls() {
@@ -144,5 +250,9 @@ public final class ItemAnimationHooks {
 
     public static float getLastSpeed() {
         return lastSpeed;
+    }
+
+    public static float getVisualSwingProgress() {
+        return lastSwingProgress;
     }
 }

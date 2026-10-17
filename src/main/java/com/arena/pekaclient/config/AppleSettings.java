@@ -46,13 +46,18 @@ public final class AppleSettings {
     // first-person render unit. Keeping the bounds here makes loading, exact-value entry and sliders agree.
     public static final int DEFAULT_ITEM_ANIMATION_SIZE = 100;
     public static final int DEFAULT_ITEM_ANIMATION_SPEED = 100;
-    public static final int ITEM_ANIMATION_MIN_PERCENT = 50;
-    public static final int ITEM_ANIMATION_MAX_PERCENT = 200;
-    public static final int ITEM_ANIMATION_OFFSET_MIN = -75;
-    public static final int ITEM_ANIMATION_OFFSET_MAX = 75;
+    public static final int ITEM_ANIMATION_SIZE_MIN_PERCENT = 30;
+    public static final int ITEM_ANIMATION_SIZE_MAX_PERCENT = 200;
+    public static final int ITEM_ANIMATION_SPEED_MIN_PERCENT = 25;
+    public static final int ITEM_ANIMATION_SPEED_MAX_PERCENT = 400;
+    public static final int ITEM_ANIMATION_OFFSET_MIN = -150;
+    public static final int ITEM_ANIMATION_OFFSET_MAX = 150;
     public static final int DEFAULT_ITEM_ANIMATION_X = 0;
     public static final int DEFAULT_ITEM_ANIMATION_Y = 0;
     public static final int DEFAULT_ITEM_ANIMATION_Z = 0;
+    /** Master switch for the complete visual-only Item Animation renderer path. Default on. */
+    public static boolean itemAnimationEnabled = true;
+    /** Legacy-compatible per-value switches: off resolves that one value to its vanilla default. */
     public static boolean itemAnimationSizeOn = true;
     public static boolean itemAnimationSpeedOn = true;
 
@@ -75,14 +80,14 @@ public final class AppleSettings {
     
     /** Effective Item Animation size; an off switch is the exact vanilla value. */
     public static int effectiveItemAnimationSize() {
-        return itemAnimationSizeOn ? Math.max(ITEM_ANIMATION_MIN_PERCENT,
-                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSize)) : DEFAULT_ITEM_ANIMATION_SIZE;
+        return itemAnimationSizeOn ? Math.max(ITEM_ANIMATION_SIZE_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_SIZE_MAX_PERCENT, itemAnimationSize)) : DEFAULT_ITEM_ANIMATION_SIZE;
     }
 
     /** Effective Item Animation equip-transition speed; it never affects attacks or gameplay. */
     public static int effectiveItemAnimationSpeed() {
-        return itemAnimationSpeedOn ? Math.max(ITEM_ANIMATION_MIN_PERCENT,
-                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSpeed)) : DEFAULT_ITEM_ANIMATION_SPEED;
+        return itemAnimationSpeedOn ? Math.max(ITEM_ANIMATION_SPEED_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_SPEED_MAX_PERCENT, itemAnimationSpeed)) : DEFAULT_ITEM_ANIMATION_SPEED;
     }
     
     /** Panel opacity in percent (60..100). Higher is more solid, lower shows more of the game. */
@@ -95,9 +100,9 @@ public final class AppleSettings {
     public static int scrollSpeed = 100;      // 50..300 (%), wheel and swipe speed (keys are fixed)
     
     // Item Animation renderer settings. They are read live by the first-person render and equip hooks.
-    public static int itemAnimationSize = DEFAULT_ITEM_ANIMATION_SIZE;      // 50..200 (%)
-    public static int itemAnimationSpeed = DEFAULT_ITEM_ANIMATION_SPEED;    // 50..200 (%)
-    /** X/Y/Z visual offsets, in 1/100ths of a first-person render unit (-75..75). */
+    public static int itemAnimationSize = DEFAULT_ITEM_ANIMATION_SIZE;      // 30..200 (%)
+    public static int itemAnimationSpeed = DEFAULT_ITEM_ANIMATION_SPEED;    // 25..400 (%)
+    /** X/Y/Z visual offsets, in 1/100ths of a first-person render unit (-150..150). */
     public static int itemAnimationX = DEFAULT_ITEM_ANIMATION_X;
     public static int itemAnimationY = DEFAULT_ITEM_ANIMATION_Y;
     public static int itemAnimationZ = DEFAULT_ITEM_ANIMATION_Z;
@@ -173,15 +178,18 @@ public final class AppleSettings {
         scrollSpeed = readInt(p, "scrollSpeed", scrollSpeed, 50, 300);
         
         // Item Animation. New category names win when both names exist; old firstPerson* keys are read once
-        // and then atomically rewritten by save() so existing player settings survive the rename.
+        // and then atomically rewritten by save() so existing player settings survive the rename. Beta 0.10.7.7
+        // did not have a master key, so an absent itemAnimation.enabled intentionally defaults to on.
+        itemAnimationEnabled = readItemAnimationBool(p, "itemAnimation.enabled", "firstPersonItemAnimation",
+                true);
         itemAnimationSizeOn = readItemAnimationBool(p, "itemAnimation.sizeOn", "firstPersonItemScaleOn",
                 itemAnimationSizeOn);
         itemAnimationSpeedOn = readItemAnimationBool(p, "itemAnimation.speedOn", "firstPersonAnimSpeedOn",
                 itemAnimationSpeedOn);
         itemAnimationSize = readItemAnimationInt(p, "itemAnimation.size", "firstPersonItemScale",
-                itemAnimationSize, ITEM_ANIMATION_MIN_PERCENT, ITEM_ANIMATION_MAX_PERCENT);
+                itemAnimationSize, ITEM_ANIMATION_SIZE_MIN_PERCENT, ITEM_ANIMATION_SIZE_MAX_PERCENT);
         itemAnimationSpeed = readItemAnimationInt(p, "itemAnimation.speed", "firstPersonAnimSpeed",
-                itemAnimationSpeed, ITEM_ANIMATION_MIN_PERCENT, ITEM_ANIMATION_MAX_PERCENT);
+                itemAnimationSpeed, ITEM_ANIMATION_SPEED_MIN_PERCENT, ITEM_ANIMATION_SPEED_MAX_PERCENT);
         itemAnimationX = readItemAnimationInt(p, "itemAnimation.x", "firstPersonItemX",
                 itemAnimationX, ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX);
         itemAnimationY = readItemAnimationInt(p, "itemAnimation.y", "firstPersonItemY",
@@ -234,10 +242,10 @@ public final class AppleSettings {
 
     public static void save() {
         // Keep programmatic edits as safe as slider/loader edits before the atomic writer persists them.
-        itemAnimationSize = Math.max(ITEM_ANIMATION_MIN_PERCENT,
-                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSize));
-        itemAnimationSpeed = Math.max(ITEM_ANIMATION_MIN_PERCENT,
-                Math.min(ITEM_ANIMATION_MAX_PERCENT, itemAnimationSpeed));
+        itemAnimationSize = Math.max(ITEM_ANIMATION_SIZE_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_SIZE_MAX_PERCENT, itemAnimationSize));
+        itemAnimationSpeed = Math.max(ITEM_ANIMATION_SPEED_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_SPEED_MAX_PERCENT, itemAnimationSpeed));
         itemAnimationX = Math.max(ITEM_ANIMATION_OFFSET_MIN,
                 Math.min(ITEM_ANIMATION_OFFSET_MAX, itemAnimationX));
         itemAnimationY = Math.max(ITEM_ANIMATION_OFFSET_MIN,
@@ -261,6 +269,7 @@ public final class AppleSettings {
         p.setProperty("scrollSpeed", Integer.toString(scrollSpeed));
         
         // Item Animation. Save only the renamed category; old firstPerson* keys are deliberately retired.
+        p.setProperty("itemAnimation.enabled", Boolean.toString(itemAnimationEnabled));
         p.setProperty("itemAnimation.sizeOn", Boolean.toString(itemAnimationSizeOn));
         p.setProperty("itemAnimation.speedOn", Boolean.toString(itemAnimationSpeedOn));
         p.setProperty("itemAnimation.size", Integer.toString(itemAnimationSize));

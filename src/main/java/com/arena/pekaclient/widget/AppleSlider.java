@@ -2,6 +2,7 @@ package com.arena.pekaclient.widget;
 
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
+import org.lwjgl.input.Keyboard;
 
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -15,6 +16,11 @@ public final class AppleSlider extends Widget {
     private final IntSupplier getter;
     private final IntConsumer setter;
     private Supplier<Boolean> gate;
+    /** Holding Shift uses this smaller step; unchanged sliders retain their ordinary step. */
+    private int fineStep;
+    /** Optional per-control reset action, invoked by a double-click/tap. */
+    private Runnable doubleClickAction;
+    private long lastPressNanos;
     private float displayedFraction;
     private boolean fractionInitialized;
     /** Brief knob/value acknowledgement while the player changes the setting. */
@@ -29,6 +35,19 @@ public final class AppleSlider extends Widget {
         this.suffix = suffix == null ? "" : suffix;
         this.getter = getter;
         this.setter = setter;
+        this.fineStep = this.step;
+    }
+
+    /** Lets a fast slider become one-unit precise while either Shift key is held. */
+    public AppleSlider fineStep(int value) {
+        this.fineStep = Math.max(1, value);
+        return this;
+    }
+
+    /** Lets a setting return to its own default without opening a separate reset dialog. */
+    public AppleSlider onDoubleClick(Runnable action) {
+        this.doubleClickAction = action;
+        return this;
     }
 
     public AppleSlider gate(Supplier<Boolean> enabledWhen) {
@@ -69,7 +88,9 @@ public final class AppleSlider extends Widget {
         float trackWidth = Math.max(1f, w - 14f);
         float f = clamp((px - trackLeft) / trackWidth, 0f, 1f);
         int raw = min + Math.round(f * (max - min));
-        int stepped = min + Math.round((raw - min) / (float) step) * step;
+        int activeStep = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)
+                ? fineStep : step;
+        int stepped = min + Math.round((raw - min) / (float) activeStep) * activeStep;
         stepped = Math.max(min, Math.min(max, stepped));
         if (stepped != value()) {
             setter.accept(stepped);
@@ -116,6 +137,14 @@ public final class AppleSlider extends Widget {
     public void onPress(int mouseX, int mouseY) {
         super.onPress(mouseX, mouseY);
         if (pressed && allowed()) {
+            long now = System.nanoTime();
+            if (doubleClickAction != null && lastPressNanos != 0L && now - lastPressNanos <= 340000000L) {
+                lastPressNanos = 0L;
+                doubleClickAction.run();
+                valuePulse = 1f;
+                return;
+            }
+            lastPressNanos = now;
             setFromX(mouseX);
         }
     }

@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7.7v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7.8v]
 """
 
 import argparse
@@ -54,6 +54,7 @@ REQUIRED_CLASSES = [
     'dungeon/PuzzleRoomDatabase',
     'dungeon/PuzzleRoomMatcher',
     'render/itemanimation/ItemAnimationHooks',
+    'render/itemanimation/ItemAnimationHookStatus',
     'render/itemanimation/ItemAnimationLoadingPlugin',
     'render/itemanimation/ItemAnimationTransformer',
 ]
@@ -114,10 +115,12 @@ class Result(object):
 
 
 def parse_class(data):
-    """Return (class_name, member_names) from a class file, or None.
+    """Return (class_name, member_names, utf8_constants) from a class file, or None.
 
     member_names holds only names reached through a Fieldref, Methodref or
-    InterfaceMethodref constant, i.e. members this class actually touches.
+    InterfaceMethodref constant, i.e. members this class actually touches. UTF8
+    constants are returned separately for explicit ASM target-name proof; they
+    are never used by the reobfuscation mapping check.
     """
     if len(data) < 10 or data[:4] != b'\xca\xfe\xba\xbe':
         return None
@@ -181,13 +184,14 @@ def parse_class(data):
             name = nat_name(val[1])
             if name:
                 members.add(name)
-    return class_name, members
+    utf8_constants = set(val for tag, val in pool.values() if tag == 1)
+    return class_name, members, utf8_constants
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7.7v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7.8v')
     args = ap.parse_args()
 
     path = args.jar
@@ -289,22 +293,74 @@ def main():
     r.check(not mcp_hits, 'no Minecraft development (MCP) member calls left',
             '; '.join(sorted(set('%s -> %s' % h for h in mcp_hits[:6]))) or 'clean')
 
+    def parsed_class(cls):
+        path = MOD_PACKAGE + cls + '.class'
+        return parse_class(zf.read(path)) if path in names else None
+
     def members_of(cls):
-        got = parse_class(zf.read(MOD_PACKAGE + cls + '.class'))
+        got = parsed_class(cls)
         return got[1] if got else set()
+
+    def constants_of(cls):
+        got = parsed_class(cls)
+        return got[2] if got else set()
+
+    # --- explicit direct ItemRenderer proof --------------------------------
+    # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at
+    # launcher time. Checking all three names and the descriptors proves this is not the old caller-shape guess.
+    transformer_constants = constants_of('render/itemanimation/ItemAnimationTransformer')
+    r.check(all(value in transformer_constants for value in
+                ('net.minecraft.client.renderer.ItemRenderer', 'bfn', 'renderItemInFirstPerson',
+                 'func_78440_a', 'a', '(F)V')),
+            'transformer carries explicit MCP/SRG/notch ItemRenderer render target names and (F)V')
+    r.check(all(value in transformer_constants for value in
+                ('updateEquippedItem', 'func_78441_a', '()V')),
+            'transformer carries explicit MCP/SRG/notch equip target names and ()V')
+    r.check('net.minecraft.client.renderer.EntityRenderer' not in transformer_constants,
+            'transformer no longer targets EntityRenderer caller guesses')
+    r.check(all(value in transformer_constants for value in
+                ('beforeFirstPersonRender', 'afterFirstPersonRender', 'visualSwingProgress',
+                 'scaleEquipProgress')),
+            'transformer carries balanced matrix, visual swing, and equip hook entry points')
+
+    loading_constants = constants_of('render/itemanimation/ItemAnimationLoadingPlugin')
+    r.check('com.arena.pekaclient.render.itemanimation' in loading_constants,
+            'loading plugin declares a transformer exclusion for its own coremod package')
+    # Coremod setup classes must not link a Minecraft client/world class before LaunchClassLoader installs them.
+    for cls in ('render/itemanimation/ItemAnimationLoadingPlugin',
+                'render/itemanimation/ItemAnimationTransformer',
+                'render/itemanimation/ItemAnimationHookStatus'):
+        class_path = MOD_PACKAGE + cls + '.class'
+        if class_path in names:
+            raw = zf.read(class_path)
+            r.check(b'Lnet/minecraft/client/' not in raw and b'Lnet/minecraft/world/' not in raw,
+                    'coremod-safe: %s has no eager Minecraft client/world class descriptor' % cls)
 
     # The feature's direct callbacks must really reach the live settings bridge. The old renderer subclass and
     # reflection installer are forbidden above, so this also proves the packaged path is the direct core hook.
     if MOD_PACKAGE + 'render/itemanimation/ItemAnimationHooks.class' in names:
         hooks = members_of('render/itemanimation/ItemAnimationHooks')
-        r.check(all(name in hooks for name in ('getX', 'getY', 'getZ', 'getSize')),
-                'ItemAnimationHooks reads live X/Y/Z/Size values each hand render')
-        r.check('getSpeed' in hooks,
-                'ItemAnimationHooks reads the live visual equip-speed multiplier')
+        hook_constants = constants_of('render/itemanimation/ItemAnimationHooks')
+        r.check(all(name in hooks for name in ('getConfiguredX', 'getConfiguredY', 'getConfiguredZ',
+                                                'getConfiguredSize', 'getConfiguredSpeed', 'isEnabled')),
+                'ItemAnimationHooks refreshes live primitive X/Y/Z/Size/Speed/master settings each hand render')
+        r.check(all(name in hook_constants for name in ('beforeFirstPersonRender', 'afterFirstPersonRender',
+                                                        'visualSwingProgress', 'scaleEquipProgress')),
+                'ItemAnimationHooks packages all direct render/swing/equip callbacks')
+        r.check('func_179094_E' in hooks and 'func_179121_F' in hooks,
+                'ItemAnimationHooks contains balanced reobfuscated pushMatrix/popMatrix calls')
+        r.check(b'java/lang/reflect' not in zf.read(MOD_PACKAGE
+                + 'render/itemanimation/ItemAnimationHooks.class'),
+                'ItemAnimationHooks uses no reflection on the frame path')
+    if MOD_PACKAGE + 'config/AppleSettings.class' in names:
+        settings_constants = constants_of('config/AppleSettings')
+        r.check('itemAnimation.enabled' in settings_constants,
+                'default-on Item Animation master toggle is persisted')
     if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:
         debug = members_of('command/ItemDebugCommand')
-        r.check(all(name in debug for name in ('getX', 'getY', 'getZ', 'getSize', 'getSpeed')),
-                '/velor itemdebug reads the same live Item Animation values as the renderer')
+        r.check(all(name in debug for name in ('isEnabled', 'getX', 'getY', 'getZ', 'getSize', 'getSpeed',
+                                                'getRenderCallsLastSecond', 'getVisualSwingProgress')),
+                '/velor itemdebug reads master, live renderer values, calls/second, and visual swing progress')
 
     print()
     print('verify release jar: passed %d, failed %d' % (r.passed, r.failed))
