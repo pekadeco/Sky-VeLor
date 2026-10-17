@@ -79,7 +79,14 @@ jobs:
           set -o pipefail
           chmod +x gradlew
           ./gradlew --version 2>&1 | tee "$RUNNER_TEMP/gradle-version.txt"
-          ./gradlew clean build dumpTestClasspath --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"
+          if ! ./gradlew clean build dumpTestClasspath --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"; then
+            # Surface actionable compiler/dependency lines as annotations when Actions log redirects are unavailable.
+            grep -E '(^|[[:space:]])(error:|FAILURE:|Could not |Exception|Execution failed|[0-9]+ errors?)' \
+              "$RUNNER_TEMP/build.log" | tail -50 | while IFS= read -r line; do
+                echo "::error title=GRADLE::${line}"
+              done
+            exit 1
+          fi
           echo "=== tasks that produced the jar ==="
           grep -E "^:(compileJava|jar|reobfJar|sourceJar|assemble|check|build)" "$RUNNER_TEMP/build.log" || true
           tail -6 "$RUNNER_TEMP/build.log"
