@@ -5,13 +5,7 @@ import com.arena.pekaclient.config.ConfigFiles;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Properties;
@@ -23,7 +17,6 @@ import java.util.Properties;
  */
 public final class FishingStats {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     static final String FILE_NAME = "skyvelor-fishing.properties";
     /** The same creature announced twice within this window counts once (chat can repeat). */
     static final long DUPLICATE_WINDOW_MS = 750L;
@@ -49,11 +42,34 @@ public final class FishingStats {
         return value == null ? 0L : value;
     }
 
+    /** Every recorded sea-creature pull, including the Common-through-Epic additions. */
     public static long totalCount() {
         ensureLoaded();
         long total = 0L;
         for (LegendaryCreature creature : LegendaryCreature.values()) {
             total += count(creature);
+        }
+        return total;
+    }
+
+    /** Combined count for the Common-through-Epic creatures shown by the optional CC HUD row. */
+    public static long commonCreatureCount() {
+        return countTier(false);
+    }
+
+    /** Retains the old Legendary/Mythic-only total for the established Fishing HUD line. */
+    public static long legendaryCreatureCount() {
+        return countTier(true);
+    }
+
+    private static long countTier(boolean legendary) {
+        ensureLoaded();
+        long total = 0L;
+        for (LegendaryCreature creature : LegendaryCreature.values()) {
+            if (creature.legendary == legendary) {
+                Long value = COUNTS.get(creature);
+                total += value == null ? 0L : value;
+            }
         }
         return total;
     }
@@ -152,11 +168,7 @@ public final class FishingStats {
             p.setProperty("count." + creature.name(), Long.toString(count(creature)));
         }
         p.setProperty("festival.best", Long.toString(festivalBest()));
-        try (OutputStream out = new FileOutputStream(new File(dir(), FILE_NAME))) {
-            p.store(out, "Sky VeLor fishing counters");
-        } catch (IOException e) {
-            LOG.warn("Could not save fishing counters", e);
-        }
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor fishing counters");
     }
 
     /** Clears every counter and the festival best. */

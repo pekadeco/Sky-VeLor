@@ -5,7 +5,8 @@ package com.arena.pekaclient.hud;
  *
  * Each axis stores an anchor (START, CENTER or END) and an offset in GUI pixels. Positions
  * therefore keep their relation to the screen edges when the window or GUI scale changes.
- * The absolute position is always clamped so an element cannot end up off-screen.
+ * Ordinary HUD placement is clamped on-screen; dedicated unclamped methods support the dungeon map
+ * editor, which deliberately permits partial or fully off-screen placement.
  *
  * This class uses no Minecraft types, so the maths can be unit-tested on its own.
  */
@@ -68,6 +69,16 @@ public final class HudPlacement {
         return clampAxis(rawPosition(anchorY, offsetY, screenH, height), screenH, height);
     }
 
+    /** Absolute left position without viewport clamping, for the dedicated dungeon-map editor only. */
+    public int leftUnclamped(int screenW, int width) {
+        return rawPosition(anchorX, offsetX, screenW, width);
+    }
+
+    /** Absolute top position without viewport clamping, for the dedicated dungeon-map editor only. */
+    public int topUnclamped(int screenH, int height) {
+        return rawPosition(anchorY, offsetY, screenH, height);
+    }
+
     /**
      * Sets the placement from an absolute top-left corner, which is what a drag produces.
      *
@@ -128,6 +139,88 @@ public final class HudPlacement {
             offsetY = clampOffset(y);
         }
         return guides;
+    }
+
+    /**
+     * Places a dedicated map widget without constraining it to the viewport. Existing HUD elements must continue
+     * using {@link #setFromAbsolute}, so this behavior is deliberately opt-in.
+     */
+    public int setFromAbsoluteUnclamped(int screenW, int screenH, int width, int height,
+                                        int left, int top, boolean snap, int threshold) {
+        return setLeftFromAbsoluteUnclamped(screenW, width, left, snap, threshold)
+                | setTopFromAbsoluteUnclamped(screenH, height, top, snap, threshold);
+    }
+
+    /** Updates only the horizontal unclamped map placement. */
+    public int setLeftFromAbsoluteUnclamped(int screenW, int width, int left,
+                                            boolean snap, int threshold) {
+        int center = (screenW - width) / 2;
+        int end = screenW - width;
+        if (snap && Math.abs(left) <= threshold) {
+            anchorX = Anchor.START;
+            offsetX = 0;
+            return GUIDE_LEFT;
+        }
+        if (snap && Math.abs(left - end) <= threshold) {
+            anchorX = Anchor.END;
+            offsetX = 0;
+            return GUIDE_RIGHT;
+        }
+        if (snap && Math.abs(left - center) <= threshold) {
+            anchorX = Anchor.CENTER;
+            offsetX = clampOffset(left - center);
+            return GUIDE_CENTER_X;
+        }
+        if (left < 0) {
+            anchorX = Anchor.START;
+            offsetX = clampOffset(left);
+        } else if (left > end) {
+            anchorX = Anchor.END;
+            offsetX = clampOffset(end - left);
+        } else if (left + width / 2 > screenW / 2) {
+            anchorX = Anchor.END;
+            offsetX = clampOffset(end - left);
+        } else {
+            anchorX = Anchor.START;
+            offsetX = clampOffset(left);
+        }
+        return 0;
+    }
+
+    /** Updates only the vertical unclamped map placement. */
+    public int setTopFromAbsoluteUnclamped(int screenH, int height, int top,
+                                           boolean snap, int threshold) {
+        int center = (screenH - height) / 2;
+        int end = screenH - height;
+        if (snap && Math.abs(top) <= threshold) {
+            anchorY = Anchor.START;
+            offsetY = 0;
+            return GUIDE_TOP;
+        }
+        if (snap && Math.abs(top - end) <= threshold) {
+            anchorY = Anchor.END;
+            offsetY = 0;
+            return GUIDE_BOTTOM;
+        }
+        if (snap && Math.abs(top - center) <= threshold) {
+            anchorY = Anchor.CENTER;
+            offsetY = clampOffset(top - center);
+            return GUIDE_CENTER_Y;
+        }
+        if (top < 0) {
+            anchorY = Anchor.START;
+            offsetY = clampOffset(top);
+        } else if (top > end) {
+            anchorY = Anchor.END;
+            offsetY = clampOffset(end - top);
+        } else if (top + height / 2 > screenH / 2) {
+            anchorY = Anchor.END;
+            offsetY = clampOffset(end - top);
+        } else {
+            anchorY = Anchor.START;
+            offsetY = clampOffset(top);
+        }
+        return 0;
     }
 
     /** Puts the element back in its default corner for the given anchors and offsets. */

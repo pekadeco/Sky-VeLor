@@ -1,6 +1,8 @@
 package com.arena.pekaclient.fishing;
 
-/** Checks catch-line detection, the Jawbus and Festival lines, and nameplate parsing for Sea Creature HP. */
+import java.util.Properties;
+
+/** Checks catch-line detection, counter categories, HUD config compatibility, and Sea Creature HP parsing. */
 public final class FishingTests {
 
     private static int passed;
@@ -8,6 +10,10 @@ public final class FishingTests {
 
     public static void main(String[] args) {
         catchLinesAreDetected();
+        allRarityCatchLinesAreDetected();
+        counterCategories();
+        fishingHudConfigCompatibility();
+        scanScheduling();
         jawbusAndFestivalLines();
         nameplatesAreParsed();
         System.out.println();
@@ -34,6 +40,62 @@ public final class FishingTests {
                 == LegendaryCreature.GREAT_WHITE_SHARK, "");
         check("unrelated chat", SeaCreatureParser.detectLegendaryCreature("Hello there") == null, "");
         check("null", SeaCreatureParser.detectLegendaryCreature(null) == null, "");
+    }
+
+    private static void allRarityCatchLinesAreDetected() {
+        check("reindrake", SeaCreatureParser.detectLegendaryCreature(
+                "A Reindrake forms from the depths. [COPY]") == LegendaryCreature.REINDRAKE, "");
+        check("common squid", SeaCreatureParser.detectLegendaryCreature(
+                "A Squid appeared. [COPY]") == LegendaryCreature.SQUID, "");
+        check("common sea guardian", SeaCreatureParser.detectLegendaryCreature(
+                "You've stumbled upon a Sea Guardian. [COPY]") == LegendaryCreature.SEA_GUARDIAN, "");
+        for (LegendaryCreature creature : LegendaryCreature.values()) {
+            check("counter announcement: " + creature.displayName,
+                    SeaCreatureParser.detectLegendaryCreature(creature.chatPrefixes[0] + " extra") == creature,
+                    creature.chatPrefixes[0]);
+        }
+    }
+
+    private static void counterCategories() {
+        check("squid shares Common Creature row", !LegendaryCreature.SQUID.legendary, "");
+        check("frozen steve shares Common Creature row", !LegendaryCreature.FROZEN_STEVE.legendary, "");
+        check("nurse shark shares Common Creature row", !LegendaryCreature.NURSE_SHARK.legendary, "");
+        check("yeti retains its own row", LegendaryCreature.YETI.legendary, "");
+        check("reindrake retains its own row", LegendaryCreature.REINDRAKE.legendary, "");
+        check("jawbus retains its own row", LegendaryCreature.LORD_JAWBUS.legendary, "");
+        int shared = 0;
+        int separate = 0;
+        for (LegendaryCreature creature : LegendaryCreature.values()) {
+            if (creature.legendary) {
+                separate++;
+            } else {
+                shared++;
+            }
+        }
+        check("all Common-through-Epic definitions", shared == 64, "count=" + shared);
+        check("all Legendary/Mythic definitions", separate == 14, "count=" + separate);
+    }
+
+    private static void fishingHudConfigCompatibility() {
+        FishingHud hud = new FishingHud();
+        Properties legacy = new Properties();
+        legacy.setProperty("fishing.catches", "false");
+        legacy.setProperty("fishing.festival", "false");
+        hud.load(legacy);
+        check("existing fishing HUD configs enable compact CC row", hud.showCommonCreature, "");
+        hud.showCommonCreature = false;
+        Properties saved = new Properties();
+        hud.save(saved);
+        check("CC row has its own stable HUD config key",
+                "false".equals(saved.getProperty("fishing.commonCreature")),
+                saved.getProperty("fishing.commonCreature"));
+    }
+
+    private static void scanScheduling() {
+        check("first HP scan runs", SeaCreatureHud.shouldScan(1000L, Long.MIN_VALUE), "");
+        check("HP scan waits inside interval", !SeaCreatureHud.shouldScan(1200L, 1000L), "");
+        check("HP scan repeats at interval", SeaCreatureHud.shouldScan(1500L, 1000L), "");
+        check("HP scan survives clock rollback", SeaCreatureHud.shouldScan(900L, 1000L), "");
     }
 
     private static void jawbusAndFestivalLines() {

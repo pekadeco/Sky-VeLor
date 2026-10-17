@@ -32,11 +32,56 @@ public final class AppleSettingsTests {
         check("missing keys do not overwrite effective performance choice",
                 !AppleSettings.experimentalPerformance);
 
+        Properties beta0108 = new Properties();
+        beta0108.setProperty("itemAnimation.enabled", "false");
+        beta0108.setProperty("itemAnimation.size", "145");
+        beta0108.setProperty("itemAnimation.speed", "175");
+        beta0108.setProperty("itemAnimation.x", "-75");
+        beta0108.setProperty("itemAnimation.y", "25");
+        beta0108.setProperty("itemAnimation.z", "50");
+        beta0108.setProperty("itemAnimation.autoFixHitSlash", "false");
+        AppleSettings.loadItemAnimationSettings(beta0108);
+        check("0.10.8v config with obsolete Auto Fix key loads cleanly",
+                !AppleSettings.itemAnimationEnabled && AppleSettings.itemAnimationSize == 145
+                        && AppleSettings.itemAnimationSpeed == 175 && AppleSettings.itemAnimationX == -75
+                        && AppleSettings.itemAnimationY == 25 && AppleSettings.itemAnimationZ == 50);
+        Properties migrated = new Properties();
+        AppleSettings.saveItemAnimationSettings(migrated);
+        check("obsolete Auto Fix key is not written back", !migrated.containsKey("itemAnimation.autoFixHitSlash"));
+
+        chatSettingsCompatibility();
+
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
         if (failed > 0) {
             System.exit(1);
         }
+    }
+
+    private static void chatSettingsCompatibility() {
+        AppleSettings.chatTabsEnabled = true;
+        AppleSettings.chatAnimationBridgeEnabled = true;
+        AppleSettings.loadChatSettings(new Properties());
+        check("new installs keep chat tabs opt-in", !AppleSettings.chatTabsEnabled);
+        check("new installs keep external chat bridge opt-in", !AppleSettings.chatAnimationBridgeEnabled);
+
+        Properties oldFriendChat = new Properties();
+        oldFriendChat.setProperty("chat.filterMode", "2");
+        oldFriendChat.setProperty("chat.animation.messages", "false");
+        oldFriendChat.setProperty("chat.animation.messageSpeed", "85");
+        oldFriendChat.setProperty("chat.animation.backgroundDuration", "700");
+        AppleSettings.loadChatSettings(oldFriendChat);
+        check("legacy friend chat-tab selection migrates Co-op index", AppleSettings.chatTabsEnabled
+                && AppleSettings.chatFilterMode == 4);
+        check("legacy friend animation profile remains enabled", AppleSettings.chatAnimationBridgeEnabled
+                && !AppleSettings.chatMessageAnimation && AppleSettings.chatMessageSpeed == 85
+                && AppleSettings.chatBackgroundDuration == 700);
+
+        Properties migratedChat = new Properties();
+        AppleSettings.saveChatSettings(migratedChat);
+        check("chat migration writes stable master keys", "true".equals(migratedChat.getProperty("chat.tabs.enabled"))
+                && "true".equals(migratedChat.getProperty("chat.animation.enabled"))
+                && "4".equals(migratedChat.getProperty("chat.tabMode")));
     }
 
     private static void check(String name, boolean ok) {
