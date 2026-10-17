@@ -2,6 +2,7 @@ package com.arena.pekaclient.widget;
 
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
+import org.lwjgl.input.Keyboard;
 
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -15,6 +16,13 @@ public final class AppleSlider extends Widget {
     private final IntSupplier getter;
     private final IntConsumer setter;
     private Supplier<Boolean> gate;
+    /** Holding Shift uses this smaller step; unchanged sliders retain their ordinary step. */
+    private int fineStep;
+    /** Optional per-control reset action, invoked by a double-click/tap. */
+    private Runnable doubleClickAction;
+    /** Compact composite rows supply their own number box, so they can suppress this slider's value label. */
+    private boolean showValue = true;
+    private long lastPressNanos;
     private float displayedFraction;
     private boolean fractionInitialized;
     /** Brief knob/value acknowledgement while the player changes the setting. */
@@ -29,6 +37,25 @@ public final class AppleSlider extends Widget {
         this.suffix = suffix == null ? "" : suffix;
         this.getter = getter;
         this.setter = setter;
+        this.fineStep = this.step;
+    }
+
+    /** Lets a fast slider become one-unit precise while either Shift key is held. */
+    public AppleSlider fineStep(int value) {
+        this.fineStep = Math.max(1, value);
+        return this;
+    }
+
+    /** Lets a setting return to its own default without opening a separate reset dialog. */
+    public AppleSlider onDoubleClick(Runnable action) {
+        this.doubleClickAction = action;
+        return this;
+    }
+
+    /** Hides the built-in value label when a compact row provides a separate exact-value field. */
+    public AppleSlider hideValue() {
+        this.showValue = false;
+        return this;
     }
 
     public AppleSlider gate(Supplier<Boolean> enabledWhen) {
@@ -69,7 +96,10 @@ public final class AppleSlider extends Widget {
         float trackWidth = Math.max(1f, w - 14f);
         float f = clamp((px - trackLeft) / trackWidth, 0f, 1f);
         int raw = min + Math.round(f * (max - min));
-        int stepped = min + Math.round((raw - min) / (float) step) * step;
+        boolean shiftFine = Keyboard.isCreated() && (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
+                || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+        int activeStep = shiftFine ? fineStep : step;
+        int stepped = min + Math.round((raw - min) / (float) activeStep) * activeStep;
         stepped = Math.max(min, Math.min(max, stepped));
         if (stepped != value()) {
             setter.accept(stepped);
@@ -102,10 +132,12 @@ public final class AppleSlider extends Widget {
         }
         UIRender.circle(end, cy, knobR, active ? 0xFFFFFFFF : Theme.textTertiary);
         UIRender.circle(end, cy, knobR - 1.2f, active ? Theme.accent : Theme.track);
-        String text = value() + suffix;
-        int color = active ? UIRender.mix(Theme.textSecondary, Theme.accent, valuePulse * 0.5f)
-                : Theme.textTertiary;
-        UIRender.text(font(), text, x + w - font().getStringWidth(text), y + 1f, color, 0.8f, false);
+        if (showValue) {
+            String text = value() + suffix;
+            int color = active ? UIRender.mix(Theme.textSecondary, Theme.accent, valuePulse * 0.5f)
+                    : Theme.textTertiary;
+            UIRender.text(font(), text, x + w - font().getStringWidth(text), y + 1f, color, 0.8f, false);
+        }
         if (!active) {
             UIRender.roundRect(x, y, w, h, 4f, 0x24000000, 0x24000000, 0f);
         }
@@ -116,6 +148,14 @@ public final class AppleSlider extends Widget {
     public void onPress(int mouseX, int mouseY) {
         super.onPress(mouseX, mouseY);
         if (pressed && allowed()) {
+            long now = System.nanoTime();
+            if (doubleClickAction != null && lastPressNanos != 0L && now - lastPressNanos <= 340000000L) {
+                lastPressNanos = 0L;
+                doubleClickAction.run();
+                valuePulse = 1f;
+                return;
+            }
+            lastPressNanos = now;
             setFromX(mouseX);
         }
     }

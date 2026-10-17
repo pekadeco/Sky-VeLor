@@ -32,6 +32,23 @@ public final class AppleSettingsTests {
         check("missing keys do not overwrite effective performance choice",
                 !AppleSettings.experimentalPerformance);
 
+        Properties beta0108 = new Properties();
+        beta0108.setProperty("itemAnimation.enabled", "false");
+        beta0108.setProperty("itemAnimation.size", "145");
+        beta0108.setProperty("itemAnimation.speed", "175");
+        beta0108.setProperty("itemAnimation.x", "-75");
+        beta0108.setProperty("itemAnimation.y", "25");
+        beta0108.setProperty("itemAnimation.z", "50");
+        beta0108.setProperty("itemAnimation.autoFixHitSlash", "false");
+        AppleSettings.loadItemAnimationSettings(beta0108);
+        check("0.10.8v config with obsolete Auto Fix key loads cleanly",
+                !AppleSettings.itemAnimationEnabled && AppleSettings.itemAnimationSize == 145
+                        && AppleSettings.itemAnimationSpeed == 175 && AppleSettings.itemAnimationX == -75
+                        && AppleSettings.itemAnimationY == 25 && AppleSettings.itemAnimationZ == 50);
+        Properties migrated = new Properties();
+        AppleSettings.saveItemAnimationSettings(migrated);
+        check("obsolete Auto Fix key is not written back", !migrated.containsKey("itemAnimation.autoFixHitSlash"));
+
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
         if (failed > 0) {

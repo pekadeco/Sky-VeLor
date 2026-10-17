@@ -1,6 +1,6 @@
-# Sky VeLor — Beta-0.10.7v
+# Sky VeLor — Beta-0.10.7.7v
 
-Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and first-person held-item customization.
+Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
 ## Features
 
@@ -8,13 +8,10 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Smooth, frame-rate-independent UI motion: soft hover and press feedback, animated toggles and sliders, a sliding segmented selector, a gently appearing dropdown, and responsive search-field focus.
 - Rounded animated buttons in the main/pause menu and Quick Note screen, with distinct primary, secondary and destructive styles.
 - Spirit Leap teammate picker, class labels, player heads and isolated preview.
-- A 1-14 Click in order terminal: a panel with fourteen numbered buttons in two rows of seven that takes
-  over the Floor VII / M7 Click in order chest, with the number to click now in green, the one after it in
-  yellow, a mistake counter, a timer, restart on `R`, close on `Esc` and a transparency toggle. `/terminal`
-  opens the same panel for practice.
-- Dungeon mob highlights, Floor VII overlays and dragon alerts.
+- A passive Floor VII / M7 Click in order helper: it parses the live chest and outlines only the next real slot. It never replaces the chest, clicks, blocks input, or changes inventory behavior.
+- Dungeon map with room/puzzle templates, party labels, plus mob highlights, Floor VII overlays and dragon alerts.
 - Fishing and Slayer trackers, plus quick notes and client commands.
-- First-person held-item customization: item scale and equip-animation tempo sliders (50-200%), each with its own switch and a reset action.
+- Item Animation: live first-person X/Y/Z position, size and equip-animation controls, exact-value entry, clamped persistence and reset actions.
 
 ## Requirements
 
@@ -58,7 +55,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.7v.jar --version Beta-0.10.7v
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.7.7v.jar --version Beta-0.10.7.7v
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -69,60 +66,46 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.7v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.7.7v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
-## First-person held item
+## Item Animation — Renderer
 
-Both settings live under **First-person held item** in the settings hub, next to the appearance
-controls. Each has a switch (off means exactly 100%, i.e. untouched vanilla) and a 50-200% slider in
-10% steps. Values are read every frame, so a change is visible immediately, and
-`AppleHubScreen.onGuiClosed()` saves them to `skyvelor.properties`. Loaded values are clamped to the
-slider range, so a hand-edited or corrupt file cannot produce an unusable setting. **Reset held item**
-puts both back to 100%.
+**Item Animation** lives exclusively in the HUD editor as a clearly labelled, non-draggable renderer panel.
+It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -75 through 75), Size and
+Animation Speed (50–200%). Every slider has a visible numeric value and a nearby exact-value field; Enter
+applies and saves a typed value. **Reset Item Animation** restores X/Y/Z to 0 and Size/Speed to 100%.
+Legacy `firstPerson*` config keys are read once and atomically migrated to the `itemAnimation.*` category.
 
-- **Item scale** wraps the first-person draw call in a uniform scale. Swords, tools, blocks, bows,
-  maps and the bare arm all scale together, because in 1.8.9 they share one call
-  (`ItemRenderer.renderItemInFirstPerson`). At 100% no matrix operation is issued at all, so the
-  default appearance is the vanilla one exactly. The water, fire and pumpkin overlay screens are a
-  separate call and are deliberately not scaled, and other players and third person are unaffected.
-- **Animation speed** changes the tempo of the equip transition: the slide out and back in when you
-  change the held item, and the settle when you pick one up. It rescales the per-tick step of the
-  vanilla interpolation and clamps it so the value cannot pass its target, so the motion stays smooth
-  and monotonic with no jump or jitter.
+- **Position and size** wrap Minecraft's actual `ItemRenderer.renderItemInFirstPerson` call. The hook reads
+  live values every hand frame and applies only that first-person matrix, so swords, tools, blocks, bows,
+  maps and the bare arm use the same visual adjustment. Third-person items, world rendering and overlays are
+  left on the vanilla path.
+- **Animation Speed** changes only the first-person equipped-progress interpolation calculated by
+  `ItemRenderer.updateEquippedItem`. It neither sends packets nor changes attack speed, item use, block
+  breaking, server timing or other gameplay state. The adjusted progress is bounded to vanilla's 0–1 range to
+  prevent high-speed overshoot and visual jitter.
 
-Deliberately **not** affected by animation speed, because they are gameplay state rather than
-renderer state:
-
-- the arm swing, which comes from the player entity's swing progress;
-- bow draw, eating and drinking, which are driven by the item-use counter;
-- attack cooldowns, block breaking and anything else a server can observe.
-
-Both settings are client-side and visual only. No potion effect is applied and there is no Haste
-option; nothing about combat or movement mechanics changes.
-
-Implementation note: Minecraft 1.8.9 keeps two references to the first-person renderer.
-`EntityRenderer` captures one in its own `final` field during construction and every render and update
-call goes through that field, while `Minecraft.itemRenderer` is only where the instance is created.
-`FirstPersonItemSetup` installs the custom renderer into the `EntityRenderer` field that is actually
-read, and points `Minecraft`'s field at the same instance so both agree. It locates those fields by
-declared type rather than by name, because the release jar is reobfuscated to SRG names and a
-development name such as `itemRenderer` does not exist at runtime.
+The release registers a minimal Forge 1.8.9 coremod through the JAR manifest. It injects balanced callbacks
+around the authoritative hand call and its equipped-progress update instead of replacing `ItemRenderer` or
+reflectively writing final renderer fields. `/velor itemdebug` prints the same live values used by those callbacks
+and reports whether the real hand/equip hook has been reached.
 
 ## Compatibility and testing limits
 
-The project targets desktop Java 8. Android/Pojav compatibility is a goal but is not verified; the renderer swap uses `java.lang.reflect` to clear a `final` modifier, which is a Java 8 technique and is not guaranteed on a newer runtime.
+The project targets desktop Java 8. Android/Pojav compatibility is a goal but is not verified; Item Animation uses Forge 1.8.9 bytecode hooks rather than reflection, and still needs a real-client compatibility pass.
 
 Automated tests cover logic, settings and configuration. They do not launch Minecraft, so they cannot prove what the held item looks like on screen. The release jar is verified structurally with `tools/verify_release_jar.py`, which confirms the artifact is the mod and not a ForgeGradle intermediate, that it carries the right version metadata, and that it was really reobfuscated to SRG names. Rendering and gameplay still need a human pass in Minecraft 1.8.9 with Forge before a release is published.
 
-## Terminal GUI fix in Beta-0.10.6.5v
+## Click in order terminal overlay
 
-The fourteen numbered buttons were not drawn when the Click in order chest could not be read, so the panel
-appeared empty in game while the `/terminal` preview was fine. The buttons are now always drawn and always
-clickable, and the number of each item is read from its name, its lore or a stained glass pane's stack
-size. The root cause, the change and the full verification (including the offline GUI test rig in
-`tools/terminal-verify` and the release build report) are in `VERIFICATION.md`.
+For a real Floor VII/M7 Click in order chest, the helper reads the live lower-chest slots, determines the
+smallest unclicked displayed order, and draws one translucent outline over that slot. Duplicate, empty or
+unparseable candidates leave the GUI untouched; player inventory, normal chest clicks and all container
+behavior remain vanilla.
+
+The old path replaced the server chest with a synthetic terminal screen, so it could desynchronise from the real slot state. The new path only observes and draws after the real screen, so a parsing failure has no gameplay effect.
 
 ## License and credits
 
-Both `LICENSE` and `LICENSE.txt` are retained from the supplied source archive. They contain different license texts (MIT and LGPL v3), so they must not be treated as interchangeable. Preserve upstream notices and verify the applicable license for each reused component before redistributing. Parts of the project were ported from RNG Carried Bald; existing attribution should remain with the relevant code.
+Both `LICENSE` and `LICENSE.txt` are retained from the supplied source archive. They contain different license texts (MIT and LGPL v3), so they must not be treated as interchangeable. Preserve upstream notices and verify the applicable license for each reused component before redistributing. Parts of the project were ported from RNG Carried Bald; existing attribution should remain with the relevant code. The dungeon-map-derived files retain the Better NEF LGPL notice in `THIRD_PARTY_NOTICES/Better-NEF-NOTICE.md`.

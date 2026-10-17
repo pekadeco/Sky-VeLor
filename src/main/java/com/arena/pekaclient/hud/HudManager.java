@@ -9,13 +9,7 @@ import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Properties;
 
 /**
@@ -38,19 +32,13 @@ public final class HudManager {
     public static final FishingHud FISHING = new FishingHud();
     public static final SeaCreatureHud SEA_HP = new SeaCreatureHud();
     public static final SlayerHud SLAYER = new SlayerHud();
-    public static final ClickInOrderHud CLICK_IN_ORDER = new ClickInOrderHud();
 
-    /** Elements shown in the normal HUD editor, in draw order. The Click in order panel is edited on the Dungeon HUD screen only. */
+    /** Elements shown in the normal HUD editor, in draw order. */
     public static final HudElement[] ELEMENTS = {MINING, DOLLARS, INVENTORY, HOTBAR, DOLL, STATS, FISHING, SEA_HP, SLAYER};
-
-    /** Every element with saved settings, including the Dungeon-only Click in order panel. */
-    private static final HudElement[] SETTINGS_ELEMENTS = {MINING, DOLLARS, INVENTORY, HOTBAR, DOLL, STATS, FISHING,
-            SEA_HP, SLAYER, CLICK_IN_ORDER};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient-hud.properties";
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     private static boolean loaded;
 
     private HudManager() {
@@ -69,7 +57,7 @@ public final class HudManager {
 
     public static void load() {
         Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME));
-        for (HudElement e : SETTINGS_ELEMENTS) {
+        for (HudElement e : ELEMENTS) {
             e.load(p);
         }
         BalanceSource.manualMode = "manual".equalsIgnoreCase(p.getProperty("balance.source", "auto").trim());
@@ -80,28 +68,14 @@ public final class HudManager {
 
     public static void save() {
         Properties p = new Properties();
-        for (HudElement e : SETTINGS_ELEMENTS) {
+        for (HudElement e : ELEMENTS) {
             e.save(p);
         }
         p.setProperty("balance.source", BalanceSource.manualMode ? "manual" : "auto");
         if (BalanceSource.manualValue != BalanceSource.UNKNOWN) {
             p.setProperty("balance.manual", Long.toString(BalanceSource.manualValue));
         }
-        File f = new File(dir(), FILE_NAME);
-        File tmp = new File(f.getParentFile(), f.getName() + ".tmp");
-        try (OutputStream out = new FileOutputStream(tmp)) {
-            p.store(out, "Sky VeLor HUD settings");
-        } catch (IOException e) {
-            LOG.warn("Could not write " + tmp, e);
-            return;
-        }
-        if (f.exists() && !f.delete()) {
-            LOG.warn("Could not replace " + f + "; the new HUD settings are in " + tmp);
-            return;
-        }
-        if (!tmp.renameTo(f)) {
-            LOG.warn("Could not rename " + tmp + " to " + f);
-        }
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor HUD settings");
     }
 
     /** Called once per client tick, before the world moves. */
@@ -123,8 +97,7 @@ public final class HudManager {
     public static void render(ScaledResolution sr) {
         UIRender.beginFrame();
         for (HudElement e : ELEMENTS) {
-            // The Click in order panel is drawn only over an open terminal, so it is skipped here.
-            if (e.enabled && e != CLICK_IN_ORDER) {
+            if (e.enabled) {
                 e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
             }
         }
@@ -155,13 +128,13 @@ public final class HudManager {
     }
 
     public static void resetPositions() {
-        for (HudElement e : SETTINGS_ELEMENTS) {
+        for (HudElement e : ELEMENTS) {
             e.resetPosition();
         }
     }
 
     public static void resetAll() {
-        for (HudElement e : SETTINGS_ELEMENTS) {
+        for (HudElement e : ELEMENTS) {
             e.resetAll();
         }
         BalanceSource.manualMode = false;
