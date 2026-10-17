@@ -1,10 +1,10 @@
 Sky VeLor Beta-0.10.7v build report
 ================================
-revision : db81b182ad8dfa42ee85ec6e8b6ace04256da1d9
+revision : 840ce370fe0369ab17d8839d7390fc4d0d07b585
 branch   : main
 version  : Beta-0.10.7v
 java     : openjdk version "1.8.0_504"
-run      : https://github.com/pekadeco/Sky-VeLor/actions/runs/39013059147
+run      : https://github.com/pekadeco/Sky-VeLor/actions/runs/39013805798
 
 gradle:
 
