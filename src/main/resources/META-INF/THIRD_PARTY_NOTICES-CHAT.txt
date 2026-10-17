@@ -1,0 +1,27 @@
+Sky VeLor chat-feature third-party notices
+==========================================
+
+Skytils chat-tab behaviour
+--------------------------
+The optional All/Party/Guild/PM/Co-op channel classification and the associated Hypixel channel
+conventions were ported from the friend-supplied source archive, whose behaviour cites Skytils'
+open-source ChatTabs feature as its reference.
+
+  Project: SkytilsMod
+  Copyright: Copyright (C) 2020-2023 Skytils contributors
+  Source: https://github.com/Skytils/SkytilsMod
+  Reference commit: 276c07edf0f1e64956424016f438a5059c63a863
+  License: GNU Affero General Public License version 3 or later
+
+Chatting animation bridge
+-------------------------
+Sky VeLor contains an optional reflection bridge for the public configuration surface of a separately
+installed compatible Chatting runtime. No Chatting runtime classes or binaries are bundled in this JAR.
+When enabled by the player, the bridge limits that external runtime to its animation controls so Sky
+VeLor's own optional channel tabs remain authoritative.
+
+  Project: Chatting
+  Reference version: 2.0.6 for Forge 1.8.9
+  Copyright: Polyfrost and Chatting contributors
+  Source: https://github.com/Polyfrost/Chatting/tree/v2.0.6
+  License: GNU General Public License version 3 with the project's Minecraft linking exception

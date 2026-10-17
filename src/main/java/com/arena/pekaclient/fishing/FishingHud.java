@@ -8,13 +8,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-/** Fishing counter HUD: total legendary catches, plus Festival current and best Great White counts. */
+/** Fishing counter HUD: Legendary/Mythic, optional Common Creature (CC), and Festival rows. */
 public final class FishingHud extends HudElement {
 
     private static final float LINE_HEIGHT = 10f;
 
     /** Shown when on. */
     public boolean showCatches = true;
+    /** Safe default on: combines Common through Epic pulls in one compact CC row instead of dozens of HUD rows. */
+    public boolean showCommonCreature = true;
     public boolean showFestival = true;
 
     public FishingHud() {
@@ -26,7 +28,12 @@ public final class FishingHud extends HudElement {
         long now = System.currentTimeMillis();
         List<String> out = new ArrayList<String>();
         if (showCatches) {
-            out.add("Legendary catches: " + FishingStats.totalCount());
+            // Existing player totals remain Legendary/Mythic-only; the new all-rarity counter is explicit.
+            out.add("Legendary catches: " + FishingStats.legendaryCreatureCount());
+            if (showCommonCreature) {
+                out.add("Common Creature (CC): " + FishingStats.commonCreatureCount());
+                out.add("Sea creatures total: " + FishingStats.totalCount());
+            }
         }
         if (showFestival) {
             out.add("Festival: " + FishingStats.festivalCurrent(now));
@@ -63,18 +70,22 @@ public final class FishingHud extends HudElement {
     @Override
     protected void resetExtra() {
         showCatches = true;
+        showCommonCreature = true;
         showFestival = true;
     }
 
     @Override
     protected void loadExtra(Properties p, String k) {
         showCatches = bool(p, k + "catches", true);
+        // Missing on an older HUD layout means the new compact CC row uses its safe default.
+        showCommonCreature = bool(p, k + "commonCreature", true);
         showFestival = bool(p, k + "festival", true);
     }
 
     @Override
     protected void saveExtra(Properties p, String k) {
         p.setProperty(k + "catches", String.valueOf(showCatches));
+        p.setProperty(k + "commonCreature", String.valueOf(showCommonCreature));
         p.setProperty(k + "festival", String.valueOf(showFestival));
     }
 }

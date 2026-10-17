@@ -14,10 +14,11 @@ public final class SeaCreatureParser {
     /** Creatures the Sea Creature HP panel recognises. */
     static final String[] TRACKED_SEA_CREATURES = {
             "The Loch Emperor", "Sea Emperor", "The Sea Emperor", "Loch Emperor",
-            "Water Hydra", "Alligator", "Abyssal Miner",
+            // Water Hydra and Reindrake are intentionally excluded by the CorruptedHP compatibility profile.
+            "Alligator", "Abyssal Miner",
             "Blue Ringed Octopus", "Fiery Scuttler", "Great White Shark", "Phantom Fisher",
             "Puddle Jumper", "Silkbreeze", "Thunder", "Yeti", "Lord Jawbus",
-            "Nessie", "Grim Reaper", "Reindrake", "Ragnarok", "Plhlegblast",
+            "Nessie", "Grim Reaper", "Ragnarok", "Plhlegblast",
             "Wiki Tiki", "Giant Isopod", "Titanoboa", "Frog Prince"
     };
 
@@ -78,8 +79,8 @@ public final class SeaCreatureParser {
     }
 
     /**
-     * Reads a nearby sea-creature nameplate such as "[Lvl 3] Water Hydra 12.5k/20k". Returns null when
-     * the text is not one of the tracked creatures.
+     * Reads a nearby tracked sea-creature nameplate such as "[Lvl 600] Lord Jawbus 76M/100M". Returns null
+     * when the text is not one of the tracked compatibility-profile creatures.
      */
     public static Entry parseLabel(String displayName, int entityId, double distanceSq) {
         if (displayName == null || displayName.isEmpty()) {

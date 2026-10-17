@@ -5,13 +5,7 @@ import com.arena.pekaclient.config.ConfigFiles;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Properties;
@@ -23,12 +17,13 @@ import java.util.Properties;
  */
 public final class FishingStats {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     static final String FILE_NAME = "skyvelor-fishing.properties";
     /** The same creature announced twice within this window counts once (chat can repeat). */
     static final long DUPLICATE_WINDOW_MS = 750L;
     /** The Jawbus arrival line can repeat; the title shows once per window. */
     static final long JAWBUS_WINDOW_MS = 3000L;
+    static final String LORD_JAWBUS_TITLE = "\u00A7c\u00A7lLORD JAWBUS";
+    static final String YETI_TITLE = "\u00A7b\u00A7lYETI";
 
     public static final FishingSessionTracker FESTIVAL = new FishingSessionTracker();
 
@@ -49,11 +44,34 @@ public final class FishingStats {
         return value == null ? 0L : value;
     }
 
+    /** Every recorded sea-creature pull, including the Common-through-Epic additions. */
     public static long totalCount() {
         ensureLoaded();
         long total = 0L;
         for (LegendaryCreature creature : LegendaryCreature.values()) {
             total += count(creature);
+        }
+        return total;
+    }
+
+    /** Combined count for the Common-through-Epic creatures shown by the optional CC HUD row. */
+    public static long commonCreatureCount() {
+        return countTier(false);
+    }
+
+    /** Retains the old Legendary/Mythic-only total for the established Fishing HUD line. */
+    public static long legendaryCreatureCount() {
+        return countTier(true);
+    }
+
+    private static long countTier(boolean legendary) {
+        ensureLoaded();
+        long total = 0L;
+        for (LegendaryCreature creature : LegendaryCreature.values()) {
+            if (creature.legendary == legendary) {
+                Long value = COUNTS.get(creature);
+                total += value == null ? 0L : value;
+            }
         }
         return total;
     }
@@ -83,7 +101,7 @@ public final class FishingStats {
         if (systemMessage && SeaCreatureParser.isLordJawbusArrival(message)) {
             if (AppleSettings.fishingJawbusAlert && (lastJawbusAt == 0L || now - lastJawbusAt >= JAWBUS_WINDOW_MS)) {
                 lastJawbusAt = now;
-                showJawbusTitle();
+                showCreatureTitle(LORD_JAWBUS_TITLE);
             }
         }
         LegendaryCreature creature = SeaCreatureParser.detectLegendaryCreature(message);
@@ -106,10 +124,14 @@ public final class FishingStats {
         return creature;
     }
 
-    private static void showJawbusTitle() {
+    /** Displays the local encounter title shared by chat-arrival and optional nearby-nameplate alerts. */
+    static void showCreatureTitle(String title) {
+        if (title == null || title.trim().isEmpty()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft != null && minecraft.ingameGUI != null) {
-            minecraft.ingameGUI.displayTitle("\u00A7c\u00A7lLORD JAWBUS", "", 1, 45, 1);
+            minecraft.ingameGUI.displayTitle(title, "", 1, 45, 1);
         }
     }
 
@@ -152,11 +174,7 @@ public final class FishingStats {
             p.setProperty("count." + creature.name(), Long.toString(count(creature)));
         }
         p.setProperty("festival.best", Long.toString(festivalBest()));
-        try (OutputStream out = new FileOutputStream(new File(dir(), FILE_NAME))) {
-            p.store(out, "Sky VeLor fishing counters");
-        } catch (IOException e) {
-            LOG.warn("Could not save fishing counters", e);
-        }
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor fishing counters");
     }
 
     /** Clears every counter and the festival best. */

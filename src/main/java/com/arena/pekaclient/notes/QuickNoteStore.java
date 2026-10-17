@@ -220,12 +220,11 @@ public final class QuickNoteStore {
             return;
         }
         File parent = file.getParentFile();
-        if (parent != null && !parent.isDirectory()) {
-            parent.mkdirs();
+        if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+            return;
         }
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+        File temporary = new File(parent == null ? new File(".") : parent, file.getName() + ".tmp");
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(temporary), "UTF-8"))) {
             for (int i = 0; i < pages.size(); i++) {
                 if (i > 0) {
                     writer.write(PAGE_MARKER);
@@ -242,11 +241,24 @@ public final class QuickNoteStore {
                     writer.newLine();
                 }
             }
-            writer.flush();
         } catch (IOException ex) {
-            // Best effort: a failed write leaves the previous file in place.
-        } finally {
-            closeQuietly(writer);
+            // The original file was not opened, so an incomplete note can never replace it.
+            return;
+        }
+        try {
+            try {
+                java.nio.file.Files.move(temporary.toPath(), file.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                java.nio.file.Files.move(temporary.toPath(), file.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.FileAlreadyExistsException ignored) {
+                java.nio.file.Files.move(temporary.toPath(), file.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ignored) {
+            // Keep the complete temporary file beside the original for recovery if replacement fails.
         }
     }
 
