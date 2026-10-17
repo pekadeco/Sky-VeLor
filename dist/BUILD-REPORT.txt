@@ -1,10 +1,10 @@
-Sky VeLor Beta-0.10.7.6v build report
+Sky VeLor Beta-0.10.7.7v build report
 ================================
-revision : cb80e0701800ab874745bc7c6e8d6a5cea7f6c87
+revision : fe8b864a635db32c1f474df78dfb5df17a0cc015
 branch   : arena/9b99b4ab-sky-velor
-version  : Beta-0.10.7.6v
+version  : Beta-0.10.7.7v
 java     : openjdk version "1.8.0_504"
-run      : https://github.com/pekadeco/Sky-VeLor/actions/runs/38962712997
+run      : https://github.com/pekadeco/Sky-VeLor/actions/runs/39005595779
 
 gradle:
 
@@ -20,9 +20,9 @@ Ant:          Apache Ant(TM) version 1.9.6 compiled on June 29 2015
 JVM:          1.8.0_504 (Temurin 25.504-b01)
 OS:           Linux 6.17.0-1022-azure amd64
 
-jar      : dist/SkyVeLor-1.8.9-Beta-0.10.7.6v.jar
-size     : 357947 bytes
-sha256   : a02278856ad4a9903d4226821068fdc535e4dcd102f176152b2b90f004b048f2
+jar      : dist/SkyVeLor-1.8.9-Beta-0.10.7.7v.jar
+size     : 373108 bytes
+sha256   : 7698c0ab512dc7861719ae1bc36a86c8e69bc8cc7e0843405f865991d5f7d15f
 
 gradle tasks that produced the jar:
 :compileJava
@@ -49,7 +49,7 @@ doll config: passed 14, failed 0
 leap class: passed 27, failed 0
 spirit leap: passed 12, failed 0
 dungeon context: passed 7, failed 0
-first person item: passed 28, failed 0
+item animation: passed 28, failed 0
 mob markers: passed 8, failed 0
 leap layout: passed 2890, failed 0
 leap palette: passed 9, failed 0
@@ -63,19 +63,20 @@ search field: passed 14, failed 0
 widget interactions: passed 12, failed 0
 
 verification:
-=== /home/runner/work/Sky-VeLor/Sky-VeLor/build/libs/SkyVeLor-1.8.9-Beta-0.10.7.6v.jar ===
+=== /home/runner/work/Sky-VeLor/Sky-VeLor/build/libs/SkyVeLor-1.8.9-Beta-0.10.7.7v.jar ===
   ok   file exists
-  size   : 357947 bytes (349.6 KB)
-  sha256 : a02278856ad4a9903d4226821068fdc535e4dcd102f176152b2b90f004b048f2
-  ok   nonzero, plausible size - 357947 bytes
+  size   : 373108 bytes (364.4 KB)
+  sha256 : 7698c0ab512dc7861719ae1bc36a86c8e69bc8cc7e0843405f865991d5f7d15f
+  ok   nonzero, plausible size - 373108 bytes
   ok   not a Minecraft or dependency intermediate - a deobfuscated Minecraft jar is ~11 MB
   ok   not named like a ForgeGradle intermediate
-  ok   contains compiled Sky VeLor classes - 133 class files
+  ok   contains compiled Sky VeLor classes - 145 class files
   ok   does not contain Minecraft classes - a Minecraft intermediate would
   ok   present: PekaClientMod.class
   ok   present: PekaVersion.class
   ok   present: config/AppleSettings.class
-  ok   present: feature/FirstPersonItem.class
+  ok   present: feature/ItemAnimation.class
+  ok   present: command/ItemDebugCommand.class
   ok   present: gui/AppleHubScreen.class
   ok   present: gui/AppleGuiButton.class
   ok   present: gui/HudEditorScreen.class
@@ -83,8 +84,12 @@ verification:
   ok   present: dungeon/DungeonMapOverlay.class
   ok   present: dungeon/PuzzleRoomDatabase.class
   ok   present: dungeon/PuzzleRoomMatcher.class
-  ok   present: render/CustomItemRenderer.class
-  ok   present: render/FirstPersonItemSetup.class
+  ok   present: render/itemanimation/ItemAnimationHooks.class
+  ok   present: render/itemanimation/ItemAnimationLoadingPlugin.class
+  ok   present: render/itemanimation/ItemAnimationTransformer.class
+  ok   absent (removed): feature/FirstPersonItem.class
+  ok   absent (removed): render/CustomItemRenderer.class
+  ok   absent (removed): render/FirstPersonItemSetup.class
   ok   absent (removed): render/FirstPersonItemRendererProxy.class
   ok   absent (removed): gui/TerminalScreen.class
   ok   absent (removed): gui/DungeonHudScreen.class
@@ -92,15 +97,17 @@ verification:
   ok   absent (removed): command/TerminalCommand.class
   ok   no nested archive - a shaded or double-packed jar would show here
   ok   no unrelated project files packaged
-  mcmod.info version : Beta-0.10.7.6v
+  mcmod.info version : Beta-0.10.7.7v
   ok   mcmod.info carries a version
-  ok   mcmod.info version matches the release - expected Beta-0.10.7.6v
+  ok   mcmod.info version matches the release - expected Beta-0.10.7.7v
   ok   mcmod.info targets 1.8.9 - 1.8.9
   ok   mcmod.info modid is pekaclient
+  ok   manifest registers the Item Animation loading plugin
+  ok   manifest declares the regular Forge mod alongside the coremod
   ok   English keybind labels packaged
   ok   dungeon puzzle-room templates packaged
-  class files parsed          : 133
-  distinct SRG members called : 261
+  class files parsed          : 145
+  distinct SRG members called : 258
       field_146120_f
       field_146121_g
       field_146122_a
@@ -343,9 +350,6 @@ verification:
       func_78326_a
       func_78328_b
       func_78381_a
-      func_78440_a
-      func_78441_a
-      func_78444_b
       func_78753_a
       func_78769_a
       func_82833_r
@@ -365,12 +369,8 @@ verification:
   ok   every mod class parsed as valid bytecode
   ok   calls Minecraft members by SRG name - proves reobfJar ran; a deobfuscated dev jar has none
   ok   no Minecraft development (MCP) member calls left - clean
-  ok   CustomItemRenderer calls remapped Minecraft members - the override must bind in the obfuscated runtime
-  ok   CustomItemRenderer reads the Sky VeLor size setting - the size slider must reach the renderer
-  ok   CustomItemRenderer reads the X/Y/Z renderer position settings - all three HUD-editor position controls must reach the renderer
-  ok   CustomItemRenderer reads the Sky VeLor animation-speed setting - the visual-only animation-speed slider must reach the renderer
-  ok   FirstPersonItemSetup constructs the custom renderer
-  ok   FirstPersonItemSetup resolves the renderer field by declared type - name-based lookup cannot survive reobfuscation
-  ok   FirstPersonItemSetup writes the renderer field
+  ok   ItemAnimationHooks reads live X/Y/Z/Size values each hand render
+  ok   ItemAnimationHooks reads the live visual equip-speed multiplier
+  ok   /velor itemdebug reads the same live Item Animation values as the renderer
 
-verify release jar: passed 42, failed 0
+verify release jar: passed 45, failed 0
