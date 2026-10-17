@@ -67,6 +67,7 @@ public final class ItemAnimationReachabilityTests {
                 !contains(expanded, "auto-fix-hit-slash") && !hasLabel(expanded, "Auto Fix Hit/Slash"));
 
         verifyNoCustomizationDuplicates();
+        verifyFriendFeatureGuiOwnership();
         verifyLayoutAtAllGuiScales();
 
         System.out.println();
@@ -83,6 +84,41 @@ public final class ItemAnimationReachabilityTests {
             check("no tab/editor customization duplicate for " + feature.getTitle(),
                     !feature.hasDuplicatedCustomization());
         }
+    }
+
+    /** Proves the friend's new HUD option stays editor-owned and the chat options stay in the QoL tab model. */
+    private static void verifyFriendFeatureGuiOwnership() {
+        GuiSettingsAuditModel.Feature fishing = GuiSettingsAuditModel.find("fishing");
+        check("AllNonLegendaryCC Fishing tab keeps only visibility", fishing != null && fishing.hasOnlyVisibilityInTab());
+        check("AllNonLegendaryCC setting lives in the HUD editor", fishing != null
+                && contains(fishing.getEditorCustomizationControls(), "common-creature"));
+        check("AllNonLegendaryCC setting is not duplicated in a tab", fishing != null
+                && !contains(fishing.getTabControls(), "common-creature"));
+
+        List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
+        check("chat tabs appear in the QoL model", chatEntry(chat, "chat-tabs", true));
+        check("chat animation bridge appears in the QoL model", chatEntry(chat, "chat-animation-bridge", true));
+        check("chat GUI keeps only feature on/off toggles", chat.size() == 2
+                && chatEntry(chat, "chat-tabs", true)
+                && chatEntry(chat, "chat-animation-bridge", true));
+    }
+
+    private static boolean chatEntry(List<ChatUiModel.Entry> entries, String id, boolean master) {
+        for (ChatUiModel.Entry entry : entries) {
+            if (id.equals(entry.getId())) {
+                return entry.isMasterToggle() == master;
+            }
+        }
+        return false;
+    }
+
+    private static boolean contains(String[] entries, String value) {
+        for (String entry : entries) {
+            if (value.equals(entry)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Covers Small, Normal, Large, and the 854x480 small-window geometry after Minecraft GUI scaling. */

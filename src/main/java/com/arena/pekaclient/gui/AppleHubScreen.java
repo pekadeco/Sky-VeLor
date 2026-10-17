@@ -2,6 +2,8 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.feature.ChatChannelTabs;
+import com.arena.pekaclient.feature.ChattingAnimationBridge;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
@@ -68,12 +70,12 @@ public class AppleHubScreen extends AppleScreen {
 
     static final String[] PAGE_NAMES = {"QoL", "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
     private static final String[] PAGE_SUBS = {
-            "Overview, appearance, performance and camera",
+            "Overview, appearance, chat, performance and camera",
             "Show, place and style the on-screen elements",
             "Mining BPS and its settings",
             "Spirit Leap, mob highlights and Floor VII (M7) overlays",
             "Drop tracker, boss timer and prices",
-            "Legendary catch counter, Festival best, Sea Creature HP and the Lord Jawbus alert"
+            "Sea-creature counter, Common Creature (CC), Festival best, Sea Creature HP and Lord Jawbus"
     };
     /** HUD groups in display order. Each one expands in place to its toggle and settings. */
     private static final HudElement[] HUD_OVERVIEW = {
@@ -230,6 +232,23 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
         rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
 
+        rows.add(Row.header("Chat channels"));
+        rows.add(Row.item(ChatUiModel.label("chat-tabs"),
+                "Adds All, Party, Guild, PM and Co-op tabs above chat. Off by default; normal chat is untouched",
+                new AppleToggle(() -> AppleSettings.chatTabsEnabled, value -> {
+                    AppleSettings.chatTabsEnabled = value;
+                    if (!value) {
+                        ChatChannelTabs.disableAndRestoreAll();
+                    }
+                })));
+
+        rows.add(Row.header("Chat animations"));
+        rows.add(Row.item(ChatUiModel.label("chat-animation-bridge"),
+                "Optional bridge for a separately installed compatible Chatting runtime. No runtime is bundled",
+                new AppleToggle(() -> AppleSettings.chatAnimationBridgeEnabled, value -> {
+                    AppleSettings.chatAnimationBridgeEnabled = value;
+                    ChattingAnimationBridge.apply();
+                })));
         rows.add(Row.header("Scrolling"));
         rows.add(Row.item("Scroll speed", "On: use the slider. Off: 100%",
                 new AppleToggle(() -> AppleSettings.scrollSpeedOn, v -> AppleSettings.scrollSpeedOn = v)));
@@ -453,8 +472,8 @@ public class AppleHubScreen extends AppleScreen {
     private List<Row> fishingPage() {
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Catch counter"));
-        rows.add(Row.item("Count legendary catches",
-                "Counts each sea creature announced in chat. Saved on this computer only",
+        rows.add(Row.item("Count sea-creature pulls",
+                "Counts Legendary/Mythic separately and Common through Epic in the optional CC HUD row",
                 new AppleToggle(() -> AppleSettings.fishingCounter, v -> AppleSettings.fishingCounter = v)));
         rows.add(Row.item("Festival best",
                 "Great White Sharks caught in the current Festival, and your best. Festival ends in chat",

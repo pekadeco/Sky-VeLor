@@ -49,11 +49,39 @@ public final class AppleSettingsTests {
         AppleSettings.saveItemAnimationSettings(migrated);
         check("obsolete Auto Fix key is not written back", !migrated.containsKey("itemAnimation.autoFixHitSlash"));
 
+        chatSettingsCompatibility();
+
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
         if (failed > 0) {
             System.exit(1);
         }
+    }
+
+    private static void chatSettingsCompatibility() {
+        AppleSettings.chatTabsEnabled = true;
+        AppleSettings.chatAnimationBridgeEnabled = true;
+        AppleSettings.loadChatSettings(new Properties());
+        check("new installs keep chat tabs opt-in", !AppleSettings.chatTabsEnabled);
+        check("new installs keep external chat bridge opt-in", !AppleSettings.chatAnimationBridgeEnabled);
+
+        Properties oldFriendChat = new Properties();
+        oldFriendChat.setProperty("chat.filterMode", "2");
+        oldFriendChat.setProperty("chat.animation.messages", "false");
+        oldFriendChat.setProperty("chat.animation.messageSpeed", "85");
+        oldFriendChat.setProperty("chat.animation.backgroundDuration", "700");
+        AppleSettings.loadChatSettings(oldFriendChat);
+        check("legacy friend chat-tab selection migrates Co-op index", AppleSettings.chatTabsEnabled
+                && AppleSettings.chatFilterMode == 4);
+        check("legacy friend animation profile remains enabled", AppleSettings.chatAnimationBridgeEnabled
+                && !AppleSettings.chatMessageAnimation && AppleSettings.chatMessageSpeed == 85
+                && AppleSettings.chatBackgroundDuration == 700);
+
+        Properties migratedChat = new Properties();
+        AppleSettings.saveChatSettings(migratedChat);
+        check("chat migration writes stable master keys", "true".equals(migratedChat.getProperty("chat.tabs.enabled"))
+                && "true".equals(migratedChat.getProperty("chat.animation.enabled"))
+                && "4".equals(migratedChat.getProperty("chat.tabMode")));
     }
 
     private static void check(String name, boolean ok) {

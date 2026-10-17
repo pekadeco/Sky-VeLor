@@ -39,6 +39,7 @@ call :run com.arena.pekaclient.feature.SpiritLeapTests || goto fail
 call :run com.arena.pekaclient.feature.DungeonContextTests || goto fail
 call :run com.arena.pekaclient.feature.ItemAnimationTests || goto fail
 call :run com.arena.pekaclient.feature.VisualSwingStateMachineTests || goto fail
+call :run com.arena.pekaclient.feature.ChatFilterRulesTests || goto fail
 call :run com.arena.pekaclient.gui.ItemAnimationReachabilityTests || goto fail
 call :run com.arena.pekaclient.feature.MobMarkersTests || goto fail
 call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail

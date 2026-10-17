@@ -102,6 +102,7 @@ final class HudSettingsBuilder {
         } else if (element instanceof com.arena.pekaclient.fishing.FishingHud) {
             final com.arena.pekaclient.fishing.FishingHud f = (com.arena.pekaclient.fishing.FishingHud) element;
             toggle("Catches", () -> f.showCatches, v -> f.showCatches = v);
+            toggle("Common Creature (CC)", () -> f.showCommonCreature, v -> f.showCommonCreature = v);
             toggle("Festival", () -> f.showFestival, v -> f.showFestival = v);
         } else if (element instanceof com.arena.pekaclient.fishing.SeaCreatureHud) {
             final com.arena.pekaclient.fishing.SeaCreatureHud s = (com.arena.pekaclient.fishing.SeaCreatureHud) element;

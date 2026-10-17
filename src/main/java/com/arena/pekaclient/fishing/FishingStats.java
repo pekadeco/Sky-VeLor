@@ -42,11 +42,34 @@ public final class FishingStats {
         return value == null ? 0L : value;
     }
 
+    /** Every recorded sea-creature pull, including the Common-through-Epic additions. */
     public static long totalCount() {
         ensureLoaded();
         long total = 0L;
         for (LegendaryCreature creature : LegendaryCreature.values()) {
             total += count(creature);
+        }
+        return total;
+    }
+
+    /** Combined count for the Common-through-Epic creatures shown by the optional CC HUD row. */
+    public static long commonCreatureCount() {
+        return countTier(false);
+    }
+
+    /** Retains the old Legendary/Mythic-only total for the established Fishing HUD line. */
+    public static long legendaryCreatureCount() {
+        return countTier(true);
+    }
+
+    private static long countTier(boolean legendary) {
+        ensureLoaded();
+        long total = 0L;
+        for (LegendaryCreature creature : LegendaryCreature.values()) {
+            if (creature.legendary == legendary) {
+                Long value = COUNTS.get(creature);
+                total += value == null ? 0L : value;
+            }
         }
         return total;
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## Beta-0.10.8.1v — 2026-10-17
+
+- Added **AllNonLegendaryCC**: Common through Epic sea-creature pulls are counted alongside existing Legendary/Mythic catches and shown in one optional compact **Common Creature (CC)** HUD row. Existing Festival rows and saved counters remain intact.
+- Added optional **All / Party / Guild / PM / Co-op** chat tabs. They are off by default and fail open if another client mod changes Minecraft chat internals.
+- Added an opt-in bridge for an already-installed compatible Chatting runtime; Sky VeLor packages no Chatting runtime and leaves external configuration untouched unless the bridge is enabled.
+- Hardened Sea Creature HP scan scheduling and added a bounded armor-stand nameplate fallback for compatible server labels.
+
 ## Beta-0.10.8.0.1v — 2026-10-17
 
 - Removed the **Auto Fix Hit/Slash Animation** option and its saved setting; the corrected renderer-only swing timeline, including held left-click/mining repeats, is now always on. Existing 0.10.8v config keys are safely ignored and omitted on the next save.

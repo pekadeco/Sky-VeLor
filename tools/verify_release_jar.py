@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.0.1v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.1v]
 """
 
 import argparse
@@ -46,8 +46,12 @@ REQUIRED_CLASSES = [
     'config/AppleSettings',
     'feature/ItemAnimation',
     'feature/VisualSwingStateMachine',
+    'feature/ChatFilterRules',
+    'feature/ChatChannelTabs',
+    'feature/ChattingAnimationBridge',
     'command/ItemDebugCommand',
     'gui/AppleHubScreen',
+    'gui/ChatUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
     'gui/HudEditorLayout',
@@ -195,7 +199,7 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.0.1v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.1v')
     args = ap.parse_args()
 
     path = args.jar
@@ -345,6 +349,40 @@ def main():
     r.check(b'Open Item Animation Settings' not in editor_raw,
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
+    # --- friend feature three-way merge proof -------------------------------
+    # The all-rarity fishing addition is editor-owned, and optional chat integration must remain an opt-in,
+    # dependency-free bridge instead of bundling or eagerly linking a foreign mod.
+    chat_ui_constants = constants_of('gui/ChatUiModel')
+    r.check(all(value in chat_ui_constants for value in
+                ('Chat channel tabs', 'Use Chatting animation bridge'))
+                and 'Smooth messages' not in chat_ui_constants
+                and 'Message animation speed' not in chat_ui_constants,
+            'ChatUiModel keeps the QoL tab to the required chat feature toggles only')
+    r.check(b'com/arena/pekaclient/gui/ChatUiModel' in hub_raw,
+            'AppleHubScreen uses the shared QoL chat ownership model')
+    r.check(all(value not in hub_raw for value in
+                (b'Smooth messages', b'Message animation speed', b'Hide vanilla scroll bar')),
+            'AppleHubScreen keeps chat configuration to the required on/off toggles')
+    client_raw = raw_of('PekaClientMod')
+    r.check(b'com/arena/pekaclient/feature/ChatChannelTabs' in client_raw
+                and b'com/arena/pekaclient/feature/ChattingAnimationBridge' in client_raw,
+            'PekaClientMod registers optional chat tabs and initializes the safe animation bridge')
+    chat_rules_constants = constants_of('feature/ChatFilterRules')
+    r.check(all(value in chat_rules_constants for value in ('party >', 'guild >', 'co-op >', 'cc >')),
+            'ChatFilterRules packages Party/Guild/PM/Co-op channel classification')
+    bridge_raw = raw_of('feature/ChattingAnimationBridge')
+    r.check(b'Lorg/polyfrost/' not in bridge_raw,
+            'Chatting bridge has no eager external-mod class descriptor')
+    fishing_constants = constants_of('fishing/FishingStats')
+    r.check(all(name in fishing_constants for name in ('commonCreatureCount', 'legendaryCreatureCount')),
+            'FishingStats packages separate Common Creature and preserved Legendary/Mythic totals')
+    fishing_hud_raw = raw_of('fishing/FishingHud')
+    r.check(b'commonCreature' in fishing_hud_raw,
+            'Fishing HUD persists its compact Common Creature row separately from Festival visibility')
+    sea_constants = constants_of('fishing/SeaCreatureHud')
+    r.check('shouldScan' in sea_constants,
+            'Sea Creature HP packages the overflow-safe scan scheduler')
+
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at
     # launcher time. Checking all three names and the descriptors proves this is not the old caller-shape guess.
@@ -404,6 +442,9 @@ def main():
                 'default-on Item Animation master toggle is persisted')
         r.check(b'itemAnimationAutoFixHitSlash' not in settings_raw,
                 'AppleSettings retains no hidden Auto Fix setting state')
+        r.check(all(value in settings_constants for value in
+                    ('chat.tabs.enabled', 'chat.tabMode', 'chat.animation.enabled')),
+                'AppleSettings persists safe opt-in chat-tab and Chatting bridge configuration')
     if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:
         debug = members_of('command/ItemDebugCommand')
         r.check(all(name in debug for name in ('isEnabled', 'getX', 'getY', 'getZ', 'getSize', 'getSpeed',
