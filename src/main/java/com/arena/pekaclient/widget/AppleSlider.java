@@ -88,8 +88,9 @@ public final class AppleSlider extends Widget {
         float trackWidth = Math.max(1f, w - 14f);
         float f = clamp((px - trackLeft) / trackWidth, 0f, 1f);
         int raw = min + Math.round(f * (max - min));
-        int activeStep = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)
-                ? fineStep : step;
+        boolean shiftFine = Keyboard.isCreated() && (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
+                || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+        int activeStep = shiftFine ? fineStep : step;
         int stepped = min + Math.round((raw - min) / (float) activeStep) * activeStep;
         stepped = Math.max(min, Math.min(max, stepped));
         if (stepped != value()) {
