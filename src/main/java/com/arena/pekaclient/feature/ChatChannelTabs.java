@@ -123,7 +123,9 @@ public final class ChatChannelTabs {
             new ChatInteractionModel.Hit(), new ChatInteractionModel.Hit(), new ChatInteractionModel.Hit()
     };
     private final ChatInteractionModel.Hit defaultHit = new ChatInteractionModel.Hit();
+    /** One reusable vanilla-layout row slot; it keeps default chat on the identical hit-test path as Chat 1/2. */
     private final ChatInteractionModel.Bounds defaultBounds = new ChatInteractionModel.Bounds();
+    private final ChatInteractionModel.Bounds[] defaultRows = {defaultBounds};
     private final ChatInteractionModel.Hover hover = new ChatInteractionModel.Hover();
 
     private boolean pendingRefresh;
@@ -1028,8 +1030,11 @@ public final class ChatChannelTabs {
             // only, so a conservative screen-space row is safer than reimplementing private scroll/cache arithmetic.
             defaultBounds.set(ChatInteractionModel.DEFAULT_CHAT, 2f, mouseY - 4.5f * scale,
                     nativeChat.getChatWidth() + 4f, 9f * scale, component);
-            defaultHit.copy(defaultBounds);
-            return true;
+            // Vanilla supplies the authoritative component/coordinate mapping; the common model owns the final
+            // surface/bounds hit result just as it does for cached Chat 1 and Chat 2 rows.
+            ChatInteractionModel.hitTest(defaultRows, 1, ChatInteractionModel.DEFAULT_CHAT,
+                    mouseX, mouseY, defaultHit);
+            return defaultHit.found();
         } catch (RuntimeException ignored) {
             return false;
         }

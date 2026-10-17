@@ -86,12 +86,13 @@ public final class ChatQolSettings {
     };
     private static final ChatEditorPanelLayout.State[] EDITOR_PANELS = {
             new ChatEditorPanelLayout.State(2500, 1200),
-            new ChatEditorPanelLayout.State(800, 1700),
-            new ChatEditorPanelLayout.State(800, 3300),
-            new ChatEditorPanelLayout.State(800, 5100),
-            new ChatEditorPanelLayout.State(800, 6900),
-            new ChatEditorPanelLayout.State(800, 8400),
-            new ChatEditorPanelLayout.State(5500, 500)
+            // Section panels store offsets around 50%; their default stack still comes from ChatEditorLayout.
+            new ChatEditorPanelLayout.State(5000, 5000),
+            new ChatEditorPanelLayout.State(5000, 5000),
+            new ChatEditorPanelLayout.State(5000, 5000),
+            new ChatEditorPanelLayout.State(5000, 5000),
+            new ChatEditorPanelLayout.State(5000, 5000),
+            new ChatEditorPanelLayout.State(5000, 5000)
     };
 
     private static final Window CHAT_1 = new Window("Chat 1", 2, 56, 45, 35);

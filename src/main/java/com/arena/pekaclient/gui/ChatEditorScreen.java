@@ -106,6 +106,10 @@ public final class ChatEditorScreen extends AppleScreen {
     private float editorGrabX;
     private float editorGrabY;
     private long lastEditorTitleClick;
+    private int draggedSection = -1;
+    private float sectionGrabX;
+    private float sectionGrabY;
+    private final long[] lastSectionTitleClick = new long[ChatEditorLayout.SECTION_COUNT];
 
 
     public ChatEditorScreen(GuiScreen parent) {
@@ -363,6 +367,7 @@ public final class ChatEditorScreen extends AppleScreen {
             expanded[i] = !ChatQolSettings.editorPanel(i + 1).collapsed(guiScale);
         }
         ChatEditorLayout.update(layout, viewX, viewY, viewW, viewH, expanded, SECTION_ROWS, scroll);
+        applySectionPanelOffsets(guiScale);
         scroll = layout.scroll;
         positionControls();
         targetChoice.x = wx + 56f;
@@ -371,6 +376,40 @@ public final class ChatEditorScreen extends AppleScreen {
         linkAllToggle.y = wy + 39f;
         copyFromChoice.x = Math.min(wx + ww - copyFromChoice.w - 9f, wx + 334f);
         copyFromChoice.y = wy + 38f;
+    }
+
+    /** Applies each persisted panel offset after the safe stacked baseline is calculated. */
+    private void applySectionPanelOffsets(int guiScale) {
+        for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
+            ChatEditorLayout.Rect header = layout.headers[section];
+            ChatEditorLayout.Rect body = layout.bodies[section];
+            ChatEditorPanelLayout.State state = ChatQolSettings.editorPanel(section + 1);
+            float cardW = Math.max(1f, layout.viewport.w - 12f);
+            float cardH = header.h + (body.h > 0f ? ChatEditorLayout.GAP + body.h : 0f);
+            float baseX = layout.viewport.x + (layout.viewport.w - cardW) * 0.5f;
+            float dx = (state.x(guiScale) - 5000) * layout.viewport.w / 10000f;
+            float dy = (state.y(guiScale) - 5000) * layout.viewport.h / 10000f;
+            float x = clampPanel(baseX + dx, layout.viewport.x, layout.viewport.x + layout.viewport.w - cardW);
+            // A tall expanded card starts at the viewport edge; collapsing restores a compact draggable title card.
+            float effectiveH = Math.min(cardH, layout.viewport.h);
+            float y = clampPanel(header.y + dy, layout.viewport.y, layout.viewport.y + layout.viewport.h - effectiveH);
+            header.x = x;
+            header.y = y;
+            header.w = cardW;
+            if (body.h > 0f) {
+                body.x = x + ChatEditorLayout.PAD;
+                body.y = y + header.h + ChatEditorLayout.GAP;
+                body.w = Math.max(1f, cardW - ChatEditorLayout.PAD * 2f);
+            } else {
+                body.x = x + ChatEditorLayout.PAD;
+                body.y = y + header.h;
+                body.w = Math.max(1f, cardW - ChatEditorLayout.PAD * 2f);
+            }
+        }
+    }
+
+    private static float clampPanel(float value, float min, float max) {
+        return value < min ? min : (value > max ? max : value);
     }
 
     private void positionControls() {
@@ -565,9 +604,22 @@ public final class ChatEditorScreen extends AppleScreen {
             ChatEditorLayout.Rect bounds = layout.headers[header];
             if (mx >= bounds.x + bounds.w - 48f) {
                 resetSection(header);
-            } else {
+            } else if (mx <= bounds.x + 34f) {
+                // The arrow has its own click target; dragging anywhere else on the title bar cannot accidentally
+                // collapse a panel while the user is positioning it.
                 ChatQolSettings.editorPanel(header + 1).toggleCollapsed(guiScale());
                 expanded[header] = !ChatQolSettings.editorPanel(header + 1).collapsed(guiScale());
+            } else {
+                long now = System.currentTimeMillis();
+                if (now - lastSectionTitleClick[header] < 300L) {
+                    ChatQolSettings.editorPanel(header + 1).resetScale(guiScale());
+                    draggedSection = -1;
+                } else {
+                    draggedSection = header;
+                    sectionGrabX = mx - bounds.x;
+                    sectionGrabY = my - bounds.y;
+                }
+                lastSectionTitleClick[header] = now;
             }
             return;
         }
@@ -586,6 +638,26 @@ public final class ChatEditorScreen extends AppleScreen {
 
     private int guiScale() {
         return Math.max(1, Math.min(4, Math.round(sf)));
+    }
+
+    /** Stores a section-card drag as a GUI-scale-specific offset around its safe stacked baseline. */
+    private void moveSectionPanel(int section, float desiredX, float desiredY) {
+        if (section < 0 || section >= ChatEditorLayout.SECTION_COUNT) return;
+        ChatEditorLayout.Rect header = layout.headers[section];
+        ChatEditorLayout.Rect body = layout.bodies[section];
+        float cardH = header.h + (body.h > 0f ? ChatEditorLayout.GAP + body.h : 0f);
+        float minX = viewX;
+        float maxX = viewX + viewW - header.w;
+        float minY = viewY;
+        float maxY = viewY + viewH - Math.min(cardH, viewH);
+        float clampedX = clampPanel(desiredX, minX, Math.max(minX, maxX));
+        float clampedY = clampPanel(desiredY, minY, Math.max(minY, maxY));
+        float dx = clampedX - header.x;
+        float dy = clampedY - header.y;
+        ChatEditorPanelLayout.State state = ChatQolSettings.editorPanel(section + 1);
+        int nextX = state.x(guiScale()) + Math.round(dx * 10000f / Math.max(1f, viewW));
+        int nextY = state.y(guiScale()) + Math.round(dy * 10000f / Math.max(1f, viewH));
+        state.set(guiScale(), nextX, nextY, state.collapsed(guiScale()));
     }
 
     private void beginWindowDrag(int mx, int my) {
@@ -609,6 +681,10 @@ public final class ChatEditorScreen extends AppleScreen {
             ChatQolSettings.editorPanel(0).move(guiScale(), mx - editorGrabX, my - editorGrabY, ww, wh, width, height);
             return;
         }
+        if (draggedSection >= 0) {
+            moveSectionPanel(draggedSection, mx - sectionGrabX, my - sectionGrabY);
+            return;
+        }
         if (draggedWindow != null) {
             int scale = new ScaledResolution(Minecraft.getMinecraft()).getScaleFactor();
             ChatWindowLayout.Rect current = draggedWindow == ChatQolSettings.chat1() ? chat1Rect : chat2Rect;
@@ -628,6 +704,10 @@ public final class ChatEditorScreen extends AppleScreen {
     protected void mouseReleased(int mx, int my, int button) {
         if (draggingEditor) {
             draggingEditor = false;
+            return;
+        }
+        if (draggedSection >= 0) {
+            draggedSection = -1;
             return;
         }
         if (draggedWindow != null) {

@@ -150,6 +150,25 @@ public final class ChatQolSettingsTests {
         check("editor panel position persists by scale", ChatQolSettings.editorPanel(0).x(2) == 4200
                 && ChatQolSettings.editorPanel(0).y(2) == 3300);
         check("editor panel collapse persists by scale", ChatQolSettings.editorPanel(0).collapsed(2));
+
+        // Each named settings section owns a separate scale-keyed title-card state, rather than sharing the main card.
+        for (int section = 1; section <= 6; section++) {
+            ChatQolSettings.editorPanel(section).set(3, 1000 + section * 500, 2000 + section * 300,
+                    (section & 1) == 0);
+        }
+        saved.clear();
+        ChatQolSettings.save(saved);
+        ChatQolSettings.load(saved);
+        boolean sectionStatesIndependent = true;
+        for (int section = 1; section <= 6; section++) {
+            sectionStatesIndependent &= ChatQolSettings.editorPanel(section).x(3) == 1000 + section * 500
+                    && ChatQolSettings.editorPanel(section).y(3) == 2000 + section * 300
+                    && ChatQolSettings.editorPanel(section).collapsed(3) == ((section & 1) == 0);
+        }
+        check("every editor section persists an independent GUI-scale panel state", sectionStatesIndependent);
+        ChatQolSettings.editorPanel(4).resetScale(3);
+        check("section title reset restores its own default position", ChatQolSettings.editorPanel(4).x(3) == 5000
+                && ChatQolSettings.editorPanel(4).y(3) == 5000);
     }
 
     private static void check(String name, boolean ok) {
