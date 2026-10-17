@@ -56,7 +56,10 @@ public final class AppleSettings {
     public static final int DEFAULT_ITEM_ANIMATION_Y = 0;
     public static final int DEFAULT_ITEM_ANIMATION_Z = 0;
     public static final int DEFAULT_ITEM_ANIMATION_HIT_SLASH_STYLE = 0;
-    public static final String[] ITEM_ANIMATION_HIT_SLASH_STYLES = {"Vanilla", "Classic Hit", "Slash"};
+    // Existing indexes stay fixed so saved 0.10.7.x style values keep their exact appearance; new styles append.
+    public static final String[] ITEM_ANIMATION_HIT_SLASH_STYLES = {
+            "Vanilla", "Classic Hit", "Slash", "Chop", "Stab"
+    };
     /** Master switch for the complete visual-only Item Animation renderer path. Default on. */
     public static boolean itemAnimationEnabled = true;
     /** Legacy-compatible per-value switches: off resolves that one value to its vanilla default. */

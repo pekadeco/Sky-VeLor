@@ -18,6 +18,11 @@ public final class ItemAnimationTests {
         check("animation speed defaults to 100%", AppleSettings.itemAnimationSpeed == 100);
         check("size switch defaults on", AppleSettings.itemAnimationSizeOn);
         check("speed switch defaults on", AppleSettings.itemAnimationSpeedOn);
+        check("saved style indexes keep their original names", "Vanilla".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[0])
+                && "Classic Hit".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[1])
+                && "Slash".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[2]));
+        check("new Chop and Stab styles append after saved indexes", "Chop".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[3])
+                && "Stab".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[4]));
 
         check("default size multiplier is exactly vanilla", ItemAnimation.getSize() == 1.0f);
         check("default animation multiplier is exactly vanilla", ItemAnimation.getSpeed() == 1.0f);

@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta-0.10.8v — 2026-10-17
+
+- Put **Open the HUD editor** first in the Hub’s **HUD** tab and kept **Item Animation** directly below it with its master toggle and direct settings launcher.
+- Reworked the HUD editor into a responsive fixed-row inspector with clipped labels, right-side controls, a real scrollbar, and compact Item Animation **Scale**, collapsible **Position**, **Animation**, and **Options** groups.
+- Added decimal X/Y/Z exact inputs with saved-value compatibility, Enter/Escape handling, clamping, Shift fine control, slider double-click resets, and a Position-group reset.
+- Added appended **Chop** and **Stab** visual styles without moving existing saved style indexes.
+- Made renderer-only visual swing cycles repeat while attack/mining remains held, while retaining vanilla gameplay timing, packets, hit registration, and the existing smooth equip/swap interpolation.
+- Added headless UI-layout/reachability and visual-swing state-machine tests for this release.
+
 ## Beta-0.10.7.9v — 2026-10-17
 
 - Put **Item Animation** at the top of the Hub’s **HUD** tab with an ON/OFF toggle and **Open Item Animation Settings** launcher, and added the always-visible direct entry at the top of the HUD editor.

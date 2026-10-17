@@ -336,24 +336,24 @@ public class AppleHubScreen extends AppleScreen {
         final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
 
-        // This comes before the generic editor and the long HUD-element list so it is discoverable without scrolling.
-        List<ItemAnimationUiModel.Entry> itemAnimation = ItemAnimationUiModel.buildHudTabModel();
-        rows.add(Row.section(itemAnimation.get(0).getLabel()));
-        rows.add(Row.item(itemAnimation.get(1).getLabel(),
+        // The editor opens first; Item Animation follows immediately so both routes are visible without scrolling.
+        List<ItemAnimationUiModel.Entry> hudModel = ItemAnimationUiModel.buildHudTabModel();
+        rows.add(Row.section(hudModel.get(0).getLabel()));
+        rows.add(Row.item(hudModel.get(1).getLabel(), "Drag, resize and style each element on the game screen",
+                new AppleButton("Open", 84f, 26f, true, () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
+
+        rows.add(Row.section(hudModel.get(2).getLabel()));
+        rows.add(Row.item(hudModel.get(3).getLabel(),
                 "Visual first-person transforms only; it never changes packets, attacks, or gameplay",
                 new AppleToggle(() -> AppleSettings.itemAnimationEnabled, value -> {
                     AppleSettings.itemAnimationEnabled = value;
                     AppleSettings.save();
                 })));
-        rows.add(Row.item(itemAnimation.get(2).getLabel(),
-                "Scale, X/Y/Z, visual hit/slash controls, preview, and reset",
+        rows.add(Row.item(hudModel.get(4).getLabel(),
+                "Scale, Position, Animation, Options, preview, and reset",
                 new AppleButton("Open Settings", 104f, 26f, true,
                         () -> mc.displayGuiScreen(HudEditorScreen.openItemAnimation(this)))));
-
-        rows.add(Row.section("HUD editor"));
-        rows.add(Row.item("Open the HUD editor", "Drag, resize and style each element on the game screen",
-                new AppleButton("Open", 84f, 26f, true, () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
-        rows.add(Row.item("Reset positions", "Put every element back in its default place",
+        rows.add(Row.item(hudModel.get(5).getLabel(), "Put every element back in its default place",
                 button("Reset", HudManager::resetPositions)));
 
         for (int i = 0; i < HUD_OVERVIEW.length; i++) {

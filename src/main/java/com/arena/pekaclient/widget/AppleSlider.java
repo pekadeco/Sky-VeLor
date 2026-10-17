@@ -20,6 +20,8 @@ public final class AppleSlider extends Widget {
     private int fineStep;
     /** Optional per-control reset action, invoked by a double-click/tap. */
     private Runnable doubleClickAction;
+    /** Compact composite rows supply their own number box, so they can suppress this slider's value label. */
+    private boolean showValue = true;
     private long lastPressNanos;
     private float displayedFraction;
     private boolean fractionInitialized;
@@ -47,6 +49,12 @@ public final class AppleSlider extends Widget {
     /** Lets a setting return to its own default without opening a separate reset dialog. */
     public AppleSlider onDoubleClick(Runnable action) {
         this.doubleClickAction = action;
+        return this;
+    }
+
+    /** Hides the built-in value label when a compact row provides a separate exact-value field. */
+    public AppleSlider hideValue() {
+        this.showValue = false;
         return this;
     }
 
@@ -124,10 +132,12 @@ public final class AppleSlider extends Widget {
         }
         UIRender.circle(end, cy, knobR, active ? 0xFFFFFFFF : Theme.textTertiary);
         UIRender.circle(end, cy, knobR - 1.2f, active ? Theme.accent : Theme.track);
-        String text = value() + suffix;
-        int color = active ? UIRender.mix(Theme.textSecondary, Theme.accent, valuePulse * 0.5f)
-                : Theme.textTertiary;
-        UIRender.text(font(), text, x + w - font().getStringWidth(text), y + 1f, color, 0.8f, false);
+        if (showValue) {
+            String text = value() + suffix;
+            int color = active ? UIRender.mix(Theme.textSecondary, Theme.accent, valuePulse * 0.5f)
+                    : Theme.textTertiary;
+            UIRender.text(font(), text, x + w - font().getStringWidth(text), y + 1f, color, 0.8f, false);
+        }
         if (!active) {
             UIRender.roundRect(x, y, w, h, 4f, 0x24000000, 0x24000000, 0f);
         }

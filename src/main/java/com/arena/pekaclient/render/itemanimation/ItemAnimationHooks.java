@@ -1,6 +1,7 @@
 package com.arena.pekaclient.render.itemanimation;
 
 import com.arena.pekaclient.feature.ItemAnimation;
+import com.arena.pekaclient.feature.VisualSwingStateMachine;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.GlStateManager;
@@ -20,7 +21,6 @@ public final class ItemAnimationHooks {
     private static final float ANCHOR_X = 0.56F;
     private static final float ANCHOR_Y = -0.52F;
     private static final float ANCHOR_Z = -0.72F;
-    private static final float VANILLA_SWING_TICKS = 6.0F;
 
     // Fixed stack bits cover any theoretical nested ItemRenderer calls without growing an array on the render path.
     private static int renderDepth;
@@ -36,11 +36,8 @@ public final class ItemAnimationHooks {
     private static boolean cachedAutoFixHitSlash;
     private static int cachedHitSlashStyle;
 
-    private static boolean sawVanillaSwing;
-    private static boolean visualSwingActive;
-    private static boolean visualSwingComplete;
-    private static int visualSwingStartTick;
-    private static float lastRawSwingProgress;
+    /** Reused primitive-only state machine; it restarts visual cycles while attack/mining is held. */
+    private static final VisualSwingStateMachine VISUAL_SWING = new VisualSwingStateMachine();
     private static volatile float lastSwingProgress;
 
     private static volatile boolean renderHookReached;
@@ -111,15 +108,13 @@ public final class ItemAnimationHooks {
     }
 
     /**
-     * Replaces only the local swing value used by ItemRenderer. A new visual timeline starts when vanilla starts
-     * swinging and advances from game ticks plus partial ticks at {@code speed}; it never writes EntityLivingBase
-     * swing fields. The optional Haste removal is likewise a fixed renderer timeline, not a potion mutation.
+     * Replaces only the local swing value used by ItemRenderer. The state machine repeats renderer-only cycles
+     * while attack or block mining is held, but never writes player swing fields or changes any gameplay action.
      */
     public static float visualSwingProgress(float vanillaProgress, float partialTicks) {
         refreshSettings();
         if (!cachedEnabled) {
             clearVisualSwing();
-            lastRawSwingProgress = vanillaProgress;
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
@@ -127,15 +122,15 @@ public final class ItemAnimationHooks {
         float preview = previewSwingProgress();
         if (preview >= 0.0F) {
             float styledPreview = applyHitSlashStyle(preview);
-            lastRawSwingProgress = preview;
             lastSwingProgress = styledPreview;
             return styledPreview;
         }
 
-        boolean customVisual = cachedRemoveHasteEffect || cachedSpeed != 1.0F || cachedHitSlashStyle != 0;
-        if (!customVisual || Float.isNaN(cachedSpeed) || Float.isInfinite(cachedSpeed)) {
+        // The visual timeline is active for every selectable style, including Vanilla at 100% speed when
+        // attack/mining is held. It changes only ItemRenderer's local float; player swing/cooldown/attack code
+        // keeps running untouched.
+        if (Float.isNaN(cachedSpeed) || Float.isInfinite(cachedSpeed)) {
             clearVisualSwing();
-            lastRawSwingProgress = vanillaProgress;
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
@@ -144,58 +139,27 @@ public final class ItemAnimationHooks {
         EntityPlayerSP player = mc == null ? null : mc.thePlayer;
         if (player == null) {
             clearVisualSwing();
-            lastRawSwingProgress = vanillaProgress;
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
 
-        boolean vanillaSwinging = player.isSwingInProgress;
-        if (vanillaSwinging && !sawVanillaSwing) {
-            visualSwingStartTick = player.ticksExisted;
-            visualSwingActive = true;
-            visualSwingComplete = false;
-            lastRawSwingProgress = 0.0F;
-            lastSwingProgress = 0.0F;
-        }
-        sawVanillaSwing = vanillaSwinging;
-
-        if (visualSwingComplete) {
-            if (vanillaSwinging) {
-                lastRawSwingProgress = 1.0F;
-                lastSwingProgress = 1.0F;
-                return 1.0F;
-            }
-            visualSwingComplete = false;
-            lastRawSwingProgress = vanillaProgress;
+        boolean attackHeld = (mc.gameSettings != null && mc.gameSettings.keyBindAttack != null
+                && mc.gameSettings.keyBindAttack.isKeyDown())
+                || (mc.playerController != null && mc.playerController.getIsHittingBlock());
+        boolean customVisual = cachedRemoveHasteEffect || cachedSpeed != 1.0F || cachedHitSlashStyle != 0;
+        if (!customVisual && !attackHeld) {
+            // With every custom visual option off, preserve a normal unheld vanilla click exactly as before.
+            clearVisualSwing();
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
-        if (!visualSwingActive) {
-            lastRawSwingProgress = vanillaProgress;
+        float raw = VISUAL_SWING.advance(vanillaProgress, player.ticksExisted + partialTicks,
+                player.isSwingInProgress, attackHeld, cachedSpeed, cachedAutoFixHitSlash);
+        if (raw == VisualSwingStateMachine.USE_VANILLA) {
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
-
-        float elapsedTicks = (player.ticksExisted - visualSwingStartTick) + partialTicks;
-        float visual = elapsedTicks * cachedSpeed / VANILLA_SWING_TICKS;
-        if (visual >= 1.0F) {
-            visualSwingActive = false;
-            visualSwingComplete = true;
-            lastRawSwingProgress = 1.0F;
-            lastSwingProgress = 1.0F;
-            return 1.0F;
-        }
-        if (visual <= 0.0F) {
-            lastRawSwingProgress = 0.0F;
-            lastSwingProgress = 0.0F;
-            return 0.0F;
-        }
-        if (cachedAutoFixHitSlash && vanillaSwinging && visual < lastRawSwingProgress) {
-            // Fix only the local float consumed by ItemRenderer; player swing timing and Haste stay untouched.
-            visual = lastRawSwingProgress;
-        }
-        float styled = applyHitSlashStyle(visual);
-        lastRawSwingProgress = visual;
+        float styled = applyHitSlashStyle(raw);
         lastSwingProgress = styled;
         return styled;
     }
@@ -207,7 +171,7 @@ public final class ItemAnimationHooks {
             return -1.0F;
         }
         float elapsedTicks = (System.nanoTime() - started) / 50000000.0F;
-        float visual = elapsedTicks * cachedSpeed / VANILLA_SWING_TICKS;
+        float visual = elapsedTicks * cachedSpeed / VisualSwingStateMachine.SWING_TICKS;
         if (visual >= 1.0F) {
             ItemAnimation.clearPreviewSwing();
             return 1.0F;
@@ -223,13 +187,17 @@ public final class ItemAnimationHooks {
         if (cachedHitSlashStyle == 2) {
             return (float) Math.sin(progress * Math.PI * 0.5D);
         }
+        if (cachedHitSlashStyle == 3) {
+            return progress < 0.58F ? progress * 0.72F : Math.min(1.0F, 0.42F + (progress - 0.58F) * 1.38F);
+        }
+        if (cachedHitSlashStyle == 4) {
+            return progress < 0.32F ? progress * 1.65F : Math.min(1.0F, 0.53F + (progress - 0.32F) * 0.69F);
+        }
         return progress;
     }
 
     private static void clearVisualSwing() {
-        sawVanillaSwing = false;
-        visualSwingActive = false;
-        visualSwingComplete = false;
+        VISUAL_SWING.reset();
     }
 
     /**
