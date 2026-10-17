@@ -24,6 +24,7 @@ public final class ItemAnimation {
 
     public static final int DEFAULT_SIZE_PERCENT = AppleSettings.DEFAULT_ITEM_ANIMATION_SIZE;
     public static final int DEFAULT_SPEED_PERCENT = AppleSettings.DEFAULT_ITEM_ANIMATION_SPEED;
+    private static volatile long previewSwingStartedNanos = -1L;
 
     private ItemAnimation() {
     }
@@ -46,6 +47,41 @@ public final class ItemAnimation {
     /** Clamps a renderer offset stored in hundredths of a first-person render unit. */
     public static int clampOffset(int value) {
         return Math.max(MIN_OFFSET, Math.min(MAX_OFFSET, value));
+    }
+
+    /** Clamps the visual-only hit/slash shape to the choices shown in the editor. */
+    public static int clampHitSlashStyle(int value) {
+        return Math.max(0, Math.min(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES.length - 1, value));
+    }
+
+    /** The custom renderer uses a fixed visual timeline rather than touching the real Haste potion effect. */
+    public static boolean isHasteEffectRemoved() {
+        return AppleSettings.itemAnimationRemoveHasteEffect;
+    }
+
+    /** True when the hook smooths only its own rendered hit/slash progress. */
+    public static boolean isAutoFixHitSlash() {
+        return AppleSettings.itemAnimationAutoFixHitSlash;
+    }
+
+    /** Visual first-person hit/slash shape; no entity swing field is read or written by this value. */
+    public static int getHitSlashStyle() {
+        return clampHitSlashStyle(AppleSettings.itemAnimationHitSlashStyle);
+    }
+
+    /** Starts one local renderer-only preview; it sends no input, packet, or gameplay action. */
+    public static void previewSwing() {
+        previewSwingStartedNanos = System.nanoTime();
+    }
+
+    /** Timestamp read by the hand renderer hook; negative means no preview is pending. */
+    public static long getPreviewSwingStartedNanos() {
+        return previewSwingStartedNanos;
+    }
+
+    /** Clears a finished renderer-only preview. */
+    public static void clearPreviewSwing() {
+        previewSwingStartedNanos = -1L;
     }
 
     /** Stored X value, independent of the master toggle, for editor/debug readouts. */
@@ -104,15 +140,19 @@ public final class ItemAnimation {
                 || getConfiguredZ() != 0.0F || getConfiguredSize() != 1.0F);
     }
 
-    /** Restores the default-on master and every visual setting to the exact vanilla state. */
+    /** Restores the default-on master and every visual-only setting, including the default Haste-independent timeline. */
     public static void resetToDefaults() {
         AppleSettings.itemAnimationEnabled = true;
         AppleSettings.itemAnimationSizeOn = true;
         AppleSettings.itemAnimationSpeedOn = true;
+        AppleSettings.itemAnimationRemoveHasteEffect = true;
+        AppleSettings.itemAnimationAutoFixHitSlash = true;
+        AppleSettings.itemAnimationHitSlashStyle = AppleSettings.DEFAULT_ITEM_ANIMATION_HIT_SLASH_STYLE;
         AppleSettings.itemAnimationSize = DEFAULT_SIZE_PERCENT;
         AppleSettings.itemAnimationSpeed = DEFAULT_SPEED_PERCENT;
         AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
         AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
         AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
+        clearPreviewSwing();
     }
 }

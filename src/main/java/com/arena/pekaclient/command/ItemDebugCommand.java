@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-/** Client-side launcher/renderer diagnosis: {@code /velor itemdebug}. */
+/** Client-side Item Animation launcher and renderer diagnosis. */
 public final class ItemDebugCommand extends CommandBase {
 
     @Override
@@ -26,7 +26,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/velor itemdebug";
+        return "/velor itemanimation|ia|itemdebug";
     }
 
     @Override
@@ -36,8 +36,14 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
+        if (args.length == 1 && ("itemanimation".equalsIgnoreCase(args[0])
+                || "ia".equalsIgnoreCase(args[0]))) {
+            // The next client tick opens the direct target after Minecraft has closed the chat screen.
+            ClientActions.requestItemAnimation();
+            return;
+        }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /velor itemdebug");
+            say(sender, "Usage: /velor itemanimation (or /velor ia), or /velor itemdebug");
             return;
         }
 

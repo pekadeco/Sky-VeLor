@@ -1,6 +1,7 @@
 package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.gui.AppleHubScreen;
+import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.notes.QuickNoteScreen;
 import com.arena.pekaclient.notes.QuickNotes;
 import net.minecraft.client.Minecraft;
@@ -14,6 +15,7 @@ public final class ClientActions {
 
     private static boolean hubPending;
     private static boolean notesPending;
+    private static boolean itemAnimationPending;
 
     private ClientActions() {
     }
@@ -26,16 +28,24 @@ public final class ClientActions {
         notesPending = true;
     }
 
+    /** Opens the HUD editor directly on its non-draggable Item Animation renderer panel. */
+    public static void requestItemAnimation() {
+        itemAnimationPending = true;
+    }
+
     /** Called once per client tick, after the chat screen has closed. */
     public static void run(Minecraft mc) {
         if (mc == null) {
             return;
         }
-        if (hubPending) {
+        if (itemAnimationPending) {
+            itemAnimationPending = false;
+            hubPending = false;
+            mc.displayGuiScreen(HudEditorScreen.openItemAnimation(null));
+        } else if (hubPending) {
             hubPending = false;
             mc.displayGuiScreen(new AppleHubScreen(null));
-        }
-        if (notesPending) {
+        } else if (notesPending) {
             notesPending = false;
             mc.displayGuiScreen(new QuickNoteScreen(QuickNotes.store(), null));
         }

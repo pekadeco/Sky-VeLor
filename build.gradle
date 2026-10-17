@@ -75,6 +75,8 @@ processResources {
 jar {
     manifest {
         attributes(
+                'Implementation-Title': 'Sky VeLor',
+                'Implementation-Version': project.version,
                 'FMLCorePlugin': 'com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin',
                 'FMLCorePluginContainsFMLMod': 'true'
         )

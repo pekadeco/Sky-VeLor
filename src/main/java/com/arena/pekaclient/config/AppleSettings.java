@@ -55,11 +55,19 @@ public final class AppleSettings {
     public static final int DEFAULT_ITEM_ANIMATION_X = 0;
     public static final int DEFAULT_ITEM_ANIMATION_Y = 0;
     public static final int DEFAULT_ITEM_ANIMATION_Z = 0;
+    public static final int DEFAULT_ITEM_ANIMATION_HIT_SLASH_STYLE = 0;
+    public static final String[] ITEM_ANIMATION_HIT_SLASH_STYLES = {"Vanilla", "Classic Hit", "Slash"};
     /** Master switch for the complete visual-only Item Animation renderer path. Default on. */
     public static boolean itemAnimationEnabled = true;
     /** Legacy-compatible per-value switches: off resolves that one value to its vanilla default. */
     public static boolean itemAnimationSizeOn = true;
     public static boolean itemAnimationSpeedOn = true;
+    /** Keeps the custom first-person swing timeline independent of the real Haste potion effect. */
+    public static boolean itemAnimationRemoveHasteEffect = true;
+    /** Smooths only the rendered hit/slash progress; it never writes player swing state. */
+    public static boolean itemAnimationAutoFixHitSlash = true;
+    /** Visual first-person hit/slash shape, indexed by {@link #ITEM_ANIMATION_HIT_SLASH_STYLES}. */
+    public static int itemAnimationHitSlashStyle = DEFAULT_ITEM_ANIMATION_HIT_SLASH_STYLE;
 
     /** Corner radius in use: the slider value when its switch is on, otherwise the default. */
     public static int effectiveCornerRadius() {
@@ -186,6 +194,11 @@ public final class AppleSettings {
                 itemAnimationSizeOn);
         itemAnimationSpeedOn = readItemAnimationBool(p, "itemAnimation.speedOn", "firstPersonAnimSpeedOn",
                 itemAnimationSpeedOn);
+        itemAnimationRemoveHasteEffect = readBool(p, "itemAnimation.removeHasteEffect",
+                itemAnimationRemoveHasteEffect);
+        itemAnimationAutoFixHitSlash = readBool(p, "itemAnimation.autoFixHitSlash", itemAnimationAutoFixHitSlash);
+        itemAnimationHitSlashStyle = readInt(p, "itemAnimation.hitSlashStyle", itemAnimationHitSlashStyle, 0,
+                ITEM_ANIMATION_HIT_SLASH_STYLES.length - 1);
         itemAnimationSize = readItemAnimationInt(p, "itemAnimation.size", "firstPersonItemScale",
                 itemAnimationSize, ITEM_ANIMATION_SIZE_MIN_PERCENT, ITEM_ANIMATION_SIZE_MAX_PERCENT);
         itemAnimationSpeed = readItemAnimationInt(p, "itemAnimation.speed", "firstPersonAnimSpeed",
@@ -252,6 +265,8 @@ public final class AppleSettings {
                 Math.min(ITEM_ANIMATION_OFFSET_MAX, itemAnimationY));
         itemAnimationZ = Math.max(ITEM_ANIMATION_OFFSET_MIN,
                 Math.min(ITEM_ANIMATION_OFFSET_MAX, itemAnimationZ));
+        itemAnimationHitSlashStyle = Math.max(0, Math.min(ITEM_ANIMATION_HIT_SLASH_STYLES.length - 1,
+                itemAnimationHitSlashStyle));
         Properties p = new Properties();
         p.setProperty("accent", Integer.toString(accent));
         p.setProperty("darkMode", Boolean.toString(darkMode));
@@ -272,6 +287,9 @@ public final class AppleSettings {
         p.setProperty("itemAnimation.enabled", Boolean.toString(itemAnimationEnabled));
         p.setProperty("itemAnimation.sizeOn", Boolean.toString(itemAnimationSizeOn));
         p.setProperty("itemAnimation.speedOn", Boolean.toString(itemAnimationSpeedOn));
+        p.setProperty("itemAnimation.removeHasteEffect", Boolean.toString(itemAnimationRemoveHasteEffect));
+        p.setProperty("itemAnimation.autoFixHitSlash", Boolean.toString(itemAnimationAutoFixHitSlash));
+        p.setProperty("itemAnimation.hitSlashStyle", Integer.toString(itemAnimationHitSlashStyle));
         p.setProperty("itemAnimation.size", Integer.toString(itemAnimationSize));
         p.setProperty("itemAnimation.speed", Integer.toString(itemAnimationSpeed));
         p.setProperty("itemAnimation.x", Integer.toString(itemAnimationX));

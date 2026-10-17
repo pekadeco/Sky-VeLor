@@ -82,6 +82,10 @@ public class PekaClientMod {
     public static final KeyBinding OPEN_KEY =
             new KeyBinding("key.pekaclient.open", Keyboard.KEY_RSHIFT, "key.categories.pekaclient");
 
+    /** Opens the HUD editor directly on Item Animation. It is deliberately unbound on a fresh install. */
+    public static final KeyBinding ITEM_ANIMATION_KEY =
+            new KeyBinding("key.pekaclient.itemanimation", Keyboard.KEY_NONE, "key.categories.pekaclient");
+
     /**
      * Use Spirit Leap: default unbound. Pressing it while holding a Spirit Leap item sends the same right-click
      * the game sends. The server still opens its own leap menu first, and only then can the teammate picker show.
@@ -105,6 +109,7 @@ public class PekaClientMod {
         AppleSettings.load();
         Theme.refresh();
         ClientRegistry.registerKeyBinding(OPEN_KEY);
+        ClientRegistry.registerKeyBinding(ITEM_ANIMATION_KEY);
         ClientRegistry.registerKeyBinding(LEAP_KEY);
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
@@ -145,6 +150,11 @@ public class PekaClientMod {
         if (OPEN_KEY.isPressed() && mc.currentScreen == null) {
             mc.displayGuiScreen(new AppleHubScreen(null));
         }
+        while (ITEM_ANIMATION_KEY.isPressed()) {
+            if (mc.currentScreen == null) {
+                ClientActions.requestItemAnimation();
+            }
+        }
         while (LEAP_KEY.isPressed()) {
             if (mc.currentScreen == null && AppleSettings.leapKey) {
                 useSpiritLeap(mc);
@@ -167,9 +177,20 @@ public class PekaClientMod {
             return;
         }
         itemAnimationReportedWorld = mc.theWorld;
-        String report = ItemAnimationHookStatus.worldJoinReport();
-        System.out.println("[Sky VeLor] Item Animation hook " + report);
-        chat(mc, "Item Animation hook " + report);
+        // Resolve lazy transformer diagnostics before taking the state/reason used in the single visible join line.
+        ItemAnimationHookStatus.worldJoinReport();
+        String version = PekaVersion.NAME;
+        if (version.startsWith("Beta-")) {
+            version = version.substring("Beta-".length());
+        }
+        if (version.endsWith("v")) {
+            version = version.substring(0, version.length() - 1);
+        }
+        String state = ItemAnimationHookStatus.isActive() ? "ACTIVE" : "FAILED";
+        String line = "Sky VeLor " + version + " | Item Animation: /velor itemanimation | Hook: " + state
+                + " " + ItemAnimationHookStatus.getReason();
+        System.out.println("[Sky VeLor] " + line);
+        mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b" + line));
     }
 
     /**

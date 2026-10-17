@@ -1,5 +1,12 @@
 # Changelog
 
+## Beta-0.10.7.9v — 2026-10-17
+
+- Put **Item Animation** at the top of the Hub’s **HUD** tab with an ON/OFF toggle and **Open Item Animation Settings** launcher, and added the always-visible direct entry at the top of the HUD editor.
+- Added `/velor itemanimation`, `/velor ia`, and the unbound **Open Item Animation** Controls binding; all three open the Item Animation HUD-editor panel directly.
+- Expanded the visual-only panel with Scale, X/Y/Z, Remove Haste Effect, Auto Fix Hit/Slash, custom Hit/Slash style and speed, Preview Swing, Reset to Defaults, persisted clamps, and a single join-hook diagnostic.
+- Added a no-game-window Item Animation reachability test and release-JAR proof that both real GUI classes reference the registered HUD/editor model.
+
 ## Beta-0.10.7.8v — 2026-10-17
 
 - Repaired Item Animation with an explicit Forge 1.8.9 `ItemRenderer.renderItemInFirstPerson(float)` MCP/SRG/notch transformer target instead of the old caller-shape guess.

@@ -60,7 +60,7 @@ public final class HudEditorScreen extends AppleScreen {
             out[i] = HudManager.ELEMENTS[i].name;
         }
         out[HudManager.ELEMENTS.length] = "Dungeon Map";
-        out[HudManager.ELEMENTS.length + 1] = "Item Animation";
+        out[HudManager.ELEMENTS.length + 1] = ItemAnimationUiModel.editorEntryLabel();
         return out;
     }
 
@@ -188,6 +188,13 @@ public final class HudEditorScreen extends AppleScreen {
         openAnim.to(1f);
     }
 
+    /** Opens the renderer inspector directly instead of hiding it behind the generic target dropdown. */
+    public static HudEditorScreen openItemAnimation(GuiScreen parent) {
+        HudEditorScreen editor = new HudEditorScreen(parent);
+        editor.target = EditorTarget.ITEM_ANIMATION;
+        return editor;
+    }
+
     private int chooserIndex() {
         if (target == EditorTarget.DUNGEON_MAP) return HudManager.ELEMENTS.length;
         if (target == EditorTarget.ITEM_ANIMATION) return HudManager.ELEMENTS.length + 1;
@@ -268,7 +275,11 @@ public final class HudEditorScreen extends AppleScreen {
     /** Rebuilds the inspector for an ordinary HUD element, the map, or the Item Animation renderer. */
     private void rebuild() {
         entries.clear();
-        entries.add(new Entry(null, chooser));
+        // Always first: this real launcher is visible at the top of the card and never depends on popup scrolling.
+        ItemAnimationUiModel.Entry itemAnimationTarget = ItemAnimationUiModel.buildHudEditorTargetList().get(0);
+        entries.add(new Entry(itemAnimationTarget.getLabel(), new AppleButton("Open Settings", CONTROL_W,
+                CONTROL_H, true, this::selectItemAnimation)));
+        entries.add(new Entry("Choose HUD target", chooser));
         if (target == EditorTarget.DUNGEON_MAP) {
             buildDungeonMapEntries();
             return;
@@ -353,43 +364,17 @@ public final class HudEditorScreen extends AppleScreen {
         entries.add(new Entry("Panel", new AppleButton("First-person renderer · no drag", CONTROL_W, CONTROL_H,
                 false, null)));
         entries.add(new Entry("Hook", new ItemAnimationHookWidget(CONTROL_W)));
-        entries.add(new Entry("Enable Item Animation", new AppleToggle(ItemAnimation::isEnabled, value -> {
-            AppleSettings.itemAnimationEnabled = value;
-            changed();
-        })));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("enable"), new AppleToggle(ItemAnimation::isEnabled,
+                value -> {
+                    AppleSettings.itemAnimationEnabled = value;
+                    changed();
+                })));
         entries.add(new Entry(null, new AppleButton("Shift = fine · double-click slider = reset", CONTROL_W,
                 CONTROL_H, false, null)));
 
-        entries.add(new Entry("X offset (1/100)", new AppleSlider(ItemAnimation.MIN_OFFSET,
-                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationX, value -> {
-                    AppleSettings.itemAnimationX = ItemAnimation.clampOffset(value);
-                    changed();
-                }).fineStep(1).onDoubleClick(() -> {
-                    AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
-                    changed();
-                })));
-        entries.add(new Entry("X exact", itemAnimationXField));
-        entries.add(new Entry("Y offset (1/100)", new AppleSlider(ItemAnimation.MIN_OFFSET,
-                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationY, value -> {
-                    AppleSettings.itemAnimationY = ItemAnimation.clampOffset(value);
-                    changed();
-                }).fineStep(1).onDoubleClick(() -> {
-                    AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
-                    changed();
-                })));
-        entries.add(new Entry("Y exact", itemAnimationYField));
-        entries.add(new Entry("Z offset (1/100)", new AppleSlider(ItemAnimation.MIN_OFFSET,
-                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationZ, value -> {
-                    AppleSettings.itemAnimationZ = ItemAnimation.clampOffset(value);
-                    changed();
-                }).fineStep(1).onDoubleClick(() -> {
-                    AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
-                    changed();
-                })));
-        entries.add(new Entry("Z exact", itemAnimationZField));
-        entries.add(new Entry("Size", new AppleSlider(ItemAnimation.MIN_SIZE_PERCENT,
-                ItemAnimation.MAX_SIZE_PERCENT, 5, "%", CONTROL_W, AppleSettings::effectiveItemAnimationSize,
-                value -> {
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("scale"), new AppleSlider(
+                ItemAnimation.MIN_SIZE_PERCENT, ItemAnimation.MAX_SIZE_PERCENT, 5, "%", CONTROL_W,
+                AppleSettings::effectiveItemAnimationSize, value -> {
                     AppleSettings.itemAnimationSizeOn = true;
                     AppleSettings.itemAnimationSize = ItemAnimation.clampSize(value);
                     changed();
@@ -398,10 +383,54 @@ public final class HudEditorScreen extends AppleScreen {
                     AppleSettings.itemAnimationSize = ItemAnimation.DEFAULT_SIZE_PERCENT;
                     changed();
                 })));
-        entries.add(new Entry("Size exact", itemAnimationSizeField));
-        entries.add(new Entry("Animation Speed", new AppleSlider(ItemAnimation.MIN_SPEED_PERCENT,
-                ItemAnimation.MAX_SPEED_PERCENT, 5, "%", CONTROL_W, AppleSettings::effectiveItemAnimationSpeed,
-                value -> {
+        entries.add(new Entry("Scale exact", itemAnimationSizeField));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("x"), new AppleSlider(ItemAnimation.MIN_OFFSET,
+                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationX, value -> {
+                    AppleSettings.itemAnimationX = ItemAnimation.clampOffset(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
+                    changed();
+                })));
+        entries.add(new Entry("X exact", itemAnimationXField));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("y"), new AppleSlider(ItemAnimation.MIN_OFFSET,
+                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationY, value -> {
+                    AppleSettings.itemAnimationY = ItemAnimation.clampOffset(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
+                    changed();
+                })));
+        entries.add(new Entry("Y exact", itemAnimationYField));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("z"), new AppleSlider(ItemAnimation.MIN_OFFSET,
+                ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W, () -> AppleSettings.itemAnimationZ, value -> {
+                    AppleSettings.itemAnimationZ = ItemAnimation.clampOffset(value);
+                    changed();
+                }).fineStep(1).onDoubleClick(() -> {
+                    AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
+                    changed();
+                })));
+        entries.add(new Entry("Z exact", itemAnimationZField));
+
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("remove-haste"), new AppleToggle(
+                ItemAnimation::isHasteEffectRemoved, value -> {
+                    AppleSettings.itemAnimationRemoveHasteEffect = value;
+                    changed();
+                })));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("auto-fix-hit-slash"), new AppleToggle(
+                ItemAnimation::isAutoFixHitSlash, value -> {
+                    AppleSettings.itemAnimationAutoFixHitSlash = value;
+                    changed();
+                })));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("hit-slash-style"), new AppleDropdown(
+                AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES, null, CONTROL_W, CONTROL_H,
+                () -> AppleSettings.itemAnimationHitSlashStyle, value -> {
+                    AppleSettings.itemAnimationHitSlashStyle = ItemAnimation.clampHitSlashStyle(value);
+                    changed();
+                })));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("hit-slash-speed"), new AppleSlider(
+                ItemAnimation.MIN_SPEED_PERCENT, ItemAnimation.MAX_SPEED_PERCENT, 5, "%", CONTROL_W,
+                AppleSettings::effectiveItemAnimationSpeed, value -> {
                     AppleSettings.itemAnimationSpeedOn = true;
                     AppleSettings.itemAnimationSpeed = ItemAnimation.clampSpeed(value);
                     changed();
@@ -410,13 +439,16 @@ public final class HudEditorScreen extends AppleScreen {
                     AppleSettings.itemAnimationSpeed = ItemAnimation.DEFAULT_SPEED_PERCENT;
                     changed();
                 })));
-        entries.add(new Entry("Speed exact", itemAnimationSpeedField));
-        entries.add(new Entry(null, new AppleButton("Reset Item Animation", CONTROL_W, CONTROL_H, false, () -> {
-            ItemAnimation.resetToDefaults();
-            clearItemAnimationExactFields();
-            changed();
-            AppleSettings.save();
-        })));
+        entries.add(new Entry("Hit/Slash speed exact", itemAnimationSpeedField));
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("preview-swing"), new AppleButton("Preview", CONTROL_W,
+                CONTROL_H, true, ItemAnimation::previewSwing)));
+        entries.add(new Entry(null, new AppleButton(ItemAnimationUiModel.panelControlLabel("reset-defaults"), CONTROL_W,
+                CONTROL_H, false, () -> {
+                    ItemAnimation.resetToDefaults();
+                    clearItemAnimationExactFields();
+                    changed();
+                    AppleSettings.save();
+                })));
     }
 
     private SearchField itemAnimationField(ItemAnimationValue value) {

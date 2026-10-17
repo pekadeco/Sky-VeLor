@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7.8v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7.9v]
 """
 
 import argparse
@@ -49,6 +49,7 @@ REQUIRED_CLASSES = [
     'gui/AppleHubScreen',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
+    'gui/ItemAnimationUiModel',
     'dungeon/TerminalSolver',
     'dungeon/DungeonMapOverlay',
     'dungeon/PuzzleRoomDatabase',
@@ -191,7 +192,7 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7.8v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7.9v')
     args = ap.parse_args()
 
     path = args.jar
@@ -261,6 +262,9 @@ def main():
             'manifest registers the Item Animation loading plugin')
     r.check('FMLCorePluginContainsFMLMod: true' in manifest,
             'manifest declares the regular Forge mod alongside the coremod')
+    if args.version:
+        r.check('Implementation-Version: %s' % args.version in manifest,
+                'manifest build metadata version matches the release', args.version)
 
     # Resources: keybind labels would fall back to raw translation keys without these.
     r.check('assets/pekaclient/lang/en_US.lang' in names,
@@ -304,6 +308,28 @@ def main():
     def constants_of(cls):
         got = parsed_class(cls)
         return got[2] if got else set()
+
+    def raw_of(cls):
+        path = MOD_PACKAGE + cls + '.class'
+        return zf.read(path) if path in names else b''
+
+    # --- Item Animation GUI reachability proof -----------------------------
+    # A standalone Item Animation class is not enough: both real GUI entry points must have bytecode references
+    # to the Minecraft-free reachability model and the model must carry every required panel control.
+    ui_constants = constants_of('gui/ItemAnimationUiModel')
+    r.check(all(value in ui_constants for value in
+                ('Item Animation', 'Open Item Animation Settings', 'Scale', 'X offset (1/100)',
+                 'Y offset (1/100)', 'Z offset (1/100)', 'Remove Haste Effect', 'Auto Fix Hit/Slash',
+                 'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Preview Swing', 'Reset to Defaults')),
+            'ItemAnimationUiModel packages the required HUD/editor labels and controls')
+    model_ref = b'com/arena/pekaclient/gui/ItemAnimationUiModel'
+    hub_members = members_of('gui/AppleHubScreen')
+    r.check(model_ref in raw_of('gui/AppleHubScreen') and 'buildHudTabModel' in hub_members,
+            'AppleHubScreen bytecode directly builds the Item Animation HUD-tab section, toggle, and launcher')
+    editor_members = members_of('gui/HudEditorScreen')
+    r.check(model_ref in raw_of('gui/HudEditorScreen')
+                and all(name in editor_members for name in ('buildHudEditorTargetList', 'panelControlLabel')),
+            'HudEditorScreen bytecode directly builds the Item Animation target and registered panel controls')
 
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at

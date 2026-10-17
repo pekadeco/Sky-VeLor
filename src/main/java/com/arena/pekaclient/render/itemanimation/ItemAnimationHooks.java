@@ -32,11 +32,15 @@ public final class ItemAnimationHooks {
     private static float cachedZ;
     private static float cachedSize = 1.0F;
     private static float cachedSpeed = 1.0F;
+    private static boolean cachedRemoveHasteEffect;
+    private static boolean cachedAutoFixHitSlash;
+    private static int cachedHitSlashStyle;
 
     private static boolean sawVanillaSwing;
     private static boolean visualSwingActive;
     private static boolean visualSwingComplete;
     private static int visualSwingStartTick;
+    private static float lastRawSwingProgress;
     private static volatile float lastSwingProgress;
 
     private static volatile boolean renderHookReached;
@@ -107,17 +111,31 @@ public final class ItemAnimationHooks {
     }
 
     /**
-     * Replaces only the local swing value used by ItemRenderer's hand math. A new visual timeline starts when
-     * vanilla starts swinging and advances from game ticks plus partial ticks at {@code speed}; it never writes
-     * EntityLivingBase swing fields. Speed 1.0 returns vanilla's original float byte-for-byte.
+     * Replaces only the local swing value used by ItemRenderer. A new visual timeline starts when vanilla starts
+     * swinging and advances from game ticks plus partial ticks at {@code speed}; it never writes EntityLivingBase
+     * swing fields. The optional Haste removal is likewise a fixed renderer timeline, not a potion mutation.
      */
     public static float visualSwingProgress(float vanillaProgress, float partialTicks) {
         refreshSettings();
-        if (!cachedEnabled || cachedSpeed == 1.0F || Float.isNaN(cachedSpeed)
-                || Float.isInfinite(cachedSpeed)) {
-            sawVanillaSwing = false;
-            visualSwingActive = false;
-            visualSwingComplete = false;
+        if (!cachedEnabled) {
+            clearVisualSwing();
+            lastRawSwingProgress = vanillaProgress;
+            lastSwingProgress = vanillaProgress;
+            return vanillaProgress;
+        }
+
+        float preview = previewSwingProgress();
+        if (preview >= 0.0F) {
+            float styledPreview = applyHitSlashStyle(preview);
+            lastRawSwingProgress = preview;
+            lastSwingProgress = styledPreview;
+            return styledPreview;
+        }
+
+        boolean customVisual = cachedRemoveHasteEffect || cachedSpeed != 1.0F || cachedHitSlashStyle != 0;
+        if (!customVisual || Float.isNaN(cachedSpeed) || Float.isInfinite(cachedSpeed)) {
+            clearVisualSwing();
+            lastRawSwingProgress = vanillaProgress;
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
@@ -125,9 +143,8 @@ public final class ItemAnimationHooks {
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayerSP player = mc == null ? null : mc.thePlayer;
         if (player == null) {
-            sawVanillaSwing = false;
-            visualSwingActive = false;
-            visualSwingComplete = false;
+            clearVisualSwing();
+            lastRawSwingProgress = vanillaProgress;
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
@@ -137,19 +154,24 @@ public final class ItemAnimationHooks {
             visualSwingStartTick = player.ticksExisted;
             visualSwingActive = true;
             visualSwingComplete = false;
+            lastRawSwingProgress = 0.0F;
+            lastSwingProgress = 0.0F;
         }
         sawVanillaSwing = vanillaSwinging;
 
         if (visualSwingComplete) {
             if (vanillaSwinging) {
+                lastRawSwingProgress = 1.0F;
                 lastSwingProgress = 1.0F;
                 return 1.0F;
             }
             visualSwingComplete = false;
+            lastRawSwingProgress = vanillaProgress;
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
         if (!visualSwingActive) {
+            lastRawSwingProgress = vanillaProgress;
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
@@ -159,15 +181,55 @@ public final class ItemAnimationHooks {
         if (visual >= 1.0F) {
             visualSwingActive = false;
             visualSwingComplete = true;
+            lastRawSwingProgress = 1.0F;
             lastSwingProgress = 1.0F;
             return 1.0F;
         }
         if (visual <= 0.0F) {
+            lastRawSwingProgress = 0.0F;
             lastSwingProgress = 0.0F;
             return 0.0F;
         }
-        lastSwingProgress = visual;
-        return visual;
+        if (cachedAutoFixHitSlash && vanillaSwinging && visual < lastRawSwingProgress) {
+            // Fix only the local float consumed by ItemRenderer; player swing timing and Haste stay untouched.
+            visual = lastRawSwingProgress;
+        }
+        float styled = applyHitSlashStyle(visual);
+        lastRawSwingProgress = visual;
+        lastSwingProgress = styled;
+        return styled;
+    }
+
+    /** Renderer-only preview progression. It has no input, packet, player-state, or potion side effect. */
+    private static float previewSwingProgress() {
+        long started = ItemAnimation.getPreviewSwingStartedNanos();
+        if (started < 0L) {
+            return -1.0F;
+        }
+        float elapsedTicks = (System.nanoTime() - started) / 50000000.0F;
+        float visual = elapsedTicks * cachedSpeed / VANILLA_SWING_TICKS;
+        if (visual >= 1.0F) {
+            ItemAnimation.clearPreviewSwing();
+            return 1.0F;
+        }
+        return Math.max(0.0F, visual);
+    }
+
+    /** Applies a first-person-only shape to the local ItemRenderer swing value. */
+    private static float applyHitSlashStyle(float progress) {
+        if (cachedHitSlashStyle == 1) {
+            return Math.min(1.0F, progress * 1.12F);
+        }
+        if (cachedHitSlashStyle == 2) {
+            return (float) Math.sin(progress * Math.PI * 0.5D);
+        }
+        return progress;
+    }
+
+    private static void clearVisualSwing() {
+        sawVanillaSwing = false;
+        visualSwingActive = false;
+        visualSwingComplete = false;
     }
 
     /**
@@ -198,6 +260,9 @@ public final class ItemAnimationHooks {
         cachedZ = cachedEnabled ? ItemAnimation.getConfiguredZ() : 0.0F;
         cachedSize = cachedEnabled ? ItemAnimation.getConfiguredSize() : 1.0F;
         cachedSpeed = cachedEnabled ? ItemAnimation.getConfiguredSpeed() : 1.0F;
+        cachedRemoveHasteEffect = cachedEnabled && ItemAnimation.isHasteEffectRemoved();
+        cachedAutoFixHitSlash = cachedEnabled && ItemAnimation.isAutoFixHitSlash();
+        cachedHitSlashStyle = cachedEnabled ? ItemAnimation.getHitSlashStyle() : 0;
     }
 
     private static boolean isMap(ItemStack held) {
