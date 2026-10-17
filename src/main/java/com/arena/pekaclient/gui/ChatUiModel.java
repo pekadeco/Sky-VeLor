@@ -4,19 +4,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Minecraft-free ownership model for the optional chat features in the QoL tab. */
+/** Minecraft-free ownership contract for the one compact Chat QoL group in the QoL hub. */
 public final class ChatUiModel {
+
+    public static final int MASTER = 0;
+    public static final int TOGGLE = 1;
+    public static final int EDITOR = 2;
 
     /** One QoL-row contract shared by AppleHubScreen and headless tests. */
     public static final class Entry {
         private final String id;
         private final String label;
-        private final boolean masterToggle;
+        private final int kind;
 
-        private Entry(String id, String label, boolean masterToggle) {
+        private Entry(String id, String label, int kind) {
             this.id = id;
             this.label = label;
-            this.masterToggle = masterToggle;
+            this.kind = kind;
         }
 
         public String getId() {
@@ -28,28 +32,38 @@ public final class ChatUiModel {
         }
 
         public boolean isMasterToggle() {
-            return masterToggle;
+            return kind == MASTER;
+        }
+
+        public boolean isToggle() {
+            return kind == MASTER || kind == TOGGLE;
+        }
+
+        public boolean isEditorRoute() {
+            return kind == EDITOR;
         }
     }
 
     private ChatUiModel() {
     }
 
-    /** Chat options are QoL-only; neither feature is a movable HUD element or duplicates HUD-editor settings. */
+    /** Exactly the controls allowed in the Hub. Every visual/custom classification setting belongs only to editor. */
     public static List<Entry> buildQolModel() {
         List<Entry> entries = new ArrayList<Entry>();
-        // The Hub deliberately exposes only feature on/off toggles. Legacy animation tuning keys remain
-        // persistence-compatible, but customization is not duplicated into a normal GUI tab.
-        entries.add(new Entry("chat-tabs", "Chat channel tabs", true));
-        entries.add(new Entry("chat-animation-bridge", "Use Chatting animation bridge", true));
+        entries.add(new Entry("chat-qol-master", "Chat QoL", MASTER));
+        entries.add(new Entry("chat-tabs", "Chat Tabs", TOGGLE));
+        entries.add(new Entry("separate-chats", "Separate Chats", TOGGLE));
+        entries.add(new Entry("smooth-messages", "Smooth Messages", TOGGLE));
+        entries.add(new Entry("hover-highlight", "Hover Highlight", TOGGLE));
+        entries.add(new Entry("right-click-menu", "Right Click Menu", TOGGLE));
+        entries.add(new Entry("custom-font", "Custom Font", TOGGLE));
+        entries.add(new Entry("open-chat-editor", "Open Chat Editor", EDITOR));
         return Collections.unmodifiableList(entries);
     }
 
     public static String label(String id) {
         for (Entry entry : buildQolModel()) {
-            if (entry.getId().equals(id)) {
-                return entry.getLabel();
-            }
+            if (entry.getId().equals(id)) return entry.getLabel();
         }
         throw new IllegalArgumentException("Unknown chat UI control: " + id);
     }

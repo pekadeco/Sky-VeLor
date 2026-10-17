@@ -1,6 +1,7 @@
 package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.gui.AppleHubScreen;
+import com.arena.pekaclient.gui.ChatEditorScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.notes.QuickNoteScreen;
 import com.arena.pekaclient.notes.QuickNotes;
@@ -16,6 +17,7 @@ public final class ClientActions {
     private static boolean hubPending;
     private static boolean notesPending;
     private static boolean itemAnimationPending;
+    private static boolean chatEditorPending;
 
     private ClientActions() {
     }
@@ -33,6 +35,11 @@ public final class ClientActions {
         itemAnimationPending = true;
     }
 
+    /** Opens the native Chat Editor after GuiChat has closed. */
+    public static void requestChatEditor() {
+        chatEditorPending = true;
+    }
+
     /** Called once per client tick, after the chat screen has closed. */
     public static void run(Minecraft mc) {
         if (mc == null) {
@@ -41,7 +48,12 @@ public final class ClientActions {
         if (itemAnimationPending) {
             itemAnimationPending = false;
             hubPending = false;
+            chatEditorPending = false;
             mc.displayGuiScreen(HudEditorScreen.openItemAnimation(null));
+        } else if (chatEditorPending) {
+            chatEditorPending = false;
+            hubPending = false;
+            mc.displayGuiScreen(new ChatEditorScreen(null));
         } else if (hubPending) {
             hubPending = false;
             mc.displayGuiScreen(new AppleHubScreen(null));

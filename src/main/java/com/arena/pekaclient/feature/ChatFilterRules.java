@@ -1,51 +1,86 @@
 package com.arena.pekaclient.feature;
 
 import java.util.Locale;
+import java.util.regex.Pattern;
 
-/** Pure Hypixel-style channel classification used by Sky VeLor's optional chat tabs. */
+/**
+ * Small, defensive classifier for Chat QoL.
+ *
+ * The three tab values are intentionally the only selectable channels: All always keeps unknown lines visible,
+ * Party is limited to party traffic, and Reply groups direct messages. Window routing has two additional internal
+ * values: PLAYER belongs to Chat 1 and SYSTEM/unknown belongs to Chat 2.
+ */
 public final class ChatFilterRules {
 
     public static final int ALL = 0;
     public static final int PARTY = 1;
-    public static final int GUILD = 2;
-    public static final int PRIVATE = 3;
-    public static final int COOP = 4;
+    public static final int REPLY = 2;
+    public static final int PLAYER = 3;
+    public static final int SYSTEM = 4;
+
+    private static final Pattern PLAYER_LINE = Pattern.compile(
+            "^(?:\\[[^\\]]{1,32}\\]\\s*)?[A-Za-z0-9_]{1,16}:\\s+.+$", Pattern.CASE_INSENSITIVE);
 
     private ChatFilterRules() {
     }
 
+    /** All is fail-open. A non-All view contains only its exact known channel. */
     public static boolean visible(int tab, String formattedText) {
         return tab == ALL || channel(formattedText) == tab;
     }
 
-    /**
-     * Classifies the normal Hypixel prefixes while tolerating Minecraft formatting and suffixes inserted by chat
-     * helper mods. A message is never hidden from the All tab.
-     */
+    /** Returns only a selectable tab channel; normal player and system lines safely become All. */
     public static int channel(String formattedText) {
-        String text = stripFormatting(formattedText).trim().toLowerCase(Locale.ROOT);
+        int kind = classify(formattedText, null);
+        return kind == PARTY || kind == REPLY ? kind : ALL;
+    }
+
+    /** Classifies an incoming line once for tab filtering, window routing, unread markers and debug output. */
+    public static int classify(String formattedText, ChatPatternRules patterns) {
+        String clean = stripFormatting(formattedText).trim();
+        String text = clean.toLowerCase(Locale.ROOT);
         if (starts(text, "party >", "p >", "[party]", "[p]")) {
             return PARTY;
         }
-        if (starts(text, "guild >", "g >", "[guild]", "[g]")) {
-            return GUILD;
-        }
         if (starts(text, "to ", "from ", "[pm]", "[private]")) {
-            return PRIVATE;
+            return REPLY;
         }
-        if (starts(text, "co-op >", "coop >", "cc >", "[co-op]", "[coop]", "[cc]")) {
-            return COOP;
+        if (isPartyNotice(text)) {
+            return PARTY;
         }
 
-        // Party lifecycle notices belong in the Party tab as well as direct party conversation.
-        if (text.contains("joined the party") || text.contains("left the party")
+        // User patterns are evaluated only after unambiguous Party/Reply prefixes. They make normal player/server
+        // classification editable without allowing a broad expression to accidentally swallow direct messages.
+        int override = patterns == null ? ChatPatternRules.NO_MATCH : patterns.classify(clean);
+        if (override != ChatPatternRules.NO_MATCH) {
+            return override;
+        }
+        return PLAYER_LINE.matcher(clean).matches() ? PLAYER : SYSTEM;
+    }
+
+    public static boolean belongsToChatOne(int kind) {
+        return kind == PARTY || kind == REPLY || kind == PLAYER;
+    }
+
+    public static String displayName(int kind) {
+        switch (kind) {
+            case PARTY:
+                return "Party";
+            case REPLY:
+                return "Reply";
+            case PLAYER:
+                return "Player";
+            default:
+                return "System";
+        }
+    }
+
+    private static boolean isPartyNotice(String text) {
+        return text.contains("joined the party") || text.contains("left the party")
                 || text.contains("removed from the party") || text.contains("disbanded the party")
                 || text.contains("party was disbanded") || text.contains("party was transferred")
                 || text.contains("invited you to join their party") || text.contains("to the party!")
-                || (text.startsWith("kicked ") && text.contains("because they were offline"))) {
-            return PARTY;
-        }
-        return ALL;
+                || (text.startsWith("kicked ") && text.contains("because they were offline"));
     }
 
     private static boolean starts(String text, String... prefixes) {
@@ -57,8 +92,9 @@ public final class ChatFilterRules {
         return false;
     }
 
-    static String stripFormatting(String text) {
-        if (text == null || text.isEmpty()) {
+    /** Removes legacy Minecraft formatting pairs while preserving line breaks for copy-to-clipboard. */
+    public static String stripFormatting(String text) {
+        if (text == null || text.length() == 0) {
             return "";
         }
         StringBuilder clean = new StringBuilder(text.length());

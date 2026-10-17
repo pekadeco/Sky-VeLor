@@ -1,5 +1,6 @@
 package com.arena.pekaclient.command;
 
+import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.ItemAnimation;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHooks;
@@ -26,7 +27,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/velor itemanimation|ia|itemdebug";
+        return "/velor itemanimation|ia|itemdebug|chateditor|chatdebug";
     }
 
     @Override
@@ -42,8 +43,16 @@ public final class ItemDebugCommand extends CommandBase {
             ClientActions.requestItemAnimation();
             return;
         }
+        if (args.length == 1 && "chateditor".equalsIgnoreCase(args[0])) {
+            ClientActions.requestChatEditor();
+            return;
+        }
+        if (args.length == 1 && "chatdebug".equalsIgnoreCase(args[0])) {
+            ChatChannelTabs.writeDebug(sender);
+            return;
+        }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /velor itemanimation (or /velor ia), or /velor itemdebug");
+            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor chateditor, or /velor chatdebug");
             return;
         }
 

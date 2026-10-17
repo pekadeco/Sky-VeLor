@@ -1,5 +1,15 @@
 # Changelog
 
+## Beta-0.10.8.3v — 2026-10-17
+
+- Replaced the previous separate chat pages with one compact **QoL → Chat QoL** dropdown: a safe master switch, **Chat Tabs**, **Separate Chats**, **Smooth Messages**, **Hover Highlight**, **Right Click Menu**, **Custom Font**, and **Open Chat Editor**. All customization now belongs only to the editor.
+- Added a native Apple-style **Chat Editor** (also `/velor chateditor` and an unbound keybind) with clipped, non-overlapping **Windows**, **Background**, **Messages**, **Font**, **Tabs**, and **Hover / menu** sections, per-section resets, per-GUI-scale draggable/resizable snapped windows, editable names/limits/fade, pattern testing, font fallback, and tab visibility/order controls.
+- Reworked chat tabs to attached **All / Party / Reply** controls with unread markers, safe All fallback, typed-text-preserving switches, Ctrl+Tab plus a configurable cycle key, and `/reply` routing for Reply. Removed unsupported channel controls.
+- Added optional native split windows: Chat 1 receives player/party/reply traffic; Chat 2 receives system and unknown lines. Classification has bounded editable rules, debug evidence through `/velor chatdebug`, and unknown traffic fails safely to Chat 2 and All.
+- Added native separate-window hover highlighting and a safe right-click text menu for clean copy, copy-to-input, and optional formatted copy. Link/click/hover component actions are never replayed by the menu.
+- Retired the old external Chatting animation configuration path. Legacy chat settings migrate to `chat.qol.*`; optional external-runtime detection remains silent and fail-closed, while existing packaged attribution notices remain intact.
+- Added headless tests for Chat QoL ownership, migration/clamps, classification/routing, copy text, font fallback, attached-tab non-overlay geometry, editor layout, and per-scale window bounds.
+
 ## Beta-0.10.8.2v — 2026-10-17
 
 - Improved **Sea Creature HP** resilience for compatible Fakepixel-style nameplates: health-bearing display text now wins over a name-only tag, the scoreboard-composed entity name is considered, and the last valid rows persist for a bounded 1.5 seconds during entity replacement.

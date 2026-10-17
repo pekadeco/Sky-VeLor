@@ -32,6 +32,7 @@ call :run com.arena.pekaclient.feature.LeapIdentityTests || goto fail
 call :run com.arena.pekaclient.feature.LeapClassCacheTests || goto fail
 call :run com.arena.pekaclient.config.ConfigFilesTests || goto fail
 call :run com.arena.pekaclient.config.AppleSettingsTests || goto fail
+call :run com.arena.pekaclient.config.ChatQolSettingsTests || goto fail
 call :run com.arena.pekaclient.render.ThemeTests || goto fail
 call :run com.arena.pekaclient.hud.DollConfigTests || goto fail
 call :run com.arena.pekaclient.feature.LeapClassTests || goto fail
@@ -40,6 +41,7 @@ call :run com.arena.pekaclient.feature.DungeonContextTests || goto fail
 call :run com.arena.pekaclient.feature.ItemAnimationTests || goto fail
 call :run com.arena.pekaclient.feature.VisualSwingStateMachineTests || goto fail
 call :run com.arena.pekaclient.feature.ChatFilterRulesTests || goto fail
+call :run com.arena.pekaclient.gui.ChatQolLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.ItemAnimationReachabilityTests || goto fail
 call :run com.arena.pekaclient.feature.MobMarkersTests || goto fail
 call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail

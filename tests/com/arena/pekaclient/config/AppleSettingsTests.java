@@ -82,29 +82,22 @@ public final class AppleSettingsTests {
     }
 
     private static void chatSettingsCompatibility() {
-        AppleSettings.chatTabsEnabled = true;
-        AppleSettings.chatAnimationBridgeEnabled = true;
         AppleSettings.loadChatSettings(new Properties());
-        check("new installs keep chat tabs opt-in", !AppleSettings.chatTabsEnabled);
-        check("new installs keep external chat bridge opt-in", !AppleSettings.chatAnimationBridgeEnabled);
+        check("new installs keep Chat QoL master opt-in", !ChatQolSettings.enabled);
 
         Properties oldFriendChat = new Properties();
-        oldFriendChat.setProperty("chat.filterMode", "2");
-        oldFriendChat.setProperty("chat.animation.messages", "false");
-        oldFriendChat.setProperty("chat.animation.messageSpeed", "85");
-        oldFriendChat.setProperty("chat.animation.backgroundDuration", "700");
+        oldFriendChat.setProperty("chat.tabMode", "3");
+        oldFriendChat.setProperty("chat.animation.messages", "true");
         AppleSettings.loadChatSettings(oldFriendChat);
-        check("legacy friend chat-tab selection migrates Co-op index", AppleSettings.chatTabsEnabled
-                && AppleSettings.chatFilterMode == 4);
-        check("legacy friend animation profile remains enabled", AppleSettings.chatAnimationBridgeEnabled
-                && !AppleSettings.chatMessageAnimation && AppleSettings.chatMessageSpeed == 85
-                && AppleSettings.chatBackgroundDuration == 700);
+        check("legacy friend direct-message tab migrates to Reply", ChatQolSettings.enabled
+                && ChatQolSettings.selectedTab == ChatQolSettings.TAB_REPLY);
+        check("legacy animation profile becomes native smooth setting", ChatQolSettings.smoothMessages);
 
         Properties migratedChat = new Properties();
         AppleSettings.saveChatSettings(migratedChat);
-        check("chat migration writes stable master keys", "true".equals(migratedChat.getProperty("chat.tabs.enabled"))
-                && "true".equals(migratedChat.getProperty("chat.animation.enabled"))
-                && "4".equals(migratedChat.getProperty("chat.tabMode")));
+        check("chat migration writes native stable master keys", "true".equals(migratedChat.getProperty("chat.qol.enabled"))
+                && "2".equals(migratedChat.getProperty("chat.qol.tabs.selected"))
+                && !migratedChat.containsKey("chat.animation.enabled"));
     }
 
     private static void check(String name, boolean ok) {

@@ -2,8 +2,8 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.feature.ChatChannelTabs;
-import com.arena.pekaclient.feature.ChattingAnimationBridge;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
@@ -232,23 +232,40 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
         rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
 
-        rows.add(Row.header("Chat channels"));
+        // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/classification
+        // setting lives in Chat Editor, preventing duplicate controls across normal GUI pages.
+        rows.add(Row.header("Chat QoL"));
+        rows.add(Row.item(ChatUiModel.label("chat-qol-master"),
+                "Master switch. Off keeps Minecraft chat exactly unchanged",
+                new AppleToggle(() -> ChatQolSettings.enabled, value -> {
+                    ChatQolSettings.enabled = value;
+                    if (!value) ChatChannelTabs.disableAndRestoreAll();
+                })));
         rows.add(Row.item(ChatUiModel.label("chat-tabs"),
-                "Adds All, Party, Guild, PM and Co-op tabs above chat. Off by default; normal chat is untouched",
-                new AppleToggle(() -> AppleSettings.chatTabsEnabled, value -> {
-                    AppleSettings.chatTabsEnabled = value;
-                    if (!value) {
-                        ChatChannelTabs.disableAndRestoreAll();
-                    }
+                "Attached All, Party and Reply views with safe All fallback",
+                new AppleToggle(() -> ChatQolSettings.tabsEnabled, value -> {
+                    ChatQolSettings.tabsEnabled = value;
+                    if (!value) ChatChannelTabs.disableAndRestoreAll();
                 })));
-
-        rows.add(Row.header("Chat animations"));
-        rows.add(Row.item(ChatUiModel.label("chat-animation-bridge"),
-                "Optional bridge for a separately installed compatible Chatting runtime. No runtime is bundled",
-                new AppleToggle(() -> AppleSettings.chatAnimationBridgeEnabled, value -> {
-                    AppleSettings.chatAnimationBridgeEnabled = value;
-                    ChattingAnimationBridge.apply();
-                })));
+        rows.add(Row.item(ChatUiModel.label("separate-chats"),
+                "Chat 1 for player messages and Chat 2 for system messages",
+                new AppleToggle(() -> ChatQolSettings.separateChats, value -> ChatQolSettings.separateChats = value)));
+        rows.add(Row.item(ChatUiModel.label("smooth-messages"),
+                "Use a small native arrival transition in separate chat windows",
+                new AppleToggle(() -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
+        rows.add(Row.item(ChatUiModel.label("hover-highlight"),
+                "Highlight a native chat line only while chat is open",
+                new AppleToggle(() -> ChatQolSettings.hoverHighlight, value -> ChatQolSettings.hoverHighlight = value)));
+        rows.add(Row.item(ChatUiModel.label("right-click-menu"),
+                "Safe text-only copy menu for native chat lines",
+                new AppleToggle(() -> ChatQolSettings.rightClickMenu, value -> ChatQolSettings.rightClickMenu = value)));
+        rows.add(Row.item(ChatUiModel.label("custom-font"),
+                "Use the selected safe Minecraft font spacing in native windows",
+                new AppleToggle(() -> ChatQolSettings.customFont, value -> ChatQolSettings.customFont = value)));
+        rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
+                "Windows, background, messages, font, tabs, hover and copy options",
+                new AppleButton("Open", 84f, 26f, true,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
         rows.add(Row.header("Scrolling"));
         rows.add(Row.item("Scroll speed", "On: use the slider. Off: 100%",
                 new AppleToggle(() -> AppleSettings.scrollSpeedOn, v -> AppleSettings.scrollSpeedOn = v)));

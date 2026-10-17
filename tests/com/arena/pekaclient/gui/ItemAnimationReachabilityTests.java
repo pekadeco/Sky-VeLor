@@ -96,11 +96,15 @@ public final class ItemAnimationReachabilityTests {
                 && !contains(fishing.getTabControls(), "common-creature"));
 
         List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
-        check("chat tabs appear in the QoL model", chatEntry(chat, "chat-tabs", true));
-        check("chat animation bridge appears in the QoL model", chatEntry(chat, "chat-animation-bridge", true));
-        check("chat GUI keeps only feature on/off toggles", chat.size() == 2
-                && chatEntry(chat, "chat-tabs", true)
-                && chatEntry(chat, "chat-animation-bridge", true));
+        check("Chat QoL master appears in the QoL model", chatEntry(chat, "chat-qol-master", true));
+        check("Chat QoL exposes requested Chat Tabs toggle", chatEntry(chat, "chat-tabs", false));
+        check("Chat QoL exposes requested Separate Chats toggle", chatEntry(chat, "separate-chats", false));
+        check("Chat QoL exposes requested Smooth Messages toggle", chatEntry(chat, "smooth-messages", false));
+        check("Chat QoL exposes requested Hover Highlight toggle", chatEntry(chat, "hover-highlight", false));
+        check("Chat QoL exposes requested Right Click Menu toggle", chatEntry(chat, "right-click-menu", false));
+        check("Chat QoL exposes requested Custom Font toggle", chatEntry(chat, "custom-font", false));
+        check("Chat QoL exposes only requested switches and editor route", chat.size() == 8
+                && findChat(chat, "open-chat-editor") != null && findChat(chat, "open-chat-editor").isEditorRoute());
 
         List<FishingUiModel.Entry> fishingToggles = FishingUiModel.buildFeatureToggleModel();
         check("nearby encounter alert appears as one Fishing-tab feature toggle",
@@ -130,10 +134,17 @@ public final class ItemAnimationReachabilityTests {
     private static boolean chatEntry(List<ChatUiModel.Entry> entries, String id, boolean master) {
         for (ChatUiModel.Entry entry : entries) {
             if (id.equals(entry.getId())) {
-                return entry.isMasterToggle() == master;
+                return entry.isToggle() && entry.isMasterToggle() == master;
             }
         }
         return false;
+    }
+
+    private static ChatUiModel.Entry findChat(List<ChatUiModel.Entry> entries, String id) {
+        for (ChatUiModel.Entry entry : entries) {
+            if (id.equals(entry.getId())) return entry;
+        }
+        return null;
     }
 
     private static boolean contains(String[] entries, String value) {

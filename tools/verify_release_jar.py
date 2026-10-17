@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.2v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.3v]
 """
 
 import argparse
@@ -44,14 +44,23 @@ REQUIRED_CLASSES = [
     'PekaClientMod',
     'PekaVersion',
     'config/AppleSettings',
+    'config/ChatQolSettings',
     'feature/ItemAnimation',
     'feature/VisualSwingStateMachine',
     'feature/ChatFilterRules',
+    'feature/ChatPatternRules',
+    'feature/ChatQolHistory',
+    'feature/ChatQolRouting',
+    'feature/ChatTabLayout',
+    'feature/ChatWindowLayout',
+    'feature/ChatFontPolicy',
     'feature/ChatChannelTabs',
     'feature/ChattingAnimationBridge',
     'command/ItemDebugCommand',
     'gui/AppleHubScreen',
     'gui/ChatUiModel',
+    'gui/ChatEditorLayout',
+    'gui/ChatEditorScreen',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -200,7 +209,7 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.2v')
+    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.3v')
     args = ap.parse_args()
 
     path = args.jar
@@ -354,30 +363,42 @@ def main():
     r.check(b'Open Item Animation Settings' not in editor_raw,
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
-    # --- friend feature three-way merge proof -------------------------------
-    # The all-rarity fishing addition is editor-owned, and optional chat integration must remain an opt-in,
-    # dependency-free bridge instead of bundling or eagerly linking a foreign mod.
+    # --- Chat QoL ownership and native implementation proof -----------------
+    # The Hub exposes exactly the requested compact switch set and editor route. All deeper styling, positioning,
+    # classification and copy settings are editor-owned; the jar never bundles a foreign chat implementation.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     r.check(all(value in chat_ui_constants for value in
-                ('Chat channel tabs', 'Use Chatting animation bridge'))
-                and 'Smooth messages' not in chat_ui_constants
-                and 'Message animation speed' not in chat_ui_constants,
-            'ChatUiModel keeps the QoL tab to the required chat feature toggles only')
-    r.check(b'com/arena/pekaclient/gui/ChatUiModel' in hub_raw,
-            'AppleHubScreen uses the shared QoL chat ownership model')
+                ('Chat QoL', 'Chat Tabs', 'Separate Chats', 'Smooth Messages', 'Hover Highlight',
+                 'Right Click Menu', 'Custom Font', 'Open Chat Editor'))
+                and 'Chatting animation bridge' not in chat_ui_constants,
+            'ChatUiModel packages exactly the native Chat QoL hub controls')
+    chat_editor_raw = raw_of('gui/ChatEditorScreen')
+    chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
+    r.check(all(value in chat_editor_raw for value in
+                (b'Windows', b'Background', b'Messages', b'Font', b'Tabs', b'Hover / menu'))
+                and b'com/arena/pekaclient/gui/ChatEditorLayout' in chat_editor_raw
+                and len(chat_editor_layout_raw) > 0,
+            'ChatEditorScreen packages all compact editor sections through the shared non-overlap layout')
+    r.check(b'com/arena/pekaclient/gui/ChatUiModel' in hub_raw
+                and b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw,
+            'AppleHubScreen uses the Chat QoL ownership model and routes to Chat Editor')
     r.check(all(value not in hub_raw for value in
-                (b'Smooth messages', b'Message animation speed', b'Hide vanilla scroll bar')),
-            'AppleHubScreen keeps chat configuration to the required on/off toggles')
+                (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
+            'AppleHubScreen has no retired external animation or duplicate chat customization controls')
     client_raw = raw_of('PekaClientMod')
     r.check(b'com/arena/pekaclient/feature/ChatChannelTabs' in client_raw
-                and b'com/arena/pekaclient/feature/ChattingAnimationBridge' in client_raw,
-            'PekaClientMod registers optional chat tabs and initializes the safe animation bridge')
+                and b'key.pekaclient.chatTab' in client_raw and b'key.pekaclient.chatEditor' in client_raw,
+            'PekaClientMod registers native Chat QoL and its optional cycle/editor keybindings')
     chat_rules_constants = constants_of('feature/ChatFilterRules')
-    r.check(all(value in chat_rules_constants for value in ('party >', 'guild >', 'co-op >', 'cc >')),
-            'ChatFilterRules packages Party/Guild/PM/Co-op channel classification')
+    r.check(all(value in chat_rules_constants for value in ('party >', 'to ', 'from '))
+                and 'guild >' not in chat_rules_constants and 'co-op >' not in chat_rules_constants,
+            'ChatFilterRules packages only All/Party/Reply channels with safe player/system routing')
+    routing_constants = constants_of('feature/ChatQolRouting')
+    r.check('/reply ' in routing_constants and '/pc ' in routing_constants,
+            'ChatQolRouting packages Reply /reply and Party send prefixes')
     bridge_raw = raw_of('feature/ChattingAnimationBridge')
     r.check(b'Lorg/polyfrost/' not in bridge_raw,
-            'Chatting bridge has no eager external-mod class descriptor')
+            'legacy Chatting sentinel has no eager external-mod class descriptor')
     fishing_constants = constants_of('fishing/FishingStats')
     r.check(all(name in fishing_constants for name in ('commonCreatureCount', 'legendaryCreatureCount')),
             'FishingStats packages separate Common Creature and preserved Legendary/Mythic totals')
@@ -458,9 +479,9 @@ def main():
                 'default-on Item Animation master toggle is persisted')
         r.check(b'itemAnimationAutoFixHitSlash' not in settings_raw,
                 'AppleSettings retains no hidden Auto Fix setting state')
-        r.check(all(value in settings_constants for value in
-                    ('chat.tabs.enabled', 'chat.tabMode', 'chat.animation.enabled')),
-                'AppleSettings persists safe opt-in chat-tab and Chatting bridge configuration')
+        r.check('chat.qol.' in constants_of('config/ChatQolSettings')
+                    and b'ChatQolSettings' in settings_raw,
+                'AppleSettings delegates native chat.qol persistence and migration to the bounded Chat QoL settings model')
         r.check('fishing.nearbyEncounterAlert' in settings_constants,
                 'AppleSettings persists the safe-default nearby encounter title toggle')
     if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:

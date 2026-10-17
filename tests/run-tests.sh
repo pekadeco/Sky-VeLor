@@ -18,7 +18,7 @@ else
   : "${GSON_JAR:?set GSON_JAR to the gson jar, or set TEST_CP}"
   CP="$CLASSES:$MC_JAR:$LOG4J_JAR:$GSON_JAR"
 fi
-javac -nowarn -cp "$CP" -d "$OUT" $(find "$HERE/tests" -name '*.java')
+javac -nowarn -encoding UTF-8 -cp "$CP" -d "$OUT" $(find "$HERE/tests" -name '*.java')
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.PureLogicTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ConfigTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapTextTests
@@ -26,6 +26,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapIdentityTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassCacheTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.ConfigFilesTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.AppleSettingsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.config.ChatQolSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.ThemeTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.DollConfigTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassTests
@@ -34,6 +35,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.DungeonContextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ItemAnimationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.VisualSwingStateMachineTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatFilterRulesTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatQolLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ItemAnimationReachabilityTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.MobMarkersTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapLayoutTests

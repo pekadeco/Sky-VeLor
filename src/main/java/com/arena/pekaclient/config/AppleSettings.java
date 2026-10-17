@@ -161,21 +161,8 @@ public final class AppleSettings {
     public static final boolean DEFAULT_FISHING_NEARBY_ENCOUNTER_ALERT = false;
     public static boolean fishingNearbyEncounterAlert = DEFAULT_FISHING_NEARBY_ENCOUNTER_ALERT;
 
-    // Optional chat features. New installs are deliberately opt-in because chat-line reflection and an external
-    // animation runtime should never change a player's chat without an explicit choice.
-    public static final boolean DEFAULT_CHAT_TABS_ENABLED = false;
-    public static final boolean DEFAULT_CHAT_ANIMATION_BRIDGE_ENABLED = false;
-    public static boolean chatTabsEnabled = DEFAULT_CHAT_TABS_ENABLED;
-    /** 0 All, 1 Party, 2 Guild, 3 PM, 4 Co-op. */
-    public static int chatFilterMode;
-    public static boolean chatAnimationBridgeEnabled = DEFAULT_CHAT_ANIMATION_BRIDGE_ENABLED;
-    public static boolean chatMessageAnimation = true;
-    public static int chatMessageSpeed = 50;           // 0..100; higher is faster
-    public static boolean chatBackgroundAnimation = true;
-    public static int chatBackgroundDuration = 400;    // milliseconds
-    public static boolean chatScrollAnimation = true;
-    public static int chatScrollDuration = 150;        // milliseconds
-    public static boolean chatRemoveScrollBar = true;
+    // Chat QoL has its own compact, Minecraft-free settings model. It is loaded/saved through this established
+    // config file so old HUD positions and all other Sky VeLor settings remain untouched.
 
     /** Set while a legacy firstPerson* key was read; load immediately writes its Item Animation replacement. */
     private static boolean itemAnimationMigrationPending;
@@ -244,7 +231,7 @@ public final class AppleSettings {
         M7Settings.load(p);
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
         // atomic writer preserves a valid file even if the client is interrupted while migrating.
-        if (itemAnimationMigrationPending) {
+        if (itemAnimationMigrationPending || ChatQolSettings.isMigrationPending()) {
             save();
         }
     }
@@ -322,52 +309,16 @@ public final class AppleSettings {
     }
 
     /**
-     * Loads the optional chat profile. Legacy friend configurations with a selected channel or animation setting
-     * remain enabled, while a genuinely new install keeps both potentially intrusive integrations off.
+     * Delegates native Chat QoL loading and legacy migration to its Minecraft-free settings model. This preserves
+     * the existing public hook used by the compatibility suite while retiring the external animation bridge keys.
      */
     static void loadChatSettings(Properties settings) {
-        Properties p = settings == null ? new Properties() : settings;
-        boolean oldTabProfile = p.containsKey("chat.tabMode") || p.containsKey("chat.filterMode");
-        boolean oldAnimationProfile = p.containsKey("chat.animation.messages")
-                || p.containsKey("chat.animation.messageSpeed") || p.containsKey("chat.animation.background")
-                || p.containsKey("chat.animation.backgroundDuration") || p.containsKey("chat.animation.scrolling")
-                || p.containsKey("chat.animation.scrollDuration") || p.containsKey("chat.animation.removeScrollBar");
-        chatTabsEnabled = readBool(p, "chat.tabs.enabled", oldTabProfile || DEFAULT_CHAT_TABS_ENABLED);
-        if (p.containsKey("chat.tabMode")) {
-            chatFilterMode = readInt(p, "chat.tabMode", chatFilterMode, 0, 4);
-        } else {
-            // An earlier three-tab prototype used Co-op as index 2; preserve that choice as index 4.
-            int oldMode = readInt(p, "chat.filterMode", 0, 0, 2);
-            chatFilterMode = oldMode == 2 ? 4 : oldMode;
-        }
-        chatAnimationBridgeEnabled = readBool(p, "chat.animation.enabled",
-                oldAnimationProfile || DEFAULT_CHAT_ANIMATION_BRIDGE_ENABLED);
-        chatMessageAnimation = readBool(p, "chat.animation.messages", chatMessageAnimation);
-        chatMessageSpeed = readInt(p, "chat.animation.messageSpeed", chatMessageSpeed, 0, 100);
-        chatBackgroundAnimation = readBool(p, "chat.animation.background", chatBackgroundAnimation);
-        chatBackgroundDuration = readInt(p, "chat.animation.backgroundDuration", chatBackgroundDuration, 50, 1000);
-        chatScrollAnimation = readBool(p, "chat.animation.scrolling", chatScrollAnimation);
-        chatScrollDuration = readInt(p, "chat.animation.scrollDuration", chatScrollDuration, 0, 1000);
-        chatRemoveScrollBar = readBool(p, "chat.animation.removeScrollBar", chatRemoveScrollBar);
+        ChatQolSettings.load(settings);
     }
 
-    /** Writes only stable Sky VeLor chat keys; no external-mod configuration file is touched here. */
+    /** Writes only native chat.qol.* keys; a save intentionally drops retired animation-bridge keys. */
     static void saveChatSettings(Properties p) {
-        if (p == null) {
-            return;
-        }
-        p.setProperty("chat.tabs.enabled", Boolean.toString(chatTabsEnabled));
-        p.setProperty("chat.tabMode", Integer.toString(Math.max(0, Math.min(4, chatFilterMode))));
-        p.setProperty("chat.animation.enabled", Boolean.toString(chatAnimationBridgeEnabled));
-        p.setProperty("chat.animation.messages", Boolean.toString(chatMessageAnimation));
-        p.setProperty("chat.animation.messageSpeed", Integer.toString(Math.max(0, Math.min(100, chatMessageSpeed))));
-        p.setProperty("chat.animation.background", Boolean.toString(chatBackgroundAnimation));
-        p.setProperty("chat.animation.backgroundDuration", Integer.toString(Math.max(50,
-                Math.min(1000, chatBackgroundDuration))));
-        p.setProperty("chat.animation.scrolling", Boolean.toString(chatScrollAnimation));
-        p.setProperty("chat.animation.scrollDuration", Integer.toString(Math.max(0,
-                Math.min(1000, chatScrollDuration))));
-        p.setProperty("chat.animation.removeScrollBar", Boolean.toString(chatRemoveScrollBar));
+        ChatQolSettings.save(p);
     }
 
     public static void save() {

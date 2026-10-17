@@ -61,7 +61,7 @@ import org.lwjgl.input.Keyboard;
  *  - a loading screen that runs Sky VeLor's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,
  *  - all-rarity fishing counters, Festival best, Sea Creature HP and the Lord Jawbus alert,
- *  - optional client-side chat tabs and an opt-in bridge for an already-installed compatible animation runtime.
+ *  - an opt-in native Chat QoL layer with attached All/Party/Reply tabs, separate client-side windows and editor.
  * HUD/world features use standard Forge 1.8.9 events. Item Animation has one isolated Forge coremod hook around
  * Minecraft's real first-person hand renderer and equipped-progress update; it does not replace renderers, mutate
  * final fields, or change entity/world/gameplay rendering.
@@ -96,6 +96,14 @@ public class PekaClientMod {
     public static final KeyBinding LEAP_KEY =
             new KeyBinding("key.pekaclient.leap", Keyboard.KEY_NONE, "key.categories.pekaclient");
 
+    /** Optional configurable alternative to Ctrl+Tab for cycling visible native chat tabs. */
+    public static final KeyBinding CHAT_TAB_KEY =
+            new KeyBinding("key.pekaclient.chatTab", Keyboard.KEY_NONE, "key.categories.pekaclient");
+
+    /** Optional direct route to the Chat Editor; unbound on fresh installs. */
+    public static final KeyBinding CHAT_EDITOR_KEY =
+            new KeyBinding("key.pekaclient.chatEditor", Keyboard.KEY_NONE, "key.categories.pekaclient");
+
     private boolean loadingShown;
     /** The world identity already given the explicit Item Animation launcher/hook diagnosis. */
     private Object itemAnimationReportedWorld;
@@ -110,12 +118,14 @@ public class PekaClientMod {
     public void init(FMLInitializationEvent event) {
         // Settings are read here so the first screen has them. The loading screen runs the rest.
         AppleSettings.load();
-        // Safe default off: this is a no-op unless the player opted in and a compatible external Chatting runtime exists.
+        // Legacy optional-runtime detection is intentionally silent and no longer configures any external chat mod.
         ChattingAnimationBridge.apply();
         Theme.refresh();
         ClientRegistry.registerKeyBinding(OPEN_KEY);
         ClientRegistry.registerKeyBinding(ITEM_ANIMATION_KEY);
         ClientRegistry.registerKeyBinding(LEAP_KEY);
+        ClientRegistry.registerKeyBinding(CHAT_TAB_KEY);
+        ClientRegistry.registerKeyBinding(CHAT_EDITOR_KEY);
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
@@ -164,6 +174,16 @@ public class PekaClientMod {
         while (LEAP_KEY.isPressed()) {
             if (mc.currentScreen == null && AppleSettings.leapKey) {
                 useSpiritLeap(mc);
+            }
+        }
+        while (CHAT_TAB_KEY.isPressed()) {
+            if (mc.currentScreen instanceof net.minecraft.client.gui.GuiChat) {
+                ChatChannelTabs.cycleNext();
+            }
+        }
+        while (CHAT_EDITOR_KEY.isPressed()) {
+            if (mc.currentScreen == null) {
+                ClientActions.requestChatEditor();
             }
         }
     }
