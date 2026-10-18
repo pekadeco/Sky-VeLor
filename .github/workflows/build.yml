@@ -65,7 +65,7 @@ jobs:
             exit 1
           fi
           MCMOD_VERSION=$(printf '%s' "$VERSION" | sed -E 's/^Beta-//; s/v$//')
-          if ! printf '%s' "$MCMOD_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+          if ! printf '%s' "$MCMOD_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+){0,2}$'; then
             echo "::error title=VERSION::could not resolve numeric mcmod.info version from $VERSION"
             exit 1
           fi

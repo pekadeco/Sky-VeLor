@@ -1,5 +1,15 @@
 # Changelog
 
+## Beta-0.10.8.5.1v — 2026-10-18
+
+- Fixed Chat Editor section/card placement through the active selected font’s measured metrics, with a collision resolver for small windows, GUI scales, and expanded controls.
+- Made Separate Chats a single opt-in ownership mode: off is fully native Default Chat; on exclusively routes new classified traffic to Chat 1 or Chat 2, leaves pre-toggle vanilla history untouched, and clears the opt-in mirror on exit. Unknown, system, command, and server-result traffic now safely belongs only to Chat 2.
+- Repaired the production chat input insertion path for **Copy to chat box**: clean text is inserted at the focused cursor or appended, capped at 256 characters, while the chat field stays open and focused. The existing clipboard action and copied confirmation remain available.
+- Replaced recursive menu hover smoothing with a real elapsed-time ease-out that reaches its configured default 100 ms target; the Chat Editor exposes **Open menu with** (Right click / Left click / Both) and **Menu animation**, including Off.
+- Made message hover and context selection block-based across wrapped rows and rebuilt safely on layout changes. Left click preserves component actions while right click always opens the menu; outside clicks and Escape dismiss it.
+- Added `/velor layoutdebug` bounds/overlap diagnostics and `/velor chatdebug` grouped-message outlines, recent routing evidence, and stored/GUI/router/renderer Separate Chats state. Optional vanilla button discovery is guarded and fail-closed.
+- Updated the display version to `Beta-0.10.8.5.1v` and numeric Forge `mcmod.info` version to `0.10.8.5.1`; release metadata validation now accepts the five-component numeric release form.
+
 ## Beta-0.10.8.5v — 2026-10-18
 
 - Reworked all Sky VeLor-owned screens around the shared `GuiLayoutToolkit`: clamped shells, measured compact rows, ellipsis, clipping, common scrollbar semantics, Shift fine scrolling, and responsive small-scale layouts. Quick Note now switches to a non-overlapping compact editor instead of retaining a fixed sidebar.
