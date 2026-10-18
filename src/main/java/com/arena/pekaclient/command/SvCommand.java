@@ -2,8 +2,8 @@ package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.chat.ChatClipboard;
-import com.arena.pekaclient.chat.ChatRuntime;
-import com.arena.pekaclient.render.FirstPersonItemSetup;
+import com.arena.pekaclient.feature.ChatChannelTabs;
+import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.render.GlobalFontManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
@@ -55,9 +55,9 @@ public final class SvCommand extends CommandBase {
     private static void selfTest(Minecraft mc) {
         if (mc == null || mc.thePlayer == null) return;
         mc.thePlayer.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fselftest"));
-        mc.thePlayer.addChatMessage(new ChatComponentText("§7chat hook: §f" + ChatRuntime.selfTestStatus()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7chat hook: §f" + ChatChannelTabs.selfTestStatus()));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7font hook: §f" + GlobalFontManager.selfTestStatus()));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7clipboard: §f" + ChatClipboard.selfTestStatus()));
-        mc.thePlayer.addChatMessage(new ChatComponentText("§7item-animation hook: §f" + FirstPersonItemSetup.selfTestStatus()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7item-animation hook: §f" + (ItemAnimationHookStatus.isActive() ? "ACTIVE" : "FAILED") + " (" + ItemAnimationHookStatus.getReason() + ")"));
     }
 }

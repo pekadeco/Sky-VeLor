@@ -1,6 +1,7 @@
 package com.arena.pekaclient.render;
 
-import com.arena.pekaclient.config.ChatQolSettings;
+import com.arena.pekaclient.config.FontSettings;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
@@ -43,6 +44,8 @@ public final class GlobalFontManager {
 
     private static final String SMOOTH_RESOURCE = "/assets/skyvelor/fonts/smooth-abel-regular.ttf";
     private static final String DOODLE_RESOURCE = "/assets/skyvelor/fonts/doodle-architects-daughter.ttf";
+    private static final String ROUNDED_RESOURCE = "/assets/skyvelor/fonts/rounded-nunito.ttf";
+    private static final String MONO_RESOURCE = "/assets/skyvelor/fonts/mono-jetbrains-mono.ttf";
     private static final String EXTERNAL_PREFIX = "External:";
     private static final int ATLAS_SIZE = 1024;
     private static final int[] MC_COLOURS = {
@@ -58,11 +61,40 @@ public final class GlobalFontManager {
     private GlobalFontManager() {
     }
 
+    /**
+     * Sky VeLor renderers pass their regular FontRenderer through this method so text fields and vanilla-owned
+     * controls keep their native metrics. UIRender is the replacement path: it asks draw() below before falling
+     * back to this renderer. Returning the supplied object is deliberate and fail-closed on Forge 1.8.9.
+     */
+    public static FontRenderer rendererFor(FontRenderer fallback) {
+        return fallback;
+    }
+
+    /** Reserved lightweight tick hook used by screen shells; atlas creation remains lazy and render-thread-only. */
+    public static void tick() {
+        FontSettings.normalise();
+    }
+
+    /** Human-readable, non-throwing diagnostic for /sv selftest and the Fonts screen. */
+    public static String status() {
+        if (!FontSettings.enabled || FontSettings.MINECRAFT_DEFAULT.equals(FontSettings.selected)) {
+            return "Minecraft Default (safe fallback)";
+        }
+        return atlas != null && FontSettings.selected.equals(loadedName)
+                ? "Loaded " + loadedName + " for Sky VeLor text" : "Ready to load " + FontSettings.selected;
+    }
+
+    public static String selfTestStatus() {
+        if (!FontSettings.enabled) return "STANDBY (Minecraft Default)";
+        if (FontSettings.MINECRAFT_DEFAULT.equals(FontSettings.selected)) return "READY (Minecraft Default)";
+        return "READY (Sky VeLor UIRender replacement; vanilla bridge fail-closed)";
+    }
+
     /** Called by UIRender. false means callers must use the native renderer. */
     public static boolean draw(String text, float x, float y, int colour, float scale, boolean shadow, Area area) {
-        if (text == null || text.length() == 0 || !ChatQolSettings.globalFontEnabled) return false;
-        String wanted = ChatQolSettings.globalFontName;
-        if (ChatQolSettings.FONT_MINECRAFT_DEFAULT.equals(wanted)) return false;
+        if (text == null || text.length() == 0 || !FontSettings.enabled) return false;
+        String wanted = FontSettings.selected;
+        if (FontSettings.MINECRAFT_DEFAULT.equals(wanted)) return false;
         FontAtlas current = ensureAtlas(wanted);
         if (current == null) return false;
         float totalScale = Math.max(0.25f, scale) * areaScale(area) / 100f;
@@ -73,8 +105,8 @@ public final class GlobalFontManager {
 
     /** Width is useful to settings panels that deliberately opt into the global visual metrics. */
     public static float width(String text, Area area) {
-        if (text == null || text.length() == 0 || !ChatQolSettings.globalFontEnabled) return -1f;
-        FontAtlas current = ensureAtlas(ChatQolSettings.globalFontName);
+        if (text == null || text.length() == 0 || !FontSettings.enabled) return -1f;
+        FontAtlas current = ensureAtlas(FontSettings.selected);
         return current == null ? -1f : current.width(text) * areaScale(area) / 100f;
     }
 
@@ -86,7 +118,8 @@ public final class GlobalFontManager {
 
     /** The optional all-Minecraft switch is intentionally fail-closed on 1.8.9. */
     public static boolean appliesToAllMinecraftText() {
-        if (ChatQolSettings.applyAllMinecraftText && !allMinecraftNoticeShown) {
+        if (FontSettings.enabled && !FontSettings.MINECRAFT_DEFAULT.equals(FontSettings.selected)
+                && FontSettings.applyToEverything && !allMinecraftNoticeShown) {
             allMinecraftNoticeShown = true;
             notice("Global font: vanilla-text bridge is unavailable on this 1.8.9 mapping; vanilla text is unchanged.");
         }
@@ -96,9 +129,11 @@ public final class GlobalFontManager {
     /** Names exposed to the editor; discovery is on demand, never in the render loop. */
     public static String[] availableFonts() {
         List<String> names = new ArrayList<String>();
-        names.add(ChatQolSettings.FONT_MINECRAFT_DEFAULT);
-        names.add(ChatQolSettings.FONT_SMOOTH);
-        names.add(ChatQolSettings.FONT_DOODLE);
+        names.add(FontSettings.MINECRAFT_DEFAULT);
+        names.add(FontSettings.SMOOTH);
+        names.add(FontSettings.DOODLE);
+        names.add(FontSettings.ROUNDED);
+        names.add(FontSettings.MONO);
         File directory = externalDirectory();
         File[] files = directory == null ? null : directory.listFiles();
         if (files != null) {
@@ -118,8 +153,8 @@ public final class GlobalFontManager {
     }
 
     private static FontAtlas ensureAtlas(String requested) {
-        String wanted = requested == null ? ChatQolSettings.FONT_MINECRAFT_DEFAULT : requested;
-        if (ChatQolSettings.FONT_MINECRAFT_DEFAULT.equals(wanted)) return null;
+        String wanted = requested == null ? FontSettings.MINECRAFT_DEFAULT : requested;
+        if (FontSettings.MINECRAFT_DEFAULT.equals(wanted)) return null;
         if (atlas != null && wanted.equals(loadedName)) return atlas;
         try {
             Font font = loadFont(wanted);
@@ -143,10 +178,14 @@ public final class GlobalFontManager {
     private static Font loadFont(String requested) throws IOException, FontFormatException {
         InputStream input = null;
         try {
-            if (ChatQolSettings.FONT_SMOOTH.equals(requested)) {
+            if (FontSettings.SMOOTH.equals(requested)) {
                 input = GlobalFontManager.class.getResourceAsStream(SMOOTH_RESOURCE);
-            } else if (ChatQolSettings.FONT_DOODLE.equals(requested)) {
+            } else if (FontSettings.DOODLE.equals(requested)) {
                 input = GlobalFontManager.class.getResourceAsStream(DOODLE_RESOURCE);
+            } else if (FontSettings.ROUNDED.equals(requested)) {
+                input = GlobalFontManager.class.getResourceAsStream(ROUNDED_RESOURCE);
+            } else if (FontSettings.MONO.equals(requested)) {
+                input = GlobalFontManager.class.getResourceAsStream(MONO_RESOURCE);
             } else if (requested != null && requested.startsWith(EXTERNAL_PREFIX)) {
                 String fileName = requested.substring(EXTERNAL_PREFIX.length());
                 if (!isSafeExternalName(fileName)) return null;
@@ -183,11 +222,9 @@ public final class GlobalFontManager {
     }
 
     private static int areaScale(Area area) {
-        if (area == Area.HUD) return ChatQolSettings.fontHudScale;
-        if (area == Area.EDITOR) return ChatQolSettings.fontEditorScale;
-        if (area == Area.TAB) return ChatQolSettings.fontTabScale;
-        if (area == Area.CHAT) return ChatQolSettings.fontChatScale;
-        return ChatQolSettings.fontUiScale;
+        // One global scale prevents a label measured in one surface from overlapping a differently scaled renderer
+        // in another. Per-area legacy values remain readable only through FontSettings.load migration.
+        return FontSettings.scale;
     }
 
     private static int darken(int rgba) {

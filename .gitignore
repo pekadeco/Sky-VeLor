@@ -8,6 +8,9 @@ crash-reports/
 hs_err_pid*.log
 replay_pid*.log
 
+# Local semantic-compiler stubs and generated checks are never release inputs.
+.tools/
+
 # CI evidence is committed explicitly from the workflow, never picked up locally.
 
 # ForgeGradle can decompile Minecraft for inspection. That output is derived from

@@ -395,6 +395,14 @@ public final class ChatChannelTabs {
         live.selectTab(ChatFilterRules.ALL);
     }
 
+    /** Compact, truthful diagnostics for /sv selftest; no reflection failure is treated as success. */
+    public static String selfTestStatus() {
+        if (live == null) return "NOT READY (runtime not registered)";
+        if (!ChatQolSettings.isEnabled()) return "STANDBY (Chat QoL is off)";
+        if (!CACHE_REFLECTION_READY) return "FAIL-CLOSED (chat-cache mapping unavailable)";
+        return "READY (native default/Chat 1/Chat 2 routing)";
+    }
+
     /** Restore the full vanilla rendered cache when the optional tab feature is switched off. */
     public static void disableAndRestoreAll() {
         ChatQolSettings.setSelectedTab(ChatFilterRules.ALL);

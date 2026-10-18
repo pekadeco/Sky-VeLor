@@ -41,6 +41,8 @@ public final class AppleSettings {
     public static final boolean DEFAULT_ADAPTIVE_QUALITY = false;
     public static final boolean DEFAULT_PERFORMANCE_BOOST_BETA = true;
     public static final int DEFAULT_SCROLL_SPEED = 100;
+    /** One global animation policy for all Sky VeLor-owned scroll viewports, including chat. */
+    public static final boolean DEFAULT_SMOOTH_SCROLLING = true;
     
     // Item Animation. Percent controls use 100% for untouched vanilla; offsets are hundredths of a
     // first-person render unit. Keeping the bounds here makes loading, exact-value entry and sliders agree.
@@ -86,6 +88,11 @@ public final class AppleSettings {
     public static int effectiveScrollSpeed() {
         return scrollSpeedOn ? scrollSpeed : DEFAULT_SCROLL_SPEED;
     }
+
+    /** Shared wheel multiplier; consumers must call their viewport once per real wheel event. */
+    public static float guiScrollMultiplier() {
+        return effectiveScrollSpeed() / 100.0f;
+    }
     
     /** Effective Item Animation size; an off switch is the exact vanilla value. */
     public static int effectiveItemAnimationSize() {
@@ -107,6 +114,7 @@ public final class AppleSettings {
     public static boolean shadows = true;
     public static boolean adaptive = DEFAULT_ADAPTIVE_QUALITY; // auto-lower detail when FPS drops
     public static int scrollSpeed = 100;      // 50..300 (%), wheel and swipe speed (keys are fixed)
+    public static boolean smoothScrolling = DEFAULT_SMOOTH_SCROLLING;
     
     // Item Animation renderer settings. They are read live by the first-person render and equip hooks.
     public static int itemAnimationSize = DEFAULT_ITEM_ANIMATION_SIZE;      // 30..200 (%)
@@ -191,6 +199,7 @@ public final class AppleSettings {
         shadows = readBool(p, "shadows", shadows);
         loadPerformanceSettings(p);
         scrollSpeed = readInt(p, "scrollSpeed", scrollSpeed, 50, 300);
+        smoothScrolling = readBool(p, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING);
         
         loadItemAnimationSettings(p);
 
@@ -228,10 +237,11 @@ public final class AppleSettings {
         qnCommand = readBool(p, "cmd.qn", qnCommand);
         loadFishingSettings(p);
         loadChatSettings(p);
+        FontSettings.load(p);
         M7Settings.load(p);
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
         // atomic writer preserves a valid file even if the client is interrupted while migrating.
-        if (itemAnimationMigrationPending || ChatQolSettings.isMigrationPending()) {
+        if (itemAnimationMigrationPending || ChatQolSettings.isMigrationPending() || FontSettings.isMigrationPending()) {
             save();
         }
     }
@@ -350,6 +360,7 @@ public final class AppleSettings {
         p.setProperty("shadows", Boolean.toString(shadows));
         p.setProperty("adaptive", Boolean.toString(adaptive));
         p.setProperty("scrollSpeed", Integer.toString(scrollSpeed));
+        p.setProperty("smoothScrolling", Boolean.toString(smoothScrolling));
         
         // Item Animation. Save only the current supported category; old and obsolete keys are deliberately retired.
         saveItemAnimationSettings(p);
@@ -381,6 +392,7 @@ public final class AppleSettings {
         p.setProperty("cmd.qn", Boolean.toString(qnCommand));
         saveFishingSettings(p);
         saveChatSettings(p);
+        FontSettings.save(p);
         M7Settings.save(p);
         ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor settings");
     }

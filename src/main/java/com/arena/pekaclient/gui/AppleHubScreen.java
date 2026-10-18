@@ -259,28 +259,19 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item(ChatUiModel.label("right-click-menu"),
                 "Safe text-only copy menu for native chat lines",
                 new AppleToggle(() -> ChatQolSettings.rightClickMenu, value -> ChatQolSettings.rightClickMenu = value)));
-        rows.add(Row.item(ChatUiModel.label("global-font"),
-                "Apply a selected font to Sky VeLor UI, HUD, editors, tabs and custom chat",
-                new AppleToggle(() -> ChatQolSettings.globalFontEnabled, value -> {
-                    ChatQolSettings.globalFontEnabled = value;
-                    ChatQolSettings.customFont = value;
-                    com.arena.pekaclient.render.GlobalFontManager.reload();
-                })));
-        rows.add(Row.item(ChatUiModel.label("open-font-settings"),
-                "Minecraft Default, Smooth, Doodle, external fonts and per-area scales",
-                new AppleButton("Open", 84f, 26f, false,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(new GlobalFontSettingsScreen(this)))));
         rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
-                "Windows, background, messages, font, tabs, hover and copy options",
+                "Windows, background, messages, tabs, hover and copy options",
                 new AppleButton("Open", 84f, 26f, true,
                         () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
-        rows.add(Row.header("Scrolling"));
-        rows.add(Row.item("Scroll speed", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.scrollSpeedOn, v -> AppleSettings.scrollSpeedOn = v)));
-        rows.add(Row.item("Scroll speed value", "Mouse wheel and swipe speed. Keys are not affected",
-                gated(new AppleSlider(50, 300, 10, "%", 150f,
-                        () -> AppleSettings.scrollSpeed,
-                        v -> AppleSettings.scrollSpeed = v), () -> AppleSettings.scrollSpeedOn)));
+
+        // Cross-feature controls deliberately live at the top level, rather than being duplicated in Chat QoL.
+        rows.add(Row.header("Mod settings"));
+        rows.add(Row.item("Open Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling",
+                new AppleButton("Open", 84f, 26f, false,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(new ModSettingsScreen(this)))));
+        rows.add(Row.item("Fonts", "Global Sky VeLor font selection, preview, bundled licenses and safe fallback",
+                new AppleButton("Open", 84f, 26f, false,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(new FontsScreen(this)))));
 
         rows.add(Row.header("Performance"));
         rows.add(Row.item("Curve quality", "Smoothness of rounded corners",
