@@ -2,51 +2,56 @@
 
 ## One chat pipeline
 
-All three chat targets run through the same runtime class and data model:
+`ChatChannelTabs` is the registered Forge runtime. Its Default Chat, Chat 1, and Chat 2 render/input paths share
+`ChatPipeline` for measured wrapped rows, full-row bounds, scrolling, hover selection, clipping, and scrollbar
+geometry:
 
 ```text
 ClientChatReceivedEvent
-  -> ChatRuntime.onChat
-  -> ChatPipeline.Message queues
-     Default: All / Party / Reply; Chat 1: Party; Chat 2: Reply
+  -> ChatChannelTabs.onChat
+  -> one classified PipelineEntry feed
+     -> Chat 1: player / party / reply
+     -> Chat 2: system
+     -> Default Chat: component-preserving native rendered-line cache
 RenderGameOverlayEvent.Chat
-  -> ChatRuntime.onRender
-  -> ChatPipeline.layout / hit / fade / Scroll
-  -> one renderer for Default Chat, Chat 1 and Chat 2
-MouseEvent
-  -> ChatRuntime.onMouse (one wheel consumer)
-  -> shared row hit test -> component forwarding or mouse-up copy menu
+  -> ChatChannelTabs.renderCustomDefault / renderSeparate
+  -> ChatPipeline.layout -> scissored rows -> same bounds for hover and hit
+GuiScreenEvent.MouseInputEvent.Pre
+  -> exactly one hovered ChatPipeline scroll owner per wheel event
+  -> native component forwarding on left press
+  -> right-release menu, then matching left press/release action
 ```
 
-`ChatRuntime` is the real Forge caller, not a test adapter. It draws an entire wrapped message as one
-rounded hover block spanning the chat window's full right edge. The same bounds are used for movement,
-scale, scrolling, hover and component forwarding.
+Default Chat uses vanilla's component-preserving wrapped cache as its source, so it does not lose Minecraft click
+or hover styles. Chat 1/Chat 2 use the same layout call with their classified feeds. If the required cache mapping
+cannot be resolved, the default path fails closed to unmodified vanilla chat.
 
-Right-click actions are deliberately limited to exactly:
+Right-click actions remain exactly:
 
 1. `Copy to clipboard`
 2. `Copy to chat box`
 
-Clipboard text is unformatted. A success notification is only shown after the chain
-`GuiScreen.setClipboardString` → AWT toolkit → LWJGL bridge passes a read-back equality check.
+The choice is armed on press and executes only on a matching mouse-up. Clipboard text is unformatted. A success
+message is only displayed after the fallback chain `GuiScreen.setClipboardString` → AWT toolkit → optional LWJGL
+bridge passes a read-back equality check; failures show an on-screen toast instead of claiming success.
 
 ## Mod Settings
 
-**Mod Settings** owns chat and GUI wheel speed independently. Both start at `2.0x`, range from
-`0.25x` to `6.0x`, and use Shift for a quarter-step fine scroll. Each mouse wheel event is consumed by
-exactly one hovered custom viewport. Smooth scrolling is also global, so Chat Editor does not contain
-a competing scroll-speed setting.
+**Mod Settings** is the top-level owner of one global scroll speed (50%–300%) and one global Smooth Scrolling
+choice. Shift + wheel uses fine scrolling. The active viewport consumes each real wheel event once: no editor,
+chat window, or GUI shell applies a second wheel delta. Chat Editor links to Mod Settings instead of duplicating
+these settings.
 
 ## Fonts
 
-**Fonts** is a top-level hub entry. `Minecraft Default` restores the original `FontRenderer` reference
-exactly. Smooth, Doodle, Rounded and Mono are rasterised to an HD 16×16 atlas in a private resource
-pack domain and constructed through Minecraft's ordinary `FontRenderer`; formatting codes and shadow
-drawing stay in the normal renderer path. The replacement fails closed: a resource/reflection/font
-failure restores Minecraft Default and gives one in-game notice.
+**Fonts** is a top-level hub entry, independent of Chat QoL. `Minecraft Default` leaves the native
+`FontRenderer` untouched. Smooth, Doodle, Rounded, and Mono use Sky VeLor’s lazy private glyph atlas on its
+`UIRender` paths; bad resources, headless AWT, texture allocation failure, and invalid external names all fall
+back to Minecraft’s renderer and show a single notice.
 
-External fonts belong in `config/skyvelor/fonts/`; only a basename ending in `.ttf` or `.otf` is
-accepted. **Apply to everything** is on by default. Turning it off routes Sky VeLor-owned screens,
-HUD and chat to the selected renderer while returning `Minecraft.fontRendererObj` to vanilla.
+External fonts belong in `config/skyvelor/fonts/`; only a plain basename ending in `.ttf` or `.otf` is accepted.
+The optional **Apply to everything** request is deliberately fail-closed for Minecraft-owned text on Forge 1.8.9:
+Sky VeLor-owned renderer paths apply the selected face, while vanilla text remains intact with an explicit notice.
 
-License texts and attribution are packaged with the fonts; see `THIRD_PARTY_NOTICES.md`.
+Bundled OFL licenses and attribution are packaged under `assets/skyvelor/fonts/` and documented in
+`THIRD_PARTY_LICENSES.md` and `THIRD_PARTY_NOTICES.md`.

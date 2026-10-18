@@ -47,7 +47,7 @@ public final class ChatUiModel {
     private ChatUiModel() {
     }
 
-    /** Exactly the controls allowed in the Hub. Every visual/custom classification setting belongs only to editor. */
+    /** Exactly the chat-specific controls allowed in the Hub; fonts and scrolling have their own global routes. */
     public static List<Entry> buildQolModel() {
         List<Entry> entries = new ArrayList<Entry>();
         entries.add(new Entry("chat-qol-master", "Chat QoL", MASTER));
@@ -56,8 +56,7 @@ public final class ChatUiModel {
         entries.add(new Entry("smooth-messages", "Smooth Messages", TOGGLE));
         entries.add(new Entry("hover-highlight", "Hover Highlight", TOGGLE));
         entries.add(new Entry("right-click-menu", "Right Click Menu", TOGGLE));
-        entries.add(new Entry("global-font", "Global Font", TOGGLE));
-        entries.add(new Entry("open-font-settings", "Open Font Settings", EDITOR));
+        // Fonts and scroll behavior are global mod settings, intentionally outside this chat-specific contract.
         entries.add(new Entry("open-chat-editor", "Open Chat Editor", EDITOR));
         return Collections.unmodifiableList(entries);
     }

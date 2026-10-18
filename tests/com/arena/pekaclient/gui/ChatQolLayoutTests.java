@@ -26,13 +26,16 @@ public final class ChatQolLayoutTests {
     private static void ownership() {
         List<ChatUiModel.Entry> entries = ChatUiModel.buildQolModel();
         String[] ids = {"chat-qol-master", "chat-tabs", "separate-chats", "smooth-messages",
-                "hover-highlight", "right-click-menu", "global-font", "open-font-settings", "open-chat-editor"};
+                "hover-highlight", "right-click-menu", "open-chat-editor"};
         check("Chat QoL hub has exactly nine allowed controls", entries.size() == ids.length);
         for (int i = 0; i < ids.length; i++) check("Chat QoL order " + ids[i], ids[i].equals(entries.get(i).getId()));
         check("master is the only master control", entries.get(0).isMasterToggle());
-        for (int i = 1; i < 7; i++) check("feature is a toggle " + i, entries.get(i).isToggle());
-        check("font settings route is not a duplicate toggle", entries.get(7).isEditorRoute()
-                && !entries.get(7).isToggle());
+        for (int i = 1; i < entries.size() - 1; i++) check("feature is a toggle " + i, entries.get(i).isToggle());
+        boolean hasFontControl = false;
+        for (ChatUiModel.Entry entry : entries) {
+            hasFontControl |= "global-font".equals(entry.getId()) || "open-font-settings".equals(entry.getId());
+        }
+        check("global fonts are not duplicated in Chat QoL", !hasFontControl);
         check("chat editor route is not a duplicate toggle", entries.get(entries.size() - 1).isEditorRoute()
                 && !entries.get(entries.size() - 1).isToggle());
     }

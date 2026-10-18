@@ -58,6 +58,8 @@ public final class GuiLayoutToolkit {
         public void setMaximum(float max) { maximum = Math.max(0f, max); value = clamp(value, 0f, maximum); target = clamp(target, 0f, maximum); }
         public void reset() { value = target = 0f; }
         public void setImmediate(float next) { value = target = clamp(next, 0f, maximum); }
+        /** Keyboard paging shares the same bounded target as the wheel without manufacturing a second wheel event. */
+        public void nudge(float delta) { target = clamp(target + delta, 0f, maximum); }
         public void wheel(float notches, boolean fine, float multiplier, float normalStep) {
             if (notches == 0f) return;
             float step = Math.max(1f, normalStep) * (fine ? .25f : 1f) * clamp(multiplier, .25f, 6f);

@@ -3,7 +3,6 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.feature.ChatFilterRules;
-import com.arena.pekaclient.feature.ChatFontPolicy;
 import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.feature.ChatPatternRules;
 import com.arena.pekaclient.feature.ChatWindowLayout;
@@ -26,16 +25,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Native Apple-style editor for the compact Chat QoL feature. The hub only exposes feature switches; every visual,
- * classification, window and interaction adjustment lives here in one vertically clipped set of dropdown sections.
+ * Native Apple-style editor for the compact Chat QoL feature. The hub exposes only feature switches; every
+ * chat-specific visual, classification, window and interaction adjustment lives here. Font and scroll policy route
+ * to their one top-level global settings home.
  */
 public final class ChatEditorScreen extends AppleScreen {
 
     private static final String[] SECTION_NAMES = {
-            "Windows", "Background", "Messages", "Font", "Tabs", "Hover / menu"
+            "Windows", "Background", "Messages", "Global settings", "Tabs", "Hover / menu"
     };
-    private static final int[] SECTION_ROWS = {5, 6, 16, 3, 5, 3};
-    private static final String[] FONT_OPTIONS = {"Minecraft Default", "Smooth", "Doodle"};
+    private static final int[] SECTION_ROWS = {5, 6, 14, 2, 5, 3};
     private static final String[] TARGET_OPTIONS = {"Default Chat", "Chat 1", "Chat 2"};
     private static final String[] APPEAR_OPTIONS = {"Vanilla", "Slide", "Fade"};
     private static final String[] ORDER_OPTIONS = {
@@ -73,13 +72,11 @@ public final class ChatEditorScreen extends AppleScreen {
     private final SearchField borderColour = new SearchField("#4A4A50");
     private final SearchField hoverColour = new SearchField("#64D2FF");
     private final AppleDropdown patternTarget;
-    private final AppleDropdown fontChoice;
     private final AppleDropdown tabOrderChoice;
     private final AppleDropdown targetChoice;
     private final AppleDropdown copyFromChoice;
     private final AppleDropdown appearChoice;
     private final AppleToggle linkAllToggle;
-    private final AppleButton openFontSettings;
 
     private final ChatWindowLayout.Rect chat1Rect = new ChatWindowLayout.Rect();
     private final ChatWindowLayout.Rect chat2Rect = new ChatWindowLayout.Rect();
@@ -125,12 +122,6 @@ public final class ChatEditorScreen extends AppleScreen {
         patternTarget = new AppleDropdown(new String[]{"Chat 1 player", "Chat 2 system"}, null, 120f, 22f,
                 () -> ChatPatternRules.CHAT_2.equals(patternTargetValue()) ? 1 : 0,
                 value -> patternTargetValue(value == 1 ? ChatPatternRules.CHAT_2 : ChatPatternRules.CHAT_1));
-        fontChoice = new AppleDropdown(FONT_OPTIONS, null, 132f, 22f, this::fontChoiceIndex,
-                value -> {
-                    ChatQolSettings.globalFontName = FONT_OPTIONS[Math.max(0, Math.min(value, FONT_OPTIONS.length - 1))];
-                    ChatQolSettings.fontName = ChatQolSettings.globalFontName;
-                    GlobalFontManager.reload();
-                });
         targetChoice = new AppleDropdown(TARGET_OPTIONS, null, 112f, 22f,
                 () -> ChatQolSettings.editorTarget, ChatQolSettings::setEditorTarget);
         copyFromChoice = new AppleDropdown(TARGET_OPTIONS, null, 112f, 22f,
@@ -142,8 +133,6 @@ public final class ChatEditorScreen extends AppleScreen {
                 value -> ChatQolSettings.editAppearance(ChatQolSettings.editorTarget,
                         appearance -> appearance.setAppearStyle(value == 1 ? "SLIDE" : value == 2 ? "FADE" : "VANILLA")));
         linkAllToggle = new AppleToggle(() -> ChatQolSettings.linkAll, value -> ChatQolSettings.linkAll = value);
-        openFontSettings = new AppleButton("Open Font Settings", 126f, 22f, true,
-                () -> Minecraft.getMinecraft().displayGuiScreen(new GlobalFontSettingsScreen(this)));
         tabOrderChoice = new AppleDropdown(ORDER_OPTIONS, null, 148f, 22f, this::tabOrderIndex,
                 value -> ChatQolSettings.setTabOrder(ORDER_VALUES[Math.max(0, Math.min(value, ORDER_VALUES.length - 1))]));
         buildEntries();
@@ -193,10 +182,6 @@ public final class ChatEditorScreen extends AppleScreen {
                 () -> appearance().appearSpeed(), value -> editAppearance(a -> a.setAppearSpeed(value)))));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Fade-out", new AppleSlider(0, 60, 1, " s", 142f,
                 () -> appearance().fadeSeconds(), value -> editAppearance(a -> a.setFadeSeconds(value)))));
-        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Scroll speed", new AppleSlider(25, 400, 25, "%", 142f,
-                () -> appearance().scrollSpeed(), value -> editAppearance(a -> a.setScrollSpeed(value)))));
-        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Smooth scrolling", new AppleToggle(
-                () -> appearance().smoothScroll(), value -> editAppearance(a -> a.setSmoothScroll(value)))));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Chat 1 lines", new AppleSlider(10, 300, 5, "", 142f,
                 () -> ChatQolSettings.chat1().getMessageLimit(), value -> ChatQolSettings.chat1().setMessageLimit(value))));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Chat 2 lines", new AppleSlider(10, 300, 5, "", 142f,
@@ -207,14 +192,11 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Test / add", new AppleButton("Test + add", 82f, 22f,
                 true, this::testAndAddPattern)));
 
-        entries.add(new Entry(ChatEditorLayout.FONT, "Use global font", new AppleToggle(
-                () -> ChatQolSettings.globalFontEnabled, value -> {
-                    ChatQolSettings.globalFontEnabled = value;
-                    ChatQolSettings.customFont = value;
-                    GlobalFontManager.reload();
-                })));
-        entries.add(new Entry(ChatEditorLayout.FONT, "Font", fontChoice));
-        entries.add(new Entry(ChatEditorLayout.FONT, "Open Font Settings", openFontSettings));
+        // Global controls are linked, never duplicated, so one wheel/font policy governs every editor and chat.
+        entries.add(new Entry(ChatEditorLayout.FONT, "Mod Settings", new AppleButton("Open", 74f, 22f, false,
+                () -> Minecraft.getMinecraft().displayGuiScreen(new ModSettingsScreen(this)))));
+        entries.add(new Entry(ChatEditorLayout.FONT, "Fonts", new AppleButton("Open", 74f, 22f, false,
+                () -> Minecraft.getMinecraft().displayGuiScreen(new FontsScreen(this)))));
 
         entries.add(new Entry(ChatEditorLayout.TABS, "Show All", new AppleToggle(
                 () -> ChatQolSettings.showAll, value -> ChatQolSettings.setTabVisible(ChatQolSettings.TAB_ALL, value))));
@@ -332,12 +314,6 @@ public final class ChatEditorScreen extends AppleScreen {
         StringBuilder out = new StringBuilder("#");
         for (int i = hex.length(); i < 6; i++) out.append('0');
         return out.append(hex).toString();
-    }
-
-    private int fontChoiceIndex() {
-        String resolved = ChatFontPolicy.resolve(ChatQolSettings.globalFontName);
-        for (int i = 0; i < FONT_OPTIONS.length; i++) if (FONT_OPTIONS[i].equals(resolved)) return i;
-        return 0;
     }
 
     private int appearChoiceIndex() {
@@ -527,7 +503,7 @@ public final class ChatEditorScreen extends AppleScreen {
         }
         if (expanded[ChatEditorLayout.MESSAGES]) {
             ChatEditorLayout.Rect body = layout.bodies[ChatEditorLayout.MESSAGES];
-            float infoY = body.y + 15 * ChatEditorLayout.ROW_H + 8f;
+            float infoY = body.y + 13 * ChatEditorLayout.ROW_H + 8f;
             UIRender.text(fr(), fit(fr(), "Rules: " + ChatQolSettings.patternRuleCount() + " — " + patternStatus,
                     body.w), body.x, infoY, Theme.textTertiary, 0.68f, false);
         }
@@ -545,8 +521,10 @@ public final class ChatEditorScreen extends AppleScreen {
         String arrow = expanded[index] ? "▾" : "▸";
         UIRender.text(fr(), arrow + "  " + SECTION_NAMES[index], header.x + 9f, header.y + 9f,
                 expanded[index] ? Theme.textPrimary : Theme.textSecondary, 0.9f, false);
-        UIRender.text(fr(), "Reset", header.x + header.w - 38f, header.y + 9f,
-                hot ? Theme.accent : Theme.textTertiary, 0.7f, false);
+        if (index != ChatEditorLayout.FONT) {
+            UIRender.text(fr(), "Reset", header.x + header.w - 38f, header.y + 9f,
+                    hot ? Theme.accent : Theme.textTertiary, 0.7f, false);
+        }
     }
 
     private Entry entryAt(int mx, int my) {
@@ -602,7 +580,7 @@ public final class ChatEditorScreen extends AppleScreen {
         int header = headerAt(mx, my);
         if (header >= 0) {
             ChatEditorLayout.Rect bounds = layout.headers[header];
-            if (mx >= bounds.x + bounds.w - 48f) {
+            if (header != ChatEditorLayout.FONT && mx >= bounds.x + bounds.w - 48f) {
                 resetSection(header);
             } else if (mx <= bounds.x + 34f) {
                 // The arrow has its own click target; dragging anywhere else on the title bar cannot accidentally
@@ -775,7 +753,7 @@ public final class ChatEditorScreen extends AppleScreen {
                 patternStatus = "Default patterns restored.";
                 break;
             case ChatEditorLayout.FONT:
-                ChatQolSettings.resetFont();
+                // Routes only: font reset belongs to the dedicated global Fonts screen.
                 break;
             case ChatEditorLayout.TABS:
                 ChatQolSettings.resetTabs();
