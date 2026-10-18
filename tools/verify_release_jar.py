@@ -408,11 +408,14 @@ def main():
     interaction_raw = raw_of('feature/ChatInteractionModel')
     menu_constants = constants_of('chat/ChatContextMenu')
     tabs_raw = raw_of('feature/ChatChannelTabs')
+    copy_menu_raw = raw_of('feature/ChatChannelTabs$CopyMenu')
+    chat_runtime_raw = tabs_raw + copy_menu_raw
     r.check(all(value in menu_constants for value in ('Copy to clipboard', 'Copy to chat box'))
                 and b'ChatInteractionModel' in tabs_raw and b'ChatPipeline' in tabs_raw
-                and b'ChatContextMenu' in tabs_raw and b'ChatClipboard' in tabs_raw,
+                and b'ChatContextMenu' in chat_runtime_raw and b'ChatClipboard' in chat_runtime_raw,
             'Chat QoL packages one Default/Chat 1/Chat 2 pipeline with exact two-action copy labels')
-    r.check(b'Copy clean' not in tabs_raw and b'Copy colours' not in tabs_raw and b'Copy to box' not in tabs_raw,
+    r.check(b'Copy clean' not in chat_runtime_raw and b'Copy colours' not in chat_runtime_raw
+                and b'Copy to box' not in chat_runtime_raw,
             'Chat QoL excludes retired alternate copy actions from the runtime menu')
     r.check(all(value in chat_editor_raw for value in
                 (b'Default Chat', b'Link all', b'Copy from', b'Mod Settings', b'Fonts'))
