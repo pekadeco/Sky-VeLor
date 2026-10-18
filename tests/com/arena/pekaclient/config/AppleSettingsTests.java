@@ -51,6 +51,7 @@ public final class AppleSettingsTests {
 
         fishingSettingsCompatibility();
         chatSettingsCompatibility();
+        globalScrollCompatibility();
 
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
@@ -98,6 +99,24 @@ public final class AppleSettingsTests {
         check("chat migration writes native stable master keys", "true".equals(migratedChat.getProperty("chat.qol.enabled"))
                 && "2".equals(migratedChat.getProperty("chat.qol.tabs.selected"))
                 && !migratedChat.containsKey("chat.animation.enabled"));
+    }
+
+    private static void globalScrollCompatibility() {
+        Properties legacy = new Properties();
+        legacy.setProperty("chat.qol.target.default.scroll.speed", "225");
+        legacy.setProperty("chat.qol.target.default.scroll.smooth", "false");
+        AppleSettings.loadGlobalScrollSettings(legacy);
+        check("target-local speed migrates to global setting", AppleSettings.scrollSpeed == 225);
+        check("target-local smoothing migrates to global setting", !AppleSettings.smoothScrolling);
+
+        Properties nativeGlobal = new Properties();
+        nativeGlobal.setProperty("scrollSpeed", "150");
+        nativeGlobal.setProperty("smoothScrolling", "true");
+        nativeGlobal.setProperty("chat.qol.target.default.scroll.speed", "300");
+        nativeGlobal.setProperty("chat.qol.target.default.scroll.smooth", "false");
+        AppleSettings.loadGlobalScrollSettings(nativeGlobal);
+        check("native global speed wins over retired target value", AppleSettings.scrollSpeed == 150);
+        check("native global smoothing wins over retired target value", AppleSettings.smoothScrolling);
     }
 
     private static void check(String name, boolean ok) {

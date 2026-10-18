@@ -134,7 +134,8 @@ public class AppleHubScreen extends AppleScreen {
     private boolean sliderEngaged;
     private Widget active;
 
-    // Layout (recomputed every frame, in GUI-scaled pixels).
+    // Layout (recomputed every frame, in GUI-scaled pixels). The shared clamp keeps the hub reachable at any scale.
+    private final GuiLayoutToolkit.Rect hubPanel = new GuiLayoutToolkit.Rect();
     private float wx, wy, ww, wh;
     private float cx0, cw, headY;
     private float vx, vy, vw, vh;
@@ -770,30 +771,29 @@ public class AppleHubScreen extends AppleScreen {
     // ------------------------------------------------------------------ layout
 
     private void computeLayout() {
-        if (zoomed) {
-            ww = Math.max(160f, width - 8f);
-            wh = Math.max(120f, height - 8f);
-        } else {
-            ww = Math.max(160f, Math.min(width - 16f, 620f));
-            wh = Math.max(120f, Math.min(height - 16f, 400f));
-        }
-        if (collapsed) {
-            // Collapsed: only the title bar remains. The body is hidden and cannot be used.
-            wh = TITLE_H + 1f;
-        }
+        float availableW = Math.max(1f, width - 8f);
+        float availableH = Math.max(1f, height - 8f);
+        float desiredW = zoomed ? availableW : Math.min(availableW, 620f);
+        float desiredH = zoomed ? availableH : Math.min(availableH, 400f);
+        // A preferred minimum never exceeds the actual viewport; this is what makes 854x480 and small GUI scales
+        // safe without a second hardcoded layout branch.
+        desiredW = Math.max(Math.min(160f, availableW), desiredW);
+        desiredH = Math.max(Math.min(120f, availableH), desiredH);
+        if (collapsed) desiredH = Math.min(desiredH, TITLE_H + 1f);
+        float wantedX = zoomed ? 4f : (width - desiredW) * 0.5f;
+        float wantedY = zoomed ? 4f : (height - desiredH) * 0.5f + (1f - openAnim.get()) * 12f;
+        GuiLayoutToolkit.clampPanel(hubPanel, wantedX, wantedY, desiredW, desiredH, width, height);
+        wx = hubPanel.x;
+        wy = hubPanel.y;
+        ww = hubPanel.w;
+        wh = hubPanel.h;
         wide = ww >= 460f;
         tall = wh >= 230f;
-        wx = (width - ww) * 0.5f;
-        wy = (height - wh) * 0.5f + (1f - openAnim.get()) * 12f;
-        if (zoomed) {
-            wx = 4f;
-            wy = 4f;
-        }
 
         float side = wide ? SIDEBAR_W : 0f;
         float inset = wide ? 16f : PAD;
         cx0 = wx + side + inset;
-        cw = ww - side - inset - PAD;
+        cw = Math.max(1f, ww - side - inset - PAD);
         headY = wy + TITLE_H + (wide ? 12f : 40f);
 
         if (tall) {
@@ -811,8 +811,10 @@ public class AppleHubScreen extends AppleScreen {
 
         vx = cx0;
         vw = cw;
-        vy = tall ? headY + 68f : headY + 26f;
-        vh = Math.max(20f, wy + wh - 12f - vy);
+        float bodyBottom = wy + wh - 12f;
+        float candidateViewY = tall ? headY + 68f : headY + 26f;
+        vy = Math.min(candidateViewY, Math.max(wy + TITLE_H + 2f, bodyBottom - 20f));
+        vh = Math.max(1f, bodyBottom - vy);
 
         if (!searching) {
             applyGroups(pages.get(pageIndex));

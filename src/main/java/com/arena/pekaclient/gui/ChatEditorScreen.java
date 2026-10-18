@@ -60,6 +60,7 @@ public final class ChatEditorScreen extends AppleScreen {
 
     private final GuiScreen parent;
     private final ChatEditorLayout.Layout layout = new ChatEditorLayout.Layout();
+    private final GuiLayoutToolkit.Rect safePanel = new GuiLayoutToolkit.Rect();
     private final boolean[] expanded = {true, false, false, false, false, false};
     private final List<Entry> entries = new ArrayList<Entry>();
     private final List<SearchField> fields = new ArrayList<SearchField>();
@@ -333,8 +334,11 @@ public final class ChatEditorScreen extends AppleScreen {
         int guiScale = Math.max(1, Math.min(4, Math.round(sf)));
         ChatEditorPanelLayout.Rect panel = new ChatEditorPanelLayout.Rect();
         ChatEditorPanelLayout.resolve(panel, ChatQolSettings.editorPanel(0), guiScale, ww, wh, width, height);
-        wx = panel.x;
-        wy = panel.y;
+        GuiLayoutToolkit.clampPanel(safePanel, panel.x, panel.y, panel.w, panel.h, width, height);
+        wx = safePanel.x;
+        wy = safePanel.y;
+        ww = safePanel.w;
+        wh = safePanel.h;
         viewX = wx + 10f;
         viewY = wy + 66f;
         viewW = Math.max(1f, ww - 20f);

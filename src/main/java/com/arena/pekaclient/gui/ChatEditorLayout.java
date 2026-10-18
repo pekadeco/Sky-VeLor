@@ -34,6 +34,8 @@ public final class ChatEditorLayout {
         public final Rect viewport = new Rect();
         public final Rect[] headers = new Rect[SECTION_COUNT];
         public final Rect[] bodies = new Rect[SECTION_COUNT];
+        /** The screen's compact Rect facade mirrors this single shared geometry authority. */
+        private final GuiLayoutToolkit.Sections shared = new GuiLayoutToolkit.Sections(SECTION_COUNT);
         public float contentH;
         public float maxScroll;
         public float scroll;
@@ -55,51 +57,36 @@ public final class ChatEditorLayout {
      */
     public static void update(Layout out, float x, float y, float width, float height, boolean[] expanded,
                               int[] rows, float requestedScroll) {
-        out.viewport.x = x;
-        out.viewport.y = y;
-        out.viewport.w = Math.max(1f, width);
-        out.viewport.h = Math.max(1f, height);
-        float total = 0f;
+        if (out == null) return;
+        float[] bodyHeights = new float[SECTION_COUNT];
+        float[] openness = new float[SECTION_COUNT];
         for (int i = 0; i < SECTION_COUNT; i++) {
-            total += HEADER_H;
-            boolean open = expanded != null && i < expanded.length && expanded[i];
             int count = rows == null || i >= rows.length ? 0 : Math.max(0, rows[i]);
-            if (open && count > 0) total += GAP + count * ROW_H;
-            if (i + 1 < SECTION_COUNT) total += GAP;
+            bodyHeights[i] = count * ROW_H;
+            openness[i] = expanded != null && i < expanded.length && expanded[i] ? 1f : 0f;
         }
-        out.contentH = total;
-        out.maxScroll = Math.max(0f, total - out.viewport.h);
-        out.scroll = clamp(requestedScroll, 0f, out.maxScroll);
-
-        float cursor = y - out.scroll;
+        // GuiLayoutToolkit owns the measured flow, collapse height, clipping viewport and scroll clamp. This
+        // compatibility facade exists only because ChatEditorScreen keeps its historic Rect type for drag persistence.
+        out.shared.layout(x, y, width, height, HEADER_H, GAP, bodyHeights, openness, requestedScroll);
+        out.viewport.x = out.shared.viewport.x;
+        out.viewport.y = out.shared.viewport.y;
+        out.viewport.w = out.shared.viewport.w;
+        out.viewport.h = out.shared.viewport.h;
+        out.contentH = out.shared.contentHeight;
+        out.maxScroll = out.shared.maxScroll;
+        out.scroll = out.shared.scroll;
         for (int i = 0; i < SECTION_COUNT; i++) {
-            Rect header = out.headers[i];
-            header.x = x;
-            header.y = cursor;
-            header.w = out.viewport.w;
-            header.h = HEADER_H;
-            cursor += HEADER_H;
-            Rect body = out.bodies[i];
-            boolean open = expanded != null && i < expanded.length && expanded[i];
-            int count = rows == null || i >= rows.length ? 0 : Math.max(0, rows[i]);
-            if (open && count > 0) {
-                cursor += GAP;
-                body.x = x + PAD;
-                body.y = cursor;
-                body.w = Math.max(1f, out.viewport.w - PAD * 2f);
-                body.h = count * ROW_H;
-                cursor += body.h;
-            } else {
-                body.x = x + PAD;
-                body.y = cursor;
-                body.w = Math.max(1f, out.viewport.w - PAD * 2f);
-                body.h = 0f;
-            }
-            if (i + 1 < SECTION_COUNT) cursor += GAP;
+            GuiLayoutToolkit.Rect sourceHeader = out.shared.headers[i];
+            GuiLayoutToolkit.Rect sourceBody = out.shared.bodies[i];
+            out.headers[i].x = sourceHeader.x;
+            out.headers[i].y = sourceHeader.y;
+            out.headers[i].w = sourceHeader.w;
+            out.headers[i].h = sourceHeader.h;
+            out.bodies[i].x = sourceBody.x;
+            out.bodies[i].y = sourceBody.y;
+            out.bodies[i].w = sourceBody.w;
+            out.bodies[i].h = sourceBody.h;
         }
     }
 
-    private static float clamp(float value, float min, float max) {
-        return value < min ? min : (value > max ? max : value);
-    }
 }

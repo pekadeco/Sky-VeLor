@@ -262,6 +262,8 @@ public final class HudEditorScreen extends AppleScreen {
     private final ScrollState scroll = new ScrollState();
     private final Gesture gesture = new Gesture();
     private final HudEditorLayout.Metrics inspectorLayout = new HudEditorLayout.Metrics();
+    /** Shared clamp authority for the editor shell; every nested inspector is then measured from this safe rect. */
+    private final GuiLayoutToolkit.Rect editorPanel = new GuiLayoutToolkit.Rect();
 
     private enum EditorTarget { HUD_ELEMENT, DUNGEON_MAP, ITEM_ANIMATION }
     private enum ItemAnimationValue { X, Y, Z, SIZE, SPEED }
@@ -910,12 +912,14 @@ public final class HudEditorScreen extends AppleScreen {
     // ------------------------------------------------------------------ layout
 
     private void layout() {
-        wx = 6f;
-        wy = 6f;
-        ww = Math.max(120f, width - 12f);
-        wh = Math.max(120f, height - 12f);
+        GuiLayoutToolkit.clampPanel(editorPanel, 6f, 6f, Math.max(1f, width - 12f),
+                Math.max(1f, height - 12f), width, height);
+        wx = editorPanel.x;
+        wy = editorPanel.y;
+        ww = editorPanel.w;
+        wh = editorPanel.h;
 
-        barW = Math.min(ww - 16f, 380f);
+        barW = Math.max(1f, Math.min(ww - 16f, 380f));
         barX = wx + (ww - barW) * 0.5f;
         barY = wy + BAR_TOP;
         doneBtn.x = barX + barW - 8f - doneBtn.w;
@@ -1064,11 +1068,11 @@ public final class HudEditorScreen extends AppleScreen {
             e.control.update(dt);
         }
         scroll.update(dt, gestureActive && gesture.kind == Gesture.SCROLL,
-                Theme.animations, Theme.speed);
+                Theme.animations && AppleSettings.smoothScrolling, Theme.speed);
     }
 
     private float scrollSpeed() {
-        return AppleSettings.scrollSpeed / 100f;
+        return AppleSettings.guiScrollMultiplier();
     }
 
     // ------------------------------------------------------------------ drawing

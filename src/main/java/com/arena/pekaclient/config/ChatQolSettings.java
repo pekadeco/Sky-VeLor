@@ -251,8 +251,7 @@ public final class ChatQolSettings {
             p.setProperty(prefix + "fade", Integer.toString(fadeSeconds));
             p.setProperty(prefix + "hover.color", colourString(hoverColor));
             p.setProperty(prefix + "hover.opacity", Integer.toString(hoverOpacity));
-            p.setProperty(prefix + "scroll.speed", Integer.toString(scrollSpeed));
-            p.setProperty(prefix + "scroll.smooth", Boolean.toString(smoothScroll));
+            // Scroll values are consumed only as a compatibility input; AppleSettings owns the one global policy.
         }
     }
 
@@ -753,16 +752,7 @@ public final class ChatQolSettings {
         p.setProperty(PREFIX + "smooth", Boolean.toString(smoothMessages));
         p.setProperty(PREFIX + "hover", Boolean.toString(hoverHighlight));
         p.setProperty(PREFIX + "menu", Boolean.toString(rightClickMenu));
-        // Keep this legacy alias for one release cycle so an older install can still read the opt-in state.
-        p.setProperty(PREFIX + "font.enabled", Boolean.toString(globalFontEnabled));
-        p.setProperty(PREFIX + "globalFont.enabled", Boolean.toString(globalFontEnabled));
-        p.setProperty(PREFIX + "globalFont.name", normalizeGlobalFontName(globalFontName));
-        p.setProperty(PREFIX + "globalFont.allMinecraft", Boolean.toString(applyAllMinecraftText));
-        p.setProperty(PREFIX + "globalFont.scale.ui", Integer.toString(fontUiScale));
-        p.setProperty(PREFIX + "globalFont.scale.hud", Integer.toString(fontHudScale));
-        p.setProperty(PREFIX + "globalFont.scale.editor", Integer.toString(fontEditorScale));
-        p.setProperty(PREFIX + "globalFont.scale.tab", Integer.toString(fontTabScale));
-        p.setProperty(PREFIX + "globalFont.scale.chat", Integer.toString(fontChatScale));
+        // Legacy chat.qol.font/globalFont keys are read for migration only. FontSettings owns persistence now.
         p.setProperty(PREFIX + "tabs.selected", Integer.toString(selectedTab));
         p.setProperty(PREFIX + "tabs.all", Boolean.toString(showAll));
         p.setProperty(PREFIX + "tabs.party", Boolean.toString(showParty));
@@ -773,7 +763,6 @@ public final class ChatQolSettings {
         p.setProperty(PREFIX + "background.radius", Integer.toString(backgroundRadius));
         p.setProperty(PREFIX + "hover.opacity", Integer.toString(highlightOpacity));
         // Do not write the removed colour-copy option back. It cannot re-enable a third menu action.
-        p.setProperty(PREFIX + "font.name", globalFontName);
         p.setProperty(PREFIX + "smooth.duration", Integer.toString(smoothDuration));
         p.setProperty(PREFIX + "editor.target", Integer.toString(editorTarget));
         p.setProperty(PREFIX + "editor.linkAll", Boolean.toString(linkAll));
@@ -797,7 +786,6 @@ public final class ChatQolSettings {
         setTabOrder(tabOrder);
         editorTarget = targetIndex(editorTarget);
         globalFontName = normalizeGlobalFontName(globalFontName);
-        globalFontEnabled = globalFontEnabled;
         customFont = globalFontEnabled;
         fontName = globalFontName;
         fontUiScale = clamp(fontUiScale, 50, 200);

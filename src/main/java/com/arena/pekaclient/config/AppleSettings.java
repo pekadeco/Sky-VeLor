@@ -174,6 +174,8 @@ public final class AppleSettings {
 
     /** Set while a legacy firstPerson* key was read; load immediately writes its Item Animation replacement. */
     private static boolean itemAnimationMigrationPending;
+    /** Set when target-local Chat QoL scrolling is promoted into the one global viewport policy. */
+    private static boolean globalScrollMigrationPending;
 
     private AppleSettings() {
     }
@@ -184,6 +186,7 @@ public final class AppleSettings {
 
     public static void load() {
         itemAnimationMigrationPending = false;
+        globalScrollMigrationPending = false;
         Properties p = ConfigFiles.read(readFile());
         accent = readInt(p, "accent", accent, 0, ACCENT_COLORS.length - 1);
         darkMode = readBool(p, "darkMode", darkMode);
@@ -198,9 +201,8 @@ public final class AppleSettings {
         curveQuality = readInt(p, "curveQuality", curveQuality, 0, 2);
         shadows = readBool(p, "shadows", shadows);
         loadPerformanceSettings(p);
-        scrollSpeed = readInt(p, "scrollSpeed", scrollSpeed, 50, 300);
-        smoothScrolling = readBool(p, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING);
-        
+        loadGlobalScrollSettings(p);
+
         loadItemAnimationSettings(p);
 
         leapMenu = readBool(p, "leapMenu", leapMenu);
@@ -241,9 +243,33 @@ public final class AppleSettings {
         M7Settings.load(p);
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
         // atomic writer preserves a valid file even if the client is interrupted while migrating.
-        if (itemAnimationMigrationPending || ChatQolSettings.isMigrationPending() || FontSettings.isMigrationPending()) {
+        if (itemAnimationMigrationPending || globalScrollMigrationPending || ChatQolSettings.isMigrationPending()
+                || FontSettings.isMigrationPending()) {
             save();
         }
+    }
+
+    /**
+     * Promotes retired per-chat scroll settings into the single global policy. A native global value always wins;
+     * otherwise Default Chat is the historical source and Chat 1 is a safe fallback. This method has no Minecraft
+     * dependency so compatibility tests can prove old files do not silently lose their scroll preference.
+     */
+    static void loadGlobalScrollSettings(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        boolean hasSpeed = p.containsKey("scrollSpeed");
+        boolean hasSmooth = p.containsKey("smoothScrolling");
+        String defaultSpeed = ChatQolSettings.PREFIX + "target.default.scroll.speed";
+        String chatOneSpeed = ChatQolSettings.PREFIX + "target.chat1.scroll.speed";
+        String defaultSmooth = ChatQolSettings.PREFIX + "target.default.scroll.smooth";
+        String chatOneSmooth = ChatQolSettings.PREFIX + "target.chat1.scroll.smooth";
+        String speedSource = p.containsKey(defaultSpeed) ? defaultSpeed : chatOneSpeed;
+        String smoothSource = p.containsKey(defaultSmooth) ? defaultSmooth : chatOneSmooth;
+        scrollSpeed = hasSpeed ? readInt(p, "scrollSpeed", scrollSpeed, 50, 300)
+                : readInt(p, speedSource, DEFAULT_SCROLL_SPEED, 50, 300);
+        smoothScrolling = hasSmooth ? readBool(p, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING)
+                : readBool(p, smoothSource, DEFAULT_SMOOTH_SCROLLING);
+        globalScrollMigrationPending = (!hasSpeed && p.containsKey(speedSource))
+                || (!hasSmooth && p.containsKey(smoothSource));
     }
 
     /**
