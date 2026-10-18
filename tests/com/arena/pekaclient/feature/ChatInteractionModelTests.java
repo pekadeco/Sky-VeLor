@@ -2,6 +2,11 @@ package com.arena.pekaclient.feature;
 
 import com.arena.pekaclient.chat.CapturedChatMenu;
 import com.arena.pekaclient.chat.ChatContextMenu;
+import com.arena.pekaclient.chat.ChatInputInsertion;
+import com.arena.pekaclient.chat.ChatMenuState;
+
+import java.util.ArrayList;
+import java.util.List;
 import com.arena.pekaclient.chat.ChatMenuPolicy;
 
 /** Headless proof for the one Default Chat interaction contract. */
@@ -14,6 +19,7 @@ public final class ChatInteractionModelTests {
         menuActionsAndInstantGeometry();
         boundedMenuAndHover();
         capturedMessageSurvivesPointerMovement();
+        menuStateThroughMousePathInEveryTab();
         oneWheelApplication();
         System.out.println("chat interaction model: passed " + passed + ", failed " + failed);
         if (failed > 0) System.exit(1);
@@ -45,8 +51,9 @@ public final class ChatInteractionModelTests {
         check("system message hides third action", menuActions.optionCount() == 2 && menuActions.labelAt(2).length() == 0);
         CapturedChatMenu system = new CapturedChatMenu();
         system.open("system", "System: You sold this for 1 coin", "System: You sold this for 1 coin");
-        menuActions.setPlayerName(system.message().playerName);
-        check("stored system fixture cannot expose message player", system.message().playerName.length() == 0
+        ChatMenuState systemState = system.state();
+        menuActions.setPlayerName(systemState == null ? "" : systemState.playerName);
+        check("stored system fixture cannot expose message player", systemState != null && systemState.playerName.length() == 0
                 && menuActions.optionCount() == 2);
 
         ChatInteractionModel.Menu menu = new ChatInteractionModel.Menu();
@@ -87,12 +94,58 @@ public final class ChatInteractionModelTests {
         captured.open("group-a", "§aFrom [MVP+] Alex_99: The full grouped message", "§aFrom [MVP+] Alex_99: The full grouped message");
         // A later hover over another row must not alter the payload selected by either menu action.
         String laterHover = "a different row";
+        ChatMenuState state = captured.state();
         check("captured message stays clean", captured.hasMessage()
-                && "From [MVP+] Alex_99: The full grouped message".equals(captured.message().clean));
-        check("captured message keeps name from opening group", "group-a".equals(captured.message().groupId)
-                && "Alex_99".equals(captured.message().playerName) && !captured.message().clean.equals(laterHover));
+                && state != null && "From [MVP+] Alex_99: The full grouped message".equals(state.clean));
+        check("captured message keeps name from opening group", state != null && "group-a".equals(state.groupId)
+                && "Alex_99".equals(state.playerName) && !state.clean.equals(laterHover));
         captured.clear();
         check("captured payload clears after use", !captured.hasMessage());
+    }
+
+    /** Exercises the same CapturedChatMenu -> ChatMenuState press/release/insertion sequence used by CopyMenu. */
+    private static void menuStateThroughMousePathInEveryTab() {
+        List<ChatTabs.Tab> tabs = new ArrayList<ChatTabs.Tab>(ChatTabs.defaults());
+        ChatTabs.Tab custom = ChatTabs.custom("custom-trade", "Trade");
+        custom.setFilter(ChatTabs.CONTAINS, "selling");
+        tabs.add(custom);
+        String[] ids = {ChatTabs.ALL, ChatTabs.PARTY, ChatTabs.REPLY, custom.id()};
+        String[] lines = {
+                "[MVP+] All_Player: hello from All",
+                "Party > [VIP] Party_Player: hello from Party",
+                "From [MVP+] Reply_Player: hello from Reply",
+                "[VIP] Trade_Player: selling a clean copy path"
+        };
+        for (int i = 0; i < ids.length; i++) {
+            check("menu fixture is visible in " + ids[i], ChatTabs.appearsIn(ids[i], lines[i], tabs));
+            runMenuMousePath("left", ids[i], lines[i]);
+            runMenuMousePath("right", ids[i], lines[i]);
+        }
+        ChatMenuState formattedFallback = new ChatMenuState("all-formatted", "", "§b[MVP+] All_123: formatted fallback");
+        check("All menu state falls back to visible formatted text", formattedFallback.hasCopyText()
+                && "All_123".equals(formattedFallback.playerName) && formattedFallback.optionCount() == 3);
+    }
+
+    private static void runMenuMousePath(String mousePath, String tabId, String line) {
+        CapturedChatMenu captured = new CapturedChatMenu();
+        // Both real mouse paths call CopyMenu.show(), which calls this same open method exactly once.
+        captured.open(tabId + "-group", line, "§a" + line);
+        ChatMenuState state = captured.state();
+        String pointerMovedOffMessage = "some other row";
+        check(mousePath + " opens one state in " + tabId, state != null && captured.hasMessage()
+                && !state.clean.equals(pointerMovedOffMessage) && state.optionCount() == 3);
+        check(mousePath + " has detected player in " + tabId, state != null && state.playerName.length() > 0
+                && "Message player".equals(state.labelAt(ChatContextMenu.MESSAGE_PLAYER)));
+        boolean pressed = state != null && state.press(ChatContextMenu.COPY_TO_CHAT_BOX);
+        int action = state == null ? -1 : state.release(ChatContextMenu.COPY_TO_CHAT_BOX);
+        ChatInputInsertion.Result inserted = state == null ? null
+                : state.insertInto("draft ", 6, 6, action);
+        check(mousePath + " copy-to-chat stays captured after pointer leaves in " + tabId,
+                pressed && action == ChatContextMenu.COPY_TO_CHAT_BOX && inserted != null && inserted.inserted
+                        && ("draft " + line).equals(inserted.text));
+        // CopyMenu clears this holder only after the insertion above completes.
+        captured.clear();
+        check(mousePath + " clears state after action in " + tabId, captured.state() == null);
     }
 
     private static void oneWheelApplication() {

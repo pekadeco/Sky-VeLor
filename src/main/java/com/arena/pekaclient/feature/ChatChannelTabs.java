@@ -5,6 +5,7 @@ import com.arena.pekaclient.chat.ChatClipboard;
 import com.arena.pekaclient.chat.ChatContextMenu;
 import com.arena.pekaclient.chat.ChatInputInsertion;
 import com.arena.pekaclient.chat.ChatMenuPolicy;
+import com.arena.pekaclient.chat.ChatMenuState;
 import com.arena.pekaclient.chat.ChatPlayerName;
 import com.arena.pekaclient.chat.ChatRenderGeometry;
 import com.arena.pekaclient.chat.ChatText;
@@ -57,7 +58,6 @@ public final class ChatChannelTabs {
     private static final Field CHAT_LINES;
     private static final Field DRAWN_LINES;
     private static final Field INPUT_FIELD;
-    private static final Field INPUT_WIDTH;
     private static final Method HANDLE_COMPONENT_CLICK;
     private static final boolean BRIDGE_READY;
 
@@ -65,33 +65,28 @@ public final class ChatChannelTabs {
         Field chatLines = null;
         Field drawnLines = null;
         Field input = null;
-        Field inputWidth = null;
         Method click = null;
         try {
             chatLines = ReflectionHelper.findField(GuiNewChat.class, "chatLines", "field_146252_h", "h");
             drawnLines = ReflectionHelper.findField(GuiNewChat.class, "drawnChatLines", "field_146253_i", "i");
             input = ReflectionHelper.findField(GuiChat.class, "inputField", "field_146415_a", "a");
-            inputWidth = ReflectionHelper.findField(GuiTextField.class, "width", "field_146218_h", "h");
             click = ReflectionHelper.findMethod(GuiScreen.class, null,
                     new String[]{"handleComponentClick", "func_175276_a", "a"}, IChatComponent.class);
             chatLines.setAccessible(true);
             drawnLines.setAccessible(true);
             input.setAccessible(true);
-            inputWidth.setAccessible(true);
             click.setAccessible(true);
         } catch (RuntimeException | LinkageError ignored) {
             chatLines = null;
             drawnLines = null;
             input = null;
-            inputWidth = null;
             click = null;
         }
         CHAT_LINES = chatLines;
         DRAWN_LINES = drawnLines;
         INPUT_FIELD = input;
-        INPUT_WIDTH = inputWidth;
         HANDLE_COMPONENT_CLICK = click;
-        BRIDGE_READY = chatLines != null && drawnLines != null && input != null && inputWidth != null && click != null;
+        BRIDGE_READY = chatLines != null && drawnLines != null && input != null && click != null;
     }
 
     private static ChatChannelTabs live;
@@ -111,11 +106,6 @@ public final class ChatChannelTabs {
 
     private GuiChat inputOwner;
     private GuiTextField cachedInput;
-    private GuiTextField shiftedInput;
-    private int savedInputX;
-    private int savedInputWidth;
-    private int appliedInputX = Integer.MIN_VALUE;
-    private int appliedInputWidth = Integer.MIN_VALUE;
     private MessageGroup hoveredGroup;
     private MessageGroup pendingLeftGroup;
     /** Set permanently for this client session after an unexpected cache bridge failure; subsequent frames fail open. */
@@ -179,20 +169,13 @@ public final class ChatChannelTabs {
     public void onInitGui(GuiScreenEvent.InitGuiEvent.Post event) {
         if (!(event.gui instanceof GuiChat)) return;
         cacheInput((GuiChat) event.gui);
-        if (ownsDefaultChat()) adjustInput((GuiChat) event.gui);
     }
 
-    /** The field is shifted only while our active-channel label is visible; typed text stays in Minecraft's real field. */
+    /** The real input remains unshifted and unlabelled; the selected tab still controls only outgoing prefixes. */
     @SubscribeEvent
     public void onDrawPre(GuiScreenEvent.DrawScreenEvent.Pre event) {
-        if (!(event.gui instanceof GuiChat)) return;
-        if (!ownsDefaultChat()) {
-            restoreInput();
-            return;
-        }
-        GuiChat chat = (GuiChat) event.gui;
-        cacheInput(chat);
-        adjustInput(chat);
+        if (!(event.gui instanceof GuiChat) || !ownsDefaultChat()) return;
+        cacheInput((GuiChat) event.gui);
     }
 
     /** Tab strip, hover tint, and menu render over the live GuiChat input so their z-order is deterministic. */
@@ -207,7 +190,6 @@ public final class ChatChannelTabs {
         float inputTop = inputTop(chat);
         updateTabLayout(chat.width, inputTop);
         UIRender.beginFrame();
-        drawInputChannelLabel(chat);
         if (shouldShowTabs(true)) drawTabs(mx, my);
         updateHover(mx, my, dt);
         drawHoverHighlight();
@@ -303,7 +285,6 @@ public final class ChatChannelTabs {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null || !(mc.currentScreen instanceof GuiChat)) {
-            restoreInput();
             inputOwner = null;
             cachedInput = null;
             pendingLeftGroup = null;
@@ -320,7 +301,6 @@ public final class ChatChannelTabs {
     /** Used by the Hub when the master or tab switch is disabled. No cache restoration is needed because we never edit it. */
     public static void disableAndRestoreAll() {
         if (live != null) {
-            live.restoreInput();
             live.copyMenu.hide();
             live.pendingLeftGroup = null;
             live.hoveredGroup = null;
@@ -361,7 +341,7 @@ public final class ChatChannelTabs {
                 + " x=" + Math.round(tabFrameX) + " y=" + Math.round(tabFrameY) + " w="
                 + Math.round(tabFrameW) + " h=" + Math.round(tabFrameH) + ", tabs=" + ChatQolSettings.tabs().size() + "."));
         sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fMouse group=" + describeGroup(hoveredGroup)
-                + ", stored menu=" + copyMenu.describeStored() + "."));
+                + ", menu state=" + copyMenu.describeStored() + "."));
         sender.addChatMessage(new ChatComponentText("§7Chat debug outlines " + (debug ? "enabled" : "disabled") + "."));
     }
 
@@ -678,7 +658,6 @@ public final class ChatChannelTabs {
 
     private void cacheInput(GuiChat chat) {
         if (inputOwner == chat) return;
-        restoreInput();
         inputOwner = chat;
         cachedInput = input(chat);
     }
@@ -697,82 +676,10 @@ public final class ChatChannelTabs {
         return input == null ? (chat == null ? 0f : chat.height - 12f) : input.yPosition;
     }
 
-    private void adjustInput(GuiChat chat) {
-        if (!ChatQolSettings.tabsEnabled) {
-            restoreInput();
-            return;
-        }
-        GuiTextField input = inputOwner == chat ? cachedInput : input(chat);
-        if (input == null) return;
-        if (shiftedInput != input) {
-            restoreInput();
-            shiftedInput = input;
-            savedInputX = input.xPosition;
-            savedInputWidth = inputWidth(input);
-            appliedInputX = Integer.MIN_VALUE;
-            appliedInputWidth = Integer.MIN_VALUE;
-        }
-        if (savedInputWidth <= 0) {
-            restoreInput();
-            return;
-        }
-        String label = selectedLabel() + " ›";
-        int reserve = Math.max(30, Minecraft.getMinecraft().fontRendererObj.getStringWidth(label) + 10);
-        if (savedInputWidth - reserve < 30) {
-            applyInput(input, savedInputX, savedInputWidth);
-            return;
-        }
-        applyInput(input, savedInputX + reserve, savedInputWidth - reserve);
-    }
-
-    private void drawInputChannelLabel(GuiChat chat) {
-        if (shiftedInput == null || inputOwner != chat) return;
-        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-        ChatTabs.Tab selected = activeTab();
-        UIRender.text(font, selectedLabel() + " ›", savedInputX + 4f, shiftedInput.yPosition + 2f,
-                selected == null ? Theme.textSecondary : selected.colour(), 1f, true, GlobalFontManager.Area.TAB);
-    }
-
-    private String selectedLabel() {
-        ChatTabs.Tab selected = activeTab();
-        return selected == null ? "All" : selected.name();
-    }
-
     /** Disabling the tab feature must never leave a hidden filter or prefix active: the real Default Chat falls back
      * to All until tabs are turned back on, while the user's selection remains safely saved for later. */
     private ChatTabs.Tab activeTab() {
         return ChatQolSettings.tabsEnabled ? ChatQolSettings.selectedTab() : ChatQolSettings.tab(ChatTabs.ALL);
-    }
-
-    private int inputWidth(GuiTextField input) {
-        try { return INPUT_WIDTH.getInt(input); }
-        catch (IllegalAccessException | IllegalArgumentException ignored) { return -1; }
-    }
-
-    private boolean applyInput(GuiTextField input, int x, int width) {
-        if (input == null || width <= 0) return false;
-        if (appliedInputX == x && appliedInputWidth == width) return true;
-        try {
-            INPUT_WIDTH.setInt(input, width);
-            input.xPosition = x;
-            appliedInputX = x;
-            appliedInputWidth = width;
-            return true;
-        } catch (IllegalAccessException | IllegalArgumentException ignored) {
-            return false;
-        }
-    }
-
-    private void restoreInput() {
-        if (shiftedInput != null) {
-            if (savedInputWidth > 0) {
-                try { INPUT_WIDTH.setInt(shiftedInput, savedInputWidth); } catch (IllegalAccessException | IllegalArgumentException ignored) { }
-            }
-            shiftedInput.xPosition = savedInputX;
-        }
-        shiftedInput = null;
-        appliedInputX = Integer.MIN_VALUE;
-        appliedInputWidth = Integer.MIN_VALUE;
     }
 
     private float frameDelta() {
@@ -797,8 +704,16 @@ public final class ChatChannelTabs {
 
     private static String cleanComponent(IChatComponent component) {
         if (component == null) return "";
-        String raw = component.getUnformattedTextForChat();
-        return ChatText.clean(raw == null ? component.getFormattedText() : raw);
+        String raw = ChatText.clean(component.getUnformattedTextForChat());
+        // Composite/chat-translation roots can report an empty unformatted value even when their rendered sibling text
+        // is present. Preserve the visible text so All has the same captured payload as Party/Reply/custom tabs.
+        return hasText(raw) ? raw : ChatText.clean(component.getFormattedText());
+    }
+
+    private static boolean hasText(String value) {
+        if (value == null) return false;
+        for (int i = 0; i < value.length(); i++) if (!Character.isWhitespace(value.charAt(i))) return true;
+        return false;
     }
 
     @SuppressWarnings("unchecked")
@@ -851,42 +766,43 @@ public final class ChatChannelTabs {
 
     private final class CopyMenu {
         private final ChatInteractionModel.Menu geometry = new ChatInteractionModel.Menu();
-        private final ChatContextMenu actions = new ChatContextMenu();
         private final CapturedChatMenu captured = new CapturedChatMenu();
 
         boolean visible() { return geometry.visible; }
-        boolean armed() { return actions.armed(); }
+        boolean armed() {
+            ChatMenuState state = captured.state();
+            return state != null && state.armed();
+        }
         boolean contains(int x, int y) { return geometry.rowAt(x, y) >= 0; }
 
+        /** Both left-release and right-down flows enter here, so they create the same one immutable MenuState. */
         void show(MessageGroup group, int mouseX, int mouseY, int screenW, int screenH) {
             if (group == null) return;
-            // Capture the full original group once. Pointer movement/re-layout after this point cannot change actions.
             captured.open(Integer.toString(group.id), group.clean, group.formatted);
-            CapturedChatMenu.Message message = captured.message();
-            actions.clear();
-            actions.setPlayerName(message == null ? "" : message.playerName);
-            geometry.show(mouseX, mouseY, screenW, screenH, actions.optionCount());
+            ChatMenuState state = captured.state();
+            if (state == null) return;
+            geometry.show(mouseX, mouseY, screenW, screenH, state.optionCount());
         }
 
         void hide() {
             geometry.hide();
-            actions.clear();
             captured.clear();
         }
 
         void press(int x, int y) {
-            if (!actions.press(geometry.rowAt(x, y))) hide();
+            ChatMenuState state = captured.state();
+            if (state == null || !state.press(geometry.rowAt(x, y))) hide();
         }
 
         void release(int x, int y, GuiChat chat) {
-            int action = actions.release(geometry.rowAt(x, y));
-            CapturedChatMenu.Message message = captured.message();
-            if (action < 0 || message == null) {
+            ChatMenuState state = captured.state();
+            int action = state == null ? -1 : state.release(geometry.rowAt(x, y));
+            if (action < 0 || state == null) {
                 hide();
                 return;
             }
             if (action == ChatContextMenu.COPY_TO_CLIPBOARD) {
-                ChatClipboard.Result result = ChatClipboard.copy(message.clean);
+                ChatClipboard.Result result = ChatClipboard.copy(state.clean);
                 toast(result.success ? "Copied to clipboard" : "Could not copy to clipboard");
             } else {
                 GuiTextField input = input(chat);
@@ -894,14 +810,13 @@ public final class ChatChannelTabs {
                     toast(action == ChatContextMenu.MESSAGE_PLAYER
                             ? "Could not prepare message; input unavailable" : "Could not copy to chat box; input unavailable");
                 } else {
-                    ChatInputInsertion.Result inserted = action == ChatContextMenu.MESSAGE_PLAYER
-                            ? ChatInputInsertion.messagePlayer(input.getText(), message.playerName)
-                            : ChatInputInsertion.insert(input.getText(), input.getCursorPosition(),
-                                    input.getSelectionEnd(), message.clean);
+                    ChatInputInsertion.Result inserted = state.insertInto(input.getText(), input.getCursorPosition(),
+                            input.getSelectionEnd(), action);
                     if (!inserted.inserted) {
                         toast(action == ChatContextMenu.MESSAGE_PLAYER ? "No player name in this message"
                                 : input.getText().length() >= ChatInputInsertion.MAX_LENGTH
-                                ? "Chat box already has 256 characters" : "Nothing selected");
+                                ? "Chat box already has 256 characters"
+                                : !state.hasCopyText() ? "Captured message was empty" : "Could not insert captured message");
                     } else {
                         // Raise the real field's cap before setting text so GuiTextField cannot truncate a valid
                         // 101–256 character insertion using its prior vanilla limit.
@@ -914,32 +829,31 @@ public final class ChatChannelTabs {
                     }
                 }
             }
+            // State remains available through the whole action and is discarded only after it has completed.
             hide();
         }
 
         void draw(int mouseX, int mouseY, float dt) {
-            if (!geometry.visible) return;
+            ChatMenuState state = captured.state();
+            if (!geometry.visible || state == null) return;
             int hovered = geometry.rowAt(mouseX, mouseY);
             geometry.updateHover(dt, hovered);
             UIRender.roundRectBorder(geometry.x, geometry.y, geometry.w, geometry.h, 4f,
                     Theme.popup, Theme.popup, Theme.border);
             FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-            for (int i = 0; i < actions.optionCount(); i++) {
+            for (int i = 0; i < state.optionCount(); i++) {
                 float hot = geometry.hoverAmount(i);
                 float rowY = geometry.y + i * ChatInteractionModel.Menu.ROW_HEIGHT;
                 if (hot > .002f) UIRender.roundRect(geometry.x + 2f, rowY + 1f, geometry.w - 4f, 18f,
                         3f, UIRender.withAlpha(Theme.cardHover, hot), UIRender.withAlpha(Theme.cardHover, hot), 0f);
-                UIRender.text(font, fit(font, actions.labelAt(i), geometry.w - 14f, .78f), geometry.x + 7f, rowY + 6f,
+                UIRender.text(font, fit(font, state.labelAt(i), geometry.w - 14f, .78f), geometry.x + 7f, rowY + 6f,
                         hot > .5f ? Theme.textPrimary : Theme.textSecondary, .78f, false, GlobalFontManager.Area.CHAT);
             }
         }
 
         String describeStored() {
-            CapturedChatMenu.Message message = captured.message();
-            if (message == null) return "none";
-            String text = message.clean.length() > 42 ? message.clean.substring(0, 39) + "..." : message.clean;
-            return "#" + message.groupId + " [" + text + "] player="
-                    + (message.playerName.length() == 0 ? "none" : message.playerName);
+            ChatMenuState state = captured.state();
+            return state == null ? "closed" : state.describe();
         }
     }
 

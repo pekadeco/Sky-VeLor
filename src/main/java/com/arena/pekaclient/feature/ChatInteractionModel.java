@@ -6,7 +6,7 @@ package com.arena.pekaclient.feature;
  */
 public final class ChatInteractionModel {
 
-    /** Copy labels are intentionally exact and stable; the third label is generated from the captured player name. */
+    /** Copy labels are exact and stable; the third row is conditionally shown from the captured player name. */
     public static final String COPY_TO_CLIPBOARD = "Copy to clipboard";
     public static final String COPY_TO_CHAT_BOX = "Copy to chat box";
     public static final String MESSAGE_PLAYER = "Message player";
