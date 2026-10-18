@@ -1,5 +1,6 @@
 package com.arena.pekaclient.config;
 
+import com.arena.pekaclient.chat.ChatMenuPolicy;
 import com.arena.pekaclient.feature.ChatPatternRules;
 import com.arena.pekaclient.gui.ChatEditorPanelLayout;
 
@@ -48,7 +49,12 @@ public final class ChatQolSettings {
     public static boolean separateChats;
     public static boolean smoothMessages;
     public static boolean hoverHighlight;
+    /** Legacy migration alias for the old right-click-only toggle. New code reads menuOpenMode. */
     public static boolean rightClickMenu;
+    /** Right / Left / Both interaction policy. New profiles default to Both. */
+    public static int menuOpenMode;
+    /** 0 is Off; nonzero values are eased completion durations in milliseconds. */
+    public static int menuAnimationMillis;
     /** Retained as a migration alias for pre-0.10.8.4 chat-only font profiles. */
     public static boolean customFont;
 
@@ -437,6 +443,25 @@ public final class ChatQolSettings {
         return enabled;
     }
 
+    /** The one persisted source of truth consumed by the GUI, router and renderer. */
+    public static boolean isSeparateChats() {
+        return separateChats;
+    }
+
+    public static void setSeparateChats(boolean value) {
+        separateChats = value;
+    }
+
+    public static void setMenuOpenMode(int value) {
+        menuOpenMode = value == ChatMenuPolicy.DISABLED ? ChatMenuPolicy.DISABLED : ChatMenuPolicy.normalize(value);
+        // Keep the old in-memory flag truthful for integrations which only knew whether right-click opened a menu.
+        rightClickMenu = ChatMenuPolicy.allowsRight(menuOpenMode);
+    }
+
+    public static void setMenuAnimationMillis(int value) {
+        menuAnimationMillis = clamp(value, 0, 240);
+    }
+
     /** Returns a read-only snapshot that is safe for editor inspection. */
     public static List<ChatPatternRules.Rule> patternRules() {
         return Collections.unmodifiableList(new ArrayList<ChatPatternRules.Rule>(PATTERNS));
@@ -596,6 +621,8 @@ public final class ChatQolSettings {
             }
         });
         highlightOpacity = 35;
+        setMenuOpenMode(ChatMenuPolicy.BOTH);
+        setMenuAnimationMillis(100);
         // The legacy setting is retained only so old config files load; extra menu variants are never exposed.
         copyWithColours = false;
     }
@@ -613,6 +640,8 @@ public final class ChatQolSettings {
         smoothMessages = false;
         hoverHighlight = false;
         rightClickMenu = false;
+        menuOpenMode = ChatMenuPolicy.BOTH;
+        menuAnimationMillis = 100;
         customFont = false;
         editorTarget = TARGET_DEFAULT;
         linkAll = false;
@@ -666,7 +695,17 @@ public final class ChatQolSettings {
         separateChats = readBool(p, PREFIX + "separate", separateChats);
         smoothMessages = readBool(p, PREFIX + "smooth", readBool(p, "chat.animation.messages", smoothMessages));
         hoverHighlight = readBool(p, PREFIX + "hover", hoverHighlight);
-        rightClickMenu = readBool(p, PREFIX + "menu", rightClickMenu);
+        // `chat.qol.menu` was a right-click-only boolean. Preserve an explicitly disabled historic profile without
+        // exposing a fourth new choice; fresh profiles use the requested Both default.
+        if (p.containsKey(PREFIX + "menu.open")) {
+            setMenuOpenMode(readInt(p, PREFIX + "menu.open", ChatMenuPolicy.BOTH,
+                    ChatMenuPolicy.DISABLED, ChatMenuPolicy.BOTH));
+        } else if (p.containsKey(PREFIX + "menu")) {
+            setMenuOpenMode(readBool(p, PREFIX + "menu", false) ? ChatMenuPolicy.RIGHT : ChatMenuPolicy.DISABLED);
+        } else {
+            setMenuOpenMode(menuOpenMode);
+        }
+        setMenuAnimationMillis(readInt(p, PREFIX + "menu.animation", menuAnimationMillis, 0, 240));
         // Pre-0.10.8.4 stored a chat-only font switch/name. It becomes the global Sky VeLor selection on load.
         customFont = readBool(p, PREFIX + "font.enabled", customFont);
         globalFontEnabled = readBool(p, PREFIX + "globalFont.enabled", customFont);
@@ -737,7 +776,10 @@ public final class ChatQolSettings {
         p.setProperty(PREFIX + "separate", Boolean.toString(separateChats));
         p.setProperty(PREFIX + "smooth", Boolean.toString(smoothMessages));
         p.setProperty(PREFIX + "hover", Boolean.toString(hoverHighlight));
+        // Keep the old boolean as a compatibility hint while the enum-like native key is authoritative.
         p.setProperty(PREFIX + "menu", Boolean.toString(rightClickMenu));
+        p.setProperty(PREFIX + "menu.open", Integer.toString(menuOpenMode));
+        p.setProperty(PREFIX + "menu.animation", Integer.toString(menuAnimationMillis));
         // Legacy chat.qol.font/globalFont keys are read for migration only. FontSettings owns persistence now.
         p.setProperty(PREFIX + "tabs.selected", Integer.toString(selectedTab));
         p.setProperty(PREFIX + "tabs.all", Boolean.toString(showAll));
@@ -780,6 +822,8 @@ public final class ChatQolSettings {
         fontTabScale = clamp(fontTabScale, 50, 200);
         fontChatScale = clamp(fontChatScale, 50, 200);
         copyWithColours = false;
+        setMenuOpenMode(menuOpenMode);
+        setMenuAnimationMillis(menuAnimationMillis);
         smoothDuration = clamp(smoothDuration, 0, 1000);
         syncLegacyAppearanceAliases();
         CHAT_1.setName(CHAT_1.getName());

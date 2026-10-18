@@ -5,6 +5,7 @@ import com.arena.pekaclient.render.UIRender;
 import org.lwjgl.input.Keyboard;
 
 import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
@@ -15,6 +16,7 @@ public final class AppleSlider extends Widget {
     private final String suffix;
     private final IntSupplier getter;
     private final IntConsumer setter;
+    private IntFunction<String> labelFormatter;
     private Supplier<Boolean> gate;
     /** Holding Shift uses this smaller step; unchanged sliders retain their ordinary step. */
     private int fineStep;
@@ -49,6 +51,12 @@ public final class AppleSlider extends Widget {
     /** Lets a setting return to its own default without opening a separate reset dialog. */
     public AppleSlider onDoubleClick(Runnable action) {
         this.doubleClickAction = action;
+        return this;
+    }
+
+    /** Formats the visible value without changing the integer setting; useful for the explicit `Off` zero state. */
+    public AppleSlider valueLabel(IntFunction<String> formatter) {
+        this.labelFormatter = formatter;
         return this;
     }
 
@@ -133,10 +141,13 @@ public final class AppleSlider extends Widget {
         UIRender.circle(end, cy, knobR, active ? 0xFFFFFFFF : Theme.textTertiary);
         UIRender.circle(end, cy, knobR - 1.2f, active ? Theme.accent : Theme.track);
         if (showValue) {
-            String text = value() + suffix;
+            String text = labelFormatter == null ? value() + suffix : labelFormatter.apply(value());
+            if (text == null) text = "";
             int color = active ? UIRender.mix(Theme.textSecondary, Theme.accent, valuePulse * 0.5f)
                     : Theme.textTertiary;
-            UIRender.text(font(), text, x + w - font().getStringWidth(text), y + 1f, color, 0.8f, false);
+            String shown = fitText(text, Math.max(0f, (w - 4f) / .8f));
+            UIRender.text(font(), shown, x + Math.max(0f, w - textWidth(shown) * .8f),
+                    y + Math.max(0f, (h - textHeight() * .8f) * .15f), color, 0.8f, false);
         }
         if (!active) {
             UIRender.roundRect(x, y, w, h, 4f, 0x24000000, 0x24000000, 0f);

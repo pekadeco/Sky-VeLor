@@ -104,18 +104,17 @@ public final class SearchField extends Widget {
         UIRender.roundRectRing(x, y, w, h, radius, 1f, border);
 
         String shown = value.length() == 0 && !focused ? placeholder : value.toString();
-        int available = Math.max(0, (int) (w - 16f));
-        if (font().getStringWidth(shown) > available) {
-            while (shown.length() > 0 && font().getStringWidth(shown) > available) {
-                shown = shown.substring(1);
-            }
+        float available = Math.max(0f, w - 16f);
+        while (shown.length() > 0 && textWidth(shown) > available) {
+            shown = shown.substring(1);
         }
         int color = value.length() == 0 && !focused ? Theme.textTertiary : Theme.textPrimary;
-        UIRender.text(font(), shown, x + 8f, y + (h - 8f) * 0.5f + 1f, color, 1f, false);
+        UIRender.text(font(), shown, x + 8f, y + (h - textHeight()) * 0.5f, color, 1f, false);
         if (focused && (System.currentTimeMillis() / 500L) % 2L == 0L) {
-            float caretX = x + 8f + font().getStringWidth(shown);
+            float caretX = x + 8f + textWidth(shown);
             if (caretX < x + w - 5f) {
-                UIRender.rect(caretX, y + 5f, 1f, h - 10f, Theme.textPrimary);
+                UIRender.rect(caretX, y + Math.max(2f, (h - textHeight()) * .5f), 1f,
+                        Math.min(textHeight(), Math.max(1f, h - 4f)), Theme.textPrimary);
             }
         }
         endAnimatedDraw();

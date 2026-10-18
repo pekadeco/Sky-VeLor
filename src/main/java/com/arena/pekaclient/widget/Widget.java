@@ -1,6 +1,7 @@
 package com.arena.pekaclient.widget;
 
 import com.arena.pekaclient.gui.GuiDebugOverlay;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
@@ -114,6 +115,36 @@ public abstract class Widget {
 
     protected static FontRenderer font() {
         return Minecraft.getMinecraft().fontRendererObj;
+    }
+
+    /** Actual UIRender width, including an enabled Sky VeLor font and its global UI scale. */
+    protected static float textWidth(String value) {
+        String text = value == null ? "" : value;
+        float measured = GlobalFontManager.width(text, GlobalFontManager.Area.UI);
+        return measured < 0f ? font().getStringWidth(text) : measured;
+    }
+
+    protected static float textHeight() {
+        float measured = GlobalFontManager.height(GlobalFontManager.Area.UI);
+        return measured < 0f ? font().FONT_HEIGHT : measured;
+    }
+
+    /** Ellipsizes against the renderer's active font rather than Minecraft Default's unrelated glyph widths. */
+    protected static String fitText(String value, float maxWidth) {
+        String text = value == null ? "" : value;
+        if (maxWidth <= 0f) return "";
+        if (textWidth(text) <= maxWidth) return text;
+        String dots = "…";
+        float dotsW = textWidth(dots);
+        if (dotsW > maxWidth) return "";
+        int low = 0;
+        int high = text.length();
+        while (low < high) {
+            int mid = (low + high + 1) >>> 1;
+            if (textWidth(text.substring(0, mid)) + dotsW <= maxWidth) low = mid;
+            else high = mid - 1;
+        }
+        return text.substring(0, low) + dots;
     }
 
     protected static float clamp(float value, float min, float max) {

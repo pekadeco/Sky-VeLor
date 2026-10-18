@@ -61,14 +61,12 @@ public final class AppleSegmented extends Widget {
 
         for (int i = 0; i < options.length; i++) {
             String label = options[i] == null ? "" : options[i];
-            int maxTextW = Math.max(0, (int) segmentW - 8);
-            if (font().getStringWidth(label) > maxTextW) {
-                label = font().trimStringToWidth(label, Math.max(0, maxTextW - 4)) + "…";
-            }
+            float maxTextW = Math.max(0f, segmentW - 8f);
+            label = fitText(label, maxTextW);
             float selectedWeight = Math.max(0f, 1f - Math.min(1f, Math.abs(index - i)));
             int color = UIRender.mix(Theme.textSecondary, Theme.textPrimary, selectedWeight);
-            UIRender.text(font(), label, x + segmentW * i + (segmentW - font().getStringWidth(label)) * 0.5f,
-                    y + (h - 8f) * 0.5f + 1f, color, 1f, false);
+            UIRender.text(font(), label, x + segmentW * i + (segmentW - textWidth(label)) * 0.5f,
+                    y + (h - textHeight()) * 0.5f, color, 1f, false);
         }
         drawBorder(radius, Theme.border);
         endAnimatedDraw();

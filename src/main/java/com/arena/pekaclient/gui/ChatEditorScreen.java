@@ -34,7 +34,8 @@ public final class ChatEditorScreen extends AppleScreen {
     private static final String[] SECTION_NAMES = {
             "Windows", "Background", "Messages", "Global settings", "Tabs", "Hover / menu"
     };
-    private static final int[] SECTION_ROWS = {5, 6, 14, 2, 5, 3};
+    // Messages reserves a dedicated status row after its 14 controls; Hover/menu owns two interaction controls too.
+    private static final int[] SECTION_ROWS = {5, 6, 15, 2, 5, 5};
     private static final String[] TARGET_OPTIONS = {"Default Chat", "Chat 1", "Chat 2"};
     private static final String[] APPEAR_OPTIONS = {"Vanilla", "Slide", "Fade"};
     private static final String[] ORDER_OPTIONS = {
@@ -95,6 +96,14 @@ public final class ChatEditorScreen extends AppleScreen {
     private float viewW;
     private float viewH;
     private float sf = 1f;
+    /** Active-font derived geometry; no editor row assumes Minecraft's fixed 8/9px glyph metrics. */
+    private float editorFontHeight = 9f;
+    private float controlHeight = 22f;
+    private float measuredRowHeight = ChatEditorLayout.ROW_H;
+    private float measuredHeaderHeight = ChatEditorLayout.HEADER_H;
+    private float titleHeight = 34f;
+    private final float[][] measuredRows = new float[ChatEditorLayout.SECTION_COUNT][];
+    private final float[][] dropdownReservations = new float[ChatEditorLayout.SECTION_COUNT][];
     /** Narrow/short GUI scales use a two-row toolbar rather than overlapping the three target controls. */
     private boolean compactToolbar;
     private float toolbarBottom;
@@ -217,6 +226,14 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Hover colour", hoverColour));
         entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Highlight opacity", new AppleSlider(0, 100, 5, "%", 142f,
                 () -> appearance().hoverOpacity(), value -> editAppearance(a -> a.setHoverOpacity(value)))));
+        entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Open menu with", new AppleDropdown(
+                new String[]{"Right", "Left", "Both"}, null, 112f, 22f, this::menuModeIndex,
+                value -> ChatQolSettings.setMenuOpenMode(value == 1 ? com.arena.pekaclient.chat.ChatMenuPolicy.LEFT
+                        : value == 2 ? com.arena.pekaclient.chat.ChatMenuPolicy.BOTH
+                        : com.arena.pekaclient.chat.ChatMenuPolicy.RIGHT))));
+        entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Menu animation", new AppleSlider(0, 240, 10, " ms", 142f,
+                () -> ChatQolSettings.menuAnimationMillis, ChatQolSettings::setMenuAnimationMillis)
+                .valueLabel(value -> value == 0 ? "Off" : value + " ms")));
         entries.add(new Entry(ChatEditorLayout.HOVER_MENU, "Reset hover/menu", new AppleButton("Reset", 64f, 22f,
                 false, ChatQolSettings::resetHoverMenu)));
     }
@@ -322,6 +339,27 @@ public final class ChatEditorScreen extends AppleScreen {
         return out.append(hex).toString();
     }
 
+    /** Uses the active UIRender font (and its global scale) for the same truncation decision the renderer shows. */
+    private float activeTextWidth(String text, float drawScale) {
+        float value = GlobalFontManager.width(text, GlobalFontManager.Area.EDITOR);
+        if (value < 0f) value = fr().getStringWidth(text);
+        return value * drawScale;
+    }
+
+    private String fitActive(String value, float maxWidth, final float drawScale) {
+        return GuiLayoutToolkit.ellipsize(value, Math.max(0f, maxWidth), new GuiLayoutToolkit.TextMetrics() {
+            @Override
+            public float width(String text) {
+                return activeTextWidth(text, drawScale);
+            }
+
+            @Override
+            public float height() {
+                return editorFontHeight * drawScale;
+            }
+        });
+    }
+
     private int appearChoiceIndex() {
         String style = appearance().appearStyle();
         return "SLIDE".equals(style) ? 1 : "FADE".equals(style) ? 2 : 0;
@@ -331,6 +369,43 @@ public final class ChatEditorScreen extends AppleScreen {
         String value = ChatQolSettings.tabOrder;
         for (int i = 0; i < ORDER_VALUES.length; i++) if (ORDER_VALUES[i].equals(value)) return i;
         return 0;
+    }
+
+    private int menuModeIndex() {
+        return ChatQolSettings.menuOpenMode == com.arena.pekaclient.chat.ChatMenuPolicy.LEFT ? 1
+                : ChatQolSettings.menuOpenMode == com.arena.pekaclient.chat.ChatMenuPolicy.BOTH ? 2 : 0;
+    }
+
+    /** Measures the real UIRender font and reserves popup flow before any section/body rectangle is generated. */
+    private void updateMeasuredMetrics() {
+        float active = GlobalFontManager.height(GlobalFontManager.Area.EDITOR);
+        if (active < 0f) active = fr().FONT_HEIGHT;
+        editorFontHeight = Math.max(1f, active);
+        controlHeight = Math.max(22f, editorFontHeight * .82f + 8f);
+        measuredRowHeight = GuiLayoutToolkit.rowHeight(editorFontHeight * .82f, 1, controlHeight, 5f);
+        measuredHeaderHeight = Math.max(ChatEditorLayout.HEADER_H, editorFontHeight * .9f + 12f);
+        titleHeight = Math.max(compactToolbar ? 24f : 34f,
+                editorFontHeight * (compactToolbar ? 1f : 1.72f) + 8f);
+        for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
+            int count = SECTION_ROWS[section];
+            if (measuredRows[section] == null || measuredRows[section].length != count) {
+                measuredRows[section] = new float[count];
+                dropdownReservations[section] = new float[count];
+            }
+            for (int row = 0; row < count; row++) {
+                measuredRows[section][row] = measuredRowHeight;
+                dropdownReservations[section][row] = 0f;
+            }
+        }
+        int[] rowAt = new int[ChatEditorLayout.SECTION_COUNT];
+        for (Entry entry : entries) {
+            int row = rowAt[entry.section]++;
+            if (entry.widget == openDropdown && entry.widget instanceof AppleDropdown
+                    && row >= 0 && row < dropdownReservations[entry.section].length) {
+                // Later rows flow below the menu instead of living underneath an expanded option list.
+                dropdownReservations[entry.section][row] = ((AppleDropdown) entry.widget).reservedPopupHeight();
+            }
+        }
     }
 
     private void updateLayout(float dt) {
@@ -345,6 +420,7 @@ public final class ChatEditorScreen extends AppleScreen {
         ww = safePanel.w;
         wh = safePanel.h;
         compactToolbar = ww < 400f || wh < 190f;
+        updateMeasuredMetrics();
         arrangeToolbar();
         viewX = wx + 10f;
         viewY = toolbarBottom + 3f;
@@ -353,44 +429,48 @@ public final class ChatEditorScreen extends AppleScreen {
         for (int i = 0; i < expanded.length; i++) {
             expanded[i] = !ChatQolSettings.editorPanel(i + 1).collapsed(guiScale);
         }
-        ChatEditorLayout.update(layout, viewX, viewY, viewW, viewH, expanded, SECTION_ROWS,
-                editorScroll.value());
+        ChatEditorLayout.update(layout, viewX, viewY, viewW, viewH, expanded, measuredHeaderHeight,
+                measuredRows, dropdownReservations, editorScroll.value());
         editorScroll.setMaximum(layout.maxScroll);
         editorScroll.update(dt, AppleSettings.smoothScrolling);
-        ChatEditorLayout.update(layout, viewX, viewY, viewW, viewH, expanded, SECTION_ROWS,
-                editorScroll.value());
+        ChatEditorLayout.update(layout, viewX, viewY, viewW, viewH, expanded, measuredHeaderHeight,
+                measuredRows, dropdownReservations, editorScroll.value());
         applySectionPanelOffsets(guiScale);
         scroll = layout.scroll;
         positionControls();
     }
 
-    /** Uses measured widths for the target toolbar. The compact form keeps every action reachable in two rows. */
+    /** Uses active-font metrics for the target toolbar. The compact form keeps every action reachable in two rows. */
     private void arrangeToolbar() {
+        targetChoice.h = controlHeight;
+        linkAllToggle.h = controlHeight;
+        copyFromChoice.h = controlHeight;
+        float firstY = wy + titleHeight + 4f;
         if (!compactToolbar) {
-            targetChoice.w = 112f;
-            targetChoice.x = wx + 56f;
-            targetChoice.y = wy + 38f;
-            linkAllToggle.x = wx + 212f;
-            linkAllToggle.y = wy + 39f;
-            copyFromChoice.w = 112f;
-            copyFromChoice.x = Math.min(wx + ww - copyFromChoice.w - 9f, wx + 334f);
-            copyFromChoice.y = wy + 38f;
-            toolbarBottom = wy + 63f;
+            targetChoice.w = Math.max(72f, Math.min(112f, ww * .30f));
+            targetChoice.x = wx + Math.min(56f, Math.max(42f, ww * .15f));
+            targetChoice.y = firstY;
+            linkAllToggle.x = Math.min(wx + ww - linkAllToggle.w - 126f, wx + ww * .53f);
+            linkAllToggle.y = firstY;
+            copyFromChoice.w = Math.max(72f, Math.min(112f, ww * .30f));
+            copyFromChoice.x = Math.max(wx + 4f, wx + ww - copyFromChoice.w - 9f);
+            copyFromChoice.y = firstY;
+            toolbarBottom = firstY + controlHeight + 5f;
             return;
         }
         // Labels are deliberately short in this form; controls are clamped inside the panel instead of retaining
-        // the historical x=212/x=334 coordinates that ran off Auto and Large GUI-scale windows.
+        // historical absolute x coordinates that ran off Auto and Large GUI-scale windows.
         float labelW = Math.min(38f, Math.max(20f, ww * .22f));
         float rightReserve = Math.max(20f, linkAllToggle.w + 8f);
         targetChoice.w = Math.max(1f, ww - labelW - rightReserve - 18f);
         targetChoice.x = wx + labelW + 8f;
-        targetChoice.y = wy + 28f;
+        targetChoice.y = firstY;
         linkAllToggle.x = Math.max(wx + 4f, wx + ww - linkAllToggle.w - 8f);
-        linkAllToggle.y = wy + 30f;
+        linkAllToggle.y = firstY;
         copyFromChoice.w = Math.max(1f, ww - labelW - 18f);
         copyFromChoice.x = wx + labelW + 8f;
-        copyFromChoice.y = wy + 52f;
-        toolbarBottom = wy + 77f;
+        copyFromChoice.y = firstY + controlHeight + 3f;
+        toolbarBottom = copyFromChoice.y + controlHeight + 5f;
     }
 
     /** Applies each persisted panel offset after the safe stacked baseline is calculated. */
@@ -408,17 +488,15 @@ public final class ChatEditorScreen extends AppleScreen {
             // A tall expanded card starts at the viewport edge; collapsing restores a compact draggable title card.
             float effectiveH = Math.min(cardH, layout.viewport.h);
             float y = clampPanel(header.y + dy, layout.viewport.y, layout.viewport.y + layout.viewport.h - effectiveH);
-            header.x = x;
-            header.y = y;
+            float moveX = x - header.x;
+            float moveY = y - header.y;
+            ChatEditorLayout.moveSection(layout, section, moveX, moveY);
             header.w = cardW;
-            if (body.h > 0f) {
-                body.x = x + ChatEditorLayout.PAD;
-                body.y = y + header.h + ChatEditorLayout.GAP;
-                body.w = Math.max(1f, cardW - ChatEditorLayout.PAD * 2f);
-            } else {
-                body.x = x + ChatEditorLayout.PAD;
-                body.y = y + header.h;
-                body.w = Math.max(1f, cardW - ChatEditorLayout.PAD * 2f);
+            body.x = x + ChatEditorLayout.PAD;
+            body.w = Math.max(1f, cardW - ChatEditorLayout.PAD * 2f);
+            for (ChatEditorLayout.Rect row : layout.rows[section]) {
+                row.x = body.x;
+                row.w = body.w;
             }
         }
     }
@@ -430,13 +508,19 @@ public final class ChatEditorScreen extends AppleScreen {
     private void positionControls() {
         int[] nextRow = new int[ChatEditorLayout.SECTION_COUNT];
         for (Entry entry : entries) {
-            ChatEditorLayout.Rect body = layout.bodies[entry.section];
             int row = nextRow[entry.section]++;
-            float controlW = entry.widget instanceof AppleSlider || entry.widget instanceof SearchField
-                    || entry.widget instanceof AppleDropdown ? Math.max(72f, body.w * 0.58f) : entry.widget.w;
-            entry.widget.w = Math.min(controlW, Math.max(1f, body.w));
-            entry.widget.x = body.x + body.w - entry.widget.w;
-            entry.widget.y = body.y + row * ChatEditorLayout.ROW_H + (ChatEditorLayout.ROW_H - entry.widget.h) * 0.5f;
+            ChatEditorLayout.Rect[] rows = layout.rows[entry.section];
+            if (row < 0 || row >= rows.length) continue;
+            ChatEditorLayout.Rect rowBounds = rows[row];
+            float wanted = entry.widget instanceof AppleSlider || entry.widget instanceof SearchField
+                    || entry.widget instanceof AppleDropdown ? Math.max(72f, rowBounds.w * .58f) : entry.widget.w;
+            // Always retain a measurable label lane and a real gap, even on tiny GUI scales/windows.
+            float labelReserve = Math.min(42f, Math.max(12f, rowBounds.w * .42f));
+            float controlW = Math.min(wanted, Math.max(1f, rowBounds.w - labelReserve - 6f));
+            entry.widget.w = controlW;
+            entry.widget.h = Math.min(controlHeight, Math.max(1f, rowBounds.h));
+            entry.widget.x = rowBounds.x + rowBounds.w - controlW;
+            entry.widget.y = rowBounds.y + (rowBounds.h - entry.widget.h) * 0.5f;
         }
     }
 
@@ -484,8 +568,9 @@ public final class ChatEditorScreen extends AppleScreen {
         if (!arrangingWindows) return;
         drawPreviewWindow(chat1Rect, ChatQolSettings.chat1().getName(), ChatQolSettings.TARGET_CHAT_1, mx, my);
         drawPreviewWindow(chat2Rect, ChatQolSettings.chat2().getName(), ChatQolSettings.TARGET_CHAT_2, mx, my);
-        UIRender.text(fr(), "Arrange: drag a window; drag its lower-right corner to resize; edge snap is optional.",
-                8f, 8f, Theme.textPrimary, 0.85f, true);
+        UIRender.text(fr(), fitActive("Arrange: drag a window; drag its lower-right corner to resize; edge snap is optional.",
+                Math.max(1f, width - 16f), .85f), 8f, 8f, Theme.textPrimary, .85f, true,
+                GlobalFontManager.Area.EDITOR);
     }
 
     private void drawPreviewWindow(ChatWindowLayout.Rect rect, String name, int target, int mx, int my) {
@@ -498,8 +583,9 @@ public final class ChatEditorScreen extends AppleScreen {
                 | appearance.borderColor();
         UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, Math.min(appearance.radius(), 6f),
                 fill, fill, border);
-        UIRender.text(fr(), fit(fr(), name, rect.w - 12f), rect.x + 6f, rect.y + 6f,
-                0xFF000000 | appearance.textColor(), appearance.textScale() / 100f, appearance.shadow(),
+        float previewScale = appearance.textScale() / 100f;
+        UIRender.text(fr(), fitActive(name, rect.w - 12f, previewScale), rect.x + 6f, rect.y + 6f,
+                0xFF000000 | appearance.textColor(), previewScale, appearance.shadow(),
                 GlobalFontManager.Area.EDITOR);
         UIRender.line(rect.x + rect.w - 8f, rect.y + rect.h - 2f, rect.x + rect.w - 2f, rect.y + rect.h - 8f,
                 1f, border);
@@ -509,30 +595,41 @@ public final class ChatEditorScreen extends AppleScreen {
         UIRender.shadow(wx, wy, ww, wh, Math.min(Theme.radius, 12f));
         UIRender.roundRect(wx, wy, ww, wh, Theme.radius, Theme.windowTop, Theme.windowBottom, 0.6f);
         UIRender.roundRectRing(wx, wy, ww, wh, Theme.radius, 1f, Theme.border);
-        UIRender.text(fr(), fit(fr(), "Chat Editor", Math.max(1f, ww - 58f)), wx + 8f, wy + 12f,
+        float doneWidth = activeTextWidth("Done", .85f);
+        float titleY = wy + Math.max(3f, (titleHeight - editorFontHeight * (compactToolbar ? 1f : 1.72f)) * .5f);
+        UIRender.text(fr(), fitActive("Chat Editor", Math.max(1f, ww - doneWidth - 22f), 1f), wx + 8f, titleY,
                 Theme.textPrimary, 1.0f, false, GlobalFontManager.Area.EDITOR);
         String mode = arrangingWindows ? "Arranging windows" : "Drag title to move · double-click title to reset";
         if (!compactToolbar) {
-            UIRender.text(fr(), fit(fr(), mode, Math.max(1f, ww - 60f)), wx + 14f, wy + 25f,
-                    arrangingWindows ? Theme.accent : Theme.textSecondary, 0.67f, false, GlobalFontManager.Area.EDITOR);
+            float modeY = titleY + editorFontHeight + 2f;
+            UIRender.text(fr(), fitActive(mode, Math.max(1f, ww - 60f), .67f), wx + 14f, modeY,
+                    arrangingWindows ? Theme.accent : Theme.textSecondary, .67f, false, GlobalFontManager.Area.EDITOR);
         }
-        UIRender.text(fr(), "Done", wx + ww - 40f, wy + 13f, Theme.accent, 0.85f, false,
-                GlobalFontManager.Area.EDITOR);
-        UIRender.rect(wx + 1f, wy + (compactToolbar ? 24f : 34f), ww - 2f, 1f, Theme.divider);
+        UIRender.text(fr(), "Done", wx + ww - doneWidth - 8f, titleY + editorFontHeight * .08f,
+                Theme.accent, .85f, false, GlobalFontManager.Area.EDITOR);
+        UIRender.rect(wx + 1f, wy + titleHeight, ww - 2f, 1f, Theme.divider);
+        float toolbarLabelScale = compactToolbar ? .62f : .72f;
+        float toolbarLabelH = editorFontHeight * toolbarLabelScale;
         if (compactToolbar) {
-            UIRender.text(fr(), "Target", wx + 6f, wy + 36f, Theme.textSecondary, 0.62f, false,
-                    GlobalFontManager.Area.EDITOR);
-            UIRender.text(fr(), "All", Math.max(wx + 4f, linkAllToggle.x - 15f), wy + 36f,
-                    Theme.textSecondary, 0.58f, false, GlobalFontManager.Area.EDITOR);
-            UIRender.text(fr(), "Copy", wx + 6f, wy + 60f, Theme.textSecondary, 0.62f, false,
-                    GlobalFontManager.Area.EDITOR);
+            UIRender.text(fr(), "Target", wx + 6f,
+                    targetChoice.y + (targetChoice.h - toolbarLabelH) * .5f, Theme.textSecondary, toolbarLabelScale,
+                    false, GlobalFontManager.Area.EDITOR);
+            UIRender.text(fr(), "All", Math.max(wx + 4f, linkAllToggle.x - activeTextWidth("All", .58f) - 3f),
+                    linkAllToggle.y + (linkAllToggle.h - editorFontHeight * .58f) * .5f,
+                    Theme.textSecondary, .58f, false, GlobalFontManager.Area.EDITOR);
+            UIRender.text(fr(), "Copy", wx + 6f,
+                    copyFromChoice.y + (copyFromChoice.h - toolbarLabelH) * .5f, Theme.textSecondary,
+                    toolbarLabelScale, false, GlobalFontManager.Area.EDITOR);
         } else {
-            UIRender.text(fr(), "Target", wx + 12f, wy + 46f, Theme.textSecondary, 0.72f, false,
-                    GlobalFontManager.Area.EDITOR);
-            UIRender.text(fr(), "Link all", wx + 258f, wy + 46f, Theme.textSecondary, 0.72f, false,
-                    GlobalFontManager.Area.EDITOR);
-            UIRender.text(fr(), "Copy from", copyFromChoice.x - 57f, wy + 46f, Theme.textSecondary, 0.66f, false,
-                    GlobalFontManager.Area.EDITOR);
+            UIRender.text(fr(), "Target", wx + 12f,
+                    targetChoice.y + (targetChoice.h - toolbarLabelH) * .5f, Theme.textSecondary, toolbarLabelScale,
+                    false, GlobalFontManager.Area.EDITOR);
+            UIRender.text(fr(), "Link all", Math.max(wx + 4f, linkAllToggle.x - activeTextWidth("Link all", .72f) - 5f),
+                    linkAllToggle.y + (linkAllToggle.h - toolbarLabelH) * .5f, Theme.textSecondary, toolbarLabelScale,
+                    false, GlobalFontManager.Area.EDITOR);
+            UIRender.text(fr(), "Copy from", Math.max(wx + 4f, copyFromChoice.x - activeTextWidth("Copy from", .66f) - 5f),
+                    copyFromChoice.y + (copyFromChoice.h - editorFontHeight * .66f) * .5f,
+                    Theme.textSecondary, .66f, false, GlobalFontManager.Area.EDITOR);
         }
         targetChoice.draw(mx, my);
         linkAllToggle.draw(mx, my);
@@ -543,37 +640,82 @@ public final class ChatEditorScreen extends AppleScreen {
         for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
             drawSection(section, mx, my);
         }
+        int[] drawnRows = new int[ChatEditorLayout.SECTION_COUNT];
         for (Entry entry : entries) {
+            int row = drawnRows[entry.section]++;
             if (!entryVisible(entry)) continue;
-            float labelW = Math.max(0f, entry.widget.x - 8f - (layout.bodies[entry.section].x));
-            String label = fit(fr(), entry.label, labelW);
+            ChatEditorLayout.Rect rowBounds = row < layout.rows[entry.section].length
+                    ? layout.rows[entry.section][row] : null;
+            if (rowBounds != null) {
+                GuiDebugOverlay.recordRow("Chat Editor: " + entry.label, rowBounds.x, rowBounds.y,
+                        rowBounds.w, rowBounds.h);
+            }
+            float labelW = Math.max(0f, entry.widget.x - 8f - layout.bodies[entry.section].x);
+            String label = fitActive(entry.label, labelW, .82f);
             UIRender.text(fr(), label, layout.bodies[entry.section].x,
-                    entry.widget.y + (entry.widget.h - 8f) * 0.5f + 1f, Theme.textSecondary, 0.82f, false);
+                    entry.widget.y + (entry.widget.h - editorFontHeight * .82f) * .5f,
+                    Theme.textSecondary, .82f, false, GlobalFontManager.Area.EDITOR);
             entry.widget.draw(mx, my);
         }
         if (expanded[ChatEditorLayout.MESSAGES]) {
-            ChatEditorLayout.Rect body = layout.bodies[ChatEditorLayout.MESSAGES];
-            float infoY = body.y + 13 * ChatEditorLayout.ROW_H + 8f;
-            UIRender.text(fr(), fit(fr(), "Rules: " + ChatQolSettings.patternRuleCount() + " — " + patternStatus,
-                    body.w), body.x, infoY, Theme.textTertiary, 0.68f, false);
+            ChatEditorLayout.Rect[] rows = layout.rows[ChatEditorLayout.MESSAGES];
+            if (rows.length > 14) {
+                ChatEditorLayout.Rect status = rows[14];
+                GuiDebugOverlay.recordRow("Chat Editor: rule status", status.x, status.y, status.w, status.h);
+                UIRender.text(fr(), fitActive("Rules: " + ChatQolSettings.patternRuleCount() + " — " + patternStatus,
+                        status.w, .68f), status.x, status.y + (status.h - editorFontHeight * .68f) * .5f,
+                        Theme.textTertiary, .68f, false, GlobalFontManager.Area.EDITOR);
+            }
         }
         UIRender.scissorEnd();
         if (openDropdown != null) {
-            openDropdown.drawPopup(mx, my, wy, wy + wh, wx + ww, wx);
+            if (reserveOpenDropdownFlow()) {
+                // Keep an expanded editor list inside the same viewport/scissor transform as its measured rows.
+                UIRender.scissorBegin(viewX, viewY, viewW, viewH, sf);
+                openDropdown.drawPopup(mx, my, viewY, viewY + viewH, wx + ww, wx);
+                UIRender.scissorEnd();
+            } else {
+                openDropdown.drawPopup(mx, my, wy, wy + wh, wx + ww, wx);
+            }
         }
+    }
+
+    /** Pins an expanded section dropdown into the flow space measured for it; toolbar dropdowns retain adaptive popup placement. */
+    private boolean reserveOpenDropdownFlow() {
+        if (openDropdown == null) return false;
+        int[] rowAt = new int[ChatEditorLayout.SECTION_COUNT];
+        for (Entry entry : entries) {
+            int row = rowAt[entry.section]++;
+            if (entry.widget != openDropdown || row < 0 || row >= layout.rows[entry.section].length) continue;
+            ChatEditorLayout.Rect rowBounds = layout.rows[entry.section][row];
+            float reserved = row < dropdownReservations[entry.section].length
+                    ? dropdownReservations[entry.section][row] : 0f;
+            if (reserved <= 0f) return false;
+            openDropdown.reservePopup(entry.widget.x, rowBounds.y + rowBounds.h + 3f, entry.widget.w, reserved);
+            return true;
+        }
+        return false;
     }
 
     private void drawSection(int index, int mx, int my) {
         ChatEditorLayout.Rect header = layout.headers[index];
+        GuiDebugOverlay.recordControl("Chat Editor section: " + SECTION_NAMES[index], header.x, header.y,
+                header.w, header.h);
         boolean hot = inside(mx, my, header.x, header.y, header.w, header.h);
         int fill = hot ? Theme.cardHover : Theme.card;
         UIRender.roundRectBorder(header.x, header.y, header.w, header.h, 6f, fill, fill, Theme.border);
         String arrow = expanded[index] ? "▾" : "▸";
-        UIRender.text(fr(), arrow + "  " + SECTION_NAMES[index], header.x + 9f, header.y + 9f,
-                expanded[index] ? Theme.textPrimary : Theme.textSecondary, 0.9f, false);
+        float titleScale = .9f;
+        UIRender.text(fr(), fitActive(arrow + "  " + SECTION_NAMES[index], header.w - 58f, titleScale),
+                header.x + 9f, header.y + (header.h - editorFontHeight * titleScale) * .5f,
+                expanded[index] ? Theme.textPrimary : Theme.textSecondary, titleScale, false,
+                GlobalFontManager.Area.EDITOR);
         if (index != ChatEditorLayout.FONT) {
-            UIRender.text(fr(), "Reset", header.x + header.w - 38f, header.y + 9f,
-                    hot ? Theme.accent : Theme.textTertiary, 0.7f, false);
+            float resetScale = .7f;
+            float resetW = activeTextWidth("Reset", resetScale);
+            UIRender.text(fr(), "Reset", header.x + header.w - resetW - 7f,
+                    header.y + (header.h - editorFontHeight * resetScale) * .5f,
+                    hot ? Theme.accent : Theme.textTertiary, resetScale, false, GlobalFontManager.Area.EDITOR);
         }
     }
 
@@ -598,12 +740,12 @@ public final class ChatEditorScreen extends AppleScreen {
     protected void mouseClicked(int mx, int my, int button) throws IOException {
         if (button != 0) return;
         if (handleOpenDropdownClick(mx, my)) return;
-        if (inside(mx, my, wx + ww - 52f, wy, 52f, compactToolbar ? 24f : 34f)) {
+        if (inside(mx, my, wx + ww - 52f, wy, 52f, titleHeight)) {
             close();
             return;
         }
         // The main settings card is a real draggable/clamped panel. A double-click title reset is scale-specific.
-        if (inside(mx, my, wx, wy, ww - 52f, compactToolbar ? 24f : 34f)) {
+        if (inside(mx, my, wx, wy, ww - 52f, titleHeight)) {
             long now = System.currentTimeMillis();
             if (now - lastEditorTitleClick < 300L) {
                 ChatQolSettings.editorPanel(0).resetScale(guiScale());
@@ -764,7 +906,7 @@ public final class ChatEditorScreen extends AppleScreen {
         int my = height - Mouse.getEventY() * height / Minecraft.getMinecraft().displayHeight - 1;
         if (wheel != 0 && openDropdown == null && inside(mx, my, viewX, viewY, viewW, viewH)) {
             boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
-            editorScroll.wheel(wheel / 120f, fine, AppleSettings.guiScrollMultiplier(), 28f);
+            editorScroll.wheel(wheel / 120f, fine, AppleSettings.guiScrollMultiplier(), measuredRowHeight);
         }
     }
 

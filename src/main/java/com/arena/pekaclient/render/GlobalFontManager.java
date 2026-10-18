@@ -110,6 +110,17 @@ public final class GlobalFontManager {
         return current == null ? -1f : current.width(text) * areaScale(area) / 100f;
     }
 
+    /**
+     * Visual line height for a Sky VeLor-owned text area, including the same atlas padding used by draw(). A negative
+     * result means native FontRenderer metrics should be used. Layout code calls this before placing controls so a
+     * tall active font cannot overlap the next editor row.
+     */
+    public static float height(Area area) {
+        if (!FontSettings.enabled) return -1f;
+        FontAtlas current = ensureAtlas(FontSettings.selected);
+        return current == null ? -1f : current.lineHeight() * areaScale(area) / 100f;
+    }
+
     /** Explicit reload entry point for the font editor. It never throws into a Minecraft GUI. */
     public static void reload() {
         atlas = null;
@@ -296,6 +307,10 @@ public final class GlobalFontManager {
                 out += glyph.advance;
             }
             return out;
+        }
+
+        float lineHeight() {
+            return Math.max(1, metrics.getHeight() + 4);
         }
 
         void draw(String text, float x, float y, int rgba, float scale) {

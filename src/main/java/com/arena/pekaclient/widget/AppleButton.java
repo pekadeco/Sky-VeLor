@@ -35,13 +35,9 @@ public final class AppleButton extends Widget {
         if (!enabled) {
             textColor = Theme.textTertiary;
         }
-        String shown = label;
-        int max = Math.max(0, (int) (w - 12f));
-        if (font().getStringWidth(shown) > max) {
-            shown = font().trimStringToWidth(shown, Math.max(0, max - 5)) + "…";
-        }
-        float tx = x + (w - font().getStringWidth(shown)) * 0.5f;
-        float ty = y + (h - 8f) * 0.5f + 1f;
+        String shown = fitText(label, Math.max(0f, w - 12f));
+        float tx = x + (w - textWidth(shown)) * 0.5f;
+        float ty = y + (h - textHeight()) * 0.5f;
         UIRender.text(font(), shown, tx, ty, textColor, 1f, false);
         endAnimatedDraw();
     }

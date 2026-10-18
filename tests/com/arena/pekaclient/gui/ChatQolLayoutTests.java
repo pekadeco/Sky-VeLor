@@ -16,6 +16,7 @@ public final class ChatQolLayoutTests {
         ownership();
         attachedTabsAtGuiScales();
         editorSectionsAtGuiScales();
+        editorTallWideMockFontMetrics();
         windowGeometryAtGuiScales();
         fontFallback();
 
@@ -26,8 +27,8 @@ public final class ChatQolLayoutTests {
     private static void ownership() {
         List<ChatUiModel.Entry> entries = ChatUiModel.buildQolModel();
         String[] ids = {"chat-qol-master", "chat-tabs", "separate-chats", "smooth-messages",
-                "hover-highlight", "right-click-menu", "open-chat-editor"};
-        check("Chat QoL hub has exactly seven chat-owned controls", entries.size() == ids.length);
+                "hover-highlight", "open-chat-editor"};
+        check("Chat QoL hub has exactly six chat-owned controls", entries.size() == ids.length);
         for (int i = 0; i < ids.length; i++) check("Chat QoL order " + ids[i], ids[i].equals(entries.get(i).getId()));
         check("master is the only master control", entries.get(0).isMasterToggle());
         for (int i = 1; i < entries.size() - 1; i++) check("feature is a toggle " + i, entries.get(i).isToggle());
@@ -70,7 +71,7 @@ public final class ChatQolLayoutTests {
     private static void editorSectionsAtGuiScales() {
         int[][] scales = {{854, 480}, {427, 240}, {284, 160}, {213, 120}};
         boolean[] expanded = {true, true, true, true, true, true};
-        int[] rows = {5, 3, 9, 2, 5, 3};
+        int[] rows = {5, 6, 15, 2, 5, 5};
         for (int[] scale : scales) {
             ChatEditorLayout.Layout layout = new ChatEditorLayout.Layout();
             ChatEditorLayout.update(layout, 8f, 38f, Math.max(120f, scale[0] - 16f),
@@ -93,6 +94,51 @@ public final class ChatQolLayoutTests {
             ChatEditorLayout.update(layout, 8f, 38f, Math.max(120f, scale[0] - 16f),
                     Math.max(50f, scale[1] - 50f), expanded, rows, layout.maxScroll + 100f);
             check("editor max scroll clamps " + scale[0] + "x" + scale[1], layout.scroll == layout.maxScroll);
+        }
+    }
+
+    /** Tall/wide mock glyph metrics exercise the exact measured-row overload consumed by ChatEditorScreen. */
+    private static void editorTallWideMockFontMetrics() {
+        int[][] sizes = {{854, 480}, {427, 240}, {284, 160}, {213, 120}};
+        boolean[] expanded = {true, true, true, true, true, true};
+        for (int[] size : sizes) {
+            float[][] tallRows = new float[ChatEditorLayout.SECTION_COUNT][];
+            float[][] popup = new float[ChatEditorLayout.SECTION_COUNT][];
+            int[] counts = {5, 6, 15, 2, 5, 5};
+            for (int section = 0; section < counts.length; section++) {
+                tallRows[section] = new float[counts[section]];
+                popup[section] = new float[counts[section]];
+                for (int row = 0; row < counts[section]; row++) {
+                    // Mock a tall active font plus a wide label/control row; this is intentionally much larger than 28.
+                    tallRows[section][row] = GuiLayoutToolkit.rowHeight(31f, 1, 34f, 6f);
+                }
+            }
+            // Simulate the expanded Rule target dropdown. Its later rows must move below this reserved list.
+            popup[ChatEditorLayout.MESSAGES][9] = 10f * 37f + 3f;
+            ChatEditorLayout.Layout layout = new ChatEditorLayout.Layout();
+            ChatEditorLayout.update(layout, 8f, 38f, Math.max(120f, size[0] - 16f),
+                    Math.max(50f, size[1] - 50f), expanded, 43f, tallRows, popup, 0f);
+            for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
+                ChatEditorLayout.Rect header = layout.headers[section];
+                for (ChatEditorLayout.Rect row : layout.rows[section]) {
+                    check("tall mock row starts below its header " + size[0] + " #" + section,
+                            row.h == 0f || row.y >= layout.bodies[section].y);
+                    check("tall mock row stays in body width " + size[0] + " #" + section,
+                            row.x >= layout.bodies[section].x && row.x + row.w <= layout.bodies[section].x + layout.bodies[section].w);
+                    check("tall mock row does not overlap its header " + size[0] + " #" + section,
+                            !ChatEditorLayout.overlaps(row, header));
+                }
+                for (int row = 0; row + 1 < layout.rows[section].length; row++) {
+                    ChatEditorLayout.Rect current = layout.rows[section][row];
+                    ChatEditorLayout.Rect next = layout.rows[section][row + 1];
+                    check("tall mock adjacent rows do not overlap " + size[0] + " #" + section + "/" + row,
+                            !ChatEditorLayout.overlaps(current, next));
+                }
+            }
+            ChatEditorLayout.Rect popupOwner = layout.rows[ChatEditorLayout.MESSAGES][9];
+            ChatEditorLayout.Rect afterPopup = layout.rows[ChatEditorLayout.MESSAGES][10];
+            check("expanded dropdown reservation pushes later control below mock popup " + size[0],
+                    afterPopup.y >= popupOwner.y + popupOwner.h + popup[ChatEditorLayout.MESSAGES][9]);
         }
     }
 

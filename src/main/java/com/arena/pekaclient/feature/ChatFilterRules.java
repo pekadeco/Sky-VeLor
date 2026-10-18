@@ -20,6 +20,7 @@ public final class ChatFilterRules {
 
     private static final Pattern PLAYER_LINE = Pattern.compile(
             "^(?:\\[[^\\]]{1,32}\\]\\s*)?[A-Za-z0-9_]{1,16}:\\s+.+$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern LEADING_TAGS = Pattern.compile("^(?:\\[[^\\]]{1,32}\\]\\s*)+");
 
     private ChatFilterRules() {
     }
@@ -55,13 +56,19 @@ public final class ChatFilterRules {
     public static Classification classifyDetailed(String formattedText, ChatPatternRules patterns) {
         String clean = stripFormatting(formattedText).trim();
         String text = clean.toLowerCase(Locale.ROOT);
-        if (starts(text, "party >", "p >", "[party]", "[p]")) {
+        // Servers commonly put a rank, channel tag or both before an actual Party/From/To prefix. Classify that
+        // envelope first without weakening normal `Player: text` matching.
+        String traffic = LEADING_TAGS.matcher(clean).replaceFirst("").trim();
+        String trafficLower = traffic.toLowerCase(Locale.ROOT);
+        if (starts(text, "party >", "p >", "[party]", "[p]")
+                || starts(trafficLower, "party >", "p >")) {
             return new Classification(PARTY, "party prefix");
         }
-        if (starts(text, "to ", "from ", "[pm]", "[private]")) {
+        if (starts(text, "to ", "from ", "[pm]", "[private]")
+                || starts(trafficLower, "to ", "from ")) {
             return new Classification(REPLY, "reply/private prefix");
         }
-        if (isPartyNotice(text)) {
+        if (isPartyNotice(text) || isPartyNotice(trafficLower)) {
             return new Classification(PARTY, "party system notice");
         }
 
@@ -72,7 +79,7 @@ public final class ChatFilterRules {
             return new Classification(override, "editable pattern → "
                     + (belongsToChatOne(override) ? "Chat 1" : "Chat 2"));
         }
-        if (PLAYER_LINE.matcher(clean).matches()) {
+        if (PLAYER_LINE.matcher(clean).matches() || PLAYER_LINE.matcher(traffic).matches()) {
             return new Classification(PLAYER, "player-message shape");
         }
         return new Classification(SYSTEM, "system/unknown fallback");

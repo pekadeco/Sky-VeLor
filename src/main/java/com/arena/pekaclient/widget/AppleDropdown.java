@@ -17,8 +17,15 @@ public final class AppleDropdown extends Widget {
     private float popupY;
     private float popupW;
     private float popupH;
+    private float popupRowHeight = ROW_H;
     private int firstVisible;
     private int visibleCount;
+    /** Optional flow reservation supplied by a screen with a measured dropdown row. */
+    private boolean popupReservation;
+    private float reservationX;
+    private float reservationY;
+    private float reservationW;
+    private float reservationH;
     private final float[] rowHover;
     private long popupOpenedAt;
     private long lastPopupFrame;
@@ -50,17 +57,15 @@ public final class AppleDropdown extends Widget {
         String label = options.length == 0 ? "—" : options[selected()];
         if (label == null) label = "";
         float leftPad = dots == null ? 8f : 20f;
-        int textRoom = Math.max(0, (int) (w - leftPad - 22f));
-        if (font().getStringWidth(label) > textRoom) {
-            label = font().trimStringToWidth(label, Math.max(0, textRoom - 4)) + "…";
-        }
+        float textRoom = Math.max(0f, w - leftPad - 22f);
+        label = fitText(label, textRoom);
         if (dots != null && options.length > 0) {
             int index = selected();
             if (index < dots.length) {
                 UIRender.circle(x + 10f, y + h * 0.5f, 3.5f, dots[index]);
             }
         }
-        UIRender.text(font(), label, x + leftPad, y + (h - 8f) * 0.5f + 1f,
+        UIRender.text(font(), label, x + leftPad, y + (h - textHeight()) * 0.5f,
                 Theme.textPrimary, 1f, false);
         float cx = x + w - 10f;
         float cy = y + h * 0.5f;
@@ -68,6 +73,24 @@ public final class AppleDropdown extends Widget {
         UIRender.line(cx, cy + 2f, cx + 3f, cy - 1f, 1.2f, Theme.textSecondary);
         drawBorder(radius, Theme.border);
         endAnimatedDraw();
+    }
+
+    /** Maximum reserved editor-flow height when this control is expanded; actual popup is capped to ten options. */
+    public float reservedPopupHeight() {
+        float rowHeight = Math.max(ROW_H, textHeight() + 6f);
+        return Math.min(10, options.length) * rowHeight + (options.length == 0 ? 0f : 3f);
+    }
+
+    /**
+     * Pins the next popup draw to an already-reserved flow area. This prevents an expanded editor dropdown from
+     * overlaying a later row while retaining the regular adaptive placement for every other screen.
+     */
+    public void reservePopup(float x, float y, float width, float height) {
+        popupReservation = true;
+        reservationX = x;
+        reservationY = y;
+        reservationW = Math.max(1f, width);
+        reservationH = Math.max(0f, height);
     }
 
     public void onExpand() {
@@ -86,21 +109,30 @@ public final class AppleDropdown extends Widget {
             return;
         }
         popupW = w;
+        popupRowHeight = Math.max(ROW_H, textHeight() + 6f);
         float maxHeight = Math.max(0f, bottom - top - 8f);
-        visibleCount = Math.max(1, Math.min(options.length, (int) (maxHeight / ROW_H)));
+        visibleCount = Math.max(1, Math.min(options.length, (int) (maxHeight / popupRowHeight)));
         visibleCount = Math.min(visibleCount, 10);
         firstVisible = Math.max(0, Math.min(firstVisible, options.length - visibleCount));
-        popupH = visibleCount * ROW_H;
-        popupX = clamp(x, left + 4f, Math.max(left + 4f, right - popupW - 4f));
-        float belowY = y + h + 3f;
-        float aboveY = y - popupH - 3f;
-        float belowSpace = bottom - belowY;
-        float aboveSpace = y - top;
-        if (belowSpace >= popupH || belowSpace >= aboveSpace) {
-            popupY = clamp(belowY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+        popupH = visibleCount * popupRowHeight;
+        boolean useReservation = popupReservation && reservationH + .01f >= popupH;
+        if (useReservation) {
+            popupW = Math.min(popupW, reservationW);
+            popupX = clamp(reservationX, left + 4f, Math.max(left + 4f, right - popupW - 4f));
+            popupY = clamp(reservationY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
         } else {
-            popupY = clamp(aboveY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+            popupX = clamp(x, left + 4f, Math.max(left + 4f, right - popupW - 4f));
+            float belowY = y + h + 3f;
+            float aboveY = y - popupH - 3f;
+            float belowSpace = bottom - belowY;
+            float aboveSpace = y - top;
+            if (belowSpace >= popupH || belowSpace >= aboveSpace) {
+                popupY = clamp(belowY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+            } else {
+                popupY = clamp(aboveY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+            }
         }
+        popupReservation = false;
 
         long now = System.nanoTime();
         float dt = lastPopupFrame == 0L ? 1f / 60f : Math.min(0.1f, (now - lastPopupFrame) / 1.0e9f);
@@ -127,10 +159,10 @@ public final class AppleDropdown extends Widget {
         int current = selected();
         for (int row = 0; row < visibleCount; row++) {
             int index = firstVisible + row;
-            float rowY = popupY + row * ROW_H;
-            GuiDebugOverlay.recordRow("AppleDropdown option " + index, popupX, rowY, popupW, ROW_H);
+            float rowY = popupY + row * popupRowHeight;
+            GuiDebugOverlay.recordRow("AppleDropdown option " + index, popupX, rowY, popupW, popupRowHeight);
             boolean hot = mouseX >= popupX && mouseX < popupX + popupW
-                    && mouseY >= rowY && mouseY < rowY + ROW_H;
+                    && mouseY >= rowY && mouseY < rowY + popupRowHeight;
             float targetHover = hot ? 1f : 0f;
             if (!Theme.animations) {
                 rowHover[index] = targetHover;
@@ -144,28 +176,26 @@ public final class AppleDropdown extends Widget {
             float rowScale = Theme.animations ? 1f + rowHover[index] * 0.012f : 1f;
             boolean rowTransform = Math.abs(rowScale - 1f) > 0.0005f;
             if (rowTransform) {
-                UIRender.pushScaleAt(popupX + popupW * 0.5f, rowY + ROW_H * 0.5f, rowScale);
+                UIRender.pushScaleAt(popupX + popupW * 0.5f, rowY + popupRowHeight * 0.5f, rowScale);
             }
             if (index == current) {
-                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, ROW_H - 2f,
+                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, popupRowHeight - 2f,
                         Math.max(1f, radius - 2f), Theme.cardHover, Theme.cardHover, 0.2f);
-                UIRender.roundRect(popupX + 3f, rowY + 4f, 2f, ROW_H - 8f,
+                UIRender.roundRect(popupX + 3f, rowY + 4f, 2f, popupRowHeight - 8f,
                         1f, Theme.accent, Theme.accent, 0f);
             } else if (rowHover[index] > 0.001f) {
                 int rowFill = UIRender.mix(Theme.popup, Theme.buttonHover, rowHover[index]);
-                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, ROW_H - 2f,
+                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, popupRowHeight - 2f,
                         Math.max(1f, radius - 2f), rowFill, rowFill, 0.2f);
             }
             String option = options[index] == null ? "" : options[index];
             float pad = dots == null ? 10f : 22f;
-            int maxTextW = Math.max(0, (int) (popupW - pad - 8f));
-            if (font().getStringWidth(option) > maxTextW) {
-                option = font().trimStringToWidth(option, Math.max(0, maxTextW - 4)) + "…";
-            }
+            float maxTextW = Math.max(0f, popupW - pad - 8f);
+            option = fitText(option, maxTextW);
             if (dots != null && index < dots.length) {
-                UIRender.circle(popupX + 12f, rowY + ROW_H * 0.5f, 3.5f, dots[index]);
+                UIRender.circle(popupX + 12f, rowY + popupRowHeight * 0.5f, 3.5f, dots[index]);
             }
-            UIRender.text(font(), option, popupX + pad, rowY + (ROW_H - 8f) * 0.5f + 1f,
+            UIRender.text(font(), option, popupX + pad, rowY + (popupRowHeight - textHeight()) * 0.5f,
                     index == current ? Theme.textPrimary : Theme.textSecondary, 1f, false);
             if (rowTransform) {
                 UIRender.popTransform();
@@ -183,7 +213,7 @@ public final class AppleDropdown extends Widget {
                 || mouseY < popupY || mouseY >= popupY + popupH) {
             return -1;
         }
-        int row = (int) ((mouseY - popupY) / ROW_H);
+        int row = (int) ((mouseY - popupY) / popupRowHeight);
         int result = firstVisible + row;
         return result >= 0 && result < options.length ? result : -1;
     }

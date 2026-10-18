@@ -1,5 +1,6 @@
 package com.arena.pekaclient.config;
 
+import com.arena.pekaclient.chat.ChatMenuPolicy;
 import com.arena.pekaclient.feature.ChatFilterRules;
 import com.arena.pekaclient.feature.ChatPatternRules;
 
@@ -15,6 +16,7 @@ public final class ChatQolSettingsTests {
         legacyMigration();
         nativeClampingAndPersistence();
         targetSettingsLinkCopyAndFontMigration();
+        separateAndMenuPersistence();
         editorPanelPersistence();
 
         System.out.println("chat QoL settings: passed " + passed + ", failed " + failed);
@@ -27,8 +29,10 @@ public final class ChatQolSettingsTests {
         check("fresh tabs have three supported views", ChatQolSettings.tabsEnabled && ChatQolSettings.showAll
                 && ChatQolSettings.showParty && ChatQolSettings.showReply);
         check("fresh separate windows are off", !ChatQolSettings.separateChats);
-        check("fresh optional hover/menu/font are off", !ChatQolSettings.hoverHighlight
-                && !ChatQolSettings.rightClickMenu && !ChatQolSettings.customFont);
+        check("fresh optional hover/font are off", !ChatQolSettings.hoverHighlight
+                && !ChatQolSettings.customFont);
+        check("fresh context menu defaults to Both with a 100 ms animation", ChatQolSettings.menuOpenMode == ChatMenuPolicy.BOTH
+                && ChatQolSettings.menuAnimationMillis == 100);
         check("default patterns are present and compiled", ChatQolSettings.patternRuleCount() >= 2
                 && ChatQolSettings.compiledPatterns().acceptedRules().size() >= 2);
     }
@@ -139,6 +143,29 @@ public final class ChatQolSettingsTests {
         ChatQolSettings.load(badFont);
         check("unknown global font fails closed", ChatQolSettings.FONT_MINECRAFT_DEFAULT.equals(ChatQolSettings.globalFontName)
                 && ChatQolSettings.globalFontEnabled);
+    }
+
+    private static void separateAndMenuPersistence() {
+        ChatQolSettings.resetDefaults();
+        ChatQolSettings.setSeparateChats(true);
+        ChatQolSettings.setMenuOpenMode(ChatMenuPolicy.LEFT);
+        ChatQolSettings.setMenuAnimationMillis(0);
+        Properties saved = new Properties();
+        ChatQolSettings.save(saved);
+        ChatQolSettings.load(saved);
+        check("separate chats uses one persisted native key", "true".equals(saved.getProperty("chat.qol.separate"))
+                && ChatQolSettings.isSeparateChats());
+        check("new menu trigger and Off animation survive restart", ChatQolSettings.menuOpenMode == ChatMenuPolicy.LEFT
+                && ChatQolSettings.menuAnimationMillis == 0);
+
+        Properties legacyOff = new Properties();
+        legacyOff.setProperty("chat.qol.menu", "false");
+        ChatQolSettings.load(legacyOff);
+        check("old disabled menu profile remains disabled after migration", ChatQolSettings.menuOpenMode == ChatMenuPolicy.DISABLED);
+        Properties legacyRight = new Properties();
+        legacyRight.setProperty("chat.qol.menu", "true");
+        ChatQolSettings.load(legacyRight);
+        check("old right-click profile migrates to Right", ChatQolSettings.menuOpenMode == ChatMenuPolicy.RIGHT);
     }
 
     private static void editorPanelPersistence() {

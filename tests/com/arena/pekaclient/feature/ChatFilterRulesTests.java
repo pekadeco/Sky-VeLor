@@ -12,6 +12,7 @@ public final class ChatFilterRulesTests {
         classificationSamples();
         filteringAndRouting();
         editableRulesAndHistory();
+        exclusiveDestinationPolicy();
         colorStripping();
 
         System.out.println("chat QoL classifier: passed " + passed + ", failed " + failed);
@@ -27,6 +28,9 @@ public final class ChatFilterRulesTests {
         sample("Alex left the party.", ChatFilterRules.PARTY);
         sample("A player invited you to join their party!", ChatFilterRules.PARTY);
         sample("§dFrom Alex: hello", ChatFilterRules.REPLY);
+        // Generic fixtures only: no user-provided Fakepixel samples were supplied to this test suite.
+        sample("[MVP+] From Alex: ranked private hello", ChatFilterRules.REPLY);
+        sample("[VIP] Party > Alex: ranked party hello", ChatFilterRules.PARTY);
         sample("To Alex: hello", ChatFilterRules.REPLY);
         sample("[PM] From Alex: hello", ChatFilterRules.REPLY);
         sample("§7[MVP+] Alex: normal player text", ChatFilterRules.PLAYER);
@@ -82,6 +86,27 @@ public final class ChatFilterRulesTests {
         check("selected tab clears only its unread marker", !history.unread(ChatFilterRules.PARTY)
                 && history.unread(ChatFilterRules.REPLY));
         check("history keeps newest full message", "Server: three".equals(history.newest(0).clean));
+    }
+
+    /** One source routing policy forbids a default/native duplicate for every classifier kind. */
+    private static void exclusiveDestinationPolicy() {
+        int[] kinds = {ChatFilterRules.PARTY, ChatFilterRules.REPLY, ChatFilterRules.PLAYER,
+                ChatFilterRules.SYSTEM, 999};
+        for (int kind : kinds) {
+            int off = ChatQolMode.destination(true, false, kind);
+            int on = ChatQolMode.destination(true, true, kind);
+            check("Separate Chats off keeps vanilla only " + kind, off == ChatQolMode.VANILLA);
+            check("Separate Chats on has one native destination " + kind,
+                    on == ChatQolMode.CHAT_1 || on == ChatQolMode.CHAT_2);
+        }
+        check("player/party/reply own Chat 1", ChatQolMode.destination(true, true, ChatFilterRules.PLAYER)
+                == ChatQolMode.CHAT_1 && ChatQolMode.destination(true, true, ChatFilterRules.PARTY)
+                == ChatQolMode.CHAT_1 && ChatQolMode.destination(true, true, ChatFilterRules.REPLY) == ChatQolMode.CHAT_1);
+        check("system/unknown own Chat 2", ChatQolMode.destination(true, true, ChatFilterRules.SYSTEM)
+                == ChatQolMode.CHAT_2 && ChatQolMode.destination(true, true, 999) == ChatQolMode.CHAT_2);
+        ChatFilterRules.Classification fallback = ChatFilterRules.classifyDetailed("unrecognised server line", null);
+        check("unknown reason identifies Chat 2 fallback", fallback.kind == ChatFilterRules.SYSTEM
+                && fallback.reason.contains("fallback"));
     }
 
     private static void colorStripping() {

@@ -433,8 +433,10 @@ public final class UIRender {
         // It is inert unless /velor layoutdebug has started a GuiScreen frame.
         float measuredWidth = GlobalFontManager.width(s, area);
         if (measuredWidth < 0f) measuredWidth = fr.getStringWidth(s);
+        float measuredHeight = GlobalFontManager.height(area);
+        if (measuredHeight < 0f) measuredHeight = fr.FONT_HEIGHT;
         GuiDebugOverlay.recordLabel(s, x, y, measuredWidth * scale,
-                Math.max(1f, fr.FONT_HEIGHT * scale));
+                Math.max(1f, measuredHeight * scale));
         flush();
         GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();

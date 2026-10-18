@@ -249,17 +249,14 @@ public class AppleHubScreen extends AppleScreen {
                     if (!value) ChatChannelTabs.disableAndRestoreAll();
                 })));
         rows.add(Row.item(ChatUiModel.label("separate-chats"),
-                "Chat 1 for player messages and Chat 2 for system messages",
-                new AppleToggle(() -> ChatQolSettings.separateChats, value -> ChatQolSettings.separateChats = value)));
+                "On: Chat 1 for player traffic and Chat 2 for system traffic. Off: untouched vanilla chat.",
+                new AppleToggle(ChatQolSettings::isSeparateChats, ChatQolSettings::setSeparateChats)));
         rows.add(Row.item(ChatUiModel.label("smooth-messages"),
                 "Use a small native arrival transition in separate chat windows",
                 new AppleToggle(() -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
         rows.add(Row.item(ChatUiModel.label("hover-highlight"),
                 "Highlight a native chat line only while chat is open",
                 new AppleToggle(() -> ChatQolSettings.hoverHighlight, value -> ChatQolSettings.hoverHighlight = value)));
-        rows.add(Row.item(ChatUiModel.label("right-click-menu"),
-                "Safe text-only copy menu for native chat lines",
-                new AppleToggle(() -> ChatQolSettings.rightClickMenu, value -> ChatQolSettings.rightClickMenu = value)));
         rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
                 "Windows, background, messages, tabs, hover and copy options",
                 new AppleButton("Open", 84f, 26f, true,

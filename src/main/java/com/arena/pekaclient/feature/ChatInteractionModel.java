@@ -98,26 +98,31 @@ public final class ChatInteractionModel {
         }
     }
 
-    /** Smooth hover alpha for each chat surface; target changes restart toward the new row without popping. */
+    /**
+     * Snappy 100 ms ease-out hover for each chat surface. The token is a persistent message-group token rather than
+     * a wrapped row, so moving across a long message cannot flash the whole-message highlight.
+     */
     public static final class Hover {
+        private static final float DURATION_SECONDS = .10f;
         private final Object[] token = new Object[SURFACE_COUNT];
         private final float[] alpha = new float[SURFACE_COUNT];
+        private final float[] start = new float[SURFACE_COUNT];
+        private final float[] target = new float[SURFACE_COUNT];
+        private final float[] elapsed = new float[SURFACE_COUNT];
 
         public void update(int surface, Object next, float seconds) {
             int slot = clampSurface(surface);
-            float target = next == null ? 0f : 1f;
-            // 14/s is fast enough to feel direct but visibly interpolated. Bound elapsed time after pause/resume.
-            float amount = clamp(seconds, 0f, 0.1f) * 14f;
-            if (next != token[slot]) {
+            float wanted = next == null ? 0f : 1f;
+            if (next != token[slot] || wanted != target[slot]) {
                 token[slot] = next;
-                // Preserve a little continuity between neighbouring wrapped rows from the same message.
-                alpha[slot] = Math.min(alpha[slot], 0.72f);
+                start[slot] = alpha[slot];
+                target[slot] = wanted;
+                elapsed[slot] = 0f;
             }
-            alpha[slot] += (target - alpha[slot]) * Math.min(1f, amount);
-            if (target == 0f && alpha[slot] < 0.003f) {
-                alpha[slot] = 0f;
-                token[slot] = null;
-            }
+            elapsed[slot] = Math.min(DURATION_SECONDS, elapsed[slot] + clamp(seconds, 0f, 0.1f));
+            float progress = elapsed[slot] / DURATION_SECONDS;
+            alpha[slot] = start[slot] + (target[slot] - start[slot]) * easeOut(progress);
+            if (target[slot] == 0f && progress >= 1f) token[slot] = null;
         }
 
         public float alpha(int surface) {
@@ -131,7 +136,7 @@ public final class ChatInteractionModel {
         public void clear() {
             for (int i = 0; i < SURFACE_COUNT; i++) {
                 token[i] = null;
-                alpha[i] = 0f;
+                alpha[i] = start[i] = target[i] = elapsed[i] = 0f;
             }
         }
     }
@@ -152,7 +157,7 @@ public final class ChatInteractionModel {
         return clamp(current + delta, 0f, Math.max(0f, maximum));
     }
 
-    /** Context menu position and eased open amount. Geometry remains on screen even on tiny GUI sizes. */
+    /** Context menu position, 80–120 ms ease-out opening, and a matching snappy row-hover fade. */
     public static final class Menu {
         public float x;
         public float y;
@@ -160,6 +165,17 @@ public final class ChatInteractionModel {
         public float h = 42f;
         public boolean visible;
         private float open;
+        private float openElapsed;
+        private int animationMillis = 100;
+        private final float[] rowHover = new float[MENU_LABELS.length];
+
+        public void setAnimationMillis(int value) {
+            animationMillis = value < 0 ? 0 : value > 240 ? 240 : value;
+        }
+
+        public int animationMillis() {
+            return animationMillis;
+        }
 
         public void show(float mouseX, float mouseY, float screenW, float screenH) {
             w = Math.max(112f, Math.min(176f, screenW - 4f));
@@ -167,18 +183,41 @@ public final class ChatInteractionModel {
             x = clamp(mouseX, 2f, Math.max(2f, screenW - w - 2f));
             y = clamp(mouseY, 2f, Math.max(2f, screenH - h - 2f));
             visible = true;
-            open = 0f;
+            openElapsed = 0f;
+            open = animationMillis == 0 ? 1f : 0f;
+            for (int i = 0; i < rowHover.length; i++) rowHover[i] = 0f;
         }
 
         public void hide() {
             visible = false;
             open = 0f;
+            openElapsed = 0f;
+            for (int i = 0; i < rowHover.length; i++) rowHover[i] = 0f;
         }
 
         public void update(float seconds) {
             if (!visible) return;
-            open += (1f - open) * Math.min(1f, clamp(seconds, 0f, 0.1f) * 18f);
-            if (open > 0.998f) open = 1f;
+            float dt = clamp(seconds, 0f, 0.1f);
+            if (animationMillis == 0) {
+                open = 1f;
+            } else {
+                openElapsed = Math.min(animationMillis / 1000f, openElapsed + dt);
+                open = easeOut(openElapsed / (animationMillis / 1000f));
+            }
+        }
+
+        /** Call once per frame with the current pointer so menu-row feedback settles in about 100 ms. */
+        public void updateHover(float seconds, int hoveredRow) {
+            float amount = easeOut(clamp(seconds, 0f, .1f) / .1f);
+            for (int i = 0; i < rowHover.length; i++) {
+                float target = i == hoveredRow ? 1f : 0f;
+                rowHover[i] += (target - rowHover[i]) * amount;
+                if (Math.abs(target - rowHover[i]) < .002f) rowHover[i] = target;
+            }
+        }
+
+        public float hoverAmount(int row) {
+            return row < 0 || row >= rowHover.length ? 0f : rowHover[row];
         }
 
         public float openAmount() {
@@ -195,6 +234,12 @@ public final class ChatInteractionModel {
     /** Maps an on-screen native row to local font coordinates after a caller's text scale has been applied. */
     public static float localTextX(float mouseX, float rowX, float textScale) {
         return (mouseX - rowX) / Math.max(0.01f, textScale);
+    }
+
+    /** Quadratic ease-out reaches a settled value at the requested duration without an abrupt first frame. */
+    private static float easeOut(float value) {
+        float t = clamp(value, 0f, 1f);
+        return 1f - (1f - t) * (1f - t);
     }
 
     private static int clampSurface(int surface) {

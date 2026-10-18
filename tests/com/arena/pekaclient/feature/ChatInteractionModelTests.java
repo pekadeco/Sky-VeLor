@@ -1,5 +1,7 @@
 package com.arena.pekaclient.feature;
 
+import com.arena.pekaclient.chat.ChatMenuPolicy;
+
 /** Headless proof for the one interaction contract shared by Default Chat, Chat 1 and Chat 2. */
 public final class ChatInteractionModelTests {
     private static int passed;
@@ -9,6 +11,7 @@ public final class ChatInteractionModelTests {
         sharedHitPaths();
         exactlyTwoMenuActions();
         boundedMenuAndHover();
+        menuTimingAndMousePolicy();
         movedScaledComponentCoordinates();
         oneWheelApplication();
         System.out.println("chat interaction model: passed " + passed + ", failed " + failed);
@@ -49,6 +52,31 @@ public final class ChatInteractionModelTests {
         hover.update(ChatInteractionModel.DEFAULT_CHAT, "row", 1f / 30f);
         check("hover eases instead of popping", first > 0f && first < 1f
                 && hover.alpha(ChatInteractionModel.DEFAULT_CHAT) > first && hover.alpha(ChatInteractionModel.DEFAULT_CHAT) < 1f);
+    }
+
+    private static void menuTimingAndMousePolicy() {
+        ChatInteractionModel.Menu menu = new ChatInteractionModel.Menu();
+        menu.setAnimationMillis(100);
+        menu.show(10, 10, 320, 180);
+        menu.update(.05f);
+        check("100 ms menu eases part-way at 50 ms", menu.openAmount() > .5f && menu.openAmount() < 1f);
+        menu.update(.05f);
+        check("100 ms menu completes at 100 ms", menu.openAmount() == 1f);
+        menu.setAnimationMillis(0);
+        menu.show(10, 10, 320, 180);
+        check("menu animation Off is immediate", menu.openAmount() == 1f);
+        menu.updateHover(.05f, 1);
+        check("menu hover fades quickly", menu.hoverAmount(1) > .5f && menu.hoverAmount(1) < 1f);
+        menu.updateHover(.05f, 1);
+        check("menu hover settles near 100 ms", menu.hoverAmount(1) > .98f);
+
+        check("Right policy opens only right", ChatMenuPolicy.opens(ChatMenuPolicy.RIGHT, 1, true)
+                && !ChatMenuPolicy.opens(ChatMenuPolicy.RIGHT, 0, false));
+        check("Left policy opens plain left text", ChatMenuPolicy.opens(ChatMenuPolicy.LEFT, 0, false)
+                && !ChatMenuPolicy.opens(ChatMenuPolicy.LEFT, 1, false));
+        check("Both policy keeps clickable left components native", !ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 0, true)
+                && ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 0, false)
+                && ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 1, true));
     }
 
     private static void movedScaledComponentCoordinates() {

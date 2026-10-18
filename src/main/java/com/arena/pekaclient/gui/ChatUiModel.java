@@ -55,7 +55,7 @@ public final class ChatUiModel {
         entries.add(new Entry("separate-chats", "Separate Chats", TOGGLE));
         entries.add(new Entry("smooth-messages", "Smooth Messages", TOGGLE));
         entries.add(new Entry("hover-highlight", "Hover Highlight", TOGGLE));
-        entries.add(new Entry("right-click-menu", "Right Click Menu", TOGGLE));
+        // Context-menu trigger and animation options live in Chat Editor with the rest of interaction behavior.
         // Fonts and scroll behavior are global mod settings, intentionally outside this chat-specific contract.
         entries.add(new Entry("open-chat-editor", "Open Chat Editor", EDITOR));
         return Collections.unmodifiableList(entries);

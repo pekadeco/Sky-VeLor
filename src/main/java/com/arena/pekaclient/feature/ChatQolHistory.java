@@ -11,6 +11,9 @@ public final class ChatQolHistory {
         public String display = "";
         public String clean = "";
         public int kind = ChatFilterRules.SYSTEM;
+        /** One-pass classifier explanation and unique destination retained for /velor chatdebug. */
+        public String routingReason = "";
+        public int destination = ChatQolMode.CHAT_2;
         public long receivedAt;
         /** Original component is held for shared copy, hover and left-click forwarding. */
         public Object component;
@@ -30,13 +33,22 @@ public final class ChatQolHistory {
         for (int i = 0; i < messages.length; i++) messages[i] = new Message();
     }
 
-    /** Records one received message into a preallocated slot. */
+    /** Legacy/test entry point; production uses the overload retaining the one-pass routing evidence. */
     public void add(String formatted, int kind, Object component, long receivedAt, int activeTab) {
+        add(formatted, kind, component, receivedAt, activeTab, "", ChatFilterRules.belongsToChatOne(kind)
+                ? ChatQolMode.CHAT_1 : ChatQolMode.CHAT_2);
+    }
+
+    /** Records one received message into a preallocated slot. */
+    public void add(String formatted, int kind, Object component, long receivedAt, int activeTab,
+                    String reason, int destination) {
         Message message = messages[next];
         message.formatted = formatted == null ? "" : formatted;
         message.display = message.formatted.indexOf('\n') >= 0 ? message.formatted.replace('\n', ' ') : message.formatted;
         message.clean = ChatFilterRules.stripFormatting(message.formatted);
         message.kind = kind;
+        message.routingReason = reason == null ? "" : reason;
+        message.destination = destination == ChatQolMode.CHAT_1 ? ChatQolMode.CHAT_1 : ChatQolMode.CHAT_2;
         message.component = component;
         message.wrappedLines[0] = null;
         message.wrappedLines[1] = null;
