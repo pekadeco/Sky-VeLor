@@ -29,6 +29,8 @@ public final class ChatQolSettingsTests {
         check("default highlight is soft white", ChatQolSettings.hoverColor == 0xFFFFFF
                 && ChatQolSettings.hoverOpacity == 25);
         check("default menu is Both and instant", ChatQolSettings.menuOpenMode == ChatMenuPolicy.BOTH);
+        check("compact messages are opt-in with a gray counter", !ChatQolSettings.compactMessages
+                && ChatQolSettings.compactCounterColor == 0xAAAAAA);
         check("background defaults fit messages and chat width", !ChatQolSettings.backgroundOpenFullArea
                 && !ChatQolSettings.backgroundFitWidth);
         check("tabs default to translucent black with a blue selection", ChatQolSettings.tabInactiveColor == 0x000000
@@ -70,6 +72,8 @@ public final class ChatQolSettingsTests {
         ChatQolSettings.tabBackgroundColor = 0x1555AA;
         ChatQolSettings.tabOpacity = 31;
         ChatQolSettings.tabActiveOpacity = 49;
+        ChatQolSettings.compactMessages = true;
+        ChatQolSettings.compactCounterColor = 0x708090;
         ChatQolSettings.Result created = ChatQolSettings.addCustomTab("Trade");
         check("custom tab added", created.success);
         ChatQolSettings.Result updated = ChatQolSettings.updateCustomTab(created.id, "Trade", ChatTabs.CONTAINS,
@@ -88,7 +92,8 @@ public final class ChatQolSettingsTests {
         check("background and both tab surfaces survive save/load", ChatQolSettings.backgroundOpenFullArea
                 && ChatQolSettings.backgroundFitWidth && ChatQolSettings.tabInactiveColor == 0x101820
                 && ChatQolSettings.tabBackgroundColor == 0x1555AA && ChatQolSettings.tabOpacity == 31
-                && ChatQolSettings.tabActiveOpacity == 49);
+                && ChatQolSettings.tabActiveOpacity == 49 && ChatQolSettings.compactMessages
+                && ChatQolSettings.compactCounterColor == 0x708090);
     }
 
     private static void invalidRegexAndBounds() {
@@ -105,11 +110,13 @@ public final class ChatQolSettingsTests {
         ChatQolSettings.backgroundRadius = 99;
         ChatQolSettings.messageAnimationMillis = 9999;
         ChatQolSettings.hoverOpacity = -4;
+        ChatQolSettings.compactCounterColor = -1;
         Properties p = new Properties();
         ChatQolSettings.save(p);
         ChatQolSettings.load(p);
         check("visual values clamp", ChatQolSettings.backgroundRadius == 12
-                && ChatQolSettings.messageAnimationMillis == 600 && ChatQolSettings.hoverOpacity == 0);
+                && ChatQolSettings.messageAnimationMillis == 600 && ChatQolSettings.hoverOpacity == 0
+                && ChatQolSettings.compactCounterColor == 0xAAAAAA);
         for (ChatTabs.Tab tab : ChatQolSettings.tabs()) ChatQolSettings.setTabVisible(tab.id(), false);
         check("at least one tab remains visible", !ChatQolSettings.visibleTabs().isEmpty());
         ChatQolSettings.tabInactiveColor = 0x654321;

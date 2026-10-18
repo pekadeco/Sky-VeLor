@@ -73,6 +73,7 @@ public final class ChatEditorScreen extends AppleScreen {
     private final SearchField tabColour = field("#FF9F0A");
     private final SearchField sampleText = field("Sample line to test");
     private final SearchField hoverColour = field("#FFFFFF");
+    private final SearchField compactCounterColour = field("#AAAAAA");
 
     private final AppleDropdown filterType;
     private final AppleDropdown menuMode;
@@ -149,6 +150,9 @@ public final class ChatEditorScreen extends AppleScreen {
                 .valueLabel(value -> value == 0 ? "Off" : value + " s")));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Use smooth messages", new AppleToggle(
                 () -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Compact messages", new AppleToggle(
+                () -> ChatQolSettings.compactMessages, value -> ChatQolSettings.compactMessages = value)));
+        entries.add(new Entry(ChatEditorLayout.MESSAGES, "Compact counter colour", compactCounterColour));
 
         entries.add(new Entry(ChatEditorLayout.TABS, "Unselected tab colour", tabInactiveColour));
         entries.add(new Entry(ChatEditorLayout.TABS, "Selected tab colour", tabBaseColour));
@@ -329,6 +333,7 @@ public final class ChatEditorScreen extends AppleScreen {
         if (!tabInactiveColour.isFocused()) tabInactiveColour.setText(colourText(ChatQolSettings.tabInactiveColor));
         if (!tabBaseColour.isFocused()) tabBaseColour.setText(colourText(ChatQolSettings.tabBackgroundColor));
         if (!hoverColour.isFocused()) hoverColour.setText(colourText(ChatQolSettings.hoverColor));
+        if (!compactCounterColour.isFocused()) compactCounterColour.setText(colourText(ChatQolSettings.compactCounterColor));
         if (!tabFields) return;
         ChatTabs.Tab tab = currentTab();
         if (tab == null) return;
@@ -345,10 +350,12 @@ public final class ChatEditorScreen extends AppleScreen {
         Integer tabInactive = parseColour(tabInactiveColour.text());
         Integer tabBase = parseColour(tabBaseColour.text());
         Integer hover = parseColour(hoverColour.text());
+        Integer compactCounter = parseColour(compactCounterColour.text());
         if (background != null) ChatQolSettings.backgroundColor = background.intValue();
         if (tabInactive != null) ChatQolSettings.tabInactiveColor = tabInactive.intValue();
         if (tabBase != null) ChatQolSettings.tabBackgroundColor = tabBase.intValue();
         if (hover != null) ChatQolSettings.hoverColor = hover.intValue();
+        if (compactCounter != null) ChatQolSettings.compactCounterColor = compactCounter.intValue();
     }
 
     private void updateLayout(float dt) {

@@ -2,6 +2,7 @@ package com.arena.pekaclient.feature;
 
 import com.arena.pekaclient.chat.CapturedChatMenu;
 import com.arena.pekaclient.chat.ChatClipboard;
+import com.arena.pekaclient.chat.ChatCompactMessages;
 import com.arena.pekaclient.chat.ChatContextMenu;
 import com.arena.pekaclient.chat.ChatInputInsertion;
 import com.arena.pekaclient.chat.ChatMenuPolicy;
@@ -50,7 +51,8 @@ import java.util.Set;
  *
  * When the master switch is on and all guarded bridges resolve, this class cancels exactly Minecraft's Default Chat
  * overlay and redraws that same vanilla cache once with the configured background, animation, filter tabs, grouped
- * hover/menu handling, and eased scrolling. It never routes or replaces received messages. If the master is off or
+ * hover/menu handling, and eased scrolling. Normal received messages stay in Minecraft's cache; the opt-in Compact
+ * Messages path only replaces a consecutive duplicate with its own fixed-high-id count line. If the master is off or
  * a mapping cannot be resolved, no overlay is cancelled and vanilla Minecraft owns chat unchanged.
  */
 public final class ChatChannelTabs {
@@ -95,6 +97,9 @@ public final class ChatChannelTabs {
     private final List<MessageGroup> groups = new ArrayList<MessageGroup>();
     private final List<RenderRow> rows = new ArrayList<RenderRow>();
     private final Map<Integer, Long> arrivalMillis = new HashMap<Integer, Long>();
+    /** Last high-id counter update per original group; lets the counter reset this group's fade and arrival easing. */
+    private final Map<Integer, Integer> compactCounterUpdates = new HashMap<Integer, Integer>();
+    private final ChatCompactMessages compactMessages = new ChatCompactMessages();
     private final Set<String> unreadTabs = new HashSet<String>();
     private final GuiLayoutToolkit.Scroll scroll = new GuiLayoutToolkit.Scroll();
     private final ChatTabLayout.Layout tabLayout = new ChatTabLayout.Layout();
@@ -146,10 +151,15 @@ public final class ChatChannelTabs {
         renderDefaultChat(event.resolution);
     }
 
-    /** New messages remain vanilla messages. We only mark matching non-selected tabs unread and optionally play one sound. */
+    /**
+     * Incoming text stays in Minecraft's own cache. Compact messages cancels only repeated eligible arrivals and
+     * asks GuiNewChat to replace one fixed high-id gray counter line; the first original component remains intact.
+     */
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
-        if (!ownsDefaultChat() || !ChatQolSettings.tabsEnabled || event == null || event.type == 2 || event.message == null) return;
+        if (!ownsDefaultChat() || event == null || event.type == 2 || event.message == null) return;
+        compactIncoming(event);
+        if (!ChatQolSettings.tabsEnabled) return;
         String clean = cleanComponent(event.message);
         boolean played = false;
         for (ChatTabs.Tab tab : ChatQolSettings.tabs()) {
@@ -162,6 +172,32 @@ public final class ChatChannelTabs {
                     played = true;
                 }
             }
+        }
+    }
+
+    /** Keeps the original message for copy/recipient extraction and uses only the counter as the replacement line. */
+    private void compactIncoming(ClientChatReceivedEvent event) {
+        if (!ChatQolSettings.compactMessages) {
+            compactMessages.reset();
+            return;
+        }
+        ChatCompactMessages.Result result = compactMessages.accept(event.message.getFormattedText());
+        if (!result.compacted) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        GuiNewChat chat = mc == null || mc.ingameGUI == null ? null : mc.ingameGUI.getChatGUI();
+        if (chat == null) {
+            // Do not cancel the packet if vanilla's cache is unavailable; a failed compact path must fail open.
+            compactMessages.reset();
+            return;
+        }
+        try {
+            chat.printChatMessageWithOptionalDeletion(
+                    new ChatComponentText(ChatCompactMessages.counterFormattedText(result.count)),
+                    ChatCompactMessages.COUNTER_LINE_ID);
+            event.setCanceled(true);
+        } catch (RuntimeException | LinkageError ignored) {
+            // Keep the real server message rather than risk hiding text on an unexpected launcher bridge failure.
+            compactMessages.reset();
         }
     }
 
@@ -295,10 +331,12 @@ public final class ChatChannelTabs {
         if (!ownsDefaultChat()) {
             copyMenu.hide();
             unreadTabs.clear();
+            compactMessages.reset();
+            compactCounterUpdates.clear();
         }
     }
 
-    /** Used by the Hub when the master or tab switch is disabled. No cache restoration is needed because we never edit it. */
+    /** Used by the Hub when the master or tab switch is disabled. Normal cache lines are untouched; only a naturally fading compact counter may remain. */
     public static void disableAndRestoreAll() {
         if (live != null) {
             live.copyMenu.hide();
@@ -397,7 +435,7 @@ public final class ChatChannelTabs {
             float alpha = row.group.alpha;
             if (alpha <= .001f) continue;
             float slide = row.group.slide;
-            int colour = withAlpha(0xFFFFFF, alpha);
+            int colour = withAlpha(row.rgb, alpha);
             UIRender.text(font, row.formatted, row.x, row.y + 1f + slide, colour, scale, true,
                     GlobalFontManager.Area.CHAT);
         }
@@ -429,7 +467,11 @@ public final class ChatChannelTabs {
         return backgroundTransition.update(backgroundTarget, target, dt);
     }
 
-    /** Reads the vanilla complete/drawn cache but never writes it. A failed read clears our transient view and fails open. */
+    /**
+     * Reads the vanilla complete/drawn cache but never writes it. Compact counters are deliberately folded into the
+     * original group, so tab matching, hover, arrival animation, copy text, and /msg recipient extraction all keep
+     * using the untouched original component rather than the gray count suffix.
+     */
     private void rebuildGroups(GuiNewChat chat) {
         groups.clear();
         rows.clear();
@@ -437,14 +479,21 @@ public final class ChatChannelTabs {
             List<ChatLine> complete = chatLines(chat);
             Map<Integer, IChatComponent> originals = new HashMap<Integer, IChatComponent>();
             for (ChatLine line : complete) {
-                if (line != null && line.getChatComponent() != null) originals.put(line.getUpdatedCounter(), line.getChatComponent());
+                if (line != null && line.getChatComponent() != null) {
+                    originals.put(line.getUpdatedCounter(), line.getChatComponent());
+                }
             }
             List<ChatLine> drawn = drawnLines(chat);
+            List<CompactCounter> counters = new ArrayList<CompactCounter>();
             MessageGroup current = null;
             Set<Integer> stillPresent = new HashSet<Integer>();
             long now = System.currentTimeMillis();
             for (ChatLine line : drawn) {
                 if (line == null || line.getChatComponent() == null) continue;
+                if (isCompactCounterLine(line)) {
+                    counters.add(new CompactCounter(line.getChatComponent(), line.getUpdatedCounter()));
+                    continue;
+                }
                 int counter = line.getUpdatedCounter();
                 if (current == null || current.id != counter) {
                     IChatComponent original = originals.get(counter);
@@ -456,7 +505,9 @@ public final class ChatChannelTabs {
                 }
                 current.addLine(line.getChatComponent());
             }
+            attachCompactCounters(counters, stillPresent, now);
             arrivalMillis.keySet().retainAll(stillPresent);
+            compactCounterUpdates.keySet().retainAll(stillPresent);
         } catch (IllegalAccessException | RuntimeException | LinkageError ignored) {
             groups.clear();
             rows.clear();
@@ -464,6 +515,33 @@ public final class ChatChannelTabs {
             // rather than continuing an incomplete replacement surface.
             runtimeBridgeFailed = true;
             warnBridgeOnce();
+        }
+    }
+
+    /** Associates the fixed high-id counter with the still-present original message; a mismatch stays visible safely. */
+    private void attachCompactCounters(List<CompactCounter> counters, Set<Integer> stillPresent, long now) {
+        for (CompactCounter counter : counters) {
+            MessageGroup target = null;
+            if (ChatQolSettings.compactMessages && compactMessages.hasActiveMessage()) {
+                String originalFormatted = compactMessages.activeFormatted();
+                for (MessageGroup group : groups) {
+                    if (originalFormatted.equals(group.formatted)) {
+                        target = group;
+                        break;
+                    }
+                }
+            }
+            if (target != null) {
+                target.setCompactCounter(counter.formatted, counter.updateCounter, now);
+                continue;
+            }
+            // A launcher/history mismatch must not hide the counter. It is a visual fallback only; normal compact
+            // paths always attach to the real original group above.
+            MessageGroup fallback = new MessageGroup(counter.updateCounter, counter.component, true);
+            fallback.addLine(counter.component);
+            groups.add(fallback);
+            stillPresent.add(fallback.id);
+            if (!arrivalMillis.containsKey(fallback.id)) arrivalMillis.put(fallback.id, now);
         }
     }
 
@@ -479,7 +557,7 @@ public final class ChatChannelTabs {
             if (selected.matches(group.clean)) visible.add(group);
         }
         int totalLines = 0;
-        for (MessageGroup group : visible) totalLines += group.lines.size();
+        for (MessageGroup group : visible) totalLines += group.renderLineCount();
         float viewportH = Math.max(lineH, visibleLines * lineH);
         scroll.setMaximum(Math.max(0f, totalLines * lineH - viewportH));
         float yOffset = scroll.value();
@@ -489,10 +567,20 @@ public final class ChatChannelTabs {
         int update = mc == null || mc.ingameGUI == null ? 0 : mc.ingameGUI.getUpdateCounter();
         for (MessageGroup group : visible) {
             group.updateAnimation(now, update, chatOpen);
+            if (group.hasCompactCounter()) {
+                float y = messageBottom + yOffset - (lineIndex + 1) * lineH;
+                // A null component keeps counter clicks attached to the original group/menu payload, never to its
+                // decorative suffix. The configured RGB is only for Sky VeLor rendering; vanilla's cache is gray.
+                RenderRow counter = new RenderRow(group, null, group.compactCounterFormatted, 2f, y, width, lineH,
+                        textScale, ChatQolSettings.compactCounterColor);
+                rows.add(counter);
+                group.include(counter);
+                lineIndex++;
+            }
             for (IChatComponent component : group.lines) {
                 float y = messageBottom + yOffset - (lineIndex + 1) * lineH;
                 RenderRow row = new RenderRow(group, component, component.getFormattedText(), 2f, y, width, lineH,
-                        textScale);
+                        textScale, 0xFFFFFF);
                 rows.add(row);
                 group.include(row);
                 lineIndex++;
@@ -716,6 +804,11 @@ public final class ChatChannelTabs {
         return false;
     }
 
+    /** Identifies only the reserved fixed high-id counter line; every normal server ChatLine remains untouched. */
+    private static boolean isCompactCounterLine(ChatLine line) {
+        return line != null && line.getChatLineID() == ChatCompactMessages.COUNTER_LINE_ID;
+    }
+
     @SuppressWarnings("unchecked")
     private static List<ChatLine> chatLines(GuiNewChat chat) throws IllegalAccessException {
         return (List<ChatLine>) CHAT_LINES.get(chat);
@@ -879,6 +972,8 @@ public final class ChatChannelTabs {
         String formatted;
         final List<IChatComponent> lines = new ArrayList<IChatComponent>();
         final ChatRenderGeometry.Rect bounds = new ChatRenderGeometry.Rect();
+        String compactCounterFormatted;
+        int compactCounterUpdate = -1;
         float alpha = 1f;
         float slide;
 
@@ -906,6 +1001,28 @@ public final class ChatChannelTabs {
             }
         }
 
+        void setCompactCounter(String formattedCounter, int updateCounter, long now) {
+            Integer previousUpdate = compactCounterUpdates.get(id);
+            // MessageGroup instances are rebuilt each frame, so cross-frame freshness lives in the small id map.
+            // GuiNewChat gives every replacement a fresh update counter; this resets fade/bottom animation once,
+            // rather than restarting it forever while the same counter is merely rendered again.
+            boolean changed = previousUpdate == null || previousUpdate.intValue() != updateCounter;
+            compactCounterFormatted = formattedCounter == null ? "" : formattedCounter;
+            compactCounterUpdate = updateCounter;
+            if (changed) {
+                compactCounterUpdates.put(id, updateCounter);
+                arrivalMillis.put(id, now);
+            }
+        }
+
+        boolean hasCompactCounter() {
+            return compactCounterFormatted != null && compactCounterFormatted.length() > 0;
+        }
+
+        int renderLineCount() {
+            return lines.size() + (hasCompactCounter() ? 1 : 0);
+        }
+
         void resetBounds() { bounds.set(0f, 0f, 0f, 0f, 0f); }
         void include(RenderRow row) { ChatRenderGeometry.include(bounds, row.x, row.y, row.w, row.h); }
 
@@ -913,7 +1030,8 @@ public final class ChatChannelTabs {
             alpha = 1f;
             slide = 0f;
             if (!chatOpen && ChatQolSettings.fadeSeconds > 0) {
-                float age = Math.max(0f, (updateCounter - id) / 20f);
+                int freshness = compactCounterUpdate >= 0 ? compactCounterUpdate : id;
+                float age = Math.max(0f, (updateCounter - freshness) / 20f);
                 float duration = ChatQolSettings.fadeSeconds;
                 if (age >= duration) alpha = 0f;
                 else if (age > duration * .70f) alpha *= Math.max(0f, (duration - age) / (duration * .30f));
@@ -939,9 +1057,10 @@ public final class ChatChannelTabs {
         final float w;
         final float h;
         final float textScale;
+        final int rgb;
 
         RenderRow(MessageGroup group, IChatComponent component, String formatted, float x, float y, float w,
-                  float h, float textScale) {
+                  float h, float textScale, int rgb) {
             this.group = group;
             this.component = component;
             this.formatted = formatted == null ? "" : formatted;
@@ -950,6 +1069,20 @@ public final class ChatChannelTabs {
             this.w = w;
             this.h = h;
             this.textScale = textScale;
+            this.rgb = rgb & 0xFFFFFF;
+        }
+    }
+
+    /** One fixed-high-id counter from vanilla's cache, held until it can be attached to its original group. */
+    private static final class CompactCounter {
+        final IChatComponent component;
+        final String formatted;
+        final int updateCounter;
+
+        CompactCounter(IChatComponent component, int updateCounter) {
+            this.component = component;
+            this.formatted = component == null ? "" : component.getFormattedText();
+            this.updateCounter = updateCounter;
         }
     }
 }

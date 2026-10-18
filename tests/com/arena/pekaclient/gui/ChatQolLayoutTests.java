@@ -101,7 +101,8 @@ public final class ChatQolLayoutTests {
     }
 
     private static void editorFlowNoOverlap() {
-        int[] counts = {4, 3, 16, 4, 4};
+        // Messages has animation, fade, smooth, Compact messages, and its counter-colour field.
+        int[] counts = {4, 5, 16, 4, 4};
         boolean[] expanded = {true, true, true, true, true};
         float[][] rows = rows(counts, 27f);
         float[][] extra = rows(counts, 0f);

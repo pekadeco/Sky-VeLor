@@ -23,6 +23,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.PureLogicTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.GuiLayoutToolkitTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ClipboardChainTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatPlayerNameTests
+java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatCompactMessagesTests
 java -Djava.awt.headless=true -cp "$OUT:$CP" com.arena.pekaclient.render.FontAtlasGeneratorTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.FontSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ConfigTests

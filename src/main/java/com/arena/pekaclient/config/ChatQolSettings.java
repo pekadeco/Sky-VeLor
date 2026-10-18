@@ -47,6 +47,10 @@ public final class ChatQolSettings {
     public static int tabActiveOpacity;
     public static int messageAnimationMillis;
     public static int fadeSeconds;
+    /** Opt-in formatter-exact consecutive message compaction. */
+    public static boolean compactMessages;
+    /** RGB counter colour used by Sky VeLor's renderer; the vanilla cache fallback stays gray. */
+    public static int compactCounterColor;
     public static int hoverColor;
     public static int hoverOpacity;
 
@@ -203,6 +207,8 @@ public final class ChatQolSettings {
         smoothMessages = true;
         messageAnimationMillis = 140;
         fadeSeconds = 10;
+        compactMessages = false;
+        compactCounterColor = 0xAAAAAA;
     }
 
     public static void resetTabs() {
@@ -266,6 +272,8 @@ public final class ChatQolSettings {
         tabActiveOpacity = integer(p, PREFIX + "tabs.activeOpacity", 60, 0, 100);
         messageAnimationMillis = integer(p, PREFIX + "messages.animation", 140, 0, 600);
         fadeSeconds = integer(p, PREFIX + "messages.fade", 10, 0, 60);
+        compactMessages = bool(p, PREFIX + "messages.compact", false);
+        compactCounterColor = colour(p, PREFIX + "messages.compactCounterColor", 0xAAAAAA);
         hoverColor = colour(p, PREFIX + "highlight.color", 0xFFFFFF);
         hoverOpacity = integer(p, PREFIX + "highlight.opacity", 25, 0, 100);
 
@@ -300,6 +308,8 @@ public final class ChatQolSettings {
         p.setProperty(PREFIX + "background.fitWidth", Boolean.toString(backgroundFitWidth));
         p.setProperty(PREFIX + "messages.animation", Integer.toString(messageAnimationMillis));
         p.setProperty(PREFIX + "messages.fade", Integer.toString(fadeSeconds));
+        p.setProperty(PREFIX + "messages.compact", Boolean.toString(compactMessages));
+        p.setProperty(PREFIX + "messages.compactCounterColor", colourString(compactCounterColor));
         p.setProperty(PREFIX + "highlight.color", colourString(hoverColor));
         p.setProperty(PREFIX + "highlight.opacity", Integer.toString(hoverOpacity));
         saveTabs(p);
@@ -390,6 +400,7 @@ public final class ChatQolSettings {
         tabActiveOpacity = clamp(tabActiveOpacity, 0, 100);
         messageAnimationMillis = clamp(messageAnimationMillis, 0, 600);
         fadeSeconds = clamp(fadeSeconds, 0, 60);
+        compactCounterColor = validColour(compactCounterColor, 0xAAAAAA);
         hoverColor = validColour(hoverColor, 0xFFFFFF);
         hoverOpacity = clamp(hoverOpacity, 0, 100);
         setMenuOpenMode(menuOpenMode);
