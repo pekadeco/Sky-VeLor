@@ -1,5 +1,13 @@
 # Changelog
 
+## Beta-0.10.8.5v — 2026-10-18
+
+- Reworked all Sky VeLor-owned screens around the shared `GuiLayoutToolkit`: clamped shells, measured compact rows, ellipsis, clipping, common scrollbar semantics, Shift fine scrolling, and responsive small-scale layouts. Quick Note now switches to a non-overlapping compact editor instead of retaining a fixed sidebar.
+- Routed Default Chat, Chat 1, and Chat 2 through the production `ChatPipeline` for message wrapping, layout, full-row hit targets, hover/fade, shared scrolling, context-copy selection, and component-forwarding bridges. Vanilla chat remains unchanged when Chat QoL is off or its reflection bridge is unavailable.
+- Consolidated scroll speed and smoothing into top-level **Mod Settings**. Retired per-target Chat QoL scroll keys are read once as a compatibility migration and omitted on the next save; one hovered viewport consumes each wheel event, with Shift fine scrolling.
+- Moved global font ownership fully to top-level **Fonts** and added bundled OFL-licensed Rounded (Nunito) and Mono (JetBrains Mono) alongside Smooth and Doodle. Added packaged notices/licenses, preview, safe external-file validation, and fail-closed vanilla fallback for unavailable native-font bridges.
+- Updated release metadata and verification for display version `Beta-0.10.8.5v` with numeric Forge `mcmod.info` version `0.10.8.5`, and strengthened the release-JAR audit for the shared layout, chat pipeline, global settings, and bundled font resources.
+
 ## Beta-0.10.8.4v — 2026-10-18
 
 - Unified Default Chat, Chat 1, and Chat 2 message hit testing, eased hover state, right-click handling, and bounded scrolling through one native interaction model. Default vanilla-layout chat now receives the same opt-in highlight/menu path when Separate Chats is off.

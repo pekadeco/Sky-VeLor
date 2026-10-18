@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.4v]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.5v] [--mcmod-version 0.10.8.5]
 """
 
 import argparse
@@ -63,7 +63,13 @@ REQUIRED_CLASSES = [
     'gui/ChatEditorLayout',
     'gui/ChatEditorPanelLayout',
     'gui/ChatEditorScreen',
-    'gui/GlobalFontSettingsScreen',
+    'gui/GuiLayoutToolkit',
+    'gui/ModSettingsScreen',
+    'gui/FontsScreen',
+    'notes/QuickNoteLayout',
+    'chat/ChatPipeline',
+    'chat/ChatClipboard',
+    'chat/ChatContextMenu',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -213,7 +219,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.8.4v')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.5v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.5')
     args = ap.parse_args()
 
     path = args.jar
@@ -265,9 +272,10 @@ def main():
         found = m.group(1) if m else None
         print('  mcmod.info version : %s' % found)
         r.check(found is not None, 'mcmod.info carries a version')
-        if args.version:
-            r.check(found == args.version, 'mcmod.info version matches the release',
-                    'expected %s' % args.version)
+        expected_mcmod = args.mcmod_version or args.version
+        if expected_mcmod:
+            r.check(found == expected_mcmod, 'mcmod.info version matches the numeric mod metadata release',
+                    'expected %s' % expected_mcmod)
         mc = re.search(r'"mcversion"\s*:\s*"([^"]+)"', info)
         r.check(bool(mc) and mc.group(1) == '1.8.9', 'mcmod.info targets 1.8.9',
                 mc.group(1) if mc else 'missing')
@@ -296,10 +304,16 @@ def main():
                      'META-INF/LICENSE-SKYTILS-AGPL-3.0.txt',
                      'META-INF/THIRD_PARTY_NOTICES-CHAT.txt',
                      'THIRD_PARTY_LICENSES.md',
+                     'THIRD_PARTY_NOTICES.md',
+                     'assets/skyvelor/fonts/NOTICE.txt',
                      'assets/skyvelor/fonts/OFL-Abel.txt',
                      'assets/skyvelor/fonts/OFL-ArchitectsDaughter.txt',
+                     'assets/skyvelor/fonts/OFL-Nunito.txt',
+                     'assets/skyvelor/fonts/OFL-JetBrainsMono.txt',
                      'assets/skyvelor/fonts/smooth-abel-regular.ttf',
-                     'assets/skyvelor/fonts/doodle-architects-daughter.ttf'):
+                     'assets/skyvelor/fonts/doodle-architects-daughter.ttf',
+                     'assets/skyvelor/fonts/rounded-nunito.ttf',
+                     'assets/skyvelor/fonts/mono-jetbrains-mono.ttf'):
         r.check(resource in names, 'packaged legal resource: %s' % resource)
 
     # --- the decisive mapping check --------------------------------------
@@ -378,38 +392,51 @@ def main():
     chat_ui_constants = constants_of('gui/ChatUiModel')
     r.check(all(value in chat_ui_constants for value in
                 ('Chat QoL', 'Chat Tabs', 'Separate Chats', 'Smooth Messages', 'Hover Highlight',
-                 'Right Click Menu', 'Global Font', 'Open Font Settings', 'Open Chat Editor'))
+                 'Right Click Menu', 'Open Chat Editor'))
+                and 'Global Font' not in chat_ui_constants and 'Open Font Settings' not in chat_ui_constants
                 and 'Chatting animation bridge' not in chat_ui_constants,
-            'ChatUiModel packages exactly the native Chat QoL hub controls')
+            'ChatUiModel packages only the native Chat QoL switches; global Fonts are top-level owned')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
     chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
     r.check(all(value in chat_editor_raw for value in
-                (b'Windows', b'Background', b'Messages', b'Font', b'Tabs', b'Hover / menu'))
+                (b'Windows', b'Background', b'Messages', b'Global settings', b'Tabs', b'Hover / menu'))
                 and b'com/arena/pekaclient/gui/ChatEditorLayout' in chat_editor_raw
+                and b'com/arena/pekaclient/gui/GuiLayoutToolkit' in chat_editor_raw
                 and len(chat_editor_layout_raw) > 0,
             'ChatEditorScreen packages all compact editor sections through the shared non-overlap layout')
     interaction_constants = constants_of('feature/ChatInteractionModel')
     interaction_raw = raw_of('feature/ChatInteractionModel')
+    menu_constants = constants_of('chat/ChatContextMenu')
     tabs_raw = raw_of('feature/ChatChannelTabs')
-    r.check(all(value in interaction_constants for value in
-                ('Copy to clipboard', 'Copy to chat box')) and b'ChatInteractionModel' in tabs_raw,
-            'Chat QoL packages one shared default/Chat 1/Chat 2 interaction model with exactly two copy labels')
+    r.check(all(value in menu_constants for value in ('Copy to clipboard', 'Copy to chat box'))
+                and b'ChatInteractionModel' in tabs_raw and b'ChatPipeline' in tabs_raw
+                and b'ChatContextMenu' in tabs_raw and b'ChatClipboard' in tabs_raw,
+            'Chat QoL packages one Default/Chat 1/Chat 2 pipeline with exact two-action copy labels')
     r.check(b'Copy clean' not in tabs_raw and b'Copy colours' not in tabs_raw and b'Copy to box' not in tabs_raw,
             'Chat QoL excludes retired alternate copy actions from the runtime menu')
     r.check(all(value in chat_editor_raw for value in
-                (b'Default Chat', b'Link all', b'Copy from', b'Open Font Settings'))
+                (b'Default Chat', b'Link all', b'Copy from', b'Mod Settings', b'Fonts'))
+                and b'Open Font Settings' not in chat_editor_raw
                 and b'com/arena/pekaclient/gui/ChatEditorPanelLayout' in chat_editor_raw,
-            'Chat Editor packages target selection, link/copy controls, global font route and panel geometry')
+            'Chat Editor packages target selection, link/copy controls and routes to top-level settings/font pages')
     font_raw = raw_of('render/GlobalFontManager')
     r.check(all(value in font_raw for value in
-                (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'skyvelor/fonts')),
-            'GlobalFontManager packages bundled and config-folder font paths with cached atlas fallback')
+                (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'rounded-nunito.ttf',
+                 b'mono-jetbrains-mono.ttf', b'skyvelor/fonts')),
+            'GlobalFontManager packages all bundled/config-folder font paths with cached atlas fallback')
     r.check(b'com/arena/pekaclient/gui/ChatUiModel' in hub_raw
                 and b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw,
             'AppleHubScreen uses the Chat QoL ownership model and routes to Chat Editor')
     r.check(all(value not in hub_raw for value in
                 (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
             'AppleHubScreen has no retired external animation or duplicate chat customization controls')
+    r.check(all(value in hub_raw for value in
+                (b'GuiLayoutToolkit', b'ModSettingsScreen', b'FontsScreen')),
+            'AppleHubScreen uses shared clamped geometry and top-level global settings/font routes')
+    r.check(all(b'GuiLayoutToolkit' in raw_of(cls) for cls in
+                ('gui/AppleHubScreen', 'gui/HudEditorScreen', 'gui/ChatEditorScreen',
+                 'gui/LoadingScreen', 'notes/QuickNoteScreen')),
+            'every production Sky VeLor screen packages the shared layout toolkit')
     client_raw = raw_of('PekaClientMod')
     r.check(b'com/arena/pekaclient/feature/ChatChannelTabs' in client_raw
                 and b'key.pekaclient.chatTab' in client_raw and b'key.pekaclient.chatEditor' in client_raw,
@@ -509,6 +536,11 @@ def main():
                 'AppleSettings delegates native chat.qol persistence and migration to the bounded Chat QoL settings model')
         r.check('fishing.nearbyEncounterAlert' in settings_constants,
                 'AppleSettings persists the safe-default nearby encounter title toggle')
+        chat_settings_raw = raw_of('config/ChatQolSettings')
+        r.check('scrollSpeed' in settings_constants and 'smoothScrolling' in settings_constants
+                    and b'target.default.scroll.speed' in settings_raw
+                    and b'target.default.scroll.speed' not in chat_settings_raw,
+                'AppleSettings migrates retired target scroll values into one global persisted policy')
     if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:
         debug = members_of('command/ItemDebugCommand')
         r.check(all(name in debug for name in ('isEnabled', 'getX', 'getY', 'getZ', 'getSize', 'getSpeed',
