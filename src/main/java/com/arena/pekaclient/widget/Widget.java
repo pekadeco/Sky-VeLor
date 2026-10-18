@@ -1,5 +1,6 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
@@ -58,6 +59,8 @@ public abstract class Widget {
      * only drawing is transformed. Values are intentionally subtle to preserve the original theme.
      */
     protected final void beginAnimatedDraw(float hoverZoom, float pressShrink, float clickPop) {
+        // Debug bounds remain the actual layout/input rectangle, not the transient decorative hover transform.
+        GuiDebugOverlay.recordControl(getClass().getSimpleName(), x, y, w, h);
         float scale = 1f;
         if (Theme.animations && enabled) {
             scale += hoverAmount * hoverZoom;

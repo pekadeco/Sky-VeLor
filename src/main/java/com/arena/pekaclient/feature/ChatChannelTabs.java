@@ -161,6 +161,12 @@ public final class ChatChannelTabs {
     private int defaultLayoutKey = Integer.MIN_VALUE;
     private boolean customDefaultWasActive;
     private long interactionNs;
+    /** Command-only visual diagnostic; intentionally never saved into a player configuration. */
+    private boolean chatDebug;
+    /** Last live readers of the one persisted Separate Chats setting, surfaced by /velor chatdebug. */
+    private boolean guiSeparateState;
+    private boolean routerSeparateState;
+    private boolean rendererSeparateState;
 
     public ChatChannelTabs() {
         live = this;
@@ -175,6 +181,9 @@ public final class ChatChannelTabs {
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
         if (!ChatQolSettings.isEnabled() || event.type == 2 || event.message == null) return;
+        // Read the sole persisted setting at the real routing point; /velor chatdebug exposes this independently
+        // from the editor and renderer snapshots when tracking a stale-state report.
+        routerSeparateState = ChatQolSettings.separateChats;
         String formatted = event.message.getFormattedText();
         int kind = ChatFilterRules.classify(formatted, ChatQolSettings.compiledPatterns());
         long now = System.currentTimeMillis();
@@ -191,6 +200,7 @@ public final class ChatChannelTabs {
     /** Cancels vanilla's one chat render only when the user elected the separate native-window mode. */
     @SubscribeEvent
     public void onChatOverlayPre(RenderGameOverlayEvent.Chat event) {
+        rendererSeparateState = ChatQolSettings.separateChats;
         if (shouldDrawSeparate() || shouldDrawCustomDefault()) event.setCanceled(true);
     }
 
@@ -198,6 +208,7 @@ public final class ChatChannelTabs {
     @SubscribeEvent
     public void onOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL || !ChatQolSettings.isEnabled()) return;
+        rendererSeparateState = ChatQolSettings.separateChats;
         if (shouldDrawSeparate()) renderSeparate(event.resolution);
         else if (shouldDrawCustomDefault()) renderCustomDefault(event.resolution);
     }
@@ -264,6 +275,7 @@ public final class ChatChannelTabs {
     @SubscribeEvent
     public void onDrawPre(GuiScreenEvent.DrawScreenEvent.Pre event) {
         if (!(event.gui instanceof GuiChat)) return;
+        guiSeparateState = ChatQolSettings.separateChats;
         if (!tabsUsable()) {
             restoreInputField();
             return;
@@ -460,24 +472,52 @@ public final class ChatChannelTabs {
         if (live != null) live.restoreAll();
     }
 
+    /** Toggles visual message-group boxes and prints the live readers used by the GUI, router and renderer. */
+    public static void toggleDebug(ICommandSender sender) {
+        if (sender == null) return;
+        if (live == null) {
+            sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat debug is not ready; the client runtime has not registered yet."));
+            return;
+        }
+        live.chatDebug = !live.chatDebug;
+        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat debug "
+                + (live.chatDebug ? "§aON§f — message-group outlines are visible on active Chat QoL surfaces."
+                : "§cOFF§f.")));
+        writeDebug(sender);
+    }
+
     /** Recent classification evidence for /velor chatdebug. Unknown lines clearly identify as Chat 2/system. */
     public static void writeDebug(ICommandSender sender) {
         if (sender == null) return;
-        if (live == null || live.history.size() == 0) {
-            sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat debug has no captured lines. Enable Chat QoL first."));
+        if (live == null) {
+            sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat debug is not ready; the client runtime has not registered yet."));
             return;
         }
-        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fRecent Chat QoL classifications:"));
-        int count = Math.min(10, live.history.size());
+        boolean stored = ChatQolSettings.separateChats;
+        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fSeparate Chats: stored=" + onOff(stored)
+                + ", GUI=" + onOff(live.guiSeparateState) + ", router=" + onOff(live.routerSeparateState)
+                + ", renderer=" + onOff(live.rendererSeparateState) + "."));
+        if (live.history.size() == 0) {
+            sender.addChatMessage(new ChatComponentText("§7No captured routing yet. Enable Chat QoL and receive a line."));
+            return;
+        }
+        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fLast " + Math.min(20, live.history.size())
+                + " Chat QoL routing decision(s):"));
+        int count = Math.min(20, live.history.size());
         for (int i = count - 1; i >= 0; i--) {
             ChatQolHistory.Message message = live.history.newest(i);
             if (message == null) continue;
             String text = message.clean.replace('\n', ' ').trim();
-            if (text.length() > 72) text = text.substring(0, 69) + "...";
+            if (text.length() > 64) text = text.substring(0, 61) + "...";
             String destination = ChatFilterRules.belongsToChatOne(message.kind) ? "Chat 1" : "Chat 2";
             sender.addChatMessage(new ChatComponentText("§7[" + ChatFilterRules.displayName(message.kind) + " → "
-                    + destination + "] §f" + text));
+                    + destination + "; " + ChatFilterRules.reason(message.formatted, ChatQolSettings.compiledPatterns())
+                    + "] §f" + text));
         }
+    }
+
+    private static String onOff(boolean value) {
+        return value ? "ON" : "OFF";
     }
 
     /** Classify once at receipt, then feed the same immutable source object to every real Chat 1/Chat 2 view. */
@@ -805,6 +845,7 @@ public final class ChatChannelTabs {
                 UIRender.alphaMul = oldAlpha;
             }
         }
+        if (chatDebug) drawMessageGroupOutlines(defaultPipeline, 0xFFFF4A4A);
         UIRender.scissorEnd();
         drawPipelineScrollbar(defaultPipeline, drawWidth + 2f, viewportY, viewportH);
         UIRender.endFrame();
@@ -976,8 +1017,24 @@ public final class ChatChannelTabs {
                 UIRender.alphaMul = oldAlpha;
             }
         }
+        if (chatDebug) drawMessageGroupOutlines(pipeline,
+                surface == ChatInteractionModel.CHAT_1 ? 0xFFFF4A4A : 0xFFFF8A3D);
         UIRender.scissorEnd();
         drawPipelineScrollbar(pipeline, rect.x + rect.w - 3f, contentY, contentH);
+    }
+
+    /**
+     * Debug-only whole-message boxes. A ChatPipeline.Block carries one persistent message ID and all of its wrapped
+     * rows, so this stays one outline across wrapping, resize and scrolling instead of suggesting that each row is
+     * a separate message.
+     */
+    private static void drawMessageGroupOutlines(ChatPipeline pipeline, int colour) {
+        if (pipeline == null) return;
+        for (ChatPipeline.Block block : pipeline.blocks()) {
+            if (block == null || block.bounds.w <= 0f || block.bounds.h <= 0f) continue;
+            UIRender.roundRectRing(block.bounds.x, block.bounds.y, block.bounds.w, block.bounds.h,
+                    0f, 1f, colour);
+        }
     }
 
     /** Small thumb derived from the same pipeline viewport and bounded scroll target used for input. */

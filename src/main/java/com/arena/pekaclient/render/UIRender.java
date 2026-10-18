@@ -1,5 +1,6 @@
 package com.arena.pekaclient.render;
 
+import com.arena.pekaclient.gui.GuiDebugOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -428,6 +429,12 @@ public final class UIRender {
         if ((c >>> 24) == 0) {
             return;
         }
+        // The debug overlay observes the exact draw call, including the active custom-font width where available.
+        // It is inert unless /velor layoutdebug has started a GuiScreen frame.
+        float measuredWidth = GlobalFontManager.width(s, area);
+        if (measuredWidth < 0f) measuredWidth = fr.getStringWidth(s);
+        GuiDebugOverlay.recordLabel(s, x, y, measuredWidth * scale,
+                Math.max(1f, fr.FONT_HEIGHT * scale));
         flush();
         GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();

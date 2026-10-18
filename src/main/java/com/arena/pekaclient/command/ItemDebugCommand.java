@@ -2,6 +2,7 @@ package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.ItemAnimation;
+import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHooks;
 import net.minecraft.command.CommandBase;
@@ -27,7 +28,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/velor itemanimation|ia|itemdebug|chateditor|chatdebug";
+        return "/velor itemanimation|ia|itemdebug|chateditor|chatdebug|layoutdebug";
     }
 
     @Override
@@ -48,11 +49,15 @@ public final class ItemDebugCommand extends CommandBase {
             return;
         }
         if (args.length == 1 && "chatdebug".equalsIgnoreCase(args[0])) {
-            ChatChannelTabs.writeDebug(sender);
+            ChatChannelTabs.toggleDebug(sender);
+            return;
+        }
+        if (args.length == 1 && "layoutdebug".equalsIgnoreCase(args[0])) {
+            GuiDebugOverlay.toggle(sender);
             return;
         }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor chateditor, or /velor chatdebug");
+            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
             return;
         }
 

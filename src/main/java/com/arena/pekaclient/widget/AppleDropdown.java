@@ -1,5 +1,6 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -116,6 +117,7 @@ public final class AppleDropdown extends Widget {
             popupOpenedAt = 0L;
         }
         popupY += (1f - reveal) * 5f;
+        GuiDebugOverlay.recordControl("AppleDropdown popup", popupX, popupY, popupW, popupH);
         float previousAlpha = UIRender.alphaMul;
         UIRender.alphaMul = previousAlpha * reveal;
         float radius = Math.min(Theme.radius * 0.75f, 10f);
@@ -126,6 +128,7 @@ public final class AppleDropdown extends Widget {
         for (int row = 0; row < visibleCount; row++) {
             int index = firstVisible + row;
             float rowY = popupY + row * ROW_H;
+            GuiDebugOverlay.recordRow("AppleDropdown option " + index, popupX, rowY, popupW, ROW_H);
             boolean hot = mouseX >= popupX && mouseX < popupX + popupW
                     && mouseY >= rowY && mouseY < rowY + ROW_H;
             float targetHover = hot ? 1f : 0f;

@@ -35,27 +35,52 @@ public final class ChatFilterRules {
         return kind == PARTY || kind == REPLY ? kind : ALL;
     }
 
+    /** Immutable one-pass classification result retained by the router and surfaced by /velor chatdebug. */
+    public static final class Classification {
+        public final int kind;
+        public final String reason;
+
+        private Classification(int kind, String reason) {
+            this.kind = kind;
+            this.reason = reason;
+        }
+    }
+
     /** Classifies an incoming line once for tab filtering, window routing, unread markers and debug output. */
     public static int classify(String formattedText, ChatPatternRules patterns) {
+        return classifyDetailed(formattedText, patterns).kind;
+    }
+
+    /** Same decision as {@link #classify}, with a stable human-readable reason for debug history. */
+    public static Classification classifyDetailed(String formattedText, ChatPatternRules patterns) {
         String clean = stripFormatting(formattedText).trim();
         String text = clean.toLowerCase(Locale.ROOT);
         if (starts(text, "party >", "p >", "[party]", "[p]")) {
-            return PARTY;
+            return new Classification(PARTY, "party prefix");
         }
         if (starts(text, "to ", "from ", "[pm]", "[private]")) {
-            return REPLY;
+            return new Classification(REPLY, "reply/private prefix");
         }
         if (isPartyNotice(text)) {
-            return PARTY;
+            return new Classification(PARTY, "party system notice");
         }
 
         // User patterns are evaluated only after unambiguous Party/Reply prefixes. They make normal player/server
         // classification editable without allowing a broad expression to accidentally swallow direct messages.
         int override = patterns == null ? ChatPatternRules.NO_MATCH : patterns.classify(clean);
         if (override != ChatPatternRules.NO_MATCH) {
-            return override;
+            return new Classification(override, "editable pattern → "
+                    + (belongsToChatOne(override) ? "Chat 1" : "Chat 2"));
         }
-        return PLAYER_LINE.matcher(clean).matches() ? PLAYER : SYSTEM;
+        if (PLAYER_LINE.matcher(clean).matches()) {
+            return new Classification(PLAYER, "player-message shape");
+        }
+        return new Classification(SYSTEM, "system/unknown fallback");
+    }
+
+    /** Convenience for old diagnostics; real routing should retain a {@link Classification} result instead. */
+    public static String reason(String formattedText, ChatPatternRules patterns) {
+        return classifyDetailed(formattedText, patterns).reason;
     }
 
     public static boolean belongsToChatOne(int kind) {

@@ -21,6 +21,7 @@ import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.gui.AppleHubScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
+import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
@@ -137,6 +138,8 @@ public class PekaClientMod {
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("priceset"));
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new ChatChannelTabs());
+        // Must be registered on the real Forge bus: it observes finished GuiScreen frames without changing input.
+        MinecraftForge.EVENT_BUS.register(new GuiDebugOverlay());
         MinecraftForge.EVENT_BUS.register(m7Overlay);
         MinecraftForge.EVENT_BUS.register(dungeonMapOverlay);
         MinecraftForge.EVENT_BUS.register(terminalSolver);
