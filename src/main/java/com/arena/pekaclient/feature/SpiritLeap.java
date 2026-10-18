@@ -16,11 +16,10 @@ import java.util.List;
  * teammate is a player-head item in the menu's own chest slots. Clicks go through the normal window-click path,
  * so the server still validates every one.
  *
- * Detection is not based on the title alone. The menu is recognised when either:
- *  - its title is "Spirit Leap", or
- *  - the player has just used a Spirit Leap item, is in a dungeon by the sidebar, and the chest holds at least
- *    one teammate head.
- * The second rule covers a server whose title differs. Any other chest is left alone.
+ * Detection is not based on the title alone. Every candidate first needs a positive dungeon-sidebar result, then is
+ * recognised when either its title is "Spirit Leap", or the player has just used a Spirit Leap item and the chest
+ * holds at least one teammate head. The second rule covers a server whose title differs. Any uncertain or unrelated
+ * chest is left alone as vanilla.
  */
 public final class SpiritLeap {
 
@@ -36,28 +35,33 @@ public final class SpiritLeap {
      * {@code recentUse} is whether a Spirit Leap item was used within {@link #USE_WINDOW_MS}.
      */
     public static boolean decide(boolean titleIsLeap, boolean recentUse, boolean inDungeon, int teammateHeads) {
+        // Even a perfectly named chest can occur outside a dungeon. Replacing it would be an unsafe false positive,
+        // so a fresh positive sidebar result is the first requirement for every custom Leap GUI decision.
+        if (!inDungeon) {
+            return false;
+        }
         if (titleIsLeap) {
             return true;
         }
-        return recentUse && inDungeon && teammateHeads > 0;
+        return recentUse && teammateHeads > 0;
     }
 
-    /** True when the container is the Spirit Leap menu, by either rule. */
+    /** Legacy/cache convenience form. Sensitive GUI interception supplies its fresh detector result explicitly. */
     public static boolean isLeapMenu(Container container) {
-        if (!(container instanceof ContainerChest)) {
+        return isLeapMenu(container, DungeonContext.inDungeon());
+    }
+
+    /** True when the container is the Spirit Leap menu and the caller has a positive current dungeon result. */
+    public static boolean isLeapMenu(Container container, boolean inDungeon) {
+        if (!inDungeon || !(container instanceof ContainerChest)) {
             return false;
         }
         IInventory lower = ((ContainerChest) container).getLowerChestInventory();
         boolean title = lower != null && lower.getDisplayName() != null
                 && LeapText.isLeapTitle(lower.getDisplayName().getUnformattedText());
-        if (title) {
-            return true;
-        }
-        // Without the title, only a recent left-click on a held Leap item counts.
-        if (!LeapUse.recent(USE_WINDOW_MS) || !DungeonContext.inDungeon()) {
-            return false;
-        }
-        return decide(false, true, true, teammateSlots(container).size());
+        // Without the title, only a recent use and teammate heads can identify an alternate server title.
+        boolean recentUse = LeapUse.recent(USE_WINDOW_MS);
+        return decide(title, recentUse, true, title ? 0 : teammateSlots(container).size());
     }
 
     /**

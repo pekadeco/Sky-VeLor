@@ -327,7 +327,10 @@ public class PekaClientMod {
             return;
         }
         GuiChest chest = (GuiChest) event.gui;
-        if (SpiritLeap.isLeapMenu(chest.inventorySlots)) {
+        // Do not rely on the 20-tick cache here: this is the exact moment a vanilla chest would be replaced. A
+        // missing or ambiguous sidebar result is deliberately false, so the server's original screen stays visible.
+        DungeonContext.Result dungeon = DungeonContext.evaluateNow(Minecraft.getMinecraft());
+        if (dungeon.inDungeon && SpiritLeap.isLeapMenu(chest.inventorySlots, dungeon.inDungeon)) {
             event.gui = new LeapScreen(chest.inventorySlots);
         }
     }
