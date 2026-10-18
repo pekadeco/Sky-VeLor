@@ -17,6 +17,9 @@ public final class AppleSettings {
 
     public static final String FILE_NAME = "skyvelor.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient.properties";
+    /** Schema v2 is the Beta-0.10.8.6.1 one-time default upgrade. */
+    static final String CONFIG_VERSION_KEY = "config.version";
+    static final int CURRENT_CONFIG_VERSION = 2;
 
     public static final String[] ACCENT_NAMES = {"Blue", "Purple", "Pink", "Green", "Orange", "Teal"};
     public static final int[] ACCENT_COLORS = {
@@ -46,8 +49,8 @@ public final class AppleSettings {
     /** Opt-in gameplay mouse policy; GUI wheel scrolling and numeric hotbar keys are never affected. */
     public static final boolean DEFAULT_DISABLE_HOTBAR_SCROLLING = false;
     public static boolean disableHotbarScrolling = DEFAULT_DISABLE_HOTBAR_SCROLLING;
-    /** Opt-in QoL particle policy; only vanilla block digging/crack particles are filtered at addEffect. */
-    public static final boolean DEFAULT_NO_BLOCK_PARTICLES = false;
+    /** Default-on QoL particle policy; only vanilla block digging/crack particles are filtered at addEffect. */
+    public static final boolean DEFAULT_NO_BLOCK_PARTICLES = true;
     public static boolean noBlockParticles = DEFAULT_NO_BLOCK_PARTICLES;
     
     // Item Animation. Percent controls use 100% for untouched vanilla; offsets are hundredths of a
@@ -201,6 +204,8 @@ public final class AppleSettings {
     };
     /** Set when target-local Chat QoL scrolling is promoted into the one global viewport policy. */
     private static boolean globalScrollMigrationPending;
+    /** Set while the Beta-0.10.8.6.1 default upgrade needs its schema marker written. */
+    private static boolean configVersionMigrationPending;
 
     private AppleSettings() {
     }
@@ -212,6 +217,7 @@ public final class AppleSettings {
     public static void load() {
         itemAnimationMigrationPending = false;
         globalScrollMigrationPending = false;
+        configVersionMigrationPending = false;
         Properties p = ConfigFiles.read(readFile());
         accent = readInt(p, "accent", accent, 0, ACCENT_COLORS.length - 1);
         darkMode = readBool(p, "darkMode", darkMode);
@@ -266,12 +272,13 @@ public final class AppleSettings {
         qnCommand = readBool(p, "cmd.qn", qnCommand);
         loadFishingSettings(p);
         loadChatSettings(p);
+        applyConfigurationVersionUpgrade(p);
         FontSettings.load(p);
         M7Settings.load(p);
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
         // atomic writer preserves a valid file even if the client is interrupted while migrating.
-        if (itemAnimationMigrationPending || globalScrollMigrationPending || ChatQolSettings.isMigrationPending()
-                || FontSettings.isMigrationPending()) {
+        if (itemAnimationMigrationPending || globalScrollMigrationPending || configVersionMigrationPending
+                || ChatQolSettings.isMigrationPending() || FontSettings.isMigrationPending()) {
             save();
         }
     }
@@ -307,6 +314,29 @@ public final class AppleSettings {
     static void saveParticleSettings(Properties p) {
         if (p != null) {
             p.setProperty("particles.noBlockParticles", Boolean.toString(noBlockParticles));
+        }
+    }
+
+    /**
+     * Applies the one-time Beta-0.10.8.6.1 default upgrade after both affected values have loaded. Older files have
+     * no schema marker, so their explicit old defaults are deliberately promoted once; later saved choices win.
+     */
+    static boolean applyConfigurationVersionUpgrade(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        int version = readInt(p, CONFIG_VERSION_KEY, 0, 0, CURRENT_CONFIG_VERSION);
+        configVersionMigrationPending = version < CURRENT_CONFIG_VERSION;
+        if (!configVersionMigrationPending) {
+            return false;
+        }
+        noBlockParticles = true;
+        ChatQolSettings.compactMessages = true;
+        return true;
+    }
+
+    /** Writes the schema marker used to make the Beta-0.10.8.6.1 default upgrade one-time. */
+    static void saveConfigurationVersion(Properties p) {
+        if (p != null) {
+            p.setProperty(CONFIG_VERSION_KEY, Integer.toString(CURRENT_CONFIG_VERSION));
         }
     }
 
@@ -418,6 +448,7 @@ public final class AppleSettings {
         itemAnimationSmoothness = Math.max(ITEM_ANIMATION_SMOOTHNESS_MIN_PERCENT,
                 Math.min(ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT, itemAnimationSmoothness));
         Properties p = new Properties();
+        saveConfigurationVersion(p);
         p.setProperty("accent", Integer.toString(accent));
         p.setProperty("darkMode", Boolean.toString(darkMode));
         p.setProperty("cornerRadius", Integer.toString(cornerRadius));

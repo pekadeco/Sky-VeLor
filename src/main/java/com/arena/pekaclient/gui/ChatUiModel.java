@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Minecraft-free ownership contract for the one compact Chat QoL group in the QoL hub. */
+/** Minecraft-free ownership contract for the one compact Chat QoL group in the General hub. */
 public final class ChatUiModel {
 
     public static final int MASTER = 0;

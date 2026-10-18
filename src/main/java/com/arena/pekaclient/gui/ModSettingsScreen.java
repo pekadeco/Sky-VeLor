@@ -1,21 +1,21 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
-import com.arena.pekaclient.config.ChatQolSettings;
-import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.gui.GuiScreen;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Top-level settings for cross-feature behavior. Scroll policy lives here exactly once: each active viewport receives
  * a native wheel event once and uses this same multiplier and smoothing choice.
  */
 public final class ModSettingsScreen extends GuiLayoutScreen {
+    private static final List<ModSettingsUiModel.Entry> SCROLL_SETTINGS = ModSettingsUiModel.buildScrollModel();
+
     private final GuiScreen parent;
     private final GuiLayoutToolkit.Rect[] controls = {
-            new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect(),
             new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect()
     };
 
@@ -25,7 +25,7 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
 
     @Override
     public void initGui() {
-        placePanel(Math.min(540f, width - 12f), Math.min(336f, height - 12f));
+        placePanel(Math.min(540f, width - 12f), Math.min(236f, height - 12f));
     }
 
     @Override
@@ -35,23 +35,15 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
         float naturalY = 0f;
         drawLabel("Mouse", content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
         naturalY += 17f;
-        row("Scroll speed", multiplier(AppleSettings.effectiveScrollSpeed()), 0, rowY(naturalY));
+        row(SCROLL_SETTINGS.get(0).getLabel(), multiplier(AppleSettings.effectiveScrollSpeed()), 0, rowY(naturalY));
         naturalY += 31f;
-        row("Smooth scrolling", AppleSettings.smoothScrolling ? "Enabled" : "Disabled", 1, rowY(naturalY));
-        naturalY += 31f;
-        row("Disable hotbar scrolling", AppleSettings.disableHotbarScrolling ? "Enabled" : "Disabled", 2,
+        row(SCROLL_SETTINGS.get(1).getLabel(), AppleSettings.smoothScrolling ? "Enabled" : "Disabled", 1,
                 rowY(naturalY));
-        naturalY += 39f;
-        drawLabel("Features", content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
-        naturalY += 17f;
-        row("Chat QoL master", ChatQolSettings.isEnabled() ? "Enabled" : "Disabled", 3, rowY(naturalY));
-        naturalY += 31f;
-        row("Item Animation", AppleSettings.itemAnimationEnabled ? "Enabled" : "Disabled", 4, rowY(naturalY));
         naturalY += 42f;
         drawLabel("Shift + wheel uses fine scrolling. A wheel event is applied once only to its hovered viewport.",
                 content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
         naturalY += 18f;
-        drawLabel("Hotbar scrolling applies only in gameplay; chat, inventory, and number keys remain unchanged.",
+        drawLabel("Hotbar scrolling is configured in Quality of Life and applies only during gameplay.",
                 content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
         finishContent(naturalY + 28f);
         endPanel();
@@ -77,15 +69,8 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
             if (i == 0) {
                 AppleSettings.scrollSpeed = nextSpeed(AppleSettings.effectiveScrollSpeed());
                 AppleSettings.scrollSpeedOn = true;
-            } else if (i == 1) {
-                AppleSettings.smoothScrolling = !AppleSettings.smoothScrolling;
-            } else if (i == 2) {
-                AppleSettings.disableHotbarScrolling = !AppleSettings.disableHotbarScrolling;
-            } else if (i == 3) {
-                ChatQolSettings.enabled = !ChatQolSettings.enabled;
-                if (!ChatQolSettings.enabled) ChatChannelTabs.disableAndRestoreAll();
             } else {
-                AppleSettings.itemAnimationEnabled = !AppleSettings.itemAnimationEnabled;
+                AppleSettings.smoothScrolling = !AppleSettings.smoothScrolling;
             }
             AppleSettings.save();
             return;

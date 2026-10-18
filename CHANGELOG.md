@@ -1,5 +1,12 @@
 # Changelog
 
+## Beta-0.10.8.6.1v — 2026-10-19
+
+- Made Chat QoL **Compact messages** and **No block particles** default on. Schema v2 migrates older configurations once, then preserves either user choice on later restarts.
+- Added a dedicated top-level **Quality of Life** tab with exactly **Disable hotbar scrolling** (default off) and **No block particles**; the former mixed QoL overview is retained as **General**.
+- Kept scroll speed and smooth scrolling in **Mod Settings** only. Removed its duplicate Item Animation and Chat QoL master entries; Item Animation remains in HUD and Chat QoL retains its own master control.
+- Updated display version to `Beta-0.10.8.6.1v` and numeric Forge `mcmod.info`/build metadata version to `0.10.8.6.1`.
+
 ## Beta-0.10.8.6v — 2026-10-18
 
 - Added opt-in **Disable hotbar scrolling** in Mod Settings → Mouse. `PekaClientMod` cancels only gameplay wheel input while no GUI is open; inventory/chat scrolling and 1–9 keys remain vanilla.

@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6v] [--mcmod-version 0.10.8.6]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.1v] [--mcmod-version 0.10.8.6.1]
 """
 
 import argparse
@@ -60,6 +60,8 @@ REQUIRED_CLASSES = [
     'command/ItemDebugCommand',
     'command/SvCommand',
     'gui/AppleHubScreen',
+    'gui/QualityOfLifeUiModel',
+    'gui/ModSettingsUiModel',
     'gui/ChatUiModel',
     'gui/ChatEditorLayout',
     'gui/ChatEditorScreen',
@@ -108,7 +110,7 @@ FORBIDDEN_CLASSES = [
     'gui/DungeonHudScreen',
     'hud/ClickInOrderHud',
     'command/TerminalCommand',
-    # Beta-0.10.8.6 retains the one-default-chat implementation and no split-chat classes.
+    # Beta-0.10.8.6.1 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -238,8 +240,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.1v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.1')
     args = ap.parse_args()
 
     path = args.jar
@@ -409,7 +411,7 @@ def main():
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
     # --- Chat QoL ownership and one-default-chat implementation proof --------
-    # Beta-0.10.8.6 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
+    # Beta-0.10.8.6.1 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
@@ -476,8 +478,8 @@ def main():
                 (b'ChatQolRouting', b'ChatFilterRules', b'ChatQolHistory', b'ChattingAnimationBridge')),
             'one Default Chat runtime carries no split-window classifier/router bridge')
 
-    # Compact Messages remains an opt-in adjunct to the one cache/renderer: exact formatted-text matching decides
-    # the duplicate at event time, then a fixed-id gray line is grouped with (not substituted for) the original.
+    # Compact Messages is default-on in the one cache/renderer: exact formatted-text matching decides the
+    # duplicate at event time, then a fixed-id gray line is grouped with (not substituted for) the original.
     compact_raw = raw_of('chat/ChatCompactMessages')
     compact_constants = constants_of('chat/ChatCompactMessages')
     r.check(b'ChatCompactMessages' in tabs_raw
@@ -487,7 +489,7 @@ def main():
                 and b'chat.qol.messages.compactCounterColor' in settings_raw_chat
                 and b'COUNTER_LINE_ID' in compact_raw
                 and any('(x' in value for value in compact_constants),
-            'Compact Messages packages an opt-in exact-message tracker, fixed cache replacement, and editor colour')
+            'Compact Messages packages a default-on exact-message tracker, fixed cache replacement, and editor colour')
     font_raw = raw_of('render/GlobalFontManager')
     r.check(all(value in font_raw for value in
                 (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'rounded-nunito.ttf',
@@ -511,14 +513,28 @@ def main():
                 and b'key.pekaclient.chatTab' in client_raw and b'key.pekaclient.chatEditor' in client_raw,
             'PekaClientMod registers native Chat QoL and its optional cycle/editor keybindings')
 
-    # The gameplay wheel guard is deliberately one narrow MouseEvent predicate, with the visible toggle beside
-    # scroll settings. GUI input and number-key selection do not enter the policy at all.
+    # The gameplay wheel guard is deliberately one narrow MouseEvent predicate. Its default-off control and the
+    # default-on particle filter live only in the dedicated Quality of Life tab; scroll controls remain in Mod Settings.
     mod_settings_raw = raw_of('gui/ModSettingsScreen')
+    quality_ui_constants = constants_of('gui/QualityOfLifeUiModel')
+    quality_ui_raw = raw_of('gui/QualityOfLifeUiModel')
+    mod_ui_constants = constants_of('gui/ModSettingsUiModel')
     apple_constants = constants_of('config/AppleSettings')
     r.check(b'HotbarScrollPolicy' in client_raw and 'shouldCancel' in members_of('PekaClientMod')
-                and b'Disable hotbar scrolling' in mod_settings_raw
+                and all(value in quality_ui_constants for value in
+                        ('Quality of Life', 'Disable hotbar scrolling', 'No block particles'))
                 and 'mouse.disableHotbarScrolling' in apple_constants,
-            'hotbar wheel guard is opt-in, gameplay-only, and persisted in Mod Settings Mouse')
+            'Quality of Life owns the default-off gameplay hotbar wheel guard and default-on block-particle filter')
+    r.check(all(value in mod_ui_constants for value in ('Scroll speed', 'Smooth scrolling'))
+                and 'Item Animation' not in mod_ui_constants and 'Chat QoL master' not in mod_ui_constants
+                and b'com/arena/pekaclient/gui/ModSettingsUiModel' in mod_settings_raw
+                and b'ChatQolSettings' not in mod_settings_raw and b'itemAnimationEnabled' not in mod_settings_raw,
+            'Mod Settings is scroll-only and carries neither duplicate Item Animation nor Chat QoL master control')
+    r.check(b'com/arena/pekaclient/gui/QualityOfLifeUiModel' in hub_raw
+                and b'Disable hotbar scrolling' not in mod_settings_raw
+                and b'No block particles' not in mod_settings_raw
+                and b'Item Animation' not in quality_ui_raw and b'Chat QoL' not in quality_ui_raw,
+            'the dedicated Quality of Life model has no duplicate feature masters or Mod Settings copies')
 
     # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
     # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.
@@ -536,7 +552,7 @@ def main():
     r.check(b'BlockParticleHooks' in block_transformer_raw and b'BlockParticleHookStatus' in block_transformer_raw,
             'No block particles packages a transformer with only its predicate and fail-closed status bridge')
     r.check(b'BlockParticlePolicy' in block_hooks_raw and b'AppleSettings' in block_hooks_raw,
-            'No block particles hook routes the runtime object through the opt-in block-digging policy')
+            'No block particles hook routes the runtime object through the default-on block-digging policy')
     r.check(b'BlockParticleTransformer' in loading_raw,
             'Item Animation loading plugin registers the narrow No block particles transformer')
     fishing_constants = constants_of('fishing/FishingStats')
@@ -630,6 +646,11 @@ def main():
         r.check('chat.qol.' in constants_of('config/ChatQolSettings')
                     and b'ChatQolSettings' in settings_raw,
                 'AppleSettings delegates native chat.qol persistence and migration to the bounded Chat QoL settings model')
+        r.check('config.version' in settings_constants and 'particles.noBlockParticles' in settings_constants
+                    and 'chat.qol.messages.compact' in constants_of('config/ChatQolSettings')
+                    and 'applyConfigurationVersionUpgrade' in members_of('config/AppleSettings')
+                    and 'saveConfigurationVersion' in members_of('config/AppleSettings'),
+                'AppleSettings ships the one-time schema-v2 Compact Messages and No block particles migration')
         r.check('fishing.nearbyEncounterAlert' in settings_constants,
                 'AppleSettings persists the safe-default nearby encounter title toggle')
         r.check('scrollSpeed' in settings_constants and 'smoothScrolling' in settings_constants

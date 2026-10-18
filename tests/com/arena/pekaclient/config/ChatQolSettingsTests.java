@@ -29,7 +29,7 @@ public final class ChatQolSettingsTests {
         check("default highlight is soft white", ChatQolSettings.hoverColor == 0xFFFFFF
                 && ChatQolSettings.hoverOpacity == 25);
         check("default menu is Both and instant", ChatQolSettings.menuOpenMode == ChatMenuPolicy.BOTH);
-        check("compact messages are opt-in with a gray counter", !ChatQolSettings.compactMessages
+        check("compact messages default on with a gray counter", ChatQolSettings.compactMessages
                 && ChatQolSettings.compactCounterColor == 0xAAAAAA);
         check("background defaults fit messages and chat width", !ChatQolSettings.backgroundOpenFullArea
                 && !ChatQolSettings.backgroundFitWidth);

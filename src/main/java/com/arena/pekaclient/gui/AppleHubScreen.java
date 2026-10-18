@@ -45,15 +45,15 @@ import java.util.Set;
  * The Sky VeLor hub: a macOS-style window with window buttons, a sidebar (or tab bar on narrow
  * screens), a search field and scrollable grouped cards.
  *
- * Tabs, in order: QoL, HUD, Farming, Dungeon, Slayer, Fishing. QoL holds the overview, appearance,
- * performance (including the BETA mode), scroll speed and the About card. HUD holds visibility switches and
- * routes every visual customization to the HUD editor. Farming holds Mining BPS. Dungeon holds the Spirit Leap
- * teammate selector. Slayer and Fishing have no
- * modules yet, so they show an empty state rather than placeholder modules.
+ * Tabs, in order: Quality of Life, General, HUD, Farming, Dungeon, Slayer, Fishing. Quality of Life owns only
+ * the two gameplay toggles that belong there; General preserves the overview, appearance, chat, performance and
+ * About controls. HUD holds visibility switches and routes every visual customization to the HUD editor. Farming
+ * holds Mining BPS. Dungeon holds the Spirit Leap teammate selector. Slayer and Fishing have no modules yet, so
+ * they show an empty state rather than placeholder modules.
  *
  * Window buttons: red closes the hub, yellow collapses it to the title bar, green zooms it to the
- * full screen. Input: mouse wheel and touch swipe scroll the list, with the speed set in QoL. Keys scroll by a fixed step. A swipe
- * never activates a control. Keyboard: Ctrl+1 to Ctrl+6 pick a tab, Left and Right step through tabs,
+ * full screen. Input: mouse wheel and touch swipe scroll the list, with the speed set in Mod Settings. Keys scroll by a fixed step. A swipe
+ * never activates a control. Keyboard: Ctrl+1 to Ctrl+7 pick a tab, Left and Right step through tabs,
  * Up, Down, Page Up, Page Down, Home and End scroll.
  */
 public class AppleHubScreen extends AppleScreen {
@@ -68,8 +68,9 @@ public class AppleHubScreen extends AppleScreen {
     /** Narrowest tab width at which the tab name is drawn. Below this, only the icon is drawn. */
     private static final float TAB_TEXT_MIN = 52f;
 
-    static final String[] PAGE_NAMES = {"QoL", "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
+    static final String[] PAGE_NAMES = {QualityOfLifeUiModel.TAB_LABEL, "General", "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
     private static final String[] PAGE_SUBS = {
+            "Gameplay hotbar and block-particle preferences",
             "Overview, appearance, chat, performance and camera",
             "Show, place and style the on-screen elements",
             "Mining BPS and its settings",
@@ -83,17 +84,16 @@ public class AppleHubScreen extends AppleScreen {
             HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER};
     private static final int HUD_MINING = 2; // index into HUD_OVERVIEW
     private static final int[] PAGE_ICONS = {
-            Icons.BOLT, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
+            Icons.BOLT, Icons.GEAR, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
     };
-    private static final int PAGE_QOL = 0;
-    private static final int PAGE_HUD = 1;
+    private static final int PAGE_HUD = 2;
     /** HUD tab categories: 0 is the element list, 1 is Dungeon (Floor VII overlay and terminals). */
     private static final int HUD_CAT_ELEMENTS = 0;
     private static final int HUD_CAT_DUNGEON = 1;
     private int hudCategory = HUD_CAT_ELEMENTS;
-    private static final int PAGE_FARMING = 2;
-    private static final int PAGE_FISHING = 5;
-    private static final int PAGE_DUNGEON = 3;
+    private static final int PAGE_FARMING = 3;
+    private static final int PAGE_FISHING = 6;
+    private static final int PAGE_DUNGEON = 4;
 
     // Indexes into statValues.
     private static final int S_FPS = 0;
@@ -172,7 +172,8 @@ public class AppleHubScreen extends AppleScreen {
 
     private void buildPages() {
         pages.clear();
-        pages.add(qolPage());
+        pages.add(qualityOfLifePage());
+        pages.add(generalPage());
         pages.add(hudPage());
         pages.add(farmingPage());
         pages.add(dungeonPage());
@@ -180,7 +181,22 @@ public class AppleHubScreen extends AppleScreen {
         pages.add(fishingPage());
     }
 
-    private List<Row> qolPage() {
+    /** Dedicated top-level tab: exactly the two gameplay toggles from {@link QualityOfLifeUiModel}. */
+    private List<Row> qualityOfLifePage() {
+        List<Row> rows = new ArrayList<Row>();
+        List<QualityOfLifeUiModel.Entry> toggles = QualityOfLifeUiModel.buildToggleModel();
+        rows.add(Row.section(QualityOfLifeUiModel.TAB_LABEL));
+        rows.add(Row.item(toggles.get(0).getLabel(), toggles.get(0).getDescription(),
+                new AppleToggle(() -> AppleSettings.disableHotbarScrolling,
+                        value -> AppleSettings.disableHotbarScrolling = value)));
+        rows.add(Row.item(toggles.get(1).getLabel(), toggles.get(1).getDescription(),
+                new AppleToggle(() -> AppleSettings.noBlockParticles,
+                        value -> AppleSettings.noBlockParticles = value)));
+        return rows;
+    }
+
+    /** The former mixed QoL overview, retained as General so the dedicated tab stays limited to two toggles. */
+    private List<Row> generalPage() {
         List<Row> rows = new ArrayList<Row>();
 
         rows.add(Row.section("Overview"));
@@ -259,11 +275,7 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleButton("Open", 84f, 26f, true,
                         () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
 
-        rows.add(Row.header("Particles"));
-        rows.add(Row.item("No block particles", "Hide only vanilla block digging and crack particles",
-                new AppleToggle(() -> AppleSettings.noBlockParticles, value -> AppleSettings.noBlockParticles = value)));
-
-        // Cross-feature controls deliberately live at the top level, rather than being duplicated in Chat QoL.
+        // Scroll controls stay in their focused screen rather than being duplicated in the feature tabs.
         rows.add(Row.header("Mod settings"));
         rows.add(Row.item("Open Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling",
                 new AppleButton("Open", 84f, 26f, false,
@@ -786,7 +798,8 @@ public class AppleHubScreen extends AppleScreen {
         wy = hubPanel.y;
         ww = hubPanel.w;
         wh = hubPanel.h;
-        wide = ww >= 460f;
+        // A sidebar must fit every navigation row; short windows fall back to the existing compact tab strip.
+        wide = ww >= 460f && wh >= TITLE_H + 10f + (PAGE_NAMES.length - 1) * NAV_STEP + NAV_H + 12f;
         tall = wh >= 230f;
 
         float side = wide ? SIDEBAR_W : 0f;
@@ -951,7 +964,7 @@ public class AppleHubScreen extends AppleScreen {
         }
 
         // Version footer, only when the sidebar is tall enough to show it without overlapping the tabs.
-        if (wh >= 260f && !collapsed) {
+        if (wh >= TITLE_H + 10f + PAGE_NAMES.length * NAV_STEP + 34f && !collapsed) {
             float fy = wy + wh - 34f;
             UIRender.rect(wx + 14f, fy - 6f, SIDEBAR_W - 28f, 1f, Theme.divider);
             UIRender.text(fr, "VERSION", wx + 14f, fy, Theme.textTertiary, 0.75f, false);
@@ -968,7 +981,9 @@ public class AppleHubScreen extends AppleScreen {
         float h = TAB_H;
         UIRender.roundRect(x, y, w, h, h * 0.5f, Theme.track, Theme.track, 1f);
         float seg = w / PAGE_NAMES.length;
-        boolean names = seg >= TAB_TEXT_MIN;
+        float widestTabName = 0f;
+        for (String pageName : PAGE_NAMES) widestTabName = Math.max(widestTabName, fr.getStringWidth(pageName));
+        boolean names = seg >= Math.max(TAB_TEXT_MIN, widestTabName + 12f);
         for (int i = 0; i < PAGE_NAMES.length; i++) {
             float sx = x + i * seg;
             float sel = navSel[i].get();

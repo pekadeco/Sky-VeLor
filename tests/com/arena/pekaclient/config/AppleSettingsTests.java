@@ -67,6 +67,7 @@ public final class AppleSettingsTests {
         globalScrollCompatibility();
         mouseSettingsCompatibility();
         particleSettingsCompatibility();
+        configurationVersionMigration();
 
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
@@ -100,6 +101,7 @@ public final class AppleSettingsTests {
     private static void chatSettingsCompatibility() {
         AppleSettings.loadChatSettings(new Properties());
         check("new installs keep Chat QoL master opt-in", !ChatQolSettings.enabled);
+        check("new installs compact consecutive chat messages", ChatQolSettings.compactMessages);
 
         Properties oldFriendChat = new Properties();
         oldFriendChat.setProperty("chat.tabMode", "3");
@@ -150,9 +152,9 @@ public final class AppleSettingsTests {
     }
 
     private static void particleSettingsCompatibility() {
-        AppleSettings.noBlockParticles = true;
+        AppleSettings.noBlockParticles = false;
         AppleSettings.loadParticleSettings(new Properties());
-        check("old config keeps block particles visible", !AppleSettings.noBlockParticles);
+        check("fresh config hides block particles", AppleSettings.noBlockParticles);
 
         Properties stored = new Properties();
         stored.setProperty("particles.noBlockParticles", "true");
@@ -162,6 +164,43 @@ public final class AppleSettingsTests {
         AppleSettings.saveParticleSettings(saved);
         check("no-block-particles has one stable key",
                 "true".equals(saved.getProperty("particles.noBlockParticles")) && saved.size() == 1);
+    }
+
+    /** Exercises the same order used by AppleSettings.load without requiring a Minecraft data directory. */
+    private static void configurationVersionMigration() {
+        Properties beta01086 = new Properties();
+        beta01086.setProperty("chat.qol.messages.compact", "false");
+        beta01086.setProperty("particles.noBlockParticles", "false");
+        AppleSettings.loadParticleSettings(beta01086);
+        AppleSettings.loadChatSettings(beta01086);
+        check("old explicit values load before version migration", !AppleSettings.noBlockParticles
+                && !ChatQolSettings.compactMessages);
+        check("0.10.8.6 config migrates both new defaults once",
+                AppleSettings.applyConfigurationVersionUpgrade(beta01086)
+                        && AppleSettings.noBlockParticles && ChatQolSettings.compactMessages);
+
+        Properties migrated = new Properties();
+        AppleSettings.saveConfigurationVersion(migrated);
+        AppleSettings.saveParticleSettings(migrated);
+        AppleSettings.saveChatSettings(migrated);
+        check("migration save records schema version and enabled defaults",
+                Integer.toString(AppleSettings.CURRENT_CONFIG_VERSION).equals(
+                        migrated.getProperty(AppleSettings.CONFIG_VERSION_KEY))
+                        && "true".equals(migrated.getProperty("particles.noBlockParticles"))
+                        && "true".equals(migrated.getProperty("chat.qol.messages.compact")));
+
+        // Simulate the user turning both new defaults off and saving with the new schema marker.
+        AppleSettings.noBlockParticles = false;
+        ChatQolSettings.compactMessages = false;
+        Properties userOff = new Properties();
+        AppleSettings.saveConfigurationVersion(userOff);
+        AppleSettings.saveParticleSettings(userOff);
+        AppleSettings.saveChatSettings(userOff);
+        AppleSettings.loadParticleSettings(userOff);
+        AppleSettings.loadChatSettings(userOff);
+        check("current schema does not reapply the migration", !AppleSettings.applyConfigurationVersionUpgrade(userOff));
+        check("saved OFF choices survive a restart", !AppleSettings.noBlockParticles
+                && !ChatQolSettings.compactMessages);
     }
 
     private static void check(String name, boolean ok) {
