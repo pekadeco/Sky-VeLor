@@ -528,15 +528,13 @@ def main():
                 and b'inDungeon' in sv_raw and b'matchedScoreboardLine' in sv_raw and b'reason' in sv_raw,
             'Spirit Leap requires a fresh positive dungeon result and selftest reports the detector evidence')
 
-    # Only EffectRenderer.addEffect(EntityFX) may receive the block-particle branch. The target strings and strict
-    # EntityDiggingFX predicate are retained in the JAR as a release-time proof of the fail-closed coremod contract.
-    block_transformer_constants = constants_of('render/blockparticles/BlockParticleTransformer')
+    # Focused transformer tests exercise the exact EffectRenderer.addEffect(EntityFX) mappings. The release audit
+    # verifies that the narrowly scoped transformer, predicate bridge, status bridge, and loading registration ship.
+    block_transformer_raw = raw_of('render/blockparticles/BlockParticleTransformer')
     block_hooks_raw = raw_of('render/blockparticles/BlockParticleHooks')
     loading_raw = raw_of('render/itemanimation/ItemAnimationLoadingPlugin')
-    r.check(all(value in block_transformer_constants for value in
-                ('net.minecraft.client.particle.EffectRenderer', 'bec', 'addEffect', 'func_78873_a', 'a',
-                 '(Lnet/minecraft/client/particle/EntityFX;)V', '(Lbeb;)V', 'shouldSuppress')),
-            'No block particles carries only explicit EffectRenderer EntityFX MCP/SRG/notch target strings')
+    r.check(b'BlockParticleHooks' in block_transformer_raw and b'BlockParticleHookStatus' in block_transformer_raw,
+            'No block particles packages a transformer with only its predicate and fail-closed status bridge')
     r.check(b'BlockParticlePolicy' in block_hooks_raw and b'AppleSettings' in block_hooks_raw,
             'No block particles hook routes the runtime object through the opt-in block-digging policy')
     r.check(b'BlockParticleTransformer' in loading_raw,
