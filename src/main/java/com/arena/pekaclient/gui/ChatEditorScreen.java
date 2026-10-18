@@ -499,6 +499,27 @@ public final class ChatEditorScreen extends AppleScreen {
                 row.w = body.w;
             }
         }
+        resolveSectionOverlaps();
+    }
+
+    /** Persisted drag offsets may be malformed or intentionally collide; render/input always resolve to one stack. */
+    private void resolveSectionOverlaps() {
+        for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
+            ChatEditorLayout.Rect header = layout.headers[section];
+            ChatEditorLayout.Rect body = layout.bodies[section];
+            float cardBottom = body.h > 0f ? body.y + body.h : header.y + header.h;
+            for (int previous = 0; previous < section; previous++) {
+                ChatEditorLayout.Rect priorHeader = layout.headers[previous];
+                ChatEditorLayout.Rect priorBody = layout.bodies[previous];
+                float priorBottom = priorBody.h > 0f ? priorBody.y + priorBody.h : priorHeader.y + priorHeader.h;
+                boolean horizontal = header.x < priorHeader.x + priorHeader.w && header.x + header.w > priorHeader.x;
+                boolean vertical = header.y < priorBottom && cardBottom > priorHeader.y;
+                if (!horizontal || !vertical) continue;
+                float shift = priorBottom + ChatEditorLayout.GAP - header.y;
+                ChatEditorLayout.moveSection(layout, section, 0f, shift);
+                cardBottom += shift;
+            }
+        }
     }
 
     private static float clampPanel(float value, float min, float max) {

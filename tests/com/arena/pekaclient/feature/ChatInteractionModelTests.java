@@ -99,7 +99,7 @@ public final class ChatInteractionModelTests {
         if (ok) passed++;
         else {
             failed++;
-            System.err.println("FAIL: " + name);
+            System.err.println("FAIL " + name);
         }
     }
 }
