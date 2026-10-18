@@ -46,6 +46,9 @@ public final class AppleSettings {
     /** Opt-in gameplay mouse policy; GUI wheel scrolling and numeric hotbar keys are never affected. */
     public static final boolean DEFAULT_DISABLE_HOTBAR_SCROLLING = false;
     public static boolean disableHotbarScrolling = DEFAULT_DISABLE_HOTBAR_SCROLLING;
+    /** Opt-in QoL particle policy; only vanilla block digging/crack particles are filtered at addEffect. */
+    public static final boolean DEFAULT_NO_BLOCK_PARTICLES = false;
+    public static boolean noBlockParticles = DEFAULT_NO_BLOCK_PARTICLES;
     
     // Item Animation. Percent controls use 100% for untouched vanilla; offsets are hundredths of a
     // first-person render unit. Keeping the bounds here makes loading, exact-value entry and sliders agree.
@@ -211,6 +214,7 @@ public final class AppleSettings {
         loadPerformanceSettings(p);
         loadGlobalScrollSettings(p);
         loadMouseSettings(p);
+        loadParticleSettings(p);
 
         loadItemAnimationSettings(p);
 
@@ -278,6 +282,17 @@ public final class AppleSettings {
     static void saveMouseSettings(Properties p) {
         if (p != null) {
             p.setProperty("mouse.disableHotbarScrolling", Boolean.toString(disableHotbarScrolling));
+        }
+    }
+
+    static void loadParticleSettings(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        noBlockParticles = readBool(p, "particles.noBlockParticles", DEFAULT_NO_BLOCK_PARTICLES);
+    }
+
+    static void saveParticleSettings(Properties p) {
+        if (p != null) {
+            p.setProperty("particles.noBlockParticles", Boolean.toString(noBlockParticles));
         }
     }
 
@@ -398,6 +413,7 @@ public final class AppleSettings {
         p.setProperty("scrollSpeed", Integer.toString(scrollSpeed));
         p.setProperty("smoothScrolling", Boolean.toString(smoothScrolling));
         saveMouseSettings(p);
+        saveParticleSettings(p);
         
         // Item Animation. Save only the current supported category; old and obsolete keys are deliberately retired.
         saveItemAnimationSettings(p);

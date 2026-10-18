@@ -259,6 +259,10 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleButton("Open", 84f, 26f, true,
                         () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
 
+        rows.add(Row.header("Particles"));
+        rows.add(Row.item("No block particles", "Hide only vanilla block digging and crack particles",
+                new AppleToggle(() -> AppleSettings.noBlockParticles, value -> AppleSettings.noBlockParticles = value)));
+
         // Cross-feature controls deliberately live at the top level, rather than being duplicated in Chat QoL.
         rows.add(Row.header("Mod settings"));
         rows.add(Row.item("Open Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling",

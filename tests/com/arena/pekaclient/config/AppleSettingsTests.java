@@ -59,6 +59,7 @@ public final class AppleSettingsTests {
         chatSettingsCompatibility();
         globalScrollCompatibility();
         mouseSettingsCompatibility();
+        particleSettingsCompatibility();
 
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
@@ -139,6 +140,21 @@ public final class AppleSettingsTests {
         AppleSettings.saveMouseSettings(saved);
         check("hotbar wheel choice has one stable key",
                 "true".equals(saved.getProperty("mouse.disableHotbarScrolling")) && saved.size() == 1);
+    }
+
+    private static void particleSettingsCompatibility() {
+        AppleSettings.noBlockParticles = true;
+        AppleSettings.loadParticleSettings(new Properties());
+        check("old config keeps block particles visible", !AppleSettings.noBlockParticles);
+
+        Properties stored = new Properties();
+        stored.setProperty("particles.noBlockParticles", "true");
+        AppleSettings.loadParticleSettings(stored);
+        check("no-block-particles choice loads", AppleSettings.noBlockParticles);
+        Properties saved = new Properties();
+        AppleSettings.saveParticleSettings(saved);
+        check("no-block-particles has one stable key",
+                "true".equals(saved.getProperty("particles.noBlockParticles")) && saved.size() == 1);
     }
 
     private static void check(String name, boolean ok) {

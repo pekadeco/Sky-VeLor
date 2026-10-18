@@ -5,6 +5,7 @@ import com.arena.pekaclient.chat.ChatClipboard;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
+import com.arena.pekaclient.render.blockparticles.BlockParticleHookStatus;
 import com.arena.pekaclient.render.GlobalFontManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
@@ -64,5 +65,7 @@ public final class SvCommand extends CommandBase {
         mc.thePlayer.addChatMessage(new ChatComponentText("§7dungeon: §finDungeon: " + dungeon.inDungeon
                 + ", reason: " + dungeon.reason + ", matched scoreboard line: " + matched));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7item-animation hook: §f" + (ItemAnimationHookStatus.isActive() ? "ACTIVE" : "FAILED") + " (" + ItemAnimationHookStatus.getReason() + ")"));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7block-particle hook: §f" + (BlockParticleHookStatus.isActive() ? "ACTIVE" : "FAILED")
+                + " (" + BlockParticleHookStatus.getReason() + ")"));
     }
 }

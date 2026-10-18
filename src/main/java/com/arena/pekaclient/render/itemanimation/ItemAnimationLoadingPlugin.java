@@ -1,28 +1,29 @@
 package com.arena.pekaclient.render.itemanimation;
 
+import com.arena.pekaclient.render.blockparticles.BlockParticleHookStatus;
+import com.arena.pekaclient.render.blockparticles.BlockParticleTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 import java.util.Map;
 
 /**
- * Forge 1.8.9 coremod entry point for the narrowly scoped Item Animation bytecode hook.
- *
- * <p>The normal Forge hand event happens before EntityRenderer resets the hand matrices and has no paired post
- * event, so it cannot safely surround the real first-person renderer. This plugin instead wires two balanced,
- * method-local callbacks into Minecraft's own renderer. It does not replace ItemRenderer or mutate final fields.
+ * Forge 1.8.9 coremod entry point for two narrow visual hooks: ItemRenderer's balanced first-person callbacks and
+ * EffectRenderer's block-digging particle predicate. Neither hook replaces a renderer or touches gameplay state.
  */
-@IFMLLoadingPlugin.Name("Sky VeLor Item Animation")
+@IFMLLoadingPlugin.Name("Sky VeLor Visual Hooks")
 @IFMLLoadingPlugin.MCVersion("1.8.9")
 @IFMLLoadingPlugin.SortingIndex(1001)
-@IFMLLoadingPlugin.TransformerExclusions({"com.arena.pekaclient.render.itemanimation"})
+@IFMLLoadingPlugin.TransformerExclusions({"com.arena.pekaclient.render.itemanimation",
+        "com.arena.pekaclient.render.blockparticles"})
 public final class ItemAnimationLoadingPlugin implements IFMLLoadingPlugin {
 
     @Override
     public String[] getASMTransformerClass() {
-        // This status class deliberately has no Minecraft references, so the launcher diagnostic cannot force an
-        // early ItemRenderer/Minecraft load before Forge installs the exclusion and transformer.
+        // Both status classes deliberately have no Minecraft references, so launcher diagnostics cannot force an
+        // early ItemRenderer/EffectRenderer load before Forge installs exclusions and transformers.
         ItemAnimationHookStatus.noteCoremodRegistered();
-        return new String[]{ItemAnimationTransformer.class.getName()};
+        BlockParticleHookStatus.noteCoremodRegistered();
+        return new String[]{ItemAnimationTransformer.class.getName(), BlockParticleTransformer.class.getName()};
     }
 
     @Override
