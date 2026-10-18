@@ -250,28 +250,14 @@ public final class AppleSettings {
     }
 
     /**
-     * Promotes retired per-chat scroll settings into the single global policy. A native global value always wins;
-     * otherwise Default Chat is the historical source and Chat 1 is a safe fallback. This method has no Minecraft
-     * dependency so compatibility tests can prove old files do not silently lose their scroll preference.
+     * Reads the one global scroll policy. Retired split-chat target keys are deliberately ignored: they must never
+     * recreate behavior or silently alter the modern global choice.
      */
     static void loadGlobalScrollSettings(Properties settings) {
         Properties p = settings == null ? new Properties() : settings;
-        boolean hasSpeed = p.containsKey("scrollSpeed");
-        boolean hasSmooth = p.containsKey("smoothScrolling");
-        String defaultSpeed = ChatQolSettings.PREFIX + "target.default.scroll.speed";
-        String chatOneSpeed = ChatQolSettings.PREFIX + "target.chat1.scroll.speed";
-        String chatTwoSpeed = ChatQolSettings.PREFIX + "target.chat2.scroll.speed";
-        String defaultSmooth = ChatQolSettings.PREFIX + "target.default.scroll.smooth";
-        String chatOneSmooth = ChatQolSettings.PREFIX + "target.chat1.scroll.smooth";
-        String chatTwoSmooth = ChatQolSettings.PREFIX + "target.chat2.scroll.smooth";
-        String speedSource = firstPresent(p, defaultSpeed, chatOneSpeed, chatTwoSpeed);
-        String smoothSource = firstPresent(p, defaultSmooth, chatOneSmooth, chatTwoSmooth);
-        scrollSpeed = hasSpeed ? readInt(p, "scrollSpeed", scrollSpeed, 50, 300)
-                : readInt(p, speedSource, DEFAULT_SCROLL_SPEED, 50, 300);
-        smoothScrolling = hasSmooth ? readBool(p, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING)
-                : readBool(p, smoothSource, DEFAULT_SMOOTH_SCROLLING);
-        globalScrollMigrationPending = (!hasSpeed && p.containsKey(speedSource))
-                || (!hasSmooth && p.containsKey(smoothSource));
+        scrollSpeed = readInt(p, "scrollSpeed", DEFAULT_SCROLL_SPEED, 50, 300);
+        smoothScrolling = readBool(p, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING);
+        globalScrollMigrationPending = false;
     }
 
     /**
@@ -533,12 +519,6 @@ public final class AppleSettings {
         }
         return p.containsKey(key) ? readInt(p, key, def, min, max)
                 : readInt(p, legacyKey, def, min, max);
-    }
-
-    private static String firstPresent(Properties p, String first, String second, String third) {
-        if (p.containsKey(first)) return first;
-        if (p.containsKey(second)) return second;
-        return third;
     }
 
     private static int readInt(Properties p, String key, int def, int min, int max) {

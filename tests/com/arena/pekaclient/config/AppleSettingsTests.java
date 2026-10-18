@@ -90,29 +90,24 @@ public final class AppleSettingsTests {
         oldFriendChat.setProperty("chat.tabMode", "3");
         oldFriendChat.setProperty("chat.animation.messages", "true");
         AppleSettings.loadChatSettings(oldFriendChat);
-        check("legacy friend direct-message tab migrates to Reply", ChatQolSettings.enabled
-                && ChatQolSettings.selectedTab == ChatQolSettings.TAB_REPLY);
-        check("legacy animation profile becomes native smooth setting", ChatQolSettings.smoothMessages);
+        check("legacy tab key is ignored instead of enabling a renderer", !ChatQolSettings.enabled
+                && "all".equals(ChatQolSettings.selectedTabId()));
+        check("legacy animation profile is ignored safely", ChatQolSettings.smoothMessages);
 
-        Properties migratedChat = new Properties();
-        AppleSettings.saveChatSettings(migratedChat);
-        check("chat migration writes native stable master keys", "true".equals(migratedChat.getProperty("chat.qol.enabled"))
-                && "2".equals(migratedChat.getProperty("chat.qol.tabs.selected"))
-                && !migratedChat.containsKey("chat.animation.enabled"));
+        AppleSettings.saveChatSettings(oldFriendChat);
+        check("chat rewrite keeps only stable one-default keys", "false".equals(oldFriendChat.getProperty("chat.qol.enabled"))
+                && "all".equals(oldFriendChat.getProperty("chat.qol.tabs.selectedId"))
+                && !oldFriendChat.containsKey("chat.animation.enabled") && !oldFriendChat.containsKey("chat.tabMode"));
     }
 
     private static void globalScrollCompatibility() {
-        Properties legacy = new Properties();
-        legacy.setProperty("chat.qol.target.default.scroll.speed", "225");
-        legacy.setProperty("chat.qol.target.default.scroll.smooth", "false");
-        AppleSettings.loadGlobalScrollSettings(legacy);
-        check("target-local speed migrates to global setting", AppleSettings.scrollSpeed == 225);
-        check("target-local smoothing migrates to global setting", !AppleSettings.smoothScrolling);
-
-        Properties chatTwoOnly = new Properties();
-        chatTwoOnly.setProperty("chat.qol.target.chat2.scroll.speed", "175");
-        AppleSettings.loadGlobalScrollSettings(chatTwoOnly);
-        check("Chat 2-only legacy speed also migrates", AppleSettings.scrollSpeed == 175);
+        Properties retired = new Properties();
+        retired.setProperty("chat.qol.target.default.scroll.speed", "225");
+        retired.setProperty("chat.qol.target.default.scroll.smooth", "false");
+        retired.setProperty("chat.qol.target.chat2.scroll.speed", "175");
+        AppleSettings.loadGlobalScrollSettings(retired);
+        check("retired split-chat scroll keys are ignored", AppleSettings.scrollSpeed == AppleSettings.DEFAULT_SCROLL_SPEED
+                && AppleSettings.smoothScrolling == AppleSettings.DEFAULT_SMOOTH_SCROLLING);
 
         Properties nativeGlobal = new Properties();
         nativeGlobal.setProperty("scrollSpeed", "150");
@@ -120,8 +115,8 @@ public final class AppleSettingsTests {
         nativeGlobal.setProperty("chat.qol.target.default.scroll.speed", "300");
         nativeGlobal.setProperty("chat.qol.target.default.scroll.smooth", "false");
         AppleSettings.loadGlobalScrollSettings(nativeGlobal);
-        check("native global speed wins over retired target value", AppleSettings.scrollSpeed == 150);
-        check("native global smoothing wins over retired target value", AppleSettings.smoothScrolling);
+        check("native global scroll values remain authoritative", AppleSettings.scrollSpeed == 150
+                && AppleSettings.smoothScrolling);
     }
 
     private static void check(String name, boolean ok) {

@@ -14,7 +14,6 @@ import com.arena.pekaclient.dungeon.TerminalSolver;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.feature.ChatChannelTabs;
-import com.arena.pekaclient.feature.ChattingAnimationBridge;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.feature.LeapUse;
 import com.arena.pekaclient.feature.SpiritLeap;
@@ -62,7 +61,7 @@ import org.lwjgl.input.Keyboard;
  *  - a loading screen that runs Sky VeLor's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,
  *  - all-rarity fishing counters, Festival best, Sea Creature HP and the Lord Jawbus alert,
- *  - an opt-in native Chat QoL layer with attached All/Party/Reply tabs, separate client-side windows and editor.
+ *  - an opt-in Default Chat QoL layer with attached All/Party/Reply/custom tabs and one focused editor.
  * HUD/world features use standard Forge 1.8.9 events. Item Animation has one isolated Forge coremod hook around
  * Minecraft's real first-person hand renderer and equipped-progress update; it does not replace renderers, mutate
  * final fields, or change entity/world/gameplay rendering.
@@ -119,8 +118,6 @@ public class PekaClientMod {
     public void init(FMLInitializationEvent event) {
         // Settings are read here so the first screen has them. The loading screen runs the rest.
         AppleSettings.load();
-        // Legacy optional-runtime detection is intentionally silent and no longer configures any external chat mod.
-        ChattingAnimationBridge.apply();
         Theme.refresh();
         ClientRegistry.registerKeyBinding(OPEN_KEY);
         ClientRegistry.registerKeyBinding(ITEM_ANIMATION_KEY);

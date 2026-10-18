@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.5.1v] [--mcmod-version 0.10.8.5.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.5.2v] [--mcmod-version 0.10.8.5.2]
 """
 
 import argparse
@@ -47,30 +47,26 @@ REQUIRED_CLASSES = [
     'config/ChatQolSettings',
     'feature/ItemAnimation',
     'feature/VisualSwingStateMachine',
-    'feature/ChatFilterRules',
-    'feature/ChatPatternRules',
-    'feature/ChatQolHistory',
-    'feature/ChatQolRouting',
+    'feature/ChatTabs',
     'feature/ChatTabLayout',
-    'feature/ChatWindowLayout',
     'feature/ChatFontPolicy',
     'feature/ChatInteractionModel',
     'feature/ChatChannelTabs',
-    'feature/ChattingAnimationBridge',
     'command/ItemDebugCommand',
     'gui/AppleHubScreen',
     'gui/ChatUiModel',
     'gui/ChatEditorLayout',
-    'gui/ChatEditorPanelLayout',
     'gui/ChatEditorScreen',
     'gui/GuiLayoutToolkit',
     'gui/ModSettingsScreen',
     'gui/FontsScreen',
     'notes/QuickNoteLayout',
-    'chat/ChatPipeline',
+    'chat/CapturedChatMenu',
     'chat/ChatClipboard',
     'chat/ChatContextMenu',
     'chat/ChatInputInsertion',
+    'chat/ChatMenuPolicy',
+    'chat/ChatRenderGeometry',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -100,6 +96,16 @@ FORBIDDEN_CLASSES = [
     'gui/DungeonHudScreen',
     'hud/ClickInOrderHud',
     'command/TerminalCommand',
+    # Beta-0.10.8.5.2 removes the former split-chat implementation completely.
+    'feature/ChatFilterRules',
+    'feature/ChatPatternRules',
+    'feature/ChatQolHistory',
+    'feature/ChatQolMode',
+    'feature/ChatQolRouting',
+    'feature/ChatWindowLayout',
+    'feature/ChattingAnimationBridge',
+    'gui/ChatEditorPanelLayout',
+    'chat/ChatPipeline',
 ]
 
 # Minecraft members this mod really calls or overrides. Reobfuscation must have
@@ -220,8 +226,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.5.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.5.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.5.2v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.5.2')
     args = ap.parse_args()
 
     path = args.jar
@@ -387,46 +393,49 @@ def main():
     r.check(b'Open Item Animation Settings' not in editor_raw,
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
-    # --- Chat QoL ownership and native implementation proof -----------------
-    # The Hub exposes exactly the requested compact switch set and editor route. All deeper styling, positioning,
-    # classification and copy settings are editor-owned; the jar never bundles a foreign chat implementation.
+    # --- Chat QoL ownership and one-default-chat implementation proof --------
+    # Beta-0.10.8.5.2 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
+    # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
     r.check(all(value in chat_ui_constants for value in
-                ('Chat QoL', 'Chat Tabs', 'Separate Chats', 'Smooth Messages', 'Hover Highlight',
-                 'Open Chat Editor'))
-                and b'Open menu with' in chat_editor_raw and b'Menu animation' in chat_editor_raw
-                and 'Global Font' not in chat_ui_constants and 'Open Font Settings' not in chat_ui_constants
-                and 'Chatting animation bridge' not in chat_ui_constants,
-            'ChatUiModel keeps compact native switches while Chat Editor owns menu trigger and animation controls')
+                ('Chat QoL', 'Chat Tabs', 'Smooth Messages', 'Hover Highlight', 'Open Chat Editor'))
+                and 'Separate Chats' not in chat_ui_constants
+                and 'Global Font' not in chat_ui_constants and 'Open Font Settings' not in chat_ui_constants,
+            'ChatUiModel keeps only the one-default-chat switch set and editor route')
     chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
     r.check(all(value in chat_editor_raw for value in
-                (b'Windows', b'Background', b'Messages', b'Global settings', b'Tabs', b'Hover / menu'))
+                (b'Background', b'Messages', b'Tabs', b'Menu and Highlight', b'Reset', b'Invalid regex'))
+                and all(value not in chat_editor_raw for value in
+                        (b'Windows', b'Link all', b'Copy from', b'Chat 1', b'Chat 2'))
                 and b'com/arena/pekaclient/gui/ChatEditorLayout' in chat_editor_raw
                 and b'com/arena/pekaclient/gui/GuiLayoutToolkit' in chat_editor_raw
                 and len(chat_editor_layout_raw) > 0,
-            'ChatEditorScreen packages all compact editor sections through the shared non-overlap layout')
-    interaction_constants = constants_of('feature/ChatInteractionModel')
-    interaction_raw = raw_of('feature/ChatInteractionModel')
+            'ChatEditorScreen packages the five requested sections through shared active-font non-overlap layout')
     menu_constants = constants_of('chat/ChatContextMenu')
     tabs_raw = raw_of('feature/ChatChannelTabs')
     copy_menu_raw = raw_of('feature/ChatChannelTabs$CopyMenu')
+    tabs_model_raw = raw_of('feature/ChatTabs')
     chat_runtime_raw = tabs_raw + copy_menu_raw
     r.check(all(value in menu_constants for value in ('Copy to clipboard', 'Copy to chat box'))
-                and b'ChatInteractionModel' in tabs_raw and b'ChatPipeline' in tabs_raw
-                and b'ChatContextMenu' in chat_runtime_raw and b'ChatClipboard' in chat_runtime_raw,
-            'Chat QoL packages one Default/Chat 1/Chat 2 pipeline with exact two-action copy labels')
+                and b'ChatInteractionModel' in tabs_raw and b'CapturedChatMenu' in chat_runtime_raw
+                and b'ChatRenderGeometry' in tabs_raw and b'ChatTabs' in tabs_raw
+                and b'ChatContextMenu' in chat_runtime_raw and b'ChatClipboard' in chat_runtime_raw
+                and b'ChatPipeline' not in chat_runtime_raw,
+            'Chat QoL packages one Default Chat renderer with exact two-action captured-menu labels')
     r.check(b'com/arena/pekaclient/chat/ChatInputInsertion' in copy_menu_raw
                 and 'insert' in members_of('feature/ChatChannelTabs$CopyMenu'),
             'production Copy to chat box calls the shared clean cursor/selection/256-character insertion path')
+    r.check(all(value in tabs_model_raw for value in
+                (b'custom-', b'Invalid regex', b'Contains text', b'Starts with', b'Regex'))
+                and b'MAX_TABS' in tabs_model_raw,
+            'ChatTabs packages bounded custom filtering and safe invalid-regex handling')
     r.check(b'Copy clean' not in chat_runtime_raw and b'Copy colours' not in chat_runtime_raw
                 and b'Copy to box' not in chat_runtime_raw,
             'Chat QoL excludes retired alternate copy actions from the runtime menu')
-    r.check(all(value in chat_editor_raw for value in
-                (b'Default Chat', b'Link all', b'Copy from', b'Mod Settings', b'Fonts'))
-                and b'Open Font Settings' not in chat_editor_raw
-                and b'com/arena/pekaclient/gui/ChatEditorPanelLayout' in chat_editor_raw,
-            'Chat Editor packages target selection, link/copy controls and routes to top-level settings/font pages')
+    r.check(all(value not in chat_runtime_raw for value in
+                (b'ChatQolRouting', b'ChatFilterRules', b'ChatQolHistory', b'ChattingAnimationBridge')),
+            'one Default Chat runtime carries no split-window classifier/router bridge')
     font_raw = raw_of('render/GlobalFontManager')
     r.check(all(value in font_raw for value in
                 (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'rounded-nunito.ttf',
@@ -449,16 +458,6 @@ def main():
     r.check(b'com/arena/pekaclient/feature/ChatChannelTabs' in client_raw
                 and b'key.pekaclient.chatTab' in client_raw and b'key.pekaclient.chatEditor' in client_raw,
             'PekaClientMod registers native Chat QoL and its optional cycle/editor keybindings')
-    chat_rules_constants = constants_of('feature/ChatFilterRules')
-    r.check(all(value in chat_rules_constants for value in ('party >', 'to ', 'from '))
-                and 'guild >' not in chat_rules_constants and 'co-op >' not in chat_rules_constants,
-            'ChatFilterRules packages only All/Party/Reply channels with safe player/system routing')
-    routing_constants = constants_of('feature/ChatQolRouting')
-    r.check('/reply ' in routing_constants and '/pc ' in routing_constants,
-            'ChatQolRouting packages Reply /reply and Party send prefixes')
-    bridge_raw = raw_of('feature/ChattingAnimationBridge')
-    r.check(b'Lorg/polyfrost/' not in bridge_raw,
-            'legacy Chatting sentinel has no eager external-mod class descriptor')
     fishing_constants = constants_of('fishing/FishingStats')
     r.check(all(name in fishing_constants for name in ('commonCreatureCount', 'legendaryCreatureCount')),
             'FishingStats packages separate Common Creature and preserved Legendary/Mythic totals')

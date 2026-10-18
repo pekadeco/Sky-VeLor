@@ -21,11 +21,9 @@ fi
 javac -nowarn -encoding UTF-8 -cp "$CP" -d "$OUT" $(find "$HERE/tests" -name '*.java')
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.PureLogicTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.GuiLayoutToolkitTests
-java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatPipelineTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ClipboardChainTests
 java -Djava.awt.headless=true -cp "$OUT:$CP" com.arena.pekaclient.render.FontAtlasGeneratorTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.FontSettingsTests
-java -cp "$OUT:$CP" com.arena.pekaclient.config.ChatQolSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ConfigTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapIdentityTests
@@ -40,11 +38,9 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.SpiritLeapTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.DungeonContextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ItemAnimationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.VisualSwingStateMachineTests
-java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatFilterRulesTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatInteractionModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatQolLayoutTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatEditorPanelLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.notes.QuickNoteLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ItemAnimationReachabilityTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.MobMarkersTests

@@ -1,28 +1,30 @@
 package com.arena.pekaclient.feature;
 
-import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.chat.CapturedChatMenu;
 import com.arena.pekaclient.chat.ChatClipboard;
 import com.arena.pekaclient.chat.ChatContextMenu;
 import com.arena.pekaclient.chat.ChatInputInsertion;
 import com.arena.pekaclient.chat.ChatMenuPolicy;
-import com.arena.pekaclient.chat.ChatPipeline;
+import com.arena.pekaclient.chat.ChatRenderGeometry;
+import com.arena.pekaclient.chat.ChatText;
+import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
+import com.arena.pekaclient.gui.GuiLayoutToolkit;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ChatLine;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.GuiNewChat;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.client.gui.GuiUtilRenderComponents;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.event.ClickEvent;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
-import net.minecraft.event.HoverEvent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -35,715 +37,711 @@ import org.lwjgl.input.Mouse;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Native client-only Chat QoL runtime.
+ * The one real-game Chat QoL implementation.
  *
- * It keeps vanilla's complete chat history intact and only rebuilds the rendered cache for an opted-in tab. All
- * reflection is resolved once using MCP, SRG and obfuscated candidates. A mismatch fails closed: the selected cache
- * is restored where possible and normal Minecraft chat remains usable. Separate chat windows use their own bounded
- * received-message mirror only while the master Chat QoL switch is on.
+ * When the master switch is on and all guarded bridges resolve, this class cancels exactly Minecraft's Default Chat
+ * overlay and redraws that same vanilla cache once with the configured background, animation, filter tabs, grouped
+ * hover/menu handling, and eased scrolling. It never routes or replaces received messages. If the master is off or
+ * a mapping cannot be resolved, no overlay is cancelled and vanilla Minecraft owns chat unchanged.
  */
 public final class ChatChannelTabs {
 
-    private static final int FIRST_BUTTON_ID = 0x5356430;
     private static final Field CHAT_LINES;
     private static final Field DRAWN_LINES;
-    private static final Method SET_CHAT_LINE;
     private static final Field INPUT_FIELD;
     private static final Field INPUT_WIDTH;
-    /** Resolved once; native Chat 1/2 clicks call vanilla's component handler only on an actual left click. */
     private static final Method HANDLE_COMPONENT_CLICK;
-    private static final boolean CACHE_REFLECTION_READY;
-    private static final boolean INPUT_REFLECTION_READY;
+    private static final boolean BRIDGE_READY;
 
     static {
         Field chatLines = null;
         Field drawnLines = null;
-        Method setChatLine = null;
         Field input = null;
         Field inputWidth = null;
-        Method handleComponentClick = null;
+        Method click = null;
         try {
             chatLines = ReflectionHelper.findField(GuiNewChat.class, "chatLines", "field_146252_h", "h");
             drawnLines = ReflectionHelper.findField(GuiNewChat.class, "drawnChatLines", "field_146253_i", "i");
-            setChatLine = ReflectionHelper.findMethod(GuiNewChat.class, null,
-                    new String[]{"setChatLine", "func_146237_a", "a"},
-                    IChatComponent.class, int.class, int.class, boolean.class);
+            input = ReflectionHelper.findField(GuiChat.class, "inputField", "field_146415_a", "a");
+            inputWidth = ReflectionHelper.findField(GuiTextField.class, "width", "field_146218_h", "h");
+            click = ReflectionHelper.findMethod(GuiScreen.class, null,
+                    new String[]{"handleComponentClick", "func_175276_a", "a"}, IChatComponent.class);
             chatLines.setAccessible(true);
             drawnLines.setAccessible(true);
-            setChatLine.setAccessible(true);
+            input.setAccessible(true);
+            inputWidth.setAccessible(true);
+            click.setAccessible(true);
         } catch (RuntimeException | LinkageError ignored) {
             chatLines = null;
             drawnLines = null;
-            setChatLine = null;
-        }
-        try {
-            handleComponentClick = ReflectionHelper.findMethod(GuiScreen.class, null,
-                    new String[]{"handleComponentClick", "func_175276_a", "a"}, IChatComponent.class);
-            handleComponentClick.setAccessible(true);
-        } catch (RuntimeException | LinkageError ignored) {
-            handleComponentClick = null;
-        }
-        try {
-            input = ReflectionHelper.findField(GuiChat.class, "inputField", "field_146415_a", "a");
-            // GuiTextField width is final/private in 1.8.9. Resolving it once lets the target badge reserve real
-            // input space without changing the typed string; failure simply leaves ordinary GuiChat untouched.
-            inputWidth = ReflectionHelper.findField(GuiTextField.class, "width", "field_146218_h", "h");
-            input.setAccessible(true);
-            inputWidth.setAccessible(true);
-        } catch (RuntimeException | LinkageError ignored) {
             input = null;
             inputWidth = null;
+            click = null;
         }
         CHAT_LINES = chatLines;
         DRAWN_LINES = drawnLines;
-        SET_CHAT_LINE = setChatLine;
         INPUT_FIELD = input;
         INPUT_WIDTH = inputWidth;
-        HANDLE_COMPONENT_CLICK = handleComponentClick;
-        CACHE_REFLECTION_READY = chatLines != null && drawnLines != null && setChatLine != null;
-        INPUT_REFLECTION_READY = input != null && inputWidth != null;
+        HANDLE_COMPONENT_CLICK = click;
+        BRIDGE_READY = chatLines != null && drawnLines != null && input != null && inputWidth != null && click != null;
     }
 
     private static ChatChannelTabs live;
-    private static boolean reflectionNoticeShown;
-    private static boolean inputNoticeShown;
+    private static boolean bridgeNoticeShown;
 
-    private static final int MAX_NATIVE_ROWS = ChatQolHistory.CAPACITY * 8;
-    private static final int MAX_DEFAULT_ROWS = 400;
-
-    private final ChatQolHistory history = new ChatQolHistory();
-    /** One concrete layout/input model for Default Chat, Chat 1 and Chat 2; each surface merely chooses a feed. */
-    private final ChatPipeline defaultPipeline = new ChatPipeline();
-    private final ChatPipeline chat1AllPipeline = new ChatPipeline();
-    private final ChatPipeline chat1PartyPipeline = new ChatPipeline();
-    private final ChatPipeline chat1ReplyPipeline = new ChatPipeline();
-    private final ChatPipeline chat2Pipeline = new ChatPipeline();
-    /** Render-time component/row bridge: pipeline geometry is authoritative while Minecraft owns click components. */
-    private final Map<ChatPipeline.Row, NativeRow> pipelineRows = new IdentityHashMap<ChatPipeline.Row, NativeRow>();
-    private int pipelineMessageId;
-    private boolean pipelineWasEnabled;
+    private final List<MessageGroup> groups = new ArrayList<MessageGroup>();
+    private final List<RenderRow> rows = new ArrayList<RenderRow>();
+    private final Map<Integer, Long> arrivalMillis = new HashMap<Integer, Long>();
+    private final Set<String> unreadTabs = new HashSet<String>();
+    private final GuiLayoutToolkit.Scroll scroll = new GuiLayoutToolkit.Scroll();
     private final ChatTabLayout.Layout tabLayout = new ChatTabLayout.Layout();
-    private final List<ChatTabButton> tabButtons = new ArrayList<ChatTabButton>();
-    private final ChatWindowLayout.Rect chat1Rect = new ChatWindowLayout.Rect();
-    private final ChatWindowLayout.Rect chat2Rect = new ChatWindowLayout.Rect();
-    private final CopyMenu copyMenu = new CopyMenu();
-    /** A left-menu press is intentionally remembered until matching release, preserving native click actions. */
-    private boolean leftMenuPending;
-    private int leftMenuSurface = -1;
-    private String leftMenuClean = "";
-    private String leftMenuFormatted = "";
-    /** Fixed render slots shared by Chat 1/2, then hit-tested by ChatInteractionModel for both surfaces. */
-    private final NativeRow[] nativeRows = createNativeRows();
-    private final DefaultLine[] defaultLines = createDefaultLines();
-    private final ChatInteractionModel.Hit[] nativeHits = {
-            new ChatInteractionModel.Hit(), new ChatInteractionModel.Hit(), new ChatInteractionModel.Hit()
-    };
-    private final ChatInteractionModel.Hit defaultHit = new ChatInteractionModel.Hit();
-    /** One reusable vanilla-layout row slot; it keeps default chat on the identical hit-test path as Chat 1/2. */
-    private final ChatInteractionModel.Bounds defaultBounds = new ChatInteractionModel.Bounds();
-    private final ChatInteractionModel.Bounds[] defaultRows = {defaultBounds};
     private final ChatInteractionModel.Hover hover = new ChatInteractionModel.Hover();
+    private final CopyMenu copyMenu = new CopyMenu();
+    private final ChatRenderGeometry.Rect background = new ChatRenderGeometry.Rect();
 
-    private boolean pendingRefresh;
-    private boolean tabsWereActive;
-    /** Transition guard: old default history is never imported when Separate Chats is switched on. */
-    private boolean separateWasActive;
-    private int layoutKey = Integer.MIN_VALUE;
-    /** GuiChat input is resolved once per screen instance; frame drawing never calls Field.get. */
     private GuiChat inputOwner;
     private GuiTextField cachedInput;
     private GuiTextField shiftedInput;
     private int savedInputX;
-    private int savedInputW;
+    private int savedInputWidth;
     private int appliedInputX = Integer.MIN_VALUE;
-    private int appliedInputW = Integer.MIN_VALUE;
-    private int nativeRowCount;
-    private int defaultLineCount;
-    private boolean defaultCacheDirty = true;
-    private boolean defaultRendererFailed;
-    private int defaultLayoutKey = Integer.MIN_VALUE;
-    private boolean customDefaultWasActive;
-    private long interactionNs;
-    /** Command-only visual diagnostic; intentionally never saved into a player configuration. */
-    private boolean chatDebug;
-    /** Last live readers of the one persisted Separate Chats setting, surfaced by /velor chatdebug. */
-    private boolean guiSeparateState;
-    private boolean routerSeparateState;
-    private boolean rendererSeparateState;
+    private int appliedInputWidth = Integer.MIN_VALUE;
+    private MessageGroup hoveredGroup;
+    private MessageGroup pendingLeftGroup;
+    private boolean debug;
+    private boolean tabBarDrawn;
+    private float tabFrameX;
+    private float tabFrameY;
+    private float tabFrameW;
+    private float tabFrameH;
+    private long lastFrameNs;
+    private String toast = "";
+    private long toastUntil;
 
     public ChatChannelTabs() {
         live = this;
-        defaultPipeline.setLimit(MAX_DEFAULT_ROWS);
-        chat1AllPipeline.setLimit(ChatQolHistory.CAPACITY);
-        chat1PartyPipeline.setLimit(ChatQolHistory.CAPACITY);
-        chat1ReplyPipeline.setLimit(ChatQolHistory.CAPACITY);
-        chat2Pipeline.setLimit(ChatQolHistory.CAPACITY);
     }
 
-    /** Incoming lines are classified once and retained in a fixed-size native mirror only while Chat QoL is on. */
-    @SubscribeEvent
-    public void onChat(ClientChatReceivedEvent event) {
-        // Off means vanilla owns the received event and its existing history/cache completely. In particular, this
-        // deliberately does not backfill Chat 1/2 from old default-chat lines when Separate Chats is later enabled.
-        if (!shouldDrawSeparate() || event.type == 2 || event.message == null) return;
-        // Read the sole persisted setting at the real routing point; /velor chatdebug exposes this independently
-        // from the editor and renderer snapshots when tracking a stale-state report.
-        routerSeparateState = ChatQolSettings.isSeparateChats();
-        String formatted = event.message.getFormattedText();
-        ChatFilterRules.Classification classification = ChatFilterRules.classifyDetailed(formatted,
-                ChatQolSettings.compiledPatterns());
-        int kind = classification.kind;
-        int destination = ChatQolMode.destination(true, true, kind);
-        long now = System.currentTimeMillis();
-        history.add(formatted, kind, event.message, now, ChatQolSettings.selectedTab,
-                classification.reason, destination);
-        addPipelineMessage(new PipelineEntry((IChatComponent) event.message, formatted,
-                cleanComponent((IChatComponent) event.message), kind, now, 0));
-        // Tab selection changes only the native Chat 1 feed. Vanilla's own cache/history remains untouched.
+    /** Master-off and mapping-mismatch paths deliberately leave the vanilla overlay and GuiChat untouched. */
+    private static boolean ownsDefaultChat() {
+        return ChatQolSettings.isEnabled() && BRIDGE_READY;
     }
 
-    /** Cancels vanilla's chat draw only while the fully opt-in separate renderer owns the message surface. */
+    /** Cancels the exact vanilla overlay only when the one replacement renderer is safe to draw it. */
     @SubscribeEvent
     public void onChatOverlayPre(RenderGameOverlayEvent.Chat event) {
-        rendererSeparateState = ChatQolSettings.isSeparateChats();
-        if (shouldDrawSeparate()) event.setCanceled(true);
+        if (ownsDefaultChat()) {
+            event.setCanceled(true);
+        } else if (ChatQolSettings.isEnabled() && !BRIDGE_READY) {
+            warnBridgeOnce();
+        }
     }
 
-    /** Draws native windows after the regular HUD. Separate Chats off is intentionally untouched vanilla chat. */
+    /** Draws the one default-chat surface after HUD overlays; GuiChat tab/menu overlays are added after its input. */
     @SubscribeEvent
     public void onOverlay(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
-        rendererSeparateState = ChatQolSettings.isSeparateChats();
-        if (shouldDrawSeparate()) {
-            renderSeparate(event.resolution);
-        } else if (chatDebug && ChatQolSettings.isEnabled() && CACHE_REFLECTION_READY) {
-            // Diagnostic-only vanilla outlines: the normal Separate Chats OFF path still neither routes nor draws a
-            // replacement Default Chat. This runs after vanilla's own renderer and changes no chat cache.
-            renderVanillaDefaultDebugOutlines();
-        }
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL || !ownsDefaultChat()) return;
+        renderDefaultChat(event.resolution);
     }
 
+    /** New messages remain vanilla messages. We only mark matching non-selected tabs unread and optionally play one sound. */
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        boolean separateNow = shouldDrawSeparate();
-        boolean tabsNow = tabsUsable();
-        if (separateWasActive && !separateNow) {
-            // A mode transition is immediate. Clear only our opt-in mirror; Minecraft's own default history was never
-            // altered, so it becomes visible again without any replay or duplicate insertion.
-            pendingRefresh = false;
-            clearPipelines();
-            history.clear();
-            restoreAll();
-            copyMenu.hide();
-            hover.clear();
-        }
-        separateWasActive = separateNow;
-        pipelineWasEnabled = separateNow;
-        if (tabsWereActive && !tabsNow) restoreAll();
-        tabsWereActive = tabsNow;
-        if (pendingRefresh) {
-            pendingRefresh = false;
-            refreshForSelectedTab();
-        }
-        Minecraft mc = Minecraft.getMinecraft();
-        if (!(mc.currentScreen instanceof GuiChat)) {
-            restoreInputField();
-            inputOwner = null;
-            cachedInput = null;
-            copyMenu.hide();
-            hover.clear();
-            nativeRowCount = 0;
-            defaultHit.clear();
-            for (ChatInteractionModel.Hit hit : nativeHits) hit.clear();
+    public void onChat(ClientChatReceivedEvent event) {
+        if (!ownsDefaultChat() || event == null || event.type == 2 || event.message == null) return;
+        String clean = cleanComponent(event.message);
+        boolean played = false;
+        for (ChatTabs.Tab tab : ChatQolSettings.tabs()) {
+            if (tab == null || !tab.enabled() || ChatTabs.ALL.equals(tab.id()) || !tab.matches(clean)) continue;
+            if (!tab.id().equals(ChatQolSettings.selectedTabId())) unreadTabs.add(tab.id());
+            if (tab.sound() && !played) {
+                Minecraft mc = Minecraft.getMinecraft();
+                if (mc != null && mc.thePlayer != null) {
+                    mc.thePlayer.playSound("random.orb", .25f, 1.05f);
+                    played = true;
+                }
+            }
         }
     }
 
-    /** Adds only safe attached controls to GuiChat. They preserve GuiChat's field and typed text on tab switches. */
     @SubscribeEvent
     public void onInitGui(GuiScreenEvent.InitGuiEvent.Post event) {
         if (!(event.gui instanceof GuiChat)) return;
-        tabButtons.clear();
-        layoutKey = Integer.MIN_VALUE;
-        restoreInputField();
-        inputOwner = null;
-        cachedInput = null;
-        cacheInputField((GuiChat) event.gui);
-        if (!tabsUsable()) {
-            if (tabsActive()) warnReflectionOnce();
-            restoreInputField();
-            return;
-        }
-        for (int tab = ChatFilterRules.ALL; tab <= ChatFilterRules.REPLY; tab++) {
-            ChatTabButton button = new ChatTabButton(FIRST_BUTTON_ID + tab, "");
-            tabButtons.add(button);
-            event.buttonList.add(button);
-        }
-        updateTabLayout((GuiChat) event.gui);
+        cacheInput((GuiChat) event.gui);
+        if (ownsDefaultChat()) adjustInput((GuiChat) event.gui);
     }
 
-    /** Pre-draw updates button/input geometry; post-draw paints the non-overlapping target label inside input. */
+    /** The field is shifted only while our active-channel label is visible; typed text stays in Minecraft's real field. */
     @SubscribeEvent
     public void onDrawPre(GuiScreenEvent.DrawScreenEvent.Pre event) {
         if (!(event.gui instanceof GuiChat)) return;
-        guiSeparateState = ChatQolSettings.isSeparateChats();
-        if (!tabsUsable()) {
-            restoreInputField();
+        if (!ownsDefaultChat()) {
+            restoreInput();
             return;
         }
-        updateTabLayout((GuiChat) event.gui);
-        adjustInputField((GuiChat) event.gui);
+        GuiChat chat = (GuiChat) event.gui;
+        cacheInput(chat);
+        adjustInput(chat);
     }
 
+    /** Tab strip, hover tint, and menu render over the live GuiChat input so their z-order is deterministic. */
     @SubscribeEvent
     public void onDrawPost(GuiScreenEvent.DrawScreenEvent.Post event) {
-        if (!(event.gui instanceof GuiChat)) return;
+        if (!(event.gui instanceof GuiChat) || !ownsDefaultChat()) return;
+        GuiChat chat = (GuiChat) event.gui;
         Minecraft mc = Minecraft.getMinecraft();
-        if (tabsUsable() && shiftedInput != null) {
-            String label = ChatQolRouting.targetLabel(ChatQolSettings.selectedTab) + " ›";
-            UIRender.beginFrame();
-            UIRender.text(mc.fontRendererObj, label, savedInputX + 4f, shiftedInput.yPosition + 2f,
-                    ChatQolSettings.selectedTab == ChatFilterRules.ALL ? 0xFFAFAFB5 : Theme.accent,
-                    1f, true, com.arena.pekaclient.render.GlobalFontManager.Area.TAB);
-            UIRender.endFrame();
-        }
-        if (!shouldDrawSeparate()) return;
-        int mx = scaledMouseX((GuiChat) event.gui, mc);
-        int my = scaledMouseY((GuiChat) event.gui, mc);
-        drawInteractionOverlay((GuiChat) event.gui, mx, my, interactionDelta());
+        int mx = scaledMouseX(chat, mc);
+        int my = scaledMouseY(chat, mc);
+        float dt = frameDelta();
+        float inputTop = inputTop(chat);
+        updateTabLayout(chat.width, inputTop);
+        UIRender.beginFrame();
+        drawInputChannelLabel(chat);
+        if (shouldShowTabs(true)) drawTabs(mx, my);
+        updateHover(mx, my, dt);
+        drawHoverHighlight();
+        copyMenu.draw(mx, my, dt);
+        drawToast(chat.width, chat.height);
+        UIRender.endFrame();
     }
 
-    @SubscribeEvent
-    public void onButton(GuiScreenEvent.ActionPerformedEvent.Pre event) {
-        if (!(event.gui instanceof GuiChat) || !tabsUsable() || event.button == null) return;
-        int tab = event.button.id - FIRST_BUTTON_ID;
-        if (tab < ChatFilterRules.ALL || tab > ChatFilterRules.REPLY) return;
-        selectTab(tab);
-        event.setCanceled(true);
-    }
-
-    /** Ctrl+Tab cycles visible tabs; Escape closes our menu before vanilla closes chat; Enter still routes normally. */
+    /** Keyboard routing remains inside GuiChat: Ctrl+Tab changes only a filter/send channel, Enter prefixes normal text. */
     @SubscribeEvent
     public void onKeyboard(GuiScreenEvent.KeyboardInputEvent.Pre event) {
-        if (!(event.gui instanceof GuiChat) || !shouldDrawSeparate() || !Keyboard.getEventKeyState()) return;
+        if (!(event.gui instanceof GuiChat) || !ownsDefaultChat() || !Keyboard.getEventKeyState()) return;
         int key = Keyboard.getEventKey();
-        if (key == Keyboard.KEY_ESCAPE && copyMenu.isVisible()) {
+        if (key == Keyboard.KEY_ESCAPE && copyMenu.visible()) {
             copyMenu.hide();
             event.setCanceled(true);
             return;
         }
         boolean ctrl = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
-        if (tabsUsable() && key == Keyboard.KEY_TAB && ctrl) {
+        if (ctrl && key == Keyboard.KEY_TAB) {
             cycleNext();
             event.setCanceled(true);
             return;
         }
-        if (tabsUsable() && (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER)) {
+        if (key == Keyboard.KEY_RETURN || key == Keyboard.KEY_NUMPADENTER) {
             prefixOutgoing((GuiChat) event.gui);
         }
     }
 
-    /**
-     * Shared input routing. Default Chat deliberately lets vanilla receive ordinary left clicks/wheel events; Chat 1
-     * and Chat 2 use the same model for hit testing but forward handled component clicks through GuiScreen's native
-     * handler. A right click is always menu-only.
-     */
+    /** One mouse owner for tabs, default-chat scrolling, grouped menu capture, and native component left clicks. */
     @SubscribeEvent
     public void onMouse(GuiScreenEvent.MouseInputEvent.Pre event) {
-        if (!(event.gui instanceof GuiChat) || !shouldDrawSeparate()) return;
-        Minecraft mc = Minecraft.getMinecraft();
+        if (!(event.gui instanceof GuiChat) || !ownsDefaultChat()) return;
         GuiChat chat = (GuiChat) event.gui;
+        Minecraft mc = Minecraft.getMinecraft();
         int mx = scaledMouseX(chat, mc);
         int my = scaledMouseY(chat, mc);
         int wheel = Mouse.getEventDWheel();
         if (wheel != 0) {
-            boolean shiftFine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
-            int surface = nativeSurfaceAt(mx, my);
-            if (surface >= ChatInteractionModel.CHAT_1) {
-                applyNativeWheel(surface, wheel, shiftFine);
-                event.setCanceled(true); // exactly one owner consumes a real wheel event.
-            }
+            boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+            scroll.wheel(wheel / 120f, fine, AppleSettings.guiScrollMultiplier(), lineHeight());
+            event.setCanceled(true);
             return;
         }
 
         int button = Mouse.getEventButton();
         if (button < 0) return;
         boolean down = Mouse.getEventButtonState();
-        if (copyMenu.isVisible()) {
-            boolean insideMenu = copyMenu.contains(mx, my);
-            if (button == 0) {
-                if (down) {
-                    if (insideMenu) {
-                        copyMenu.press(mx, my);
-                        event.setCanceled(true);
-                    } else {
-                        // Close on an outside press but let GuiChat receive that same press for text selection/focus.
-                        copyMenu.hide();
-                    }
-                } else if (insideMenu || copyMenu.isArmed()) {
-                    copyMenu.release(mx, my, chat);
-                    event.setCanceled(true);
-                }
-            } else if (button == 1 && down) {
-                copyMenu.hide(); // right-click outside closes without consuming unrelated vanilla input.
-            }
+        if (copyMenu.visible()) {
+            handleMenuMouse(chat, mx, my, button, down, event);
             return;
         }
-
-        int surface = nativeSurfaceAt(mx, my);
-        if (surface < ChatInteractionModel.CHAT_1) {
-            if (button == 0 && !down) clearPendingLeftMenu();
+        if (button == 0 && down && selectTabAt(mx, my)) {
+            event.setCanceled(true);
             return;
         }
-        hitPipeline(surface, mx, my, nativeHits[surface]);
-        NativeRow row = nativeHits[surface].found() ? (NativeRow) nativeHits[surface].token : null;
-        int mode = ChatQolSettings.menuOpenMode;
-
+        MessageGroup group = groupAt(mx, my);
+        RenderRow row = rowAt(mx, my);
         if (button == 1) {
-            if (row == null || !ChatMenuPolicy.opens(mode, 1, false)) return;
-            if (down) {
-                event.setCanceled(true);
-            } else {
-                copyMenu.show(row.clean, row.formatted, mx, my, chat.width, chat.height);
+            if (down && group != null && ChatMenuPolicy.opens(ChatQolSettings.menuOpenMode, 1, false)) {
+                copyMenu.show(group, mx, my, chat.width, chat.height);
                 event.setCanceled(true);
             }
             return;
         }
         if (button != 0) return;
-
         if (!down) {
-            if (leftMenuPending) {
-                boolean sameRow = row != null && surface == leftMenuSurface
-                        && leftMenuFormatted.equals(row.formatted);
-                if (sameRow) {
-                    copyMenu.show(leftMenuClean, leftMenuFormatted, mx, my, chat.width, chat.height);
+            if (pendingLeftGroup != null) {
+                if (group != null && pendingLeftGroup.id == group.id) {
+                    copyMenu.show(pendingLeftGroup, mx, my, chat.width, chat.height);
                     event.setCanceled(true);
                 }
-                clearPendingLeftMenu();
+                pendingLeftGroup = null;
             }
             return;
         }
-        clearPendingLeftMenu();
-        if (row == null) return;
+        pendingLeftGroup = null;
+        if (group == null) return;
         IChatComponent component = componentAt(row, mx);
-        boolean clickable = hasClickEvent(component);
+        boolean clickable = component != null && component.getChatStyle() != null
+                && component.getChatStyle().getChatClickEvent() != null;
         if (clickable) {
-            // A genuine native ClickEvent is always left-click owned by Minecraft's handler, independently of menu
-            // mode. A failed reflection bridge remains fail-closed rather than silently turning a command/link into
-            // a context menu action.
             invokeComponentClick(chat, component);
             event.setCanceled(true);
-            return;
-        }
-        if (ChatMenuPolicy.opens(mode, 0, false)) {
-            armLeftMenu(surface, row);
+        } else if (ChatMenuPolicy.opens(ChatQolSettings.menuOpenMode, 0, false)) {
+            pendingLeftGroup = group;
             event.setCanceled(true);
         }
     }
 
-    private static boolean hasClickEvent(IChatComponent component) {
-        return component != null && component.getChatStyle() != null
-                && component.getChatStyle().getChatClickEvent() != null;
+    @SubscribeEvent
+    public void onTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || !(mc.currentScreen instanceof GuiChat)) {
+            restoreInput();
+            inputOwner = null;
+            cachedInput = null;
+            pendingLeftGroup = null;
+            hoveredGroup = null;
+            hover.clear();
+            if (!copyMenu.visible()) toast = "";
+        }
+        if (!ownsDefaultChat()) {
+            copyMenu.hide();
+            unreadTabs.clear();
+        }
     }
 
-    private void armLeftMenu(int surface, NativeRow row) {
-        leftMenuPending = row != null;
-        leftMenuSurface = surface;
-        leftMenuClean = row == null ? "" : row.clean;
-        leftMenuFormatted = row == null ? "" : row.formatted;
+    /** Used by the Hub when the master or tab switch is disabled. No cache restoration is needed because we never edit it. */
+    public static void disableAndRestoreAll() {
+        if (live != null) {
+            live.restoreInput();
+            live.copyMenu.hide();
+            live.pendingLeftGroup = null;
+            live.hoveredGroup = null;
+            live.hover.clear();
+        }
     }
 
-    private void clearPendingLeftMenu() {
-        leftMenuPending = false;
-        leftMenuSurface = -1;
-        leftMenuClean = "";
-        leftMenuFormatted = "";
-    }
-
-    /** Called by the configurable key binding registered in PekaClientMod. */
     public static void cycleNext() {
-        if (live == null || !tabsUsable()) return;
-        int[] order = ChatQolSettings.orderedTabs();
-        int current = ChatQolSettings.selectedTab;
-        for (int i = 0; i < order.length; i++) {
-            if (order[i] != current) continue;
-            for (int step = 1; step <= order.length; step++) {
-                int candidate = order[(i + step) % order.length];
-                if (ChatQolSettings.isTabVisible(candidate)) {
-                    live.selectTab(candidate);
-                    return;
+        if (live == null || !ownsDefaultChat()) return;
+        List<ChatTabs.Tab> tabs = ChatQolSettings.visibleTabs();
+        if (tabs.isEmpty()) return;
+        String current = ChatQolSettings.selectedTabId();
+        int index = 0;
+        for (int i = 0; i < tabs.size(); i++) if (tabs.get(i).id().equals(current)) { index = i; break; }
+        live.selectTab(tabs.get((index + 1) % tabs.size()).id());
+    }
+
+    /** Diagnostic state stays command-only; it has no config key and no effect on routing/render ownership. */
+    public static void toggleDebug(ICommandSender sender) {
+        if (live == null) return;
+        live.debug = !live.debug;
+        live.printDebug(sender);
+    }
+
+    public static String selfTestStatus() {
+        if (!BRIDGE_READY) return "STANDBY (mapping bridge unavailable; vanilla chat unchanged)";
+        if (!ChatQolSettings.isEnabled()) return "STANDBY (Chat QoL is off; vanilla chat unchanged)";
+        return "READY (one Forge default-chat replacement)";
+    }
+
+    private void printDebug(ICommandSender sender) {
+        if (sender == null) return;
+        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat QoL="
+                + (ChatQolSettings.isEnabled() ? "§aON" : "§cOFF") + "§f, implementation="
+                + (BRIDGE_READY ? "Forge default-chat renderer" : "vanilla fail-closed") + "."));
+        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fTab bar drawn=" + (tabBarDrawn ? "yes" : "no")
+                + " x=" + Math.round(tabFrameX) + " y=" + Math.round(tabFrameY) + " w="
+                + Math.round(tabFrameW) + " h=" + Math.round(tabFrameH) + ", tabs=" + ChatQolSettings.tabs().size() + "."));
+        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fMouse group=" + describeGroup(hoveredGroup)
+                + ", stored menu=" + copyMenu.describeStored() + "."));
+        sender.addChatMessage(new ChatComponentText("§7Chat debug outlines " + (debug ? "enabled" : "disabled") + "."));
+    }
+
+    private static String describeGroup(MessageGroup group) {
+        if (group == null) return "none";
+        String clean = group.clean.length() > 42 ? group.clean.substring(0, 39) + "..." : group.clean;
+        return "#" + group.id + " [" + clean + "]";
+    }
+
+    private void renderDefaultChat(ScaledResolution resolution) {
+        // This is a live-frame diagnostic: do not report a stale strip after tabs were hidden or chat closed.
+        tabBarDrawn = false;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || mc.ingameGUI == null || resolution == null) return;
+        GuiNewChat vanilla = mc.ingameGUI.getChatGUI();
+        if (vanilla == null) return;
+        boolean chatOpen = mc.currentScreen instanceof GuiChat;
+        GuiChat openScreen = chatOpen ? (GuiChat) mc.currentScreen : null;
+        if (openScreen != null) cacheInput(openScreen);
+        float inputTop = chatOpen ? inputTop(openScreen) : resolution.getScaledHeight() - 38f;
+        updateTabLayout(resolution.getScaledWidth(), inputTop);
+        boolean tabs = shouldShowTabs(chatOpen);
+        float messageBottom = tabs ? tabLayout.bounds.y - 3f : inputTop - 4f;
+        float scale = Math.max(.5f, vanilla.getChatScale());
+        float lineH = Math.max(9f, mc.fontRendererObj.FONT_HEIGHT * scale + 1f);
+        float width = Math.max(20f, vanilla.getChatWidth() * scale + 4f);
+        int visibleLines = Math.max(1, vanilla.getLineCount());
+        float viewportH = Math.max(lineH, visibleLines * lineH);
+        float viewportTop = Math.max(2f, messageBottom - viewportH);
+
+        rebuildGroups(vanilla);
+        layoutRows(viewportTop, messageBottom, width, lineH, visibleLines, scale, chatOpen);
+        float dt = frameDelta();
+        scroll.update(dt, AppleSettings.smoothScrolling);
+        // A smooth scroll update shifts every hit rectangle, so lay out once more using the current eased value.
+        layoutRows(viewportTop, messageBottom, width, lineH, visibleLines, scale, chatOpen);
+
+        int opacity = chatOpen ? ChatQolSettings.backgroundOpacityOpen : ChatQolSettings.backgroundOpacityClosed;
+        ChatRenderGeometry.background(background, 2f, messageBottom, width, viewportH, ChatQolSettings.backgroundRadius);
+        UIRender.beginFrame();
+        if (opacity > 0) {
+            int colour = withOpacity(ChatQolSettings.backgroundColor, opacity);
+            UIRender.roundRect(background.x, background.y, background.w, background.h, background.radius,
+                    colour, colour, 1f);
+        }
+        UIRender.scissorBegin(2f, viewportTop, width, viewportH, resolution.getScaleFactor());
+        FontRenderer font = mc.fontRendererObj;
+        for (RenderRow row : rows) {
+            if (row.y + row.h <= viewportTop || row.y >= messageBottom) continue;
+            float alpha = row.group.alpha;
+            if (alpha <= .001f) continue;
+            float slide = row.group.slide;
+            int colour = withAlpha(0xFFFFFF, alpha);
+            UIRender.text(font, row.formatted, row.x, row.y + 1f + slide, colour, scale, true,
+                    GlobalFontManager.Area.CHAT);
+        }
+        if (debug) drawGroupOutlines(viewportTop, messageBottom);
+        UIRender.scissorEnd();
+        if (!chatOpen && ChatQolSettings.showTabsAlways) drawTabs(-1, -1);
+        UIRender.endFrame();
+    }
+
+    /** Reads the vanilla complete/drawn cache but never writes it. A failed read clears our transient view and fails open. */
+    private void rebuildGroups(GuiNewChat chat) {
+        groups.clear();
+        rows.clear();
+        try {
+            List<ChatLine> complete = chatLines(chat);
+            Map<Integer, IChatComponent> originals = new HashMap<Integer, IChatComponent>();
+            for (ChatLine line : complete) {
+                if (line != null && line.getChatComponent() != null) originals.put(line.getUpdatedCounter(), line.getChatComponent());
+            }
+            List<ChatLine> drawn = drawnLines(chat);
+            MessageGroup current = null;
+            Set<Integer> stillPresent = new HashSet<Integer>();
+            long now = System.currentTimeMillis();
+            for (ChatLine line : drawn) {
+                if (line == null || line.getChatComponent() == null) continue;
+                int counter = line.getUpdatedCounter();
+                if (current == null || current.id != counter) {
+                    IChatComponent original = originals.get(counter);
+                    current = new MessageGroup(counter, original == null ? line.getChatComponent() : original,
+                            original != null);
+                    groups.add(current);
+                    stillPresent.add(counter);
+                    if (!arrivalMillis.containsKey(counter)) arrivalMillis.put(counter, now);
                 }
+                current.addLine(line.getChatComponent());
+            }
+            arrivalMillis.keySet().retainAll(stillPresent);
+        } catch (IllegalAccessException | RuntimeException ignored) {
+            groups.clear();
+            rows.clear();
+            warnBridgeOnce();
+        }
+    }
+
+    /** Lays out only the selected tab's already-received message groups; All's matcher is always true. */
+    private void layoutRows(float viewportTop, float messageBottom, float width, float lineH, int visibleLines,
+                            float textScale, boolean chatOpen) {
+        rows.clear();
+        ChatTabs.Tab selected = ChatQolSettings.selectedTab();
+        if (selected == null) return;
+        List<MessageGroup> visible = new ArrayList<MessageGroup>();
+        for (MessageGroup group : groups) {
+            group.resetBounds();
+            if (selected.matches(group.clean)) visible.add(group);
+        }
+        int totalLines = 0;
+        for (MessageGroup group : visible) totalLines += group.lines.size();
+        float viewportH = Math.max(lineH, visibleLines * lineH);
+        scroll.setMaximum(Math.max(0f, totalLines * lineH - viewportH));
+        float yOffset = scroll.value();
+        int lineIndex = 0;
+        long now = System.currentTimeMillis();
+        Minecraft mc = Minecraft.getMinecraft();
+        int update = mc == null || mc.ingameGUI == null ? 0 : mc.ingameGUI.getUpdateCounter();
+        for (MessageGroup group : visible) {
+            group.updateAnimation(now, update, chatOpen);
+            for (IChatComponent component : group.lines) {
+                float y = messageBottom + yOffset - (lineIndex + 1) * lineH;
+                RenderRow row = new RenderRow(group, component, component.getFormattedText(), 2f, y, width, lineH,
+                        textScale);
+                rows.add(row);
+                group.include(row);
+                lineIndex++;
             }
         }
-        live.selectTab(ChatFilterRules.ALL);
     }
 
-    /** Compact, truthful diagnostics for /sv selftest; no reflection failure is treated as success. */
-    public static String selfTestStatus() {
-        if (live == null) return "NOT READY (runtime not registered)";
-        if (!ChatQolSettings.isEnabled()) return "STANDBY (Chat QoL is off)";
-        if (!CACHE_REFLECTION_READY) return "FAIL-CLOSED (chat-cache mapping unavailable)";
-        return shouldDrawSeparate() ? "READY (native Chat 1 and Chat 2 own new messages)"
-                : "STANDBY (Separate Chats off; vanilla Default Chat is untouched)";
+    private void updateHover(int mouseX, int mouseY, float dt) {
+        hoveredGroup = groupAt(mouseX, mouseY);
+        hover.update(hoveredGroup, dt);
     }
 
-    /** Restore the full vanilla rendered cache when the optional tab feature is switched off. */
-    public static void disableAndRestoreAll() {
-        ChatQolSettings.setSelectedTab(ChatFilterRules.ALL);
-        if (live != null) live.restoreAll();
-    }
-
-    /** Toggles visual message-group boxes and prints the live readers used by the GUI, router and renderer. */
-    public static void toggleDebug(ICommandSender sender) {
-        if (sender == null) return;
-        if (live == null) {
-            sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat debug is not ready; the client runtime has not registered yet."));
-            return;
-        }
-        live.chatDebug = !live.chatDebug;
-        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat debug "
-                + (live.chatDebug ? "§aON§f — message-group outlines are visible on active Chat QoL surfaces."
-                : "§cOFF§f.")));
-        writeDebug(sender);
-    }
-
-    /** Recent classification evidence for /velor chatdebug. Unknown lines clearly identify as Chat 2/system. */
-    public static void writeDebug(ICommandSender sender) {
-        if (sender == null) return;
-        if (live == null) {
-            sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat debug is not ready; the client runtime has not registered yet."));
-            return;
-        }
-        boolean stored = ChatQolSettings.isSeparateChats();
-        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fSeparate Chats: stored=" + onOff(stored)
-                + ", GUI=" + onOff(live.guiSeparateState) + ", router=" + onOff(live.routerSeparateState)
-                + ", renderer=" + onOff(live.rendererSeparateState) + "."));
-        if (live.history.size() == 0) {
-            sender.addChatMessage(new ChatComponentText("§7No captured routing yet. Enable Chat QoL and receive a line."));
-            return;
-        }
-        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fLast " + Math.min(20, live.history.size())
-                + " Chat QoL routing decision(s):"));
-        int count = Math.min(20, live.history.size());
-        for (int i = count - 1; i >= 0; i--) {
-            ChatQolHistory.Message message = live.history.newest(i);
-            if (message == null) continue;
-            String text = message.clean.replace('\n', ' ').trim();
-            if (text.length() > 64) text = text.substring(0, 61) + "...";
-            String destination = ChatQolMode.label(message.destination);
-            String reason = message.routingReason.length() == 0 ? "captured" : message.routingReason;
-            sender.addChatMessage(new ChatComponentText("§7[" + ChatFilterRules.displayName(message.kind) + " → "
-                    + destination + "; " + reason + "] §f" + text));
+    /** White, configurable alpha per full wrapped row: each blank right-hand row area is intentionally included. */
+    private void drawHoverHighlight() {
+        if (!ChatQolSettings.hoverHighlight || hoveredGroup == null || hover.alpha() <= .003f) return;
+        float alpha = ChatQolSettings.hoverOpacity / 100f * hover.alpha();
+        int colour = withAlpha(ChatQolSettings.hoverColor, alpha);
+        for (RenderRow row : rows) {
+            if (row.group == hoveredGroup) UIRender.roundRect(row.x, row.y, row.w, row.h, 0f, colour, colour, 0f);
         }
     }
 
-    private static String onOff(boolean value) {
-        return value ? "ON" : "OFF";
-    }
-
-    /** Classify once at receipt, then feed the same immutable source object to every real Chat 1/Chat 2 view. */
-    private void addPipelineMessage(PipelineEntry entry) {
-        if (entry == null) return;
-        ChatPipeline.Message message = new ChatPipeline.Message(entry, entry.formatted, entry.clean,
-                ++pipelineMessageId, Math.max(0L, entry.receivedAt / 50L));
-        int destination = ChatQolMode.destination(true, true, entry.kind);
-        if (destination == ChatQolMode.CHAT_1) {
-            // One owned feed: Party/Reply are lightweight filtered views of the same Message object, not a second
-            // Chat 2/default insertion. They cannot make a line appear on both visible native surfaces.
-            chat1AllPipeline.add(message);
-            if (entry.kind == ChatFilterRules.PARTY) chat1PartyPipeline.add(message);
-            if (entry.kind == ChatFilterRules.REPLY) chat1ReplyPipeline.add(message);
-        } else if (destination == ChatQolMode.CHAT_2) {
-            chat2Pipeline.add(message);
+    private void drawGroupOutlines(float viewportTop, float messageBottom) {
+        for (MessageGroup group : groups) {
+            if (group.bounds.w <= 0f || group.bounds.h <= 0f) continue;
+            float y = Math.max(group.bounds.y, viewportTop);
+            float b = Math.min(group.bounds.y + group.bounds.h, messageBottom);
+            if (b > y) UIRender.roundRectRing(group.bounds.x, y, group.bounds.w, b - y, 0f, 1f, 0xFFFF4A4A);
         }
     }
 
-    /** The visible Chat 1 feed observes the same tab selection as Default Chat without reclassifying text. */
-    private ChatPipeline pipelineForSurface(int surface) {
-        if (surface == ChatInteractionModel.CHAT_2) return chat2Pipeline;
-        if (tabsUsable()) {
-            if (ChatQolSettings.selectedTab == ChatFilterRules.PARTY) return chat1PartyPipeline;
-            if (ChatQolSettings.selectedTab == ChatFilterRules.REPLY) return chat1ReplyPipeline;
+    private void updateTabLayout(float screenWidth, float inputTop) {
+        ChatTabLayout.update(tabLayout, screenWidth, inputTop, ChatQolSettings.visibleTabs());
+        tabFrameX = tabLayout.bounds.x;
+        tabFrameY = tabLayout.bounds.y;
+        tabFrameW = tabLayout.bounds.w;
+        tabFrameH = tabLayout.bounds.h;
+    }
+
+    private boolean shouldShowTabs(boolean chatOpen) {
+        return ChatQolSettings.tabsEnabled && (chatOpen || ChatQolSettings.showTabsAlways) && tabLayout.count > 0;
+    }
+
+    private void drawTabs(int mouseX, int mouseY) {
+        tabBarDrawn = false;
+        if (tabLayout.count == 0) return;
+        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
+        for (int i = 0; i < tabLayout.count; i++) {
+            ChatTabLayout.Rect rect = tabLayout.tabs[i];
+            ChatTabs.Tab tab = ChatQolSettings.tab(rect.id);
+            if (tab == null) continue;
+            boolean selected = rect.id.equals(ChatQolSettings.selectedTabId());
+            boolean hot = rect.contains(mouseX, mouseY);
+            int fill = selected ? withAlpha(tab.colour(), .42f) : hot ? Theme.cardHover : Theme.card;
+            UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, 3f, fill, fill,
+                    selected ? withAlpha(tab.colour(), .9f) : Theme.border);
+            String label = fit(font, tab.name(), Math.max(1f, rect.w - 12f), .70f);
+            UIRender.text(font, label, rect.x + 5f, rect.y + 5f, selected ? 0xFFFFFFFF : Theme.textSecondary,
+                    .70f, false, GlobalFontManager.Area.TAB);
+            if (unreadTabs.contains(rect.id)) {
+                UIRender.circle(rect.x + rect.w - 5f, rect.y + 5f, 2.2f, tab.colour());
+            }
         }
-        return chat1AllPipeline;
+        tabBarDrawn = true;
     }
 
-    private void clearPipelines() {
-        defaultPipeline.clear();
-        chat1AllPipeline.clear();
-        chat1PartyPipeline.clear();
-        chat1ReplyPipeline.clear();
-        chat2Pipeline.clear();
-        pipelineRows.clear();
-    }
-
-    private static boolean tabsActive() {
-        return shouldDrawSeparate() && ChatQolSettings.tabsEnabled;
-    }
-
-    /** A mapping mismatch suppresses tab injection/filtering entirely instead of half-changing vanilla chat. */
-    private static boolean tabsUsable() {
-        return tabsActive();
-    }
-
-    /**
-     * The native renderer owns chat only after both opt-ins and the existing reflection safety gate succeed. Keeping
-     * that gate means an unexpected mapping still fails closed to fully normal Minecraft chat.
-     */
-    private static boolean shouldDrawSeparate() {
-        return ChatQolMode.ownsNativeChats(ChatQolSettings.isEnabled(), ChatQolSettings.isSeparateChats())
-                && CACHE_REFLECTION_READY;
-    }
-
-    /** Separate Chats off is deliberately never a custom default-chat renderer. */
-    private boolean shouldDrawCustomDefault() {
+    private boolean selectTabAt(int mouseX, int mouseY) {
+        if (!shouldShowTabs(true)) return false;
+        for (int i = 0; i < tabLayout.count; i++) {
+            ChatTabLayout.Rect rect = tabLayout.tabs[i];
+            if (rect.contains(mouseX, mouseY)) {
+                selectTab(rect.id);
+                return true;
+            }
+        }
         return false;
     }
 
-    private void selectTab(int requested) {
-        if (!ChatQolSettings.isTabVisible(requested)) requested = ChatFilterRules.ALL;
-        ChatQolSettings.setSelectedTab(requested);
-        pipelineForSurface(ChatInteractionModel.CHAT_1).scroll().reset();
-        defaultPipeline.scroll().reset();
-        history.markRead(ChatQolSettings.selectedTab);
-        AppleSettings.save();
+    private void selectTab(String id) {
+        ChatQolSettings.setSelectedTab(id);
+        unreadTabs.remove(ChatQolSettings.selectedTabId());
+        scroll.reset();
     }
 
-    /** Caches attached geometry until dimensions/order/visibility actually change. */
-    private void updateTabLayout(GuiChat chat) {
-        int orderHash = ChatQolSettings.tabOrder.hashCode();
-        int key = chat.width * 31 + chat.height * 17 + orderHash + (ChatQolSettings.showParty ? 101 : 0)
-                + (ChatQolSettings.showReply ? 211 : 0);
-        if (key != layoutKey) {
-            layoutKey = key;
-            boolean[] visible = {ChatQolSettings.showAll, ChatQolSettings.showParty, ChatQolSettings.showReply};
-            ChatTabLayout.update(tabLayout, chat.width, chat.height, ChatQolSettings.orderedTabs(), visible);
-        }
-        for (ChatTabButton button : tabButtons) {
-            int tab = button.id - FIRST_BUTTON_ID;
-            button.apply(tabLayout.tabs[tab], tab != ChatQolSettings.selectedTab, ChatTabLayout.label(tab));
+    private void prefixOutgoing(GuiChat chat) {
+        GuiTextField input = input(chat);
+        ChatTabs.Tab selected = ChatQolSettings.selectedTab();
+        if (input == null || selected == null) return;
+        String original = input.getText();
+        String next = ChatTabs.outgoingPrefix(selected, original);
+        if (!next.equals(original)) input.setText(next);
+    }
+
+    private void handleMenuMouse(GuiChat chat, int mouseX, int mouseY, int button, boolean down,
+                                 GuiScreenEvent.MouseInputEvent.Pre event) {
+        boolean inside = copyMenu.contains(mouseX, mouseY);
+        if (button == 0) {
+            if (down) {
+                if (inside) {
+                    copyMenu.press(mouseX, mouseY);
+                    event.setCanceled(true);
+                } else {
+                    copyMenu.hide();
+                }
+            } else if (inside || copyMenu.armed()) {
+                copyMenu.release(mouseX, mouseY, chat);
+                event.setCanceled(true);
+            }
+        } else if (button == 1 && down) {
+            copyMenu.hide();
         }
     }
 
-    /** Move GuiChat's actual text field right only while the target badge has safe room, never replacing its text. */
-    private void adjustInputField(GuiChat chat) {
-        GuiTextField input = cachedInputField(chat);
-        if (input == null) {
-            warnInputOnce();
-            return;
+    private MessageGroup groupAt(int mouseX, int mouseY) {
+        RenderRow row = rowAt(mouseX, mouseY);
+        return row == null ? null : row.group;
+    }
+
+    private RenderRow rowAt(int mouseX, int mouseY) {
+        for (int i = rows.size() - 1; i >= 0; i--) {
+            RenderRow row = rows.get(i);
+            if (mouseX >= row.x && mouseX < row.x + row.w && mouseY >= row.y && mouseY < row.y + row.h) return row;
         }
+        return null;
+    }
+
+    private IChatComponent componentAt(RenderRow row, int mouseX) {
+        if (row == null || row.component == null) return null;
+        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
+        float local = (mouseX - row.x) / Math.max(.01f, row.textScale);
+        int used = 0;
+        for (IChatComponent part : row.component) {
+            if (part == null) continue;
+            String text = part.getUnformattedTextForChat();
+            int width = font.getStringWidth(text == null ? "" : text);
+            used += width;
+            if (local < used) return part;
+        }
+        return null;
+    }
+
+    private boolean invokeComponentClick(GuiChat chat, IChatComponent component) {
+        try {
+            Object result = HANDLE_COMPONENT_CLICK.invoke(chat, component);
+            return result instanceof Boolean && ((Boolean) result).booleanValue();
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private void cacheInput(GuiChat chat) {
+        if (inputOwner == chat) return;
+        restoreInput();
+        inputOwner = chat;
+        cachedInput = input(chat);
+    }
+
+    private static GuiTextField input(GuiChat chat) {
+        if (chat == null || INPUT_FIELD == null) return null;
+        try {
+            return (GuiTextField) INPUT_FIELD.get(chat);
+        } catch (IllegalAccessException | ClassCastException ignored) {
+            return null;
+        }
+    }
+
+    private float inputTop(GuiChat chat) {
+        GuiTextField input = chat == null ? null : (inputOwner == chat ? cachedInput : input(chat));
+        return input == null ? (chat == null ? 0f : chat.height - 12f) : input.yPosition;
+    }
+
+    private void adjustInput(GuiChat chat) {
+        GuiTextField input = inputOwner == chat ? cachedInput : input(chat);
+        if (input == null) return;
         if (shiftedInput != input) {
-            restoreInputField();
+            restoreInput();
             shiftedInput = input;
             savedInputX = input.xPosition;
-            savedInputW = inputWidth(input);
+            savedInputWidth = inputWidth(input);
             appliedInputX = Integer.MIN_VALUE;
-            appliedInputW = Integer.MIN_VALUE;
-            if (savedInputW <= 0) {
-                shiftedInput = null;
-                warnInputOnce();
-                return;
-            }
+            appliedInputWidth = Integer.MIN_VALUE;
         }
-        int badge = Minecraft.getMinecraft().fontRendererObj.getStringWidth(
-                ChatQolRouting.targetLabel(ChatQolSettings.selectedTab) + " ›") + 10;
-        if (savedInputW - badge < 28) {
-            applyInputBounds(input, savedInputX, savedInputW);
-            shiftedInput = null;
+        if (savedInputWidth <= 0) {
+            restoreInput();
             return;
         }
-        if (!applyInputBounds(input, savedInputX + badge, savedInputW - badge)) {
-            shiftedInput = null;
-            warnInputOnce();
+        String label = selectedLabel() + " ›";
+        int reserve = Math.max(30, Minecraft.getMinecraft().fontRendererObj.getStringWidth(label) + 10);
+        if (savedInputWidth - reserve < 30) {
+            applyInput(input, savedInputX, savedInputWidth);
+            return;
+        }
+        applyInput(input, savedInputX + reserve, savedInputWidth - reserve);
+    }
+
+    private void drawInputChannelLabel(GuiChat chat) {
+        if (shiftedInput == null || inputOwner != chat) return;
+        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
+        UIRender.text(font, selectedLabel() + " ›", savedInputX + 4f, shiftedInput.yPosition + 2f,
+                ChatQolSettings.selectedTab() == null ? Theme.textSecondary : ChatQolSettings.selectedTab().colour(),
+                1f, true, GlobalFontManager.Area.TAB);
+    }
+
+    private String selectedLabel() {
+        ChatTabs.Tab selected = ChatQolSettings.selectedTab();
+        return selected == null ? "All" : selected.name();
+    }
+
+    private int inputWidth(GuiTextField input) {
+        try { return INPUT_WIDTH.getInt(input); }
+        catch (IllegalAccessException | IllegalArgumentException ignored) { return -1; }
+    }
+
+    private boolean applyInput(GuiTextField input, int x, int width) {
+        if (input == null || width <= 0) return false;
+        if (appliedInputX == x && appliedInputWidth == width) return true;
+        try {
+            INPUT_WIDTH.setInt(input, width);
+            input.xPosition = x;
+            appliedInputX = x;
+            appliedInputWidth = width;
+            return true;
+        } catch (IllegalAccessException | IllegalArgumentException ignored) {
+            return false;
         }
     }
 
-    private boolean applyInputBounds(GuiTextField input, int x, int width) {
-        if (appliedInputX == x && appliedInputW == width) return true;
-        if (!setInputWidth(input, width)) return false;
-        input.xPosition = x;
-        appliedInputX = x;
-        appliedInputW = width;
-        return true;
-    }
-
-    private void restoreInputField() {
+    private void restoreInput() {
         if (shiftedInput != null) {
-            if (appliedInputW != savedInputW) setInputWidth(shiftedInput, savedInputW);
+            if (savedInputWidth > 0) {
+                try { INPUT_WIDTH.setInt(shiftedInput, savedInputWidth); } catch (IllegalAccessException | IllegalArgumentException ignored) { }
+            }
             shiftedInput.xPosition = savedInputX;
         }
         shiftedInput = null;
         appliedInputX = Integer.MIN_VALUE;
-        appliedInputW = Integer.MIN_VALUE;
+        appliedInputWidth = Integer.MIN_VALUE;
     }
 
-    /** Prefix an ordinary pending GuiChat field just before vanilla sends it. Explicit commands and empty input stay exact. */
-    private void prefixOutgoing(GuiChat chat) {
-        GuiTextField input = cachedInputField(chat);
-        if (input == null) {
-            warnInputOnce();
-            return;
-        }
-        String original = input.getText();
-        String routed = ChatQolRouting.applyPrefix(ChatQolSettings.selectedTab, original);
-        if (!routed.equals(original)) input.setText(routed);
+    private float frameDelta() {
+        long now = System.nanoTime();
+        float seconds = lastFrameNs == 0L ? 1f / 60f : Math.min(.1f, (now - lastFrameNs) / 1.0e9f);
+        lastFrameNs = now;
+        return seconds;
     }
 
-    private void refreshForSelectedTab() {
-        rebuildRenderedLines(true);
-    }
-
-    private void restoreAll() {
-        pendingRefresh = false;
-        rebuildRenderedLines(false);
-    }
-
-    /** Rebuilds only GuiNewChat's rendered cache; complete history and scroll ownership remain vanilla's. */
-    private void rebuildRenderedLines(boolean applyFilter) {
-        defaultCacheDirty = true;
-        if (!CACHE_REFLECTION_READY) {
-            warnReflectionOnce();
-            return;
-        }
+    private float lineHeight() {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc == null || mc.ingameGUI == null) return;
-        GuiNewChat chat = mc.ingameGUI.getChatGUI();
-        if (chat == null) return;
-        List<ChatLine> drawn = null;
-        List<ChatLine> before = null;
-        try {
-            List<ChatLine> complete = new ArrayList<ChatLine>(chatLines(chat));
-            drawn = drawnLines(chat);
-            before = new ArrayList<ChatLine>(drawn);
-            drawn.clear();
-            Collections.reverse(complete);
-            int tab = ChatQolSettings.selectedTab;
-            for (ChatLine line : complete) {
-                if (line == null || line.getChatComponent() == null) continue;
-                IChatComponent component = line.getChatComponent();
-                if (!applyFilter || tab == ChatFilterRules.ALL
-                        || ChatFilterRules.visible(tab, component.getFormattedText())) {
-                    SET_CHAT_LINE.invoke(chat, component, line.getChatLineID(), line.getUpdatedCounter(), true);
-                }
-            }
-            chat.resetScroll();
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
-            if (drawn != null && before != null) {
-                try {
-                    drawn.clear();
-                    drawn.addAll(before);
-                } catch (RuntimeException ignoredRestore) {
-                    // A foreign immutable cache cannot be repaired, but the exception must never escape to Minecraft.
-                }
-            }
-            warnReflectionOnce();
-        }
+        return mc == null ? 9f : Math.max(9f, mc.fontRendererObj.FONT_HEIGHT * .9f + 1f);
+    }
+
+    private static int scaledMouseX(GuiChat chat, Minecraft mc) {
+        return Mouse.getX() * chat.width / Math.max(1, mc.displayWidth);
+    }
+
+    private static int scaledMouseY(GuiChat chat, Minecraft mc) {
+        return chat.height - Mouse.getY() * chat.height / Math.max(1, mc.displayHeight) - 1;
+    }
+
+    private static String cleanComponent(IChatComponent component) {
+        if (component == null) return "";
+        String raw = component.getUnformattedTextForChat();
+        return ChatText.clean(raw == null ? component.getFormattedText() : raw);
     }
 
     @SuppressWarnings("unchecked")
@@ -756,707 +754,45 @@ public final class ChatChannelTabs {
         return (List<ChatLine>) DRAWN_LINES.get(chat);
     }
 
-    private void cacheInputField(GuiChat chat) {
-        if (inputOwner == chat) return;
-        restoreInputField();
-        inputOwner = chat;
-        cachedInput = inputField(chat);
-    }
-
-    private GuiTextField cachedInputField(GuiChat chat) {
-        if (inputOwner != chat) cacheInputField(chat);
-        return cachedInput;
-    }
-
-    private static GuiTextField inputField(GuiChat chat) {
-        if (!INPUT_REFLECTION_READY || chat == null) return null;
-        try {
-            return (GuiTextField) INPUT_FIELD.get(chat);
-        } catch (IllegalAccessException | ClassCastException ignored) {
-            return null;
-        }
-    }
-
-    private static int inputWidth(GuiTextField input) {
-        try {
-            return INPUT_WIDTH.getInt(input);
-        } catch (IllegalAccessException | IllegalArgumentException ignored) {
-            return -1;
-        }
-    }
-
-    private static boolean setInputWidth(GuiTextField input, int width) {
-        try {
-            INPUT_WIDTH.setInt(input, Math.max(1, width));
-            return true;
-        } catch (IllegalAccessException | IllegalArgumentException ignored) {
-            return false;
-        }
-    }
-
-    private static void warnReflectionOnce() {
-        if (reflectionNoticeShown) return;
-        reflectionNoticeShown = true;
-        notifyPlayer("Chat Tabs could not read this client mapping; vanilla chat was left unchanged.");
-    }
-
-    private static void warnInputOnce() {
-        if (inputNoticeShown) return;
-        inputNoticeShown = true;
-        notifyPlayer("Chat target badge could not attach; tabs still fail safely to normal chat.");
-    }
-
-    private static void notifyPlayer(String text) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc != null && mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new ChatComponentText("§b[Sky VeLor] §f" + text));
-        }
-    }
-
-    /**
-     * Debug-only group overlay for the untouched vanilla Default Chat. Consecutive wrapped ChatLine entries carrying
-     * the same native update counter form one message box. It is intentionally invoked only by /velor chatdebug and
-     * only while GuiChat is open, so Separate Chats OFF remains a fully vanilla render/input path in normal play.
-     */
-    private void renderVanillaDefaultDebugOutlines() {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc == null || !(mc.currentScreen instanceof GuiChat) || mc.ingameGUI == null) return;
-        GuiNewChat nativeChat = mc.ingameGUI.getChatGUI();
-        if (nativeChat == null) return;
-        try {
-            List<ChatLine> lines = drawnLines(nativeChat);
-            int count = Math.min(Math.max(0, nativeChat.getLineCount()), lines.size());
-            if (count <= 0) return;
-            float scale = Math.max(.01f, nativeChat.getChatScale());
-            float rowH = 9f * scale;
-            float width = Math.max(1f, nativeChat.getChatWidth() * scale + 4f);
-            UIRender.beginFrame();
-            for (int first = 0; first < count;) {
-                ChatLine line = lines.get(first);
-                int counter = line == null ? Integer.MIN_VALUE + first : line.getUpdatedCounter();
-                int last = first;
-                while (last + 1 < count) {
-                    ChatLine next = lines.get(last + 1);
-                    int nextCounter = next == null ? Integer.MIN_VALUE + last + 1 : next.getUpdatedCounter();
-                    if (nextCounter != counter) break;
-                    last++;
-                }
-                // Vanilla draws from its bottom-left anchor at y=20. The enclosing rectangle covers every wrapped
-                // row in this native message group and is intentionally thin so debugging does not obscure text.
-                float y = 20f - (last + 1) * rowH;
-                UIRender.roundRectRing(2f, y, width, (last - first + 1) * rowH, 0f, 1f, 0xFFFF4A4A);
-                first = last + 1;
-            }
-            UIRender.endFrame();
-        } catch (IllegalAccessException | RuntimeException ignored) {
-            // This diagnostic must never change the fail-closed normal chat path.
-        }
-    }
-
-    /**
-     * Legacy custom-default implementation retained solely for compatibility with old private layout helpers. It is
-     * never selected: Separate Chats OFF now means fully vanilla default chat.
-     */
-    private void renderCustomDefault(ScaledResolution resolution) {
-        cacheDefaultLines(resolution);
-        Minecraft mc = Minecraft.getMinecraft();
-        if (defaultLineCount <= 0 || mc == null || mc.ingameGUI == null) return;
-        GuiNewChat nativeChat = mc.ingameGUI.getChatGUI();
-        if (nativeChat == null) return;
-        ChatQolSettings.Appearance appearance = ChatQolSettings.appearance(ChatQolSettings.TARGET_DEFAULT);
-        float textScale = nativeChat.getChatScale() * appearance.textScale() / 100f;
-        int lineHeight = Math.max(8, Math.round(9f * textScale) + appearance.lineSpacing());
-        int visible = Math.max(1, nativeChat.getLineCount());
-        int viewportH = Math.max(lineHeight, visible * lineHeight);
-        int viewportY = Math.max(0, 20 - viewportH);
-        int drawWidth = Math.max(8, nativeChat.getChatWidth());
-        FontRenderer font = mc.fontRendererObj;
-        boolean chatOpen = mc.currentScreen instanceof GuiChat;
-        defaultPipeline.setLimit(MAX_DEFAULT_ROWS);
-        defaultPipeline.setOpen(chatOpen);
-        layoutDefaultPipeline(2, viewportY, drawWidth + 4, viewportH, lineHeight, font);
-        defaultPipeline.update(interactionDelta(), AppleSettings.smoothScrolling);
-        // Scroll easing can move content, so refresh bounds after updating the target/current value.
-        layoutDefaultPipeline(2, viewportY, drawWidth + 4, viewportH, lineHeight, font);
-        nativeRowCount = 0;
-        pipelineRows.clear();
-        int updateCounter = mc.ingameGUI.getUpdateCounter();
-
-        UIRender.beginFrame();
-        UIRender.scissorBegin(2f, viewportY, drawWidth + 4f, viewportH,
-                new ScaledResolution(mc).getScaleFactor());
-        for (ChatPipeline.Block block : defaultPipeline.blocks()) {
-            PipelineEntry entry = entryOf(block.message);
-            if (entry == null) continue;
-            float opacity = defaultLineOpacity(entry, appearance, chatOpen, updateCounter);
-            if (opacity <= 0f) continue;
-            for (ChatPipeline.Row pipelineRow : block.rows) {
-                if (nativeRowCount >= nativeRows.length) break;
-                IChatComponent line = entry.component;
-                NativeRow row = nativeRows[nativeRowCount++];
-                row.assign(ChatInteractionModel.DEFAULT_CHAT, pipelineRow.bounds.x, pipelineRow.bounds.y,
-                        pipelineRow.bounds.w, pipelineRow.bounds.h, entry.clean, entry.formatted, line,
-                        pipelineRow.bounds.x, textScale);
-                row.assignGroup(entry, block.bounds.x, block.bounds.y, block.bounds.w, block.bounds.h);
-                pipelineRows.put(pipelineRow, row);
-                if (appearance.backgroundOpacity() > 0 || appearance.borderOpacity() > 0) {
-                    int fill = colourWithOpacity(appearance.backgroundColor(),
-                            Math.round(appearance.backgroundOpacity() * opacity));
-                    int border = colourWithOpacity(appearance.borderColor(),
-                            Math.round(appearance.borderOpacity() * opacity));
-                    UIRender.roundRectBorder(pipelineRow.bounds.x, pipelineRow.bounds.y, pipelineRow.bounds.w,
-                            pipelineRow.bounds.h, Math.min(appearance.radius(), 4f), fill, fill, border);
-                }
-                float oldAlpha = UIRender.alphaMul;
-                UIRender.alphaMul = oldAlpha * opacity;
-                UIRender.text(font, pipelineRow.formatted, pipelineRow.bounds.x, pipelineRow.bounds.y + 1f,
-                        0xFF000000 | appearance.textColor(), textScale, appearance.shadow(),
-                        com.arena.pekaclient.render.GlobalFontManager.Area.CHAT);
-                UIRender.alphaMul = oldAlpha;
-            }
-        }
-        if (chatDebug) drawMessageGroupOutlines(defaultPipeline, 0xFFFF4A4A);
-        UIRender.scissorEnd();
-        drawPipelineScrollbar(defaultPipeline, drawWidth + 2f, viewportY, viewportH);
-        UIRender.endFrame();
-    }
-
-    private void layoutDefaultPipeline(int x, int y, int width, int height, int rowHeight, FontRenderer font) {
-        defaultPipeline.layout(x, y, width, height, Math.max(1, width - 4), rowHeight, 0,
-                new ChatPipeline.Wrapper() {
-                    @Override
-                    public List<String> wrap(String formattedText, int textWidth) {
-                        // GuiNewChat has already produced component-preserving wrapped lines. Re-wrapping them would
-                        // corrupt click spans, so the common pipeline receives each native line as exactly one row.
-                        return Collections.singletonList(formattedText == null ? "" : formattedText);
-                    }
-                });
-    }
-
-    private void cacheDefaultLines(ScaledResolution resolution) {
-        Minecraft mc = Minecraft.getMinecraft();
-        if (!CACHE_REFLECTION_READY || mc == null || mc.ingameGUI == null) return;
-        int key = (resolution == null ? 0 : resolution.getScaledWidth() * 31 + resolution.getScaledHeight())
-                ^ Math.round(mc.gameSettings.chatScale * 1000f) ^ Math.round(mc.gameSettings.chatWidth * 1000f)
-                ^ Math.round(mc.gameSettings.chatHeightFocused * 1000f);
-        if (!defaultCacheDirty && key == defaultLayoutKey) return;
-        GuiNewChat nativeChat = mc.ingameGUI.getChatGUI();
-        if (nativeChat == null) return;
-        try {
-            List<ChatLine> lines = drawnLines(nativeChat);
-            defaultLineCount = Math.min(defaultLines.length, lines.size());
-            for (int i = 0; i < defaultLineCount; i++) {
-                ChatLine line = lines.get(i);
-                defaultLines[i].component = line == null ? null : line.getChatComponent();
-                defaultLines[i].updatedCounter = line == null ? 0 : line.getUpdatedCounter();
-            }
-            for (int i = defaultLineCount; i < defaultLines.length; i++) defaultLines[i].component = null;
-            defaultLayoutKey = key;
-            defaultCacheDirty = false;
-            rebuildDefaultPipeline();
-        } catch (IllegalAccessException | RuntimeException ignored) {
-            defaultLineCount = 0;
-            defaultPipeline.clear();
-            defaultCacheDirty = false;
-            defaultRendererFailed = true;
-            warnReflectionOnce();
-        }
-    }
-
-    private void applyDefaultWheel(int wheel, boolean shiftFine) {
-        defaultPipeline.wheel(wheel, shiftFine, AppleSettings.guiScrollMultiplier());
-    }
-
-    private void applyDefaultScroll(int amount) {
-        defaultPipeline.scroll().nudge(amount * 9f);
-    }
-
-    /** Rebuild only when vanilla's rendered cache changes; each component line remains one pipeline message. */
-    private void rebuildDefaultPipeline() {
-        defaultPipeline.clear();
-        for (int i = defaultLineCount - 1; i >= 0; i--) {
-            DefaultLine source = defaultLines[i];
-            if (source == null || source.component == null) continue;
-            String formatted = source.component.getFormattedText();
-            PipelineEntry entry = new PipelineEntry(source.component, formatted, cleanComponent(source.component),
-                    ChatFilterRules.SYSTEM, 0L, source.updatedCounter);
-            defaultPipeline.add(new ChatPipeline.Message(entry, formatted, entry.clean, ++pipelineMessageId, 0L));
-        }
-    }
-
-    private static float defaultLineOpacity(PipelineEntry line, ChatQolSettings.Appearance appearance,
-                                            boolean chatOpen, int updateCounter) {
-        if (chatOpen || appearance.fadeSeconds() == 0) return 1f;
-        int age = Math.max(0, updateCounter - line.updatedCounter);
-        int duration = appearance.fadeSeconds() * 20;
-        if (duration <= 0 || age >= duration) return 0f;
-        float fraction = age / (float) duration;
-        return fraction <= 0.70f ? 1f : Math.max(0f, (1f - fraction) / 0.30f);
-    }
-
-    /** Native two-window draw. Rows are cached into the shared interaction model; no reflection occurs here. */
-    private void renderSeparate(ScaledResolution resolution) {
-        Minecraft mc = Minecraft.getMinecraft();
-        updateSeparateGeometry(resolution);
-        boolean chatOpen = mc.currentScreen instanceof GuiChat;
-        int mx = chatOpen ? scaledMouseX((GuiChat) mc.currentScreen, mc) : -10000;
-        int my = chatOpen ? scaledMouseY((GuiChat) mc.currentScreen, mc) : -10000;
-        updateSmoothScroll(interactionDelta());
-        nativeRowCount = 0;
-        pipelineRows.clear();
-
-        UIRender.beginFrame();
-        drawChatWindow(chat1Rect, ChatQolSettings.chat1(), ChatInteractionModel.CHAT_1, chatOpen, mx, my);
-        drawChatWindow(chat2Rect, ChatQolSettings.chat2(), ChatInteractionModel.CHAT_2, chatOpen, mx, my);
-        UIRender.endFrame();
-    }
-
-    private void updateSeparateGeometry(ScaledResolution resolution) {
-        if (resolution == null) return;
-        int scale = resolution.getScaleFactor();
-        ChatWindowLayout.update(chat1Rect, ChatQolSettings.chat1(), scale,
-                resolution.getScaledWidth(), resolution.getScaledHeight());
-        ChatWindowLayout.update(chat2Rect, ChatQolSettings.chat2(), scale,
-                resolution.getScaledWidth(), resolution.getScaledHeight());
-    }
-
-    private void updateSeparateGeometry(GuiChat chat) {
-        if (chat == null) return;
-        updateSeparateGeometry(new ScaledResolution(Minecraft.getMinecraft()));
-    }
-
-    /**
-     * Chat 1 and Chat 2 draw directly from the same ChatPipeline layout contract used by Default Chat. The only
-     * differences are the chosen feed and appearance; wrapping, row bounds, scrolling and component row bridge are
-     * intentionally one implementation.
-     */
-    private void drawChatWindow(ChatWindowLayout.Rect rect, ChatQolSettings.Window window, int surface,
-                                boolean chatOpen, int mouseX, int mouseY) {
-        if (rect.w <= 2 || rect.h <= 2) return;
-        ChatQolSettings.Appearance appearance = ChatQolSettings.appearance(targetForSurface(surface));
-        int fill = colourWithOpacity(appearance.backgroundColor(), appearance.backgroundOpacity());
-        int border = colourWithOpacity(appearance.borderColor(), appearance.borderOpacity());
-        float radius = Math.min(appearance.radius(), Math.min(rect.w, rect.h) * 0.5f);
-        UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, radius, fill, fill, border);
-
-        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-        float textScale = appearance.textScale() / 100f;
-        int lineHeight = Math.max(8, Math.round(9f * textScale) + appearance.lineSpacing());
-        int contentX = Math.round(rect.x + 3f);
-        int contentY = Math.round(rect.y + 17f);
-        int contentW = Math.max(1, Math.round(rect.w - 6f));
-        int contentH = Math.max(1, Math.round(rect.h - 22f));
-        int textW = Math.max(8, Math.round((rect.w - 12f) / Math.max(0.1f, textScale)));
-        ChatPipeline pipeline = pipelineForSurface(surface);
-        pipeline.setLimit(window.getMessageLimit());
-        pipeline.setOpen(chatOpen);
-        layoutPipeline(pipeline, contentX, contentY, contentW, contentH, textW, lineHeight, appearance.lineSpacing(),
-                font);
-
-        String name = window.getName();
-        if (pipeline.scroll().target() > 0f) name += "  ↑";
-        UIRender.text(font, fit(font, name, rect.w - 12), rect.x + 6f, rect.y + 5f,
-                Theme.textSecondary, 0.78f, false, com.arena.pekaclient.render.GlobalFontManager.Area.CHAT);
-
-        UIRender.scissorBegin(contentX, contentY, contentW, contentH,
-                new ScaledResolution(Minecraft.getMinecraft()).getScaleFactor());
-        long now = System.currentTimeMillis();
-        for (ChatPipeline.Block block : pipeline.blocks()) {
-            PipelineEntry entry = entryOf(block.message);
-            if (entry == null) continue;
-            float opacity = messageOpacity(entry, appearance, chatOpen, now);
-            if (opacity <= 0f) continue;
-            List<IChatComponent> componentLines = splitComponents(entry, textW, font);
-            for (ChatPipeline.Row pipelineRow : block.rows) {
-                if (nativeRowCount >= nativeRows.length) {
-                    UIRender.scissorEnd();
-                    return;
-                }
-                IChatComponent line = pipelineRow.line < componentLines.size()
-                        ? componentLines.get(pipelineRow.line) : entry.component;
-                float rowY = messageLineY(pipelineRow.bounds.y, entry, appearance, lineHeight, now);
-                NativeRow row = nativeRows[nativeRowCount++];
-                row.assign(surface, pipelineRow.bounds.x, rowY, pipelineRow.bounds.w,
-                        pipelineRow.bounds.h, entry.clean, entry.formatted, line, rect.x + 6f, textScale);
-                row.assignGroup(entry, block.bounds.x, block.bounds.y, block.bounds.w, block.bounds.h);
-                pipelineRows.put(pipelineRow, row);
-                float oldAlpha = UIRender.alphaMul;
-                UIRender.alphaMul = oldAlpha * opacity;
-                UIRender.text(font, pipelineRow.formatted, rect.x + 6f, rowY + 1f,
-                        0xFF000000 | appearance.textColor(), textScale, appearance.shadow(),
-                        com.arena.pekaclient.render.GlobalFontManager.Area.CHAT);
-                UIRender.alphaMul = oldAlpha;
-            }
-        }
-        if (chatDebug) drawMessageGroupOutlines(pipeline,
-                surface == ChatInteractionModel.CHAT_1 ? 0xFFFF4A4A : 0xFFFF8A3D);
-        UIRender.scissorEnd();
-        drawPipelineScrollbar(pipeline, rect.x + rect.w - 3f, contentY, contentH);
-    }
-
-    /**
-     * Debug-only whole-message boxes. A ChatPipeline.Block carries one persistent message ID and all of its wrapped
-     * rows, so this stays one outline across wrapping, resize and scrolling instead of suggesting that each row is
-     * a separate message.
-     */
-    private static void drawMessageGroupOutlines(ChatPipeline pipeline, int colour) {
-        if (pipeline == null) return;
-        for (ChatPipeline.Block block : pipeline.blocks()) {
-            if (block == null || block.bounds.w <= 0f || block.bounds.h <= 0f) continue;
-            UIRender.roundRectRing(block.bounds.x, block.bounds.y, block.bounds.w, block.bounds.h,
-                    0f, 1f, colour);
-        }
-    }
-
-    /** Small thumb derived from the same pipeline viewport and bounded scroll target used for input. */
-    private static void drawPipelineScrollbar(ChatPipeline pipeline, float x, float y, float height) {
-        if (pipeline == null || pipeline.scroll().maximum() <= 0f || height <= 4f) return;
-        float total = pipeline.viewport().h + pipeline.scroll().maximum();
-        float thumb = Math.max(10f, height * Math.min(1f, pipeline.viewport().h / Math.max(1f, total)));
-        float travel = Math.max(0f, height - thumb);
-        float value = pipeline.scroll().value();
-        float max = Math.max(1f, pipeline.scroll().maximum());
-        float top = y + travel * Math.max(0f, Math.min(1f, value / max));
-        UIRender.roundRect(x, top, 2f, thumb, 1f, 0x8890A0B0, 0x8890A0B0, 1f);
-    }
-
-    /** Every rendering surface delegates line wrapping and bounds generation through this single call. */
-    private static void layoutPipeline(ChatPipeline pipeline, int x, int y, int w, int h, int textWidth,
-                                       int rowHeight, int lineSpacing, final FontRenderer font) {
-        pipeline.layout(x, y, w, h, textWidth, rowHeight, lineSpacing, new ChatPipeline.Wrapper() {
-            @Override
-            public List<String> wrap(String formattedText, int width) {
-                List<String> lines = font.listFormattedStringToWidth(formattedText == null ? "" : formattedText,
-                        Math.max(1, width));
-                return lines == null || lines.isEmpty() ? Collections.singletonList("") : lines;
-            }
-        });
-    }
-
-    private static PipelineEntry entryOf(ChatPipeline.Message message) {
-        return message != null && message.component instanceof PipelineEntry ? (PipelineEntry) message.component : null;
-    }
-
-    private static List<IChatComponent> splitComponents(PipelineEntry entry, int width, FontRenderer font) {
-        if (entry == null || entry.component == null) return Collections.emptyList();
-        List<IChatComponent> lines = GuiUtilRenderComponents.splitText(entry.component, Math.max(1, width), font,
-                false, false);
-        return lines == null || lines.isEmpty() ? Collections.singletonList(entry.component) : lines;
-    }
-
-    /** Called only by onMouse for a real wheel event. The visible pipeline is its sole scroll owner. */
-    private void applyNativeWheel(int surface, int wheel, boolean shiftFine) {
-        ChatPipeline pipeline = pipelineForSurface(surface);
-        pipeline.wheel(wheel, shiftFine, AppleSettings.guiScrollMultiplier());
-    }
-
-    private void updateSmoothScroll(float dt) {
-        chat1AllPipeline.update(dt, AppleSettings.smoothScrolling);
-        chat1PartyPipeline.update(dt, AppleSettings.smoothScrolling);
-        chat1ReplyPipeline.update(dt, AppleSettings.smoothScrolling);
-        chat2Pipeline.update(dt, AppleSettings.smoothScrolling);
-    }
-
-    /** The shared pipeline owns the hit result; NativeRow contributes only Minecraft component metadata. */
-    private void hitPipeline(int surface, int mouseX, int mouseY, ChatInteractionModel.Hit out) {
-        if (out == null) return;
-        out.clear();
-        ChatPipeline.Hit hit = pipelineForSurface(surface).hit(mouseX, mouseY);
-        NativeRow row = hit == null ? null : pipelineRows.get(hit.row);
-        if (row != null) {
-            out.copy(row);
-            // The row owns component resolution; the public hit rectangle owns whole-message hover/highlight.
-            out.x = row.groupX;
-            out.y = row.groupY;
-            out.w = row.groupW;
-            out.h = row.groupH;
-        }
-    }
-
-    private void hitDefaultPipeline(int mouseX, int mouseY, ChatInteractionModel.Hit out) {
-        if (out == null) return;
-        out.clear();
-        ChatPipeline.Hit hit = defaultPipeline.hit(mouseX, mouseY);
-        NativeRow row = hit == null ? null : pipelineRows.get(hit.row);
-        if (row != null) {
-            out.copy(row);
-            out.x = row.groupX;
-            out.y = row.groupY;
-            out.w = row.groupW;
-            out.h = row.groupH;
-        }
-    }
-
-    private static float messageLineY(float y, PipelineEntry message, ChatQolSettings.Appearance appearance,
-                                      int lineHeight, long now) {
-        if (message != null && "SLIDE".equals(appearance.appearStyle()) && appearance.appearSpeed() > 0) {
-            float age = Math.min(1f, Math.max(0f, (now - message.receivedAt) / (float) appearance.appearSpeed()));
-            return y + (1f - age) * lineHeight;
-        }
-        return y;
-    }
-
-    private static float messageOpacity(PipelineEntry message, ChatQolSettings.Appearance appearance,
-                                        boolean chatOpen, long now) {
-        if (chatOpen || appearance.fadeSeconds() == 0) return 1f;
-        long duration = appearance.fadeSeconds() * 1000L;
-        long age = Math.max(0L, now - message.receivedAt);
-        if (age >= duration) return 0f;
-        float fraction = age / (float) duration;
-        return fraction <= 0.70f ? 1f : Math.max(0f, (1f - fraction) / 0.30f);
-    }
-
-    /** Draws one shared hover/menu layer after GuiChat has painted its input. It is native-window-only. */
-    private void drawInteractionOverlay(GuiChat chat, int mouseX, int mouseY, float dt) {
-        hitPipeline(ChatInteractionModel.CHAT_1, mouseX, mouseY, nativeHits[ChatInteractionModel.CHAT_1]);
-        hitPipeline(ChatInteractionModel.CHAT_2, mouseX, mouseY, nativeHits[ChatInteractionModel.CHAT_2]);
-        NativeRow chat1 = nativeHits[ChatInteractionModel.CHAT_1].found()
-                ? (NativeRow) nativeHits[ChatInteractionModel.CHAT_1].token : null;
-        NativeRow chat2 = nativeHits[ChatInteractionModel.CHAT_2].found()
-                ? (NativeRow) nativeHits[ChatInteractionModel.CHAT_2].token : null;
-        hover.update(ChatInteractionModel.CHAT_1, chat1 == null ? null : chat1.groupToken, dt);
-        hover.update(ChatInteractionModel.CHAT_2, chat2 == null ? null : chat2.groupToken, dt);
-        UIRender.beginFrame();
-        drawHoverHighlight(nativeHits[ChatInteractionModel.CHAT_1], ChatInteractionModel.CHAT_1);
-        drawHoverHighlight(nativeHits[ChatInteractionModel.CHAT_2], ChatInteractionModel.CHAT_2);
-        NativeRow row = chat1 != null ? chat1 : chat2;
-        if (row != null) drawNativeHoverTooltip(row, mouseX, mouseY, chat.width, chat.height);
-        copyMenu.draw(mouseX, mouseY, dt);
-        UIRender.endFrame();
-    }
-
-    private void drawHoverHighlight(ChatInteractionModel.Hit hit, int surface) {
-        if (!ChatQolSettings.hoverHighlight || hit == null || !hit.found()) return;
-        float eased = hover.alpha(surface);
-        if (eased <= 0.003f) return;
-        ChatPipeline pipeline = pipelineForSurface(surface);
-        com.arena.pekaclient.gui.GuiLayoutToolkit.Rect viewport = pipeline.viewport();
-        float x = Math.max(hit.x, viewport.x);
-        float y = Math.max(hit.y, viewport.y);
-        float right = Math.min(hit.x + hit.w, viewport.x + viewport.w);
-        float bottom = Math.min(hit.y + hit.h, viewport.y + viewport.h);
-        if (right <= x || bottom <= y) return;
-        ChatQolSettings.Appearance appearance = ChatQolSettings.appearance(targetForSurface(surface));
-        int colour = colourWithOpacity(appearance.hoverColor(), Math.round(appearance.hoverOpacity() * eased));
-        UIRender.roundRect(x, y, right - x, bottom - y, Math.min(3f, (bottom - y) * .25f), colour, colour, 0f);
-    }
-
-    private void drawNativeHoverTooltip(NativeRow row, int mouseX, int mouseY, int screenW, int screenH) {
-        IChatComponent component = componentAt(row, mouseX);
-        if (component == null || component.getChatStyle() == null) return;
-        HoverEvent hoverEvent = component.getChatStyle().getChatHoverEvent();
-        if (hoverEvent == null || hoverEvent.getValue() == null) return;
-        String text = hoverEvent.getValue().getFormattedText();
-        if (text == null || text.length() == 0) return;
-        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-        int width = Math.max(48, Math.min(220, font.getStringWidth(ChatFilterRules.stripFormatting(text)) + 10));
-        int height = 18;
-        int x = Math.max(2, Math.min(mouseX + 9, Math.max(2, screenW - width - 2)));
-        int y = Math.max(2, Math.min(mouseY + 9, Math.max(2, screenH - height - 2)));
-        UIRender.roundRectBorder(x, y, width, height, 3f, Theme.popup, Theme.popup, Theme.border);
-        UIRender.text(font, fit(font, text, width - 8), x + 4f, y + 5f, Theme.textPrimary, 0.78f, false,
-                com.arena.pekaclient.render.GlobalFontManager.Area.CHAT);
-    }
-
-    private boolean updateDefaultHit(GuiChat chat, int mouseX, int mouseY) {
-        defaultHit.clear();
-        if (shouldDrawCustomDefault()) {
-            hitDefaultPipeline(mouseX, mouseY, defaultHit);
-            return defaultHit.found();
-        }
-        Minecraft mc = Minecraft.getMinecraft();
-        if (chat == null || mc == null || mc.ingameGUI == null) return false;
-        try {
-            GuiNewChat nativeChat = mc.ingameGUI.getChatGUI();
-            IChatComponent component = nativeChat == null ? null : nativeChat.getChatComponent(Mouse.getX(), Mouse.getY());
-            if (component == null) return false;
-            float scale = Math.max(0.01f, nativeChat.getChatScale());
-            // Component lookup itself uses vanilla's physical/scaled coordinate transform. The row bounds are cosmetic
-            // only, so a conservative screen-space row is safer than reimplementing private scroll/cache arithmetic.
-            defaultBounds.set(ChatInteractionModel.DEFAULT_CHAT, 2f, mouseY - 4.5f * scale,
-                    nativeChat.getChatWidth() + 4f, 9f * scale, component);
-            // Vanilla supplies the authoritative component/coordinate mapping; the common model owns the final
-            // surface/bounds hit result just as it does for cached Chat 1 and Chat 2 rows.
-            ChatInteractionModel.hitTest(defaultRows, 1, ChatInteractionModel.DEFAULT_CHAT,
-                    mouseX, mouseY, defaultHit);
-            return defaultHit.found();
-        } catch (RuntimeException ignored) {
-            return false;
-        }
-    }
-
-    private IChatComponent componentForDefaultHit(int mouseX) {
-        if (!defaultHit.found()) return null;
-        if (defaultHit.token instanceof NativeRow) return componentAt((NativeRow) defaultHit.token, mouseX);
-        return defaultHit.token instanceof IChatComponent ? (IChatComponent) defaultHit.token : null;
-    }
-
-    private int nativeSurfaceAt(int mouseX, int mouseY) {
-        updateSeparateGeometry((GuiChat) Minecraft.getMinecraft().currentScreen);
-        if (chat1Rect.contains(mouseX, mouseY)) return ChatInteractionModel.CHAT_1;
-        if (chat2Rect.contains(mouseX, mouseY)) return ChatInteractionModel.CHAT_2;
-        return -1;
-    }
-
-    private static int targetForSurface(int surface) {
-        return surface == ChatInteractionModel.CHAT_2 ? ChatQolSettings.TARGET_CHAT_2
-                : surface == ChatInteractionModel.CHAT_1 ? ChatQolSettings.TARGET_CHAT_1
-                : ChatQolSettings.TARGET_DEFAULT;
-    }
-
-    private static int colourWithOpacity(int rgb, int opacityPercent) {
-        int alpha = Math.max(0, Math.min(255, Math.round(Math.max(0, Math.min(100, opacityPercent)) * 2.55f)));
+    private static int withOpacity(int rgb, int percent) {
+        int alpha = Math.max(0, Math.min(255, Math.round(Math.max(0, Math.min(100, percent)) * 2.55f)));
         return (alpha << 24) | (rgb & 0xFFFFFF);
     }
 
-    private static String cleanComponent(IChatComponent component) {
-        if (component == null) return "";
-        String clean = component.getUnformattedTextForChat();
-        return clean == null ? ChatFilterRules.stripFormatting(component.getFormattedText()) : clean;
+    private static int withAlpha(int rgb, float alpha) {
+        int value = Math.max(0, Math.min(255, Math.round(Math.max(0f, Math.min(1f, alpha)) * 255f)));
+        return (value << 24) | (rgb & 0xFFFFFF);
     }
 
-    private IChatComponent componentAt(NativeRow row, int mouseX) {
-        if (row == null || row.line == null) return null;
-        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-        float local = ChatInteractionModel.localTextX(mouseX, row.textX, row.textScale);
-        int used = 0;
-        for (IChatComponent part : row.line) {
-            if (part == null) continue;
-            String value = part.getUnformattedTextForChat();
-            int width = font.getStringWidth(GuiUtilRenderComponents.func_178909_a(
-                    part.getChatStyle().getFormattingCode() + (value == null ? "" : value), false));
-            used += width;
-            if (used > local) return part;
-        }
-        // The remainder of a full-width hit row is deliberately non-clickable text/space. It may open the menu in
-        // Left/Both mode, but it must never accidentally activate the final component's ClickEvent.
-        return null;
+    private static String fit(FontRenderer font, String value, float width, float scale) {
+        if (value == null || width <= 0f) return "";
+        float unscaled = width / Math.max(.01f, scale);
+        if (font.getStringWidth(value) <= unscaled) return value;
+        return font.trimStringToWidth(value, Math.max(1, (int) unscaled - 7)) + "...";
     }
 
-    private boolean invokeComponentClick(GuiChat chat, IChatComponent component) {
-        if (chat == null || component == null || HANDLE_COMPONENT_CLICK == null) return false;
-        try {
-            Object result = HANDLE_COMPONENT_CLICK.invoke(chat, component);
-            return result instanceof Boolean && ((Boolean) result).booleanValue();
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
-            return false;
+    private static void warnBridgeOnce() {
+        if (bridgeNoticeShown) return;
+        bridgeNoticeShown = true;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc != null && mc.thePlayer != null) {
+            mc.thePlayer.addChatMessage(new ChatComponentText("§e[Sky VeLor] §fChat QoL bridge unavailable; vanilla chat was left unchanged."));
         }
     }
 
-    private float interactionDelta() {
-        long now = System.nanoTime();
-        float seconds = interactionNs == 0L ? 1f / 60f : Math.min(0.1f, (now - interactionNs) / 1.0e9f);
-        interactionNs = now;
-        return seconds;
-    }
-
-    private static int scaledMouseX(GuiChat chat, Minecraft mc) {
-        return Mouse.getX() * chat.width / Math.max(1, mc.displayWidth);
-    }
-
-    private static int scaledMouseY(GuiChat chat, Minecraft mc) {
-        return chat.height - Mouse.getY() * chat.height / Math.max(1, mc.displayHeight) - 1;
-    }
-
-    private NativeRow[] createNativeRows() {
-        NativeRow[] rows = new NativeRow[MAX_NATIVE_ROWS];
-        for (int i = 0; i < rows.length; i++) rows[i] = new NativeRow();
-        return rows;
-    }
-
-    private DefaultLine[] createDefaultLines() {
-        DefaultLine[] lines = new DefaultLine[MAX_DEFAULT_ROWS];
-        for (int i = 0; i < lines.length; i++) lines[i] = new DefaultLine();
-        return lines;
-    }
-
-    /** Source retained by the common pipeline without pointing at the overwriteable fixed history ring. */
-    private static final class PipelineEntry {
-        private final IChatComponent component;
-        private final String formatted;
-        private final String clean;
-        private final int kind;
-        private final long receivedAt;
-        private final int updatedCounter;
-
-        PipelineEntry(IChatComponent component, String formatted, String clean, int kind, long receivedAt,
-                      int updatedCounter) {
-            this.component = component;
-            this.formatted = formatted == null ? "" : formatted;
-            this.clean = clean == null ? "" : clean;
-            this.kind = kind;
-            this.receivedAt = receivedAt;
-            this.updatedCounter = updatedCounter;
-        }
-    }
-
-    private static final class DefaultLine {
-        private IChatComponent component;
-        private int updatedCounter;
-    }
-
-    private static final class NativeRow extends ChatInteractionModel.Bounds {
-        private String clean = "";
-        private String formatted = "";
-        private IChatComponent line;
-        private float textX;
-        private float textScale;
-        /** All wrapped rows of one immutable pipeline message share these group bounds and token. */
-        private Object groupToken;
-        private float groupX;
-        private float groupY;
-        private float groupW;
-        private float groupH;
-
-        void assign(int surface, float x, float y, float w, float h, String cleanText, String formattedText,
-                    IChatComponent line, float textX, float textScale) {
-            set(surface, x, y, w, h, this);
-            clean = cleanText == null ? "" : cleanText;
-            formatted = formattedText == null ? "" : formattedText;
-            this.line = line;
-            this.textX = textX;
-            this.textScale = textScale;
-            groupToken = this;
-            groupX = x;
-            groupY = y;
-            groupW = w;
-            groupH = h;
-        }
-
-        void assignGroup(Object token, float x, float y, float w, float h) {
-            groupToken = token == null ? this : token;
-            groupX = x;
-            groupY = y;
-            groupW = Math.max(0f, w);
-            groupH = Math.max(0f, h);
-        }
-    }
-
-    /** Exactly-two-option text-only menu. It executes only on a matching mouse release. */
-    private static final class CopyMenu {
+    private final class CopyMenu {
         private final ChatInteractionModel.Menu geometry = new ChatInteractionModel.Menu();
         private final ChatContextMenu actions = new ChatContextMenu();
-        private String clean = "";
-        private String formatted = "";
-        private String toast = "";
-        private long toastUntil;
+        private final CapturedChatMenu captured = new CapturedChatMenu();
 
-        boolean isVisible() {
-            return geometry.visible;
-        }
+        boolean visible() { return geometry.visible; }
+        boolean armed() { return actions.armed(); }
+        boolean contains(int x, int y) { return geometry.rowAt(x, y) >= 0; }
 
-        boolean contains(int mouseX, int mouseY) {
-            return geometry.visible && mouseX >= geometry.x && mouseX < geometry.x + geometry.w
-                    && mouseY >= geometry.y && mouseY < geometry.y + geometry.h;
-        }
-
-        boolean isArmed() {
-            return actions.armed();
-        }
-
-        void show(String cleanText, String formattedText, int mouseX, int mouseY, int screenW, int screenH) {
-            clean = ChatClipboard.clean(cleanText == null ? "" : cleanText);
-            formatted = formattedText == null ? "" : formattedText;
+        void show(MessageGroup group, int mouseX, int mouseY, int screenW, int screenH) {
+            if (group == null) return;
+            // Capture the full original group once. Pointer movement/re-layout after this point cannot change actions.
+            captured.open(Integer.toString(group.id), group.clean, group.formatted);
             actions.clear();
             geometry.setAnimationMillis(ChatQolSettings.menuAnimationMillis);
             geometry.show(mouseX, mouseY, screenW, screenH);
@@ -1465,43 +801,38 @@ public final class ChatChannelTabs {
         void hide() {
             geometry.hide();
             actions.clear();
-            clean = "";
-            formatted = "";
+            captured.clear();
         }
 
-        void press(int mouseX, int mouseY) {
-            int row = geometry.rowAt(mouseX, mouseY);
-            if (!actions.press(row)) hide();
+        void press(int x, int y) {
+            if (!actions.press(geometry.rowAt(x, y))) hide();
         }
 
-        void release(int mouseX, int mouseY, GuiChat chat) {
-            int chosen = actions.release(geometry.rowAt(mouseX, mouseY));
-            if (chosen < 0) {
+        void release(int x, int y, GuiChat chat) {
+            int action = actions.release(geometry.rowAt(x, y));
+            CapturedChatMenu.Message message = captured.message();
+            if (action < 0 || message == null) {
                 hide();
                 return;
             }
-            if (chosen == 0) {
-                ChatClipboard.Result result = ChatClipboard.copy(clean);
-                toast(result.success ? "Copied to clipboard via " + result.backend
-                        : "Could not copy to clipboard; no verified backend");
+            if (action == 0) {
+                ChatClipboard.Result result = ChatClipboard.copy(message.clean);
+                toast(result.success ? "Copied to clipboard" : "Could not copy to clipboard");
             } else {
-                GuiTextField input = inputField(chat);
+                GuiTextField input = input(chat);
                 if (input == null) {
-                    toast("Could not copy to chat box; chat input is unavailable");
+                    toast("Could not copy to chat box; input unavailable");
                 } else {
-                    // Keep the production field on the same clean, cursor/selection-aware, 256-character contract
-                    // exercised by ChatInputInsertion's headless tests. Do not use writeText here: it is easy for a
-                    // changed GuiTextField limit to bypass the shared cap/selection behavior.
-                    ChatInputInsertion.Result insertion = ChatInputInsertion.insert(input.getText(),
-                            input.getCursorPosition(), input.getSelectionEnd(), clean);
-                    if (!insertion.inserted) {
+                    ChatInputInsertion.Result inserted = ChatInputInsertion.insert(input.getText(),
+                            input.getCursorPosition(), input.getSelectionEnd(), message.clean);
+                    if (!inserted.inserted) {
                         toast(input.getText().length() >= ChatInputInsertion.MAX_LENGTH
-                                ? "Chat box already has 256 characters" : "Nothing to copy to chat box");
+                                ? "Chat box already has 256 characters" : "Nothing selected");
                     } else {
                         input.setMaxStringLength(ChatInputInsertion.MAX_LENGTH);
-                        input.setText(insertion.text);
-                        input.setCursorPosition(insertion.cursor);
-                        input.setSelectionPos(insertion.cursor);
+                        input.setText(inserted.text);
+                        input.setCursorPosition(inserted.cursor);
+                        input.setSelectionPos(inserted.cursor);
                         input.setFocused(true);
                         toast("Copied to chat box");
                     }
@@ -1510,96 +841,129 @@ public final class ChatChannelTabs {
             hide();
         }
 
-        private void toast(String value) {
-            toast = value == null ? "" : value;
-            toastUntil = System.currentTimeMillis() + 2200L;
-        }
-
         void draw(int mouseX, int mouseY, float dt) {
+            if (!geometry.visible) return;
+            geometry.setAnimationMillis(ChatQolSettings.menuAnimationMillis);
+            geometry.update(dt);
+            int hovered = geometry.rowAt(mouseX, mouseY);
+            geometry.updateHover(dt, hovered);
+            float opened = geometry.openAmount();
+            float old = UIRender.alphaMul;
+            UIRender.alphaMul = old * opened;
+            float y = geometry.y + (1f - opened) * -4f;
+            UIRender.roundRectBorder(geometry.x, y, geometry.w, geometry.h, 4f, Theme.popup, Theme.popup, Theme.border);
             FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-            if (geometry.visible) {
-                geometry.setAnimationMillis(ChatQolSettings.menuAnimationMillis);
-                geometry.update(dt);
-                int hoveredRow = geometry.rowAt(mouseX, mouseY);
-                geometry.updateHover(dt, hoveredRow);
-                float open = geometry.openAmount();
-                float oldAlpha = UIRender.alphaMul;
-                UIRender.alphaMul = oldAlpha * open;
-                float y = geometry.y + (1f - open) * -4f;
-                UIRender.roundRectBorder(geometry.x, y, geometry.w, geometry.h, 5f,
-                        Theme.popup, Theme.popup, Theme.border);
-                for (int row = 0; row < ChatInteractionModel.MENU_LABELS.length; row++) {
-                    float top = y + row * 20f;
-                    float hot = geometry.hoverAmount(row);
-                    if (hot > 0.002f) {
-                        int fill = UIRender.withAlpha(Theme.cardHover, hot * .95f);
-                        UIRender.roundRect(geometry.x + 2f, top + 1f, geometry.w - 4f, 18f, 3f, fill, fill, 0f);
-                    }
-                    UIRender.text(font, ChatInteractionModel.MENU_LABELS[row], geometry.x + 7f, top + 6f,
-                            hot > .5f ? Theme.textPrimary : Theme.textSecondary, 0.78f, false,
-                            com.arena.pekaclient.render.GlobalFontManager.Area.CHAT);
-                }
-                UIRender.alphaMul = oldAlpha;
+            for (int i = 0; i < ChatInteractionModel.MENU_LABELS.length; i++) {
+                float hot = geometry.hoverAmount(i);
+                if (hot > .002f) UIRender.roundRect(geometry.x + 2f, y + i * 20f + 1f, geometry.w - 4f, 18f,
+                        3f, UIRender.withAlpha(Theme.cardHover, hot), UIRender.withAlpha(Theme.cardHover, hot), 0f);
+                UIRender.text(font, ChatInteractionModel.MENU_LABELS[i], geometry.x + 7f, y + i * 20f + 6f,
+                        hot > .5f ? Theme.textPrimary : Theme.textSecondary, .78f, false, GlobalFontManager.Area.CHAT);
             }
-            if (toast.length() == 0 || System.currentTimeMillis() > toastUntil) return;
-            Minecraft mc = Minecraft.getMinecraft();
-            GuiScreen screen = mc.currentScreen;
-            int screenW = screen == null ? 320 : screen.width;
-            float width = Math.max(104f, Math.min(screenW - 8f, font.getStringWidth(toast) + 14f));
-            float x = Math.max(4f, Math.min(screenW - width - 4f, geometry.visible ? geometry.x : 4f));
-            float y = geometry.visible ? Math.max(4f, geometry.y - 22f) : 4f;
-            UIRender.roundRectBorder(x, y, width, 18f, 4f, Theme.popup, Theme.popup, Theme.border);
-            UIRender.text(font, fit(font, toast, Math.max(1, (int) width - 10)), x + 5f, y + 5f,
-                    Theme.textPrimary, 0.72f, false, com.arena.pekaclient.render.GlobalFontManager.Area.CHAT);
+            UIRender.alphaMul = old;
+        }
+
+        String describeStored() {
+            CapturedChatMenu.Message message = captured.message();
+            if (message == null) return "none";
+            String text = message.clean.length() > 42 ? message.clean.substring(0, 39) + "..." : message.clean;
+            return "#" + message.groupId + " [" + text + "]";
         }
     }
 
-    private static String fit(FontRenderer font, String value, int max) {
-        if (value == null) return "";
-        if (font.getStringWidth(value) <= max) return value;
-        return font.trimStringToWidth(value, Math.max(0, max - 6)) + "...";
+    private void toast(String text) {
+        toast = text == null ? "" : text;
+        toastUntil = System.currentTimeMillis() + 2200L;
     }
 
-    /** Custom compact attached button with unread marker; it has no independent floating overlay geometry. */
-    private final class ChatTabButton extends GuiButton {
-        ChatTabButton(int id, String label) {
-            super(id, 0, 0, 0, 0, label);
+    private void drawToast(int screenW, int screenH) {
+        if (toast.length() == 0 || System.currentTimeMillis() > toastUntil) return;
+        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
+        float width = Math.max(104f, Math.min(screenW - 8f, font.getStringWidth(toast) + 14f));
+        UIRender.roundRectBorder(4f, 4f, width, 18f, 4f, Theme.popup, Theme.popup, Theme.border);
+        UIRender.text(font, fit(font, toast, width - 8f, .72f), 9f, 9f, Theme.textPrimary, .72f, false,
+                GlobalFontManager.Area.CHAT);
+    }
+
+    private final class MessageGroup {
+        final int id;
+        final IChatComponent original;
+        final boolean completeOriginal;
+        String clean;
+        String formatted;
+        final List<IChatComponent> lines = new ArrayList<IChatComponent>();
+        final ChatRenderGeometry.Rect bounds = new ChatRenderGeometry.Rect();
+        float alpha = 1f;
+        float slide;
+
+        MessageGroup(int id, IChatComponent original, boolean completeOriginal) {
+            this.id = id;
+            this.original = original;
+            this.completeOriginal = completeOriginal;
+            this.clean = cleanComponent(original);
+            this.formatted = original == null ? "" : original.getFormattedText();
         }
 
-        void apply(ChatTabLayout.Rect rect, boolean active, String label) {
-            visible = rect.visible;
-            enabled = active;
-            xPosition = rect.x;
-            yPosition = rect.y;
-            width = rect.w;
-            height = rect.h;
-            displayString = label;
-        }
-
-        @Override
-        public void drawButton(Minecraft mc, int mouseX, int mouseY) {
-            if (!visible || width <= 0 || height <= 0) return;
-            hovered = mouseX >= xPosition && mouseY >= yPosition && mouseX < xPosition + width
-                    && mouseY < yPosition + height;
-            int tab = id - FIRST_BUTTON_ID;
-            boolean selected = !enabled;
-            int fill = selected ? 0xE028343A : hovered ? 0xE022282D : 0xD016181B;
-            int edge = selected ? Theme.accent : 0xA04A4A50;
-            drawRect(xPosition, yPosition, xPosition + width, yPosition + height, fill);
-            drawRect(xPosition, yPosition, xPosition + width, yPosition + 1, edge);
-            int color = selected ? Theme.accent : 0xFFE6E6E8;
-            String label = mc.fontRendererObj.trimStringToWidth(displayString, Math.max(0, width - 8));
-            float labelWidth = com.arena.pekaclient.render.GlobalFontManager.width(label,
-                    com.arena.pekaclient.render.GlobalFontManager.Area.TAB);
-            if (labelWidth < 0f) labelWidth = mc.fontRendererObj.getStringWidth(label);
-            UIRender.beginFrame();
-            UIRender.text(mc.fontRendererObj, label, xPosition + (width - labelWidth) * 0.5f,
-                    yPosition + (height - 8) * 0.5f, color, 1f, false,
-                    com.arena.pekaclient.render.GlobalFontManager.Area.TAB);
-            UIRender.endFrame();
-            if (!selected && history.unread(tab)) {
-                drawRect(xPosition + width - 4, yPosition + 2, xPosition + width - 2, yPosition + 4, Theme.accent);
+        /** Fallback bridge data may only expose wrapped rows, so rebuild a complete clean payload rather than copying
+         * whichever row the pointer happened to be over. The normal path keeps Minecraft's original component text. */
+        void addLine(IChatComponent line) {
+            lines.add(line);
+            if (completeOriginal || line == null) return;
+            String nextClean = cleanComponent(line);
+            String nextFormatted = line.getFormattedText();
+            if (lines.size() == 1) {
+                clean = nextClean;
+                formatted = nextFormatted == null ? "" : nextFormatted;
+            } else {
+                clean += nextClean;
+                formatted += nextFormatted == null ? "" : nextFormatted;
             }
+        }
+
+        void resetBounds() { bounds.set(0f, 0f, 0f, 0f, 0f); }
+        void include(RenderRow row) { ChatRenderGeometry.include(bounds, row.x, row.y, row.w, row.h); }
+
+        void updateAnimation(long now, int updateCounter, boolean chatOpen) {
+            alpha = 1f;
+            slide = 0f;
+            if (!chatOpen && ChatQolSettings.fadeSeconds > 0) {
+                float age = Math.max(0f, (updateCounter - id) / 20f);
+                float duration = ChatQolSettings.fadeSeconds;
+                if (age >= duration) alpha = 0f;
+                else if (age > duration * .70f) alpha *= Math.max(0f, (duration - age) / (duration * .30f));
+            }
+            if (ChatQolSettings.smoothMessages && ChatQolSettings.messageAnimationMillis > 0) {
+                Long first = arrivalMillis.get(id);
+                float progress = first == null ? 1f : Math.min(1f, Math.max(0f,
+                        (now - first.longValue()) / (float) ChatQolSettings.messageAnimationMillis));
+                float eased = 1f - (1f - progress) * (1f - progress);
+                // A first-frame floor means arrival is never delayed, while the short fade/slide still feels smooth.
+                alpha *= .18f + .82f * eased;
+                slide = (1f - eased) * 5f;
+            }
+        }
+    }
+
+    private static final class RenderRow {
+        final MessageGroup group;
+        final IChatComponent component;
+        final String formatted;
+        final float x;
+        final float y;
+        final float w;
+        final float h;
+        final float textScale;
+
+        RenderRow(MessageGroup group, IChatComponent component, String formatted, float x, float y, float w,
+                  float h, float textScale) {
+            this.group = group;
+            this.component = component;
+            this.formatted = formatted == null ? "" : formatted;
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.textScale = textScale;
         }
     }
 }

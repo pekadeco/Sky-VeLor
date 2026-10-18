@@ -233,8 +233,8 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
         rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
 
-        // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/classification
-        // setting lives in Chat Editor, preventing duplicate controls across normal GUI pages.
+        // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/tab setting
+        // lives in Chat Editor, preventing duplicate controls across normal GUI pages.
         rows.add(Row.header("Chat QoL"));
         rows.add(Row.item(ChatUiModel.label("chat-qol-master"),
                 "Master switch. Off keeps Minecraft chat exactly unchanged",
@@ -243,22 +243,19 @@ public class AppleHubScreen extends AppleScreen {
                     if (!value) ChatChannelTabs.disableAndRestoreAll();
                 })));
         rows.add(Row.item(ChatUiModel.label("chat-tabs"),
-                "Attached All, Party and Reply views with safe All fallback",
+                "Show attached All, Party, Reply, and custom filters on the one Default Chat",
                 new AppleToggle(() -> ChatQolSettings.tabsEnabled, value -> {
                     ChatQolSettings.tabsEnabled = value;
                     if (!value) ChatChannelTabs.disableAndRestoreAll();
                 })));
-        rows.add(Row.item(ChatUiModel.label("separate-chats"),
-                "On: Chat 1 for player traffic and Chat 2 for system traffic. Off: untouched vanilla chat.",
-                new AppleToggle(ChatQolSettings::isSeparateChats, ChatQolSettings::setSeparateChats)));
         rows.add(Row.item(ChatUiModel.label("smooth-messages"),
-                "Use a small native arrival transition in separate chat windows",
+                "Fade and short-slide new messages in the default chat",
                 new AppleToggle(() -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
         rows.add(Row.item(ChatUiModel.label("hover-highlight"),
-                "Highlight a native chat line only while chat is open",
+                "Highlight an entire wrapped default-chat message group",
                 new AppleToggle(() -> ChatQolSettings.hoverHighlight, value -> ChatQolSettings.hoverHighlight = value)));
         rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
-                "Windows, background, messages, tabs, hover and copy options",
+                "Background, messages, tabs, menu, and highlight options",
                 new AppleButton("Open", 84f, 26f, true,
                         () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
 

@@ -98,13 +98,12 @@ public final class ItemAnimationReachabilityTests {
         List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
         check("Chat QoL master appears in the QoL model", chatEntry(chat, "chat-qol-master", true));
         check("Chat QoL exposes requested Chat Tabs toggle", chatEntry(chat, "chat-tabs", false));
-        check("Chat QoL exposes requested Separate Chats toggle", chatEntry(chat, "separate-chats", false));
         check("Chat QoL exposes requested Smooth Messages toggle", chatEntry(chat, "smooth-messages", false));
         check("Chat QoL exposes requested Hover Highlight toggle", chatEntry(chat, "hover-highlight", false));
         check("Chat QoL keeps context-menu policy in its detailed editor", findChat(chat, "right-click-menu") == null);
         check("Chat QoL does not duplicate global Font controls", findChat(chat, "global-font") == null
                 && findChat(chat, "open-font-settings") == null);
-        check("Chat QoL keeps only its chat editor route", chat.size() == 6
+        check("Chat QoL keeps only its chat editor route", chat.size() == 5
                 && findChat(chat, "open-chat-editor") != null && findChat(chat, "open-chat-editor").isEditorRoute());
 
         List<FishingUiModel.Entry> fishingToggles = FishingUiModel.buildFeatureToggleModel();

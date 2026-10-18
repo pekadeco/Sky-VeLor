@@ -2,6 +2,7 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
+import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.gui.GuiScreen;
 
@@ -73,6 +74,7 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
                 AppleSettings.smoothScrolling = !AppleSettings.smoothScrolling;
             } else if (i == 2) {
                 ChatQolSettings.enabled = !ChatQolSettings.enabled;
+                if (!ChatQolSettings.enabled) ChatChannelTabs.disableAndRestoreAll();
             } else {
                 AppleSettings.itemAnimationEnabled = !AppleSettings.itemAnimationEnabled;
             }

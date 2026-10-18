@@ -52,7 +52,6 @@ public final class ChatUiModel {
         List<Entry> entries = new ArrayList<Entry>();
         entries.add(new Entry("chat-qol-master", "Chat QoL", MASTER));
         entries.add(new Entry("chat-tabs", "Chat Tabs", TOGGLE));
-        entries.add(new Entry("separate-chats", "Separate Chats", TOGGLE));
         entries.add(new Entry("smooth-messages", "Smooth Messages", TOGGLE));
         entries.add(new Entry("hover-highlight", "Hover Highlight", TOGGLE));
         // Context-menu trigger and animation options live in Chat Editor with the rest of interaction behavior.

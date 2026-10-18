@@ -1,118 +1,79 @@
 package com.arena.pekaclient.feature;
 
+import java.util.List;
+
 /**
- * Pure attached-tab geometry for GuiChat. Tabs either occupy reserved rows directly above the input field or are
- * hidden when a tiny GUI cannot fit them; they are never drawn over typed text. The live handler caches this result
- * until GUI dimensions, visibility or order changes.
+ * Geometry authority for the one attached default-chat tab strip. The strip is always immediately above the real
+ * GuiChat input field, so it cannot cover rendered messages or steal the field's text area.
  */
 public final class ChatTabLayout {
-
-    public static final int INPUT_INSET = 2;
-    public static final int INPUT_HEIGHT = 12;
-    public static final int TAB_HEIGHT = 14;
-    public static final int GAP = 1;
-    public static final int SAFE_TOP = 2;
-
-    public static final class Rect {
-        public int x;
-        public int y;
-        public int w;
-        public int h;
-        public boolean visible;
-
-        public boolean contains(int px, int py) {
-            return visible && px >= x && py >= y && px < x + w && py < y + h;
-        }
-
-        public boolean intersects(Rect other) {
-            return visible && other != null && other.visible && x < other.x + other.w && x + w > other.x
-                    && y < other.y + other.h && y + h > other.y;
-        }
-    }
-
-    public static final class Layout {
-        public final Rect input = new Rect();
-        public final Rect[] tabs = {new Rect(), new Rect(), new Rect()};
-        public int rows;
-        public boolean shown;
-    }
+    public static final float HEIGHT = 18f;
+    public static final float GAP = 2f;
+    public static final float LEFT = 2f;
 
     private ChatTabLayout() {
     }
 
+    public static final class Rect {
+        public String id = "";
+        public float x;
+        public float y;
+        public float w;
+        public float h;
+
+        public boolean contains(float px, float py) {
+            return px >= x && py >= y && px < x + w && py < y + h;
+        }
+
+        void set(String nextId, float nextX, float nextY, float nextW, float nextH) {
+            id = nextId == null ? "" : nextId;
+            x = nextX;
+            y = nextY;
+            w = Math.max(0f, nextW);
+            h = Math.max(0f, nextH);
+        }
+    }
+
+    public static final class Layout {
+        public final Rect[] tabs = new Rect[ChatTabs.MAX_TABS];
+        public final Rect bounds = new Rect();
+        public int count;
+
+        public Layout() {
+            for (int i = 0; i < tabs.length; i++) tabs[i] = new Rect();
+        }
+
+        public Rect at(String id) {
+            for (int i = 0; i < count; i++) if (tabs[i].id.equals(id)) return tabs[i];
+            return null;
+        }
+    }
+
     /**
-     * Updates the supplied reusable layout. orderedTabs uses ChatFilterRules All/Party/Reply values and visibleTabs
-     * has matching indexes. Invalid/duplicate order entries are safely ignored.
+     * Uses compact even widths instead of text-dependent raw widths so eight custom labels cannot run past a small
+     * screen. The renderer ellipsizes labels inside each returned rectangle using the active font.
      */
-    public static void update(Layout out, int screenW, int screenH, int[] orderedTabs, boolean[] visibleTabs) {
-        int width = Math.max(0, screenW);
-        int height = Math.max(0, screenH);
-        out.input.x = INPUT_INSET;
-        out.input.y = Math.max(0, height - 14);
-        out.input.w = Math.max(0, width - INPUT_INSET * 2);
-        out.input.h = Math.min(INPUT_HEIGHT, Math.max(0, height - out.input.y));
-        out.input.visible = out.input.w > 0 && out.input.h > 0;
-        out.rows = 0;
-        out.shown = false;
-        for (Rect rect : out.tabs) rect.visible = false;
-        if (out.input.w < 24 || out.input.y <= SAFE_TOP || orderedTabs == null || visibleTabs == null) return;
-
-        int[] sequence = new int[3];
+    public static void update(Layout out, float screenWidth, float inputTop, List<ChatTabs.Tab> tabs) {
+        if (out == null) return;
         int count = 0;
-        for (int candidate : orderedTabs) {
-            if (candidate < ChatFilterRules.ALL || candidate > ChatFilterRules.REPLY || candidate >= visibleTabs.length
-                    || !visibleTabs[candidate]) continue;
-            boolean duplicate = false;
-            for (int i = 0; i < count; i++) if (sequence[i] == candidate) duplicate = true;
-            if (!duplicate && count < sequence.length) sequence[count++] = candidate;
-        }
-        if (count == 0) return;
-
-        int[] widths = new int[3];
-        int current = 0;
-        int rows = 1;
-        for (int i = 0; i < count; i++) {
-            int tab = sequence[i];
-            int wanted = preferredWidth(tab);
-            // On narrow screens compact labels can shrink, but never so far that hit targets overlap.
-            wanted = Math.max(18, Math.min(wanted, out.input.w));
-            if (current > 0 && current + GAP + wanted > out.input.w) {
-                rows++;
-                current = 0;
+        if (tabs != null) for (ChatTabs.Tab tab : tabs) if (tab != null && tab.enabled() && count < out.tabs.length) count++;
+        float available = Math.max(1f, screenWidth - LEFT * 2f - Math.max(0, count - 1) * GAP);
+        float preferred = count <= 3 ? 58f : count <= 5 ? 51f : 46f;
+        float width = count == 0 ? 0f : Math.max(18f, Math.min(preferred, available / count));
+        // If even the compact width does not fit, keep every tab reachable rather than drawing off-screen.
+        if (count > 0 && width * count + (count - 1) * GAP > available) width = Math.max(1f, available / count);
+        float y = Math.max(0f, inputTop - HEIGHT - 2f);
+        float x = LEFT;
+        int slot = 0;
+        if (tabs != null) {
+            for (ChatTabs.Tab tab : tabs) {
+                if (tab == null || !tab.enabled() || slot >= out.tabs.length) continue;
+                out.tabs[slot++].set(tab.id(), x, y, width, HEIGHT);
+                x += width + GAP;
             }
-            widths[tab] = wanted;
-            current += (current == 0 ? 0 : GAP) + wanted;
         }
-        int top = out.input.y - GAP - rows * TAB_HEIGHT - (rows - 1) * GAP;
-        if (top < SAFE_TOP) return;
-
-        int row = 0;
-        int x = out.input.x;
-        for (int i = 0; i < count; i++) {
-            int tab = sequence[i];
-            int wanted = widths[tab];
-            if (x != out.input.x && x + GAP + wanted > out.input.x + out.input.w) {
-                row++;
-                x = out.input.x;
-            }
-            if (x != out.input.x) x += GAP;
-            Rect rect = out.tabs[tab];
-            rect.x = x;
-            rect.y = top + row * (TAB_HEIGHT + GAP);
-            rect.w = wanted;
-            rect.h = TAB_HEIGHT;
-            rect.visible = true;
-            x += wanted;
-        }
-        out.rows = rows;
-        out.shown = true;
-    }
-
-    public static int preferredWidth(int tab) {
-        return tab == ChatFilterRules.PARTY ? 42 : tab == ChatFilterRules.REPLY ? 43 : 29;
-    }
-
-    public static String label(int tab) {
-        return tab == ChatFilterRules.PARTY ? "Party" : tab == ChatFilterRules.REPLY ? "Reply" : "All";
+        out.count = slot;
+        for (int i = slot; i < out.tabs.length; i++) out.tabs[i].set("", 0f, 0f, 0f, 0f);
+        out.bounds.set("tabs", LEFT, y, Math.max(0f, x - LEFT - (slot == 0 ? 0f : GAP)), HEIGHT);
     }
 }

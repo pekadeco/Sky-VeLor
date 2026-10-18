@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta-0.10.8.5.2v — 2026-10-18
+
+- Replaced the fragile split-chat runtime with one guarded Forge renderer for the real Default Chat. Chat 1/Chat 2 windows, classifier and pattern routing, target/link-all editor state, and their persisted output are removed; retired keys are harmlessly ignored and omitted on save.
+- Added Default Chat’s rounded configurable background, open/closed opacity, smooth fade/slide arrivals, eased scrolling, full wrapped-group highlight, safe native component forwarding, and a captured-at-open two-action copy menu.
+- Reworked attached All/Party/Reply/custom tabs with a reserved message boundary, unread dots, active channel label/prefix, open-only/always visibility, up to eight total tabs, and a focused editor for custom filter validation/testing, colour, sound, order, visibility, and deletion.
+- Reduced Chat Editor to **Background**, **Messages**, **Tabs**, **Menu and Highlight**, and **Reset** with active-font-measured, clipped non-overlapping flow. `/velor chatdebug` now reports the one renderer’s live tab/group/menu state; `/velor layoutdebug` covers its shared layout.
+- Added headless coverage for custom filtering/invalid regex/All membership, retired-key omission, captured menu payloads, grouped highlight bounds, tab geometry, and editor flow at compact scales.
+- Updated display version to `Beta-0.10.8.5.2v` and numeric Forge `mcmod.info` version to `0.10.8.5.2`.
+
 ## Beta-0.10.8.5.1v — 2026-10-18
 
 - Fixed Chat Editor section/card placement through the active selected font’s measured metrics, with a collision resolver for small windows, GUI scales, and expanded controls.
