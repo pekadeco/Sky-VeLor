@@ -115,6 +115,8 @@ public final class ChatChannelTabs {
     private int appliedInputWidth = Integer.MIN_VALUE;
     private MessageGroup hoveredGroup;
     private MessageGroup pendingLeftGroup;
+    /** Set permanently for this client session after an unexpected cache bridge failure; subsequent frames fail open. */
+    private boolean runtimeBridgeFailed;
     private boolean debug;
     private boolean tabBarDrawn;
     private float tabFrameX;
@@ -129,9 +131,9 @@ public final class ChatChannelTabs {
         live = this;
     }
 
-    /** Master-off and mapping-mismatch paths deliberately leave the vanilla overlay and GuiChat untouched. */
+    /** Master-off, mapping-mismatch, and runtime bridge-failure paths deliberately leave vanilla chat untouched. */
     private static boolean ownsDefaultChat() {
-        return ChatQolSettings.isEnabled() && BRIDGE_READY;
+        return ChatQolSettings.isEnabled() && BRIDGE_READY && (live == null || !live.runtimeBridgeFailed);
     }
 
     /** Cancels the exact vanilla overlay only when the one replacement renderer is safe to draw it. */
@@ -342,6 +344,7 @@ public final class ChatChannelTabs {
 
     public static String selfTestStatus() {
         if (!BRIDGE_READY) return "STANDBY (mapping bridge unavailable; vanilla chat unchanged)";
+        if (live != null && live.runtimeBridgeFailed) return "STANDBY (cache bridge failed; vanilla chat restored)";
         if (!ChatQolSettings.isEnabled()) return "STANDBY (Chat QoL is off; vanilla chat unchanged)";
         return "READY (one Forge default-chat replacement)";
     }
@@ -350,7 +353,7 @@ public final class ChatChannelTabs {
         if (sender == null) return;
         sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat QoL="
                 + (ChatQolSettings.isEnabled() ? "§aON" : "§cOFF") + "§f, implementation="
-                + (BRIDGE_READY ? "Forge default-chat renderer" : "vanilla fail-closed") + "."));
+                + (BRIDGE_READY && !runtimeBridgeFailed ? "Forge default-chat renderer" : "vanilla fail-closed") + "."));
         sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fTab bar drawn=" + (tabBarDrawn ? "yes" : "no")
                 + " x=" + Math.round(tabFrameX) + " y=" + Math.round(tabFrameY) + " w="
                 + Math.round(tabFrameW) + " h=" + Math.round(tabFrameH) + ", tabs=" + ChatQolSettings.tabs().size() + "."));
@@ -446,9 +449,12 @@ public final class ChatChannelTabs {
                 current.addLine(line.getChatComponent());
             }
             arrivalMillis.keySet().retainAll(stillPresent);
-        } catch (IllegalAccessException | RuntimeException ignored) {
+        } catch (IllegalAccessException | RuntimeException | LinkageError ignored) {
             groups.clear();
             rows.clear();
+            // We cannot uncancel the already-entered overlay event, but every following frame returns to vanilla
+            // rather than continuing an incomplete replacement surface.
+            runtimeBridgeFailed = true;
             warnBridgeOnce();
         }
     }
