@@ -168,6 +168,9 @@ public final class ChatInteractionModel {
         private float openElapsed;
         private int animationMillis = 100;
         private final float[] rowHover = new float[MENU_LABELS.length];
+        private final float[] rowHoverStart = new float[MENU_LABELS.length];
+        private final float[] rowHoverTarget = new float[MENU_LABELS.length];
+        private final float[] rowHoverElapsed = new float[MENU_LABELS.length];
 
         public void setAnimationMillis(int value) {
             animationMillis = value < 0 ? 0 : value > 240 ? 240 : value;
@@ -185,14 +188,14 @@ public final class ChatInteractionModel {
             visible = true;
             openElapsed = 0f;
             open = animationMillis == 0 ? 1f : 0f;
-            for (int i = 0; i < rowHover.length; i++) rowHover[i] = 0f;
+            clearRowHover();
         }
 
         public void hide() {
             visible = false;
             open = 0f;
             openElapsed = 0f;
-            for (int i = 0; i < rowHover.length; i++) rowHover[i] = 0f;
+            clearRowHover();
         }
 
         public void update(float seconds) {
@@ -207,13 +210,26 @@ public final class ChatInteractionModel {
             }
         }
 
-        /** Call once per frame with the current pointer so menu-row feedback settles in about 100 ms. */
+        /** Call once per frame with the current pointer so menu-row feedback completes a real 100 ms ease-out. */
         public void updateHover(float seconds, int hoveredRow) {
-            float amount = easeOut(clamp(seconds, 0f, .1f) / .1f);
+            float dt = clamp(seconds, 0f, .1f);
             for (int i = 0; i < rowHover.length; i++) {
                 float target = i == hoveredRow ? 1f : 0f;
-                rowHover[i] += (target - rowHover[i]) * amount;
-                if (Math.abs(target - rowHover[i]) < .002f) rowHover[i] = target;
+                if (target != rowHoverTarget[i]) {
+                    rowHoverStart[i] = rowHover[i];
+                    rowHoverTarget[i] = target;
+                    rowHoverElapsed[i] = 0f;
+                }
+                rowHoverElapsed[i] = Math.min(.1f, rowHoverElapsed[i] + dt);
+                float progress = rowHoverElapsed[i] / .1f;
+                rowHover[i] = rowHoverElapsed[i] >= .1f ? rowHoverTarget[i]
+                        : rowHoverStart[i] + (rowHoverTarget[i] - rowHoverStart[i]) * easeOut(progress);
+            }
+        }
+
+        private void clearRowHover() {
+            for (int i = 0; i < rowHover.length; i++) {
+                rowHover[i] = rowHoverStart[i] = rowHoverTarget[i] = rowHoverElapsed[i] = 0f;
             }
         }
 
