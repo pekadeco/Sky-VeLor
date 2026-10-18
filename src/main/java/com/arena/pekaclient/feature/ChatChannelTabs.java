@@ -97,8 +97,9 @@ public final class ChatChannelTabs {
     private final List<MessageGroup> groups = new ArrayList<MessageGroup>();
     private final List<RenderRow> rows = new ArrayList<RenderRow>();
     private final Map<Integer, Long> arrivalMillis = new HashMap<Integer, Long>();
-    /** Last high-id counter update per original group; lets the counter reset this group's fade and arrival easing. */
+    /** Last high-id counter update/text per original group; lets the counter reset this group's fade and arrival easing. */
     private final Map<Integer, Integer> compactCounterUpdates = new HashMap<Integer, Integer>();
+    private final Map<Integer, String> compactCounterText = new HashMap<Integer, String>();
     private final ChatCompactMessages compactMessages = new ChatCompactMessages();
     private final Set<String> unreadTabs = new HashSet<String>();
     private final GuiLayoutToolkit.Scroll scroll = new GuiLayoutToolkit.Scroll();
@@ -179,6 +180,8 @@ public final class ChatChannelTabs {
     private void compactIncoming(ClientChatReceivedEvent event) {
         if (!ChatQolSettings.compactMessages) {
             compactMessages.reset();
+            compactCounterUpdates.clear();
+            compactCounterText.clear();
             return;
         }
         ChatCompactMessages.Result result = compactMessages.accept(event.message.getFormattedText());
@@ -333,6 +336,7 @@ public final class ChatChannelTabs {
             unreadTabs.clear();
             compactMessages.reset();
             compactCounterUpdates.clear();
+            compactCounterText.clear();
         }
     }
 
@@ -508,6 +512,7 @@ public final class ChatChannelTabs {
             attachCompactCounters(counters, stillPresent, now);
             arrivalMillis.keySet().retainAll(stillPresent);
             compactCounterUpdates.keySet().retainAll(stillPresent);
+            compactCounterText.keySet().retainAll(stillPresent);
         } catch (IllegalAccessException | RuntimeException | LinkageError ignored) {
             groups.clear();
             rows.clear();
@@ -1003,14 +1008,18 @@ public final class ChatChannelTabs {
 
         void setCompactCounter(String formattedCounter, int updateCounter, long now) {
             Integer previousUpdate = compactCounterUpdates.get(id);
-            // MessageGroup instances are rebuilt each frame, so cross-frame freshness lives in the small id map.
-            // GuiNewChat gives every replacement a fresh update counter; this resets fade/bottom animation once,
-            // rather than restarting it forever while the same counter is merely rendered again.
-            boolean changed = previousUpdate == null || previousUpdate.intValue() != updateCounter;
-            compactCounterFormatted = formattedCounter == null ? "" : formattedCounter;
+            String nextFormatted = formattedCounter == null ? "" : formattedCounter;
+            String previousFormatted = compactCounterText.get(id);
+            // MessageGroup instances are rebuilt each frame, so cross-frame freshness lives in the small id maps.
+            // A fresh update counter or changed xN text resets fade/bottom animation once, rather than restarting it
+            // forever while the same counter is merely rendered again. Text also covers two packets handled in one tick.
+            boolean changed = previousUpdate == null || previousUpdate.intValue() != updateCounter
+                    || !nextFormatted.equals(previousFormatted);
+            compactCounterFormatted = nextFormatted;
             compactCounterUpdate = updateCounter;
             if (changed) {
                 compactCounterUpdates.put(id, updateCounter);
+                compactCounterText.put(id, nextFormatted);
                 arrivalMillis.put(id, now);
             }
         }
