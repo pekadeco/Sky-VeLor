@@ -1,6 +1,10 @@
 package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.chat.ChatClipboard;
+import com.arena.pekaclient.chat.ChatRuntime;
+import com.arena.pekaclient.render.FirstPersonItemSetup;
+import com.arena.pekaclient.render.GlobalFontManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
@@ -19,12 +23,12 @@ public final class SvCommand extends CommandBase {
 
     @Override
     public List<String> getCommandAliases() {
-        return Collections.emptyList();
+        return java.util.Arrays.asList("velor");
     }
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/sv";
+        return "/sv [selftest]";
     }
 
     @Override
@@ -35,11 +39,25 @@ public final class SvCommand extends CommandBase {
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
         Minecraft mc = Minecraft.getMinecraft();
+        if (args != null && args.length == 1 && "selftest".equalsIgnoreCase(args[0])) {
+            selfTest(mc);
+            return;
+        }
         if (!AppleSettings.svCommand) {
             mc.thePlayer.addChatMessage(new ChatComponentText(
                     "\u00a7b[Sky VeLor] \u00a7f/sv is off. Turn it on in the hub, QoL, Commands."));
             return;
         }
         ClientActions.requestHub();
+    }
+
+    /** Runtime hook report: it intentionally distinguishes a genuine unavailable service from a successful check. */
+    private static void selfTest(Minecraft mc) {
+        if (mc == null || mc.thePlayer == null) return;
+        mc.thePlayer.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fselftest"));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7chat hook: §f" + ChatRuntime.selfTestStatus()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7font hook: §f" + GlobalFontManager.selfTestStatus()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7clipboard: §f" + ChatClipboard.selfTestStatus()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7item-animation hook: §f" + FirstPersonItemSetup.selfTestStatus()));
     }
 }

@@ -1,6 +1,8 @@
 package com.arena.pekaclient.notes;
 
 import com.arena.pekaclient.gui.AppleGuiButton;
+import com.arena.pekaclient.gui.GuiLayoutToolkit;
+import com.arena.pekaclient.render.GlobalFontManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -57,6 +59,7 @@ public final class QuickNoteScreen extends GuiScreen {
     private String wrappedSource;
     private int wrappedWidth;
     private final List<int[]> lines = new ArrayList<int[]>();
+    private final GuiLayoutToolkit.Rect layoutPanel = new GuiLayoutToolkit.Rect();
 
     public QuickNoteScreen(QuickNoteStore store, GuiScreen parent) {
         this.store = store;
@@ -84,11 +87,11 @@ public final class QuickNoteScreen extends GuiScreen {
         int newPageWidth = 78;
         buttonList.add(new AppleGuiButton(BUTTON_NEW_PAGE, panelX() + panelWidth() - 12 - newPageWidth,
                 panelY() + 5, newPageWidth, 16, "+ New page"));
-        headingField = new GuiTextField(0, fontRendererObj, headingFieldX(), headingLabelY(),
+        headingField = new GuiTextField(0, GlobalFontManager.rendererFor(fontRendererObj), headingFieldX(), headingLabelY(),
                 headingFieldWidth(), 14);
         headingField.setMaxStringLength(QuickNoteStore.MAX_HEADING_LENGTH);
         headingField.setText(store.getHeading(page));
-        searchField = new GuiTextField(1, fontRendererObj, sidebarX() + 4, panelY() + 25,
+        searchField = new GuiTextField(1, GlobalFontManager.rendererFor(fontRendererObj), sidebarX() + 4, panelY() + 25,
                 SIDEBAR_WIDTH - 8, 14);
         searchField.setMaxStringLength(40);
         searchField.setText(lastQuery == null ? "" : lastQuery);
@@ -115,9 +118,13 @@ public final class QuickNoteScreen extends GuiScreen {
     }
 
     // ---------------------------------------------------------------- geometry
-    private int panelWidth() {
-        return Math.min(568, width - 20);
+    private net.minecraft.client.gui.FontRenderer font() { return GlobalFontManager.rendererFor(fontRendererObj); }
+    private void measurePanel() {
+        GuiLayoutToolkit.clampPanel(layoutPanel, (width - Math.min(568, Math.max(160, width - 20))) * .5f,
+                (height - Math.min(252, Math.max(120, height - 40))) * .5f,
+                Math.min(568, Math.max(160, width - 20)), Math.min(252, Math.max(120, height - 40)), width, height);
     }
+    private int panelWidth() { measurePanel(); return Math.round(layoutPanel.w); }
 
     private int sidebarX() {
         return panelX() + 10;
@@ -136,17 +143,9 @@ public final class QuickNoteScreen extends GuiScreen {
         return sidebarX() + SIDEBAR_WIDTH + 10;
     }
 
-    private int panelHeight() {
-        return Math.min(252, height - 40);
-    }
-
-    private int panelX() {
-        return (width - panelWidth()) / 2;
-    }
-
-    private int panelY() {
-        return (height - panelHeight()) / 2;
-    }
+    private int panelHeight() { measurePanel(); return Math.round(layoutPanel.h); }
+    private int panelX() { measurePanel(); return Math.round(layoutPanel.x); }
+    private int panelY() { measurePanel(); return Math.round(layoutPanel.y); }
 
     private int boxX() {
         return contentLeft();
@@ -177,7 +176,7 @@ public final class QuickNoteScreen extends GuiScreen {
     }
 
     private int lineHeight() {
-        return fontRendererObj.FONT_HEIGHT + 2;
+        return font().FONT_HEIGHT + 2;
     }
 
     private int visibleLines() {
@@ -195,13 +194,13 @@ public final class QuickNoteScreen extends GuiScreen {
         Gui.drawRect(panelX(), panelY(), panelX() + panelWidth(), panelY() + panelHeight(),
                 COLOR_PANEL);
         drawBorder(panelX(), panelY(), panelWidth(), panelHeight(), COLOR_BORDER);
-        fontRendererObj.drawStringWithShadow("Quick Note", panelX() + 12, panelY() + 10,
+        font().drawStringWithShadow("Quick Note", panelX() + 12, panelY() + 10,
                 COLOR_TITLE);
         drawSidebar();
 
         // The label sits in the note column, right beside the field that shows "(optional)"; the
         // left column holds the search box alone.
-        fontRendererObj.drawStringWithShadow("Heading", contentLeft(), headingLabelY() + 3,
+        font().drawStringWithShadow("Heading", contentLeft(), headingLabelY() + 3,
                 COLOR_HINT);
         if (headingField != null) {
             headingField.xPosition = headingFieldX();
@@ -209,7 +208,7 @@ public final class QuickNoteScreen extends GuiScreen {
             headingField.width = headingFieldWidth();
             headingField.drawTextBox();
             if (!headingField.isFocused() && headingField.getText().isEmpty()) {
-                fontRendererObj.drawStringWithShadow("(optional)",
+                font().drawStringWithShadow("(optional)",
                         headingFieldX() + 5, headingLabelY() + 3, COLOR_HINT);
             }
         }
@@ -229,17 +228,17 @@ public final class QuickNoteScreen extends GuiScreen {
             }
             int[] line = lines.get(lineIndex);
             String label = text.substring(line[0], line[1]);
-            fontRendererObj.drawStringWithShadow(label, boxX() + 4,
+            font().drawStringWithShadow(label, boxX() + 4,
                     boxY() + 4 + i * lineHeight(), COLOR_TEXT);
         }
         drawCursor(text);
 
         String hint = dirty ? "saving..." : "saved automatically";
-        fontRendererObj.drawStringWithShadow(hint, panelX() + 12,
+        font().drawStringWithShadow(hint, panelX() + 12,
                 panelY() + panelHeight() - 37, dirty ? COLOR_PENDING : COLOR_SAVED);
         String keys = "Enter new line  -  search on the left  -  Esc closes";
-        fontRendererObj.drawStringWithShadow(keys,
-                panelX() + panelWidth() - 12 - fontRendererObj.getStringWidth(keys),
+        font().drawStringWithShadow(keys,
+                panelX() + panelWidth() - 12 - font().getStringWidth(keys),
                 panelY() + panelHeight() - 37, COLOR_HINT);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
@@ -258,7 +257,7 @@ public final class QuickNoteScreen extends GuiScreen {
             searchField.width = SIDEBAR_WIDTH - 8;
             searchField.drawTextBox();
             if (!searchField.isFocused() && searchField.getText().isEmpty()) {
-                fontRendererObj.drawStringWithShadow("Search notes",
+                font().drawStringWithShadow("Search notes",
                         sidebarX() + 9, panelY() + 29, COLOR_ROW_COUNT);
             }
         }
@@ -276,19 +275,19 @@ public final class QuickNoteScreen extends GuiScreen {
             int rowY = sidebarY() + 3 + i * rowHeight;
             boolean selected = pageIndex == page;
             String label = (pageIndex + 1) + ". " + store.getPreview(pageIndex);
-            String clipped = fontRendererObj.trimStringToWidth(label, SIDEBAR_WIDTH - 12);
+            String clipped = font().trimStringToWidth(label, SIDEBAR_WIDTH - 12);
             if (selected) {
                 Gui.drawRect(sidebarX() + 1, rowY - 1, sidebarX() + SIDEBAR_WIDTH - 1,
                         rowY + rowHeight - 1, 0x5535D3D3);
             }
-            fontRendererObj.drawStringWithShadow(clipped, sidebarX() + 5, rowY,
+            font().drawStringWithShadow(clipped, sidebarX() + 5, rowY,
                     selected ? COLOR_ROW_SELECTED : COLOR_ROW);
         }
 
         String count = searchField != null && !searchField.getText().trim().isEmpty()
                 ? searchHits.size() + " of " + store.getPageCount() + " pages"
                 : store.getPageCount() + " pages";
-        fontRendererObj.drawStringWithShadow(fontRendererObj.trimStringToWidth(count,
+        font().drawStringWithShadow(font().trimStringToWidth(count,
                 SIDEBAR_WIDTH - 10), sidebarX() + 5, sidebarBottom() - 10, COLOR_ROW_COUNT);
     }
 
@@ -326,11 +325,11 @@ public final class QuickNoteScreen extends GuiScreen {
             return;
         }
         int[] line = lines.get(lineIndex);
-        int offset = fontRendererObj.getStringWidth(text.substring(line[0],
+        int offset = font().getStringWidth(text.substring(line[0],
                 Math.max(line[0], Math.min(cursor, line[1]))));
         int cursorX = boxX() + 4 + offset;
         int cursorY = boxY() + 4 + (lineIndex - scrollLine) * lineHeight();
-        Gui.drawRect(cursorX, cursorY - 1, cursorX + 1, cursorY + fontRendererObj.FONT_HEIGHT,
+        Gui.drawRect(cursorX, cursorY - 1, cursorX + 1, cursorY + font().FONT_HEIGHT,
                 COLOR_CURSOR);
     }
 
@@ -367,7 +366,7 @@ public final class QuickNoteScreen extends GuiScreen {
                 lastSpace = i;
             }
             if (current.length() > 1
-                    && fontRendererObj.getStringWidth(current.toString()) > maxWidth) {
+                    && font().getStringWidth(current.toString()) > maxWidth) {
                 if (lastSpace > lineStart) {
                     lines.add(new int[] {lineStart, lastSpace});
                     lineStart = lastSpace + 1;
@@ -546,13 +545,13 @@ public final class QuickNoteScreen extends GuiScreen {
             return;
         }
         int[] source = lines.get(line);
-        int desired = fontRendererObj.getStringWidth(text.substring(source[0],
+        int desired = font().getStringWidth(text.substring(source[0],
                 Math.max(source[0], Math.min(cursor, source[1]))));
         int[] destination = lines.get(target);
         int best = destination[0];
         for (int i = destination[0]; i <= destination[1]; i++) {
             best = i;
-            if (fontRendererObj.getStringWidth(text.substring(destination[0], i)) >= desired) {
+            if (font().getStringWidth(text.substring(destination[0], i)) >= desired) {
                 break;
             }
         }
@@ -609,7 +608,7 @@ public final class QuickNoteScreen extends GuiScreen {
                 int target = line[0];
                 for (int i = line[0]; i <= line[1]; i++) {
                     target = i;
-                    if (boxX() + 4 + fontRendererObj.getStringWidth(
+                    if (boxX() + 4 + font().getStringWidth(
                             text.substring(line[0], i)) >= mouseX) {
                         break;
                     }

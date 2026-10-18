@@ -2,6 +2,7 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.render.Anim;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.startup.StartupTasks;
@@ -76,7 +77,7 @@ public final class LoadingScreen extends GuiScreen {
 
     @Override
     public void drawScreen(int mx, int my, float partialTicks) {
-        FontRenderer fr = Minecraft.getMinecraft().fontRendererObj;
+        FontRenderer fr = GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);
         float a = fade.get();
         float cx = width * 0.5f;
         float cy = height * 0.5f;
@@ -130,7 +131,7 @@ public final class LoadingScreen extends GuiScreen {
             statusCol = 0xFFA1A1A8;
         }
         float maxW = Math.max(120f, width - 24f);
-        String shown = fr.trimStringToWidth(status, (int) maxW);
+        String shown = GuiLayoutToolkit.ellipsize(status, maxW, new GuiLayoutToolkit.TextMetrics() { public float width(String value) { return fr.getStringWidth(value); } public float height() { return fr.FONT_HEIGHT; } });
         UIRender.text(fr, shown, cx - fr.getStringWidth(shown) * 0.5f, barY + 12f, statusCol, 1f, false);
 
         String foot = "Forge client for Minecraft 1.8.9";

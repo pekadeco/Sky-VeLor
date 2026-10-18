@@ -1,0 +1,13 @@
+package com.arena.pekaclient.gui;
+
+/** Headless geometry proof for the shared runtime layout primitive. */
+public final class GuiLayoutToolkitTests {
+    private static int passed,failed;
+    public static void main(String[] args){rowsNeverOverlapAtSmallScales();ellipsisFits();sectionsClipAndCollapse();scrollIsAppliedOnce();panelsRemainReachable();done("gui layout");}
+    private static void rowsNeverOverlapAtSmallScales(){int[] widths={214,427,854,1708};for(int width:widths){GuiLayoutToolkit.Rect row=new GuiLayoutToolkit.Rect().set(0,0,width,28),label=new GuiLayoutToolkit.Rect(),control=new GuiLayoutToolkit.Rect();GuiLayoutToolkit.splitRow(row,10,6,190,20,label,control);check("label/control do not overlap "+width,!label.intersects(control));check("control contained "+width,control.x>=row.x&&control.x+control.w<=row.x+row.w);}}
+    private static void ellipsisFits(){GuiLayoutToolkit.TextMetrics m=new GuiLayoutToolkit.TextMetrics(){public float width(String s){return s.length()*7;}public float height(){return 9;}};String s=GuiLayoutToolkit.ellipsize("A very long label for an 854 pixel safe layout",70,m);check("ellipsis ends correctly",s.endsWith("..."));check("ellipsis measured",m.width(s)<=70);}
+    private static void sectionsClipAndCollapse(){GuiLayoutToolkit.Sections s=new GuiLayoutToolkit.Sections(3);s.layout(0,0,180,90,20,6,new float[]{60,70,80},new float[]{1,0,1},999);check("scroll clamped",s.scroll==s.maxScroll);check("closed body zero",s.bodies[1].h==0);check("headers ordered",s.headers[1].y>=s.headers[0].y+s.headers[0].h);check("content exceeds viewport",s.contentHeight>90);}
+    private static void scrollIsAppliedOnce(){GuiLayoutToolkit.Scroll s=new GuiLayoutToolkit.Scroll();s.setMaximum(1000);s.wheel(-1,false,2f,10);float first=s.target();s.wheel(0,false,2f,10);check("zero event does not apply again",s.target()==first);s.update(.1f,false);check("non-smooth lands on target",s.value()==first);s.wheel(-1,true,2f,10);check("shift fine step",Math.abs(s.target()-first-5)<.001f);}
+    private static void panelsRemainReachable(){GuiLayoutToolkit.Rect p=new GuiLayoutToolkit.Rect();GuiLayoutToolkit.clampPanel(p,-500,999,500,500,214,120);check("clamped panel x",p.x==0);check("clamped panel y",p.y==0);check("clamped panel dimensions",p.w==214&&p.h==120);}
+    private static void check(String n,boolean ok){if(ok)passed++;else{failed++;System.out.println("FAIL "+n);}}private static void done(String n){System.out.println(n+": passed "+passed+", failed "+failed);if(failed>0)System.exit(1);}
+}

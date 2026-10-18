@@ -7,6 +7,7 @@ import com.arena.pekaclient.feature.LeapIdentity;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.render.SkinHead;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.UIRender;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
@@ -165,6 +166,7 @@ public final class LeapScreen extends GuiScreen {
     private int gridY;
     private long pendingUntilNs;
     private long lastRefreshNs;
+    private final GuiLayoutToolkit.Rect cardBounds = new GuiLayoutToolkit.Rect();
 
     public LeapScreen(Container container) {
         if (container == null) {
@@ -741,8 +743,9 @@ public final class LeapScreen extends GuiScreen {
             int rowWidth = LeapLayout.gridWidth(cardW, cardsInRow, gapX);
             int rowX = (width - rowWidth) / 2;
             int column = i - firstInRow;
-            c.x = rowX + column * (cardW + gapX);
-            c.y = gridY + row * (cardH + gapY);
+            GuiLayoutToolkit.clampPanel(cardBounds, rowX + column * (cardW + gapX), gridY + row * (cardH + gapY), cardW, cardH, width, height);
+            c.x = Math.round(cardBounds.x);
+            c.y = Math.round(cardBounds.y);
         }
     }
 
@@ -882,7 +885,7 @@ public final class LeapScreen extends GuiScreen {
     }
 
     private static FontRenderer fr() {
-        return Minecraft.getMinecraft().fontRendererObj;
+        return GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);
     }
 
     /** One-pixel square border retained for the fallback head tile. */

@@ -1,6 +1,7 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.widget.AppleButton;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.widget.AppleDropdown;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -17,7 +18,7 @@ public abstract class AppleScreen extends GuiScreen {
     protected AppleDropdown openDropdown;
 
     protected static FontRenderer fr() {
-        return Minecraft.getMinecraft().fontRendererObj;
+        return GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);
     }
 
     protected static boolean inside(float px, float py, float x, float y, float w, float h) {
@@ -28,11 +29,10 @@ public abstract class AppleScreen extends GuiScreen {
         if (s == null) {
             return "";
         }
-        int mw = (int) maxW;
-        if (fr.getStringWidth(s) <= mw) {
-            return s;
-        }
-        return fr.trimStringToWidth(s, Math.max(0, mw - 6)) + "...";
+        return GuiLayoutToolkit.ellipsize(s, maxW, new GuiLayoutToolkit.TextMetrics() {
+            public float width(String value) { return fr.getStringWidth(value); }
+            public float height() { return fr.FONT_HEIGHT; }
+        });
     }
 
     /** The standard secondary button used by settings rows. */
