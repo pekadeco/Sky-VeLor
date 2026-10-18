@@ -46,6 +46,8 @@ public final class ChatTabs {
         private boolean sound;
         private Pattern compiled;
         private String validationError = "";
+        /** True only for malformed persisted input. A rejected editor draft keeps the last safe compiled matcher. */
+        private boolean loadedInvalid;
 
         public Tab(String id, boolean builtIn, String name, boolean enabled, int filterType, String filterText,
                    String sendPrefix, int colour, boolean sound) {
@@ -103,6 +105,7 @@ public final class ChatTabs {
             filterText = nextText;
             compiled = next;
             validationError = "";
+            loadedInvalid = false;
             return true;
         }
 
@@ -118,7 +121,7 @@ public final class ChatTabs {
             if (ALL.equals(id)) return true;
             if (PARTY.equals(id)) return partyLine(clean);
             if (REPLY.equals(id)) return replyLine(clean);
-            if (builtIn || validationError.length() > 0 || filterText.length() == 0) return false;
+            if (builtIn || loadedInvalid || filterText.length() == 0) return false;
             String lower = clean.toLowerCase(Locale.ROOT);
             if (filterType == CONTAINS) return lower.contains(filterText.toLowerCase(Locale.ROOT));
             if (filterType == STARTS_WITH) return lower.startsWith(filterText.toLowerCase(Locale.ROOT));
@@ -127,23 +130,22 @@ public final class ChatTabs {
 
         public Tab copy() {
             Tab copy = new Tab(id, builtIn, name, enabled, filterType, filterText, sendPrefix, colour, sound);
-            if (validationError.length() > 0) {
-                copy.filterType = filterType;
-                copy.filterText = filterText;
-                copy.compiled = null;
-                copy.validationError = validationError;
-            }
+            copy.validationError = validationError;
+            copy.loadedInvalid = loadedInvalid;
+            if (loadedInvalid) copy.compiled = null;
             return copy;
         }
 
         private void recompile() {
             compiled = null;
             validationError = "";
+            loadedInvalid = false;
             if (!builtIn && filterType == REGEX && filterText.length() > 0) {
                 try {
                     compiled = Pattern.compile(filterText, Pattern.CASE_INSENSITIVE);
                 } catch (PatternSyntaxException bad) {
                     validationError = compactError(bad.getDescription());
+                    loadedInvalid = true;
                 }
             }
         }

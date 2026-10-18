@@ -181,13 +181,13 @@ public final class ChatEditorScreen extends AppleScreen {
                 .valueLabel(value -> value == 0 ? "Off" : value + " ms")));
 
         entries.add(new Entry(ChatEditorLayout.RESET, "Reset background", new AppleButton("Reset", 64f, 22f, false,
-                () -> { ChatQolSettings.resetBackground(); syncFields(false); })));
+                () -> { ChatQolSettings.resetBackground(); backgroundColour.setFocused(false); syncFields(false); })));
         entries.add(new Entry(ChatEditorLayout.RESET, "Reset messages", new AppleButton("Reset", 64f, 22f, false,
                 () -> { ChatQolSettings.resetMessages(); syncFields(false); })));
         entries.add(new Entry(ChatEditorLayout.RESET, "Reset tabs", new AppleButton("Reset", 64f, 22f, false,
                 () -> { ChatQolSettings.resetTabs(); editingTabId = ChatTabs.ALL; syncFields(true); })));
         entries.add(new Entry(ChatEditorLayout.RESET, "Reset menu/highlight", new AppleButton("Reset", 64f, 22f, false,
-                () -> { ChatQolSettings.resetMenuHighlight(); syncFields(false); })));
+                () -> { ChatQolSettings.resetMenuHighlight(); hoverColour.setFocused(false); syncFields(false); })));
     }
 
     private AppleSlider slider(int min, int max, int step, String suffix, java.util.function.IntSupplier getter,

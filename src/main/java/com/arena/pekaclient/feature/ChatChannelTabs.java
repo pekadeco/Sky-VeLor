@@ -154,7 +154,7 @@ public final class ChatChannelTabs {
     /** New messages remain vanilla messages. We only mark matching non-selected tabs unread and optionally play one sound. */
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
-        if (!ownsDefaultChat() || event == null || event.type == 2 || event.message == null) return;
+        if (!ownsDefaultChat() || !ChatQolSettings.tabsEnabled || event == null || event.type == 2 || event.message == null) return;
         String clean = cleanComponent(event.message);
         boolean played = false;
         for (ChatTabs.Tab tab : ChatQolSettings.tabs()) {
@@ -324,7 +324,7 @@ public final class ChatChannelTabs {
     }
 
     public static void cycleNext() {
-        if (live == null || !ownsDefaultChat()) return;
+        if (live == null || !ownsDefaultChat() || !ChatQolSettings.tabsEnabled) return;
         List<ChatTabs.Tab> tabs = ChatQolSettings.visibleTabs();
         if (tabs.isEmpty()) return;
         String current = ChatQolSettings.selectedTabId();
@@ -457,7 +457,7 @@ public final class ChatChannelTabs {
     private void layoutRows(float viewportTop, float messageBottom, float width, float lineH, int visibleLines,
                             float textScale, boolean chatOpen) {
         rows.clear();
-        ChatTabs.Tab selected = ChatQolSettings.selectedTab();
+        ChatTabs.Tab selected = activeTab();
         if (selected == null) return;
         List<MessageGroup> visible = new ArrayList<MessageGroup>();
         for (MessageGroup group : groups) {
@@ -565,7 +565,7 @@ public final class ChatChannelTabs {
 
     private void prefixOutgoing(GuiChat chat) {
         GuiTextField input = input(chat);
-        ChatTabs.Tab selected = ChatQolSettings.selectedTab();
+        ChatTabs.Tab selected = activeTab();
         if (input == null || selected == null) return;
         String original = input.getText();
         String next = ChatTabs.outgoingPrefix(selected, original);
@@ -651,6 +651,10 @@ public final class ChatChannelTabs {
     }
 
     private void adjustInput(GuiChat chat) {
+        if (!ChatQolSettings.tabsEnabled) {
+            restoreInput();
+            return;
+        }
         GuiTextField input = inputOwner == chat ? cachedInput : input(chat);
         if (input == null) return;
         if (shiftedInput != input) {
@@ -677,14 +681,20 @@ public final class ChatChannelTabs {
     private void drawInputChannelLabel(GuiChat chat) {
         if (shiftedInput == null || inputOwner != chat) return;
         FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
+        ChatTabs.Tab selected = activeTab();
         UIRender.text(font, selectedLabel() + " ›", savedInputX + 4f, shiftedInput.yPosition + 2f,
-                ChatQolSettings.selectedTab() == null ? Theme.textSecondary : ChatQolSettings.selectedTab().colour(),
-                1f, true, GlobalFontManager.Area.TAB);
+                selected == null ? Theme.textSecondary : selected.colour(), 1f, true, GlobalFontManager.Area.TAB);
     }
 
     private String selectedLabel() {
-        ChatTabs.Tab selected = ChatQolSettings.selectedTab();
+        ChatTabs.Tab selected = activeTab();
         return selected == null ? "All" : selected.name();
+    }
+
+    /** Disabling the tab feature must never leave a hidden filter or prefix active: the real Default Chat falls back
+     * to All until tabs are turned back on, while the user's selection remains safely saved for later. */
+    private ChatTabs.Tab activeTab() {
+        return ChatQolSettings.tabsEnabled ? ChatQolSettings.selectedTab() : ChatQolSettings.tab(ChatTabs.ALL);
     }
 
     private int inputWidth(GuiTextField input) {
@@ -829,6 +839,8 @@ public final class ChatChannelTabs {
                         toast(input.getText().length() >= ChatInputInsertion.MAX_LENGTH
                                 ? "Chat box already has 256 characters" : "Nothing selected");
                     } else {
+                        // Raise the real field's cap before setting text so GuiTextField cannot truncate a valid
+                        // 101–256 character insertion using its prior vanilla limit.
                         input.setMaxStringLength(ChatInputInsertion.MAX_LENGTH);
                         input.setText(inserted.text);
                         input.setCursorPosition(inserted.cursor);
