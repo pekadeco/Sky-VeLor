@@ -533,13 +533,14 @@ def main():
     block_transformer_constants = constants_of('render/blockparticles/BlockParticleTransformer')
     block_hooks_raw = raw_of('render/blockparticles/BlockParticleHooks')
     loading_raw = raw_of('render/itemanimation/ItemAnimationLoadingPlugin')
-    block_hooks_members = members_of('render/blockparticles/BlockParticleHooks')
     r.check(all(value in block_transformer_constants for value in
                 ('net.minecraft.client.particle.EffectRenderer', 'bec', 'addEffect', 'func_78873_a', 'a',
-                 '(Lnet/minecraft/client/particle/EntityFX;)V', '(Lbeb;)V', 'shouldSuppress'))
-                and 'shouldSuppress' in block_hooks_members and b'noBlockParticles' in block_hooks_raw
-                and b'BlockParticleTransformer' in loading_raw,
-            'No block particles packages only the explicit EffectRenderer EntityFX hook and block-digging policy')
+                 '(Lnet/minecraft/client/particle/EntityFX;)V', '(Lbeb;)V', 'shouldSuppress')),
+            'No block particles carries only explicit EffectRenderer EntityFX MCP/SRG/notch target strings')
+    r.check(b'BlockParticlePolicy' in block_hooks_raw and b'AppleSettings' in block_hooks_raw,
+            'No block particles hook routes the runtime object through the opt-in block-digging policy')
+    r.check(b'BlockParticleTransformer' in loading_raw,
+            'Item Animation loading plugin registers the narrow No block particles transformer')
     fishing_constants = constants_of('fishing/FishingStats')
     r.check(all(name in fishing_constants for name in ('commonCreatureCount', 'legendaryCreatureCount')),
             'FishingStats packages separate Common Creature and preserved Legendary/Mythic totals')
