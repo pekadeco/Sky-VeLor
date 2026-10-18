@@ -1372,8 +1372,11 @@ public final class HudEditorScreen extends AppleScreen {
     public void handleMouseInput() throws IOException {
         int wheel = Mouse.getEventDWheel();
         super.handleMouseInput();
-        if (wheel != 0) {
-            scroll.wheel(wheel / 120f, scrollSpeed());
+        int mx = Mouse.getEventX() * width / Minecraft.getMinecraft().displayWidth;
+        int my = height - Mouse.getEventY() * height / Minecraft.getMinecraft().displayHeight - 1;
+        if (wheel != 0 && openDropdown == null && inCardView(mx, my)) {
+            boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+            scroll.wheel(wheel / 120f, fine, scrollSpeed());
         }
     }
 

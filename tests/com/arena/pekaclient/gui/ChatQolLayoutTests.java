@@ -27,7 +27,7 @@ public final class ChatQolLayoutTests {
         List<ChatUiModel.Entry> entries = ChatUiModel.buildQolModel();
         String[] ids = {"chat-qol-master", "chat-tabs", "separate-chats", "smooth-messages",
                 "hover-highlight", "right-click-menu", "open-chat-editor"};
-        check("Chat QoL hub has exactly nine allowed controls", entries.size() == ids.length);
+        check("Chat QoL hub has exactly seven chat-owned controls", entries.size() == ids.length);
         for (int i = 0; i < ids.length; i++) check("Chat QoL order " + ids[i], ids[i].equals(entries.get(i).getId()));
         check("master is the only master control", entries.get(0).isMasterToggle());
         for (int i = 1; i < entries.size() - 1; i++) check("feature is a toggle " + i, entries.get(i).isToggle());

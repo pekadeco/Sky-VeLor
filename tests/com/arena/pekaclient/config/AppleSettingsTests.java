@@ -109,6 +109,11 @@ public final class AppleSettingsTests {
         check("target-local speed migrates to global setting", AppleSettings.scrollSpeed == 225);
         check("target-local smoothing migrates to global setting", !AppleSettings.smoothScrolling);
 
+        Properties chatTwoOnly = new Properties();
+        chatTwoOnly.setProperty("chat.qol.target.chat2.scroll.speed", "175");
+        AppleSettings.loadGlobalScrollSettings(chatTwoOnly);
+        check("Chat 2-only legacy speed also migrates", AppleSettings.scrollSpeed == 175);
+
         Properties nativeGlobal = new Properties();
         nativeGlobal.setProperty("scrollSpeed", "150");
         nativeGlobal.setProperty("smoothScrolling", "true");

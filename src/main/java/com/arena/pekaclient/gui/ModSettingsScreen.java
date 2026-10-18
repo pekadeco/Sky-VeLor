@@ -31,21 +31,21 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
     public void drawScreen(int mx, int my, float partial) {
         drawDefaultBackground();
         beginPanel("Mod Settings", mx, my);
-        float y = rowY(0f);
-        row("Scroll speed", multiplier(AppleSettings.effectiveScrollSpeed()), 0, y);
-        y += 31f;
-        row("Smooth scrolling", AppleSettings.smoothScrolling ? "Enabled" : "Disabled", 1, y);
-        y += 31f;
-        row("Chat QoL master", ChatQolSettings.isEnabled() ? "Enabled" : "Disabled", 2, y);
-        y += 31f;
-        row("Item Animation", AppleSettings.itemAnimationEnabled ? "Enabled" : "Disabled", 3, y);
-        y += 42f;
+        float naturalY = 0f;
+        row("Scroll speed", multiplier(AppleSettings.effectiveScrollSpeed()), 0, rowY(naturalY));
+        naturalY += 31f;
+        row("Smooth scrolling", AppleSettings.smoothScrolling ? "Enabled" : "Disabled", 1, rowY(naturalY));
+        naturalY += 31f;
+        row("Chat QoL master", ChatQolSettings.isEnabled() ? "Enabled" : "Disabled", 2, rowY(naturalY));
+        naturalY += 31f;
+        row("Item Animation", AppleSettings.itemAnimationEnabled ? "Enabled" : "Disabled", 3, rowY(naturalY));
+        naturalY += 42f;
         drawLabel("Shift + wheel uses fine scrolling. A wheel event is applied once only to its hovered viewport.",
-                content.x, y, content.w, 0xFFB9C1CD);
-        y += 18f;
+                content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
+        naturalY += 18f;
         drawLabel("This global policy is used by settings, editors, HUD panels, and the Chat QoL renderer.",
-                content.x, y, content.w, 0xFFB9C1CD);
-        finishContent(y - content.y + 28f);
+                content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
+        finishContent(naturalY + 28f);
         endPanel();
     }
 

@@ -124,8 +124,6 @@ public final class ChatQolSettings {
         private int fadeSeconds;
         private int hoverColor;
         private int hoverOpacity;
-        private int scrollSpeed;
-        private boolean smoothScroll;
 
         private Appearance(int target) {
             this.target = target;
@@ -147,15 +145,12 @@ public final class ChatQolSettings {
         public int fadeSeconds() { return fadeSeconds; }
         public int hoverColor() { return hoverColor; }
         public int hoverOpacity() { return hoverOpacity; }
-        public int scrollSpeed() { return scrollSpeed; }
-        public boolean smoothScroll() { return smoothScroll; }
 
         /** Only Default Chat uses this to decide whether cancelling vanilla draw is necessary. */
         public boolean needsCustomDefaultRenderer() {
             return target == TARGET_DEFAULT && (textColor != 0xFFFFFF || textScale != 100 || backgroundOpacity != 0
                     || radius != 0 || borderOpacity != 0 || lineSpacing != 0 || shadow
-                    || !"VANILLA".equals(appearStyle) || appearSpeed != 120 || fadeSeconds != 10
-                    || scrollSpeed != 100 || smoothScroll);
+                    || !"VANILLA".equals(appearStyle) || appearSpeed != 120 || fadeSeconds != 10);
         }
 
         public void setTextColor(int value) { textColor = colour(value, 0xFFFFFF); }
@@ -175,8 +170,6 @@ public final class ChatQolSettings {
         public void setFadeSeconds(int value) { fadeSeconds = clamp(value, 0, 60); }
         public void setHoverColor(int value) { hoverColor = colour(value, 0x64D2FF); }
         public void setHoverOpacity(int value) { hoverOpacity = clamp(value, 0, 100); }
-        public void setScrollSpeed(int value) { scrollSpeed = clamp(value, 25, 400); }
-        public void setSmoothScroll(boolean value) { smoothScroll = value; }
 
         private void reset() {
             textColor = 0xFFFFFF;
@@ -193,8 +186,6 @@ public final class ChatQolSettings {
             fadeSeconds = 10;
             hoverColor = 0x64D2FF;
             hoverOpacity = 35;
-            scrollSpeed = 100;
-            smoothScroll = false;
         }
 
         private void copyFrom(Appearance source) {
@@ -213,8 +204,6 @@ public final class ChatQolSettings {
             fadeSeconds = source.fadeSeconds;
             hoverColor = source.hoverColor;
             hoverOpacity = source.hoverOpacity;
-            scrollSpeed = source.scrollSpeed;
-            smoothScroll = source.smoothScroll;
         }
 
         private void load(Properties p, String prefix) {
@@ -232,8 +221,7 @@ public final class ChatQolSettings {
             setFadeSeconds(readInt(p, prefix + "fade", fadeSeconds, 0, 60));
             setHoverColor(readColour(p, prefix + "hover.color", hoverColor));
             setHoverOpacity(readInt(p, prefix + "hover.opacity", hoverOpacity, 0, 100));
-            setScrollSpeed(readInt(p, prefix + "scroll.speed", scrollSpeed, 25, 400));
-            setSmoothScroll(readBool(p, prefix + "scroll.smooth", smoothScroll));
+            // Retired target-local scroll keys are promoted by AppleSettings.loadGlobalScrollSettings.
         }
 
         private void save(Properties p, String prefix) {
@@ -576,8 +564,6 @@ public final class ChatQolSettings {
                 appearance.setAppearStyle("VANILLA");
                 appearance.setAppearSpeed(120);
                 appearance.setFadeSeconds(10);
-                appearance.setScrollSpeed(100);
-                appearance.setSmoothScroll(false);
             }
         });
         smoothDuration = 120;

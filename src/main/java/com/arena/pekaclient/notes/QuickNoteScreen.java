@@ -1,8 +1,10 @@
 package com.arena.pekaclient.notes;
 
 import com.arena.pekaclient.gui.AppleGuiButton;
+import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.gui.GuiLayoutToolkit;
 import com.arena.pekaclient.render.GlobalFontManager;
+import com.arena.pekaclient.render.UIRender;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,6 +13,7 @@ import java.util.List;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -41,7 +44,6 @@ public final class QuickNoteScreen extends GuiScreen {
     private static final int COLOR_ROW = 0xFF9A9AA2;
     private static final int COLOR_ROW_SELECTED = 0xFF35D3D3;
     private static final int COLOR_ROW_COUNT = 0xFF7F7F88;
-    private static final int SIDEBAR_WIDTH = 132;
     private static final long AUTOSAVE_DELAY_MS = 700L;
 
     private final QuickNoteStore store;
@@ -59,7 +61,8 @@ public final class QuickNoteScreen extends GuiScreen {
     private String wrappedSource;
     private int wrappedWidth;
     private final List<int[]> lines = new ArrayList<int[]>();
-    private final GuiLayoutToolkit.Rect layoutPanel = new GuiLayoutToolkit.Rect();
+    /** Real production geometry from the common clamped-panel system, never fixed pixel assumptions. */
+    private final QuickNoteLayout.Metrics layout = new QuickNoteLayout.Metrics();
 
     public QuickNoteScreen(QuickNoteStore store, GuiScreen parent) {
         this.store = store;
@@ -72,31 +75,74 @@ public final class QuickNoteScreen extends GuiScreen {
     @Override
     public void initGui() {
         buttonList.clear();
-        int buttonWidth = 62;
-        int gap = 4;
-        int buttonY = panelY() + panelHeight() - 24;
-        int x = panelX() + 10;
-        buttonList.add(new AppleGuiButton(BUTTON_PREV, x, buttonY, buttonWidth, 18, "< Prev"));
-        buttonList.add(new AppleGuiButton(BUTTON_NEXT, x + buttonWidth + gap, buttonY, buttonWidth, 18,
-                "Next >"));
-        buttonList.add(new AppleGuiButton(BUTTON_DELETE_PAGE, x + (buttonWidth + gap) * 2, buttonY,
-                buttonWidth, 18, "Delete"));
-        int doneX = panelX() + panelWidth() - 10 - buttonWidth;
-        buttonList.add(new AppleGuiButton(BUTTON_DONE, doneX, buttonY, buttonWidth, 18, "Done"));
-        // The new page button sits in the header, where the old page counter used to be.
-        int newPageWidth = 78;
-        buttonList.add(new AppleGuiButton(BUTTON_NEW_PAGE, panelX() + panelWidth() - 12 - newPageWidth,
-                panelY() + 5, newPageWidth, 16, "+ New page"));
+        // Positions, widths and labels are updated below whenever the scaled viewport changes.
+        buttonList.add(new AppleGuiButton(BUTTON_PREV, 0, 0, 1, 18, "< Prev"));
+        buttonList.add(new AppleGuiButton(BUTTON_NEXT, 0, 0, 1, 18, "Next >"));
+        buttonList.add(new AppleGuiButton(BUTTON_DELETE_PAGE, 0, 0, 1, 18, "Delete"));
+        buttonList.add(new AppleGuiButton(BUTTON_DONE, 0, 0, 1, 18, "Done"));
+        buttonList.add(new AppleGuiButton(BUTTON_NEW_PAGE, 0, 0, 1, 16, "+ New page"));
         headingField = new GuiTextField(0, GlobalFontManager.rendererFor(fontRendererObj), headingFieldX(), headingLabelY(),
                 headingFieldWidth(), 14);
         headingField.setMaxStringLength(QuickNoteStore.MAX_HEADING_LENGTH);
         headingField.setText(store.getHeading(page));
         searchField = new GuiTextField(1, GlobalFontManager.rendererFor(fontRendererObj), sidebarX() + 4, panelY() + 25,
-                SIDEBAR_WIDTH - 8, 14);
+                Math.max(1, sidebarWidth() - 8), 14);
         searchField.setMaxStringLength(40);
         searchField.setText(lastQuery == null ? "" : lastQuery);
         refreshSearch();
+        layoutButtons();
         updateButtonStates();
+    }
+
+    /** Keeps every action reachable at compact GUI scales instead of letting the old fixed button row overlap. */
+    private void layoutButtons() {
+        measurePanel();
+        if (buttonList == null || buttonList.isEmpty()) {
+            return;
+        }
+        GuiButton prev = button(BUTTON_PREV);
+        GuiButton next = button(BUTTON_NEXT);
+        GuiButton delete = button(BUTTON_DELETE_PAGE);
+        GuiButton done = button(BUTTON_DONE);
+        GuiButton add = button(BUTTON_NEW_PAGE);
+        if (layout.compact) {
+            int gap = 2;
+            int x = Math.round(layout.footer.x);
+            int y = Math.round(layout.footer.y + 2f);
+            int w = Math.max(22, (Math.round(layout.footer.w) - gap * 3) / 4);
+            placeButton(prev, x, y, w, 18, "<");
+            placeButton(next, x + w + gap, y, w, 18, ">");
+            placeButton(delete, x + (w + gap) * 2, y, w, 18, "Del");
+            placeButton(done, Math.round(layout.footer.right()) - w, y, w, 18, "Done");
+            placeButton(add, Math.round(layout.panel.right()) - 20, Math.round(layout.panel.y + 4f), 14, 16, "+");
+            return;
+        }
+        int buttonWidth = 62;
+        int gap = 4;
+        int y = Math.round(layout.footer.y + 20f);
+        int x = Math.round(layout.footer.x);
+        placeButton(prev, x, y, buttonWidth, 18, "< Prev");
+        placeButton(next, x + buttonWidth + gap, y, buttonWidth, 18, "Next >");
+        placeButton(delete, x + (buttonWidth + gap) * 2, y, buttonWidth, 18, "Delete");
+        placeButton(done, Math.round(layout.panel.right()) - 10 - buttonWidth, y, buttonWidth, 18, "Done");
+        placeButton(add, Math.round(layout.panel.right()) - 90, Math.round(layout.panel.y + 5f), 78, 16, "+ New page");
+    }
+
+    private GuiButton button(int id) {
+        for (Object object : buttonList) {
+            GuiButton candidate = (GuiButton) object;
+            if (candidate.id == id) return candidate;
+        }
+        return null;
+    }
+
+    private void placeButton(GuiButton button, int x, int y, int width, int height, String label) {
+        if (button == null) return;
+        button.xPosition = x;
+        button.yPosition = y;
+        button.width = Math.max(1, width);
+        button.height = Math.max(1, height);
+        button.displayString = label;
     }
 
     private void updateButtonStates() {
@@ -119,61 +165,29 @@ public final class QuickNoteScreen extends GuiScreen {
 
     // ---------------------------------------------------------------- geometry
     private net.minecraft.client.gui.FontRenderer font() { return GlobalFontManager.rendererFor(fontRendererObj); }
+
     private void measurePanel() {
-        GuiLayoutToolkit.clampPanel(layoutPanel, (width - Math.min(568, Math.max(160, width - 20))) * .5f,
-                (height - Math.min(252, Math.max(120, height - 40))) * .5f,
-                Math.min(568, Math.max(160, width - 20)), Math.min(252, Math.max(120, height - 40)), width, height);
-    }
-    private int panelWidth() { measurePanel(); return Math.round(layoutPanel.w); }
-
-    private int sidebarX() {
-        return panelX() + 10;
+        QuickNoteLayout.update(layout, width, height);
     }
 
-    private int sidebarY() {
-        return panelY() + 42;
-    }
-
-    private int sidebarBottom() {
-        // Stops above the status line and button row.
-        return panelY() + panelHeight() - 44;
-    }
-
-    private int contentLeft() {
-        return sidebarX() + SIDEBAR_WIDTH + 10;
-    }
-
-    private int panelHeight() { measurePanel(); return Math.round(layoutPanel.h); }
-    private int panelX() { measurePanel(); return Math.round(layoutPanel.x); }
-    private int panelY() { measurePanel(); return Math.round(layoutPanel.y); }
-
-    private int boxX() {
-        return contentLeft();
-    }
-
-    private int boxWidth() {
-        return panelX() + panelWidth() - 12 - boxX();
-    }
-
-    private int headingLabelY() {
-        return panelY() + 26;
-    }
-
-    private int headingFieldX() {
-        return contentLeft() + 58;
-    }
-
-    private int headingFieldWidth() {
-        return panelX() + panelWidth() - 12 - headingFieldX();
-    }
-
-    private int boxY() {
-        return panelY() + 46;
-    }
-
-    private int boxHeight() {
-        return panelHeight() - 90;
-    }
+    private int panelWidth() { measurePanel(); return Math.round(layout.panel.w); }
+    private int panelHeight() { measurePanel(); return Math.round(layout.panel.h); }
+    private int panelX() { measurePanel(); return Math.round(layout.panel.x); }
+    private int panelY() { measurePanel(); return Math.round(layout.panel.y); }
+    private int sidebarX() { measurePanel(); return Math.round(layout.sidebar.x); }
+    private int sidebarY() { measurePanel(); return Math.round(layout.sidebar.y); }
+    private int sidebarBottom() { measurePanel(); return Math.round(layout.sidebar.bottom()); }
+    private int sidebarWidth() { measurePanel(); return Math.round(layout.sidebar.w); }
+    private int contentLeft() { measurePanel(); return Math.round(layout.note.x); }
+    private int boxX() { measurePanel(); return Math.round(layout.note.x); }
+    private int boxWidth() { measurePanel(); return Math.max(1, Math.round(layout.note.w)); }
+    private int headingLabelY() { measurePanel(); return Math.round(layout.heading.y); }
+    private int headingFieldX() { measurePanel(); return Math.round(layout.heading.x); }
+    private int headingFieldWidth() { measurePanel(); return Math.max(1, Math.round(layout.heading.w)); }
+    private int boxY() { measurePanel(); return Math.round(layout.note.y); }
+    private int boxHeight() { measurePanel(); return Math.max(1, Math.round(layout.note.h)); }
+    private boolean compactLayout() { measurePanel(); return layout.compact; }
+    private boolean showSidebar() { measurePanel(); return layout.showSidebar; }
 
     private int lineHeight() {
         return font().FONT_HEIGHT + 2;
@@ -190,25 +204,31 @@ public final class QuickNoteScreen extends GuiScreen {
     // ---------------------------------------------------------------- drawing
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        measurePanel();
+        layoutButtons();
         drawDefaultBackground();
         Gui.drawRect(panelX(), panelY(), panelX() + panelWidth(), panelY() + panelHeight(),
                 COLOR_PANEL);
         drawBorder(panelX(), panelY(), panelWidth(), panelHeight(), COLOR_BORDER);
-        font().drawStringWithShadow("Quick Note", panelX() + 12, panelY() + 10,
-                COLOR_TITLE);
-        drawSidebar();
+        String title = compactLayout() ? "Note " + (page + 1) + "/" + store.getPageCount() : "Quick Note";
+        font().drawStringWithShadow(font().trimStringToWidth(title, Math.max(1, panelWidth() - 38)),
+                panelX() + 8, panelY() + 10, COLOR_TITLE);
+        if (showSidebar()) {
+            drawSidebar();
+        }
 
-        // The label sits in the note column, right beside the field that shows "(optional)"; the
-        // left column holds the search box alone.
-        font().drawStringWithShadow("Heading", contentLeft(), headingLabelY() + 3,
-                COLOR_HINT);
+        // In the compact arrangement the heading field spans its own row; in the normal arrangement it follows
+        // the label in the note column. Both forms are derived from QuickNoteLayout, not fixed sidebar offsets.
+        if (!compactLayout()) {
+            font().drawStringWithShadow("Heading", contentLeft(), headingLabelY() + 3, COLOR_HINT);
+        }
         if (headingField != null) {
             headingField.xPosition = headingFieldX();
             headingField.yPosition = headingLabelY();
             headingField.width = headingFieldWidth();
             headingField.drawTextBox();
             if (!headingField.isFocused() && headingField.getText().isEmpty()) {
-                font().drawStringWithShadow("(optional)",
+                font().drawStringWithShadow(compactLayout() ? "Title (optional)" : "(optional)",
                         headingFieldX() + 5, headingLabelY() + 3, COLOR_HINT);
             }
         }
@@ -221,25 +241,33 @@ public final class QuickNoteScreen extends GuiScreen {
         int visible = visibleLines();
         int maxScroll = Math.max(0, lines.size() - visible);
         scrollLine = Math.max(0, Math.min(maxScroll, scrollLine));
-        for (int i = 0; i < visible; i++) {
-            int lineIndex = scrollLine + i;
-            if (lineIndex >= lines.size()) {
-                break;
+        beginClip(layout.note);
+        try {
+            for (int i = 0; i < visible; i++) {
+                int lineIndex = scrollLine + i;
+                if (lineIndex >= lines.size()) {
+                    break;
+                }
+                int[] line = lines.get(lineIndex);
+                String label = text.substring(line[0], line[1]);
+                font().drawStringWithShadow(label, boxX() + 4,
+                        boxY() + 4 + i * lineHeight(), COLOR_TEXT);
             }
-            int[] line = lines.get(lineIndex);
-            String label = text.substring(line[0], line[1]);
-            font().drawStringWithShadow(label, boxX() + 4,
-                    boxY() + 4 + i * lineHeight(), COLOR_TEXT);
+            drawCursor(text);
+        } finally {
+            UIRender.scissorEnd();
         }
-        drawCursor(text);
 
-        String hint = dirty ? "saving..." : "saved automatically";
-        font().drawStringWithShadow(hint, panelX() + 12,
-                panelY() + panelHeight() - 37, dirty ? COLOR_PENDING : COLOR_SAVED);
-        String keys = "Enter new line  -  search on the left  -  Esc closes";
-        font().drawStringWithShadow(keys,
-                panelX() + panelWidth() - 12 - font().getStringWidth(keys),
-                panelY() + panelHeight() - 37, COLOR_HINT);
+        if (!compactLayout()) {
+            String hint = dirty ? "saving..." : "saved automatically";
+            font().drawStringWithShadow(hint, panelX() + 12,
+                    panelY() + panelHeight() - 37, dirty ? COLOR_PENDING : COLOR_SAVED);
+            String keys = font().trimStringToWidth("Enter new line  -  search on the left  -  Esc closes",
+                    Math.max(1, panelWidth() - 24 - font().getStringWidth(hint)));
+            font().drawStringWithShadow(keys,
+                    panelX() + panelWidth() - 12 - font().getStringWidth(keys),
+                    panelY() + panelHeight() - 37, COLOR_HINT);
+        }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
         updateButtonStates();
@@ -247,14 +275,16 @@ public final class QuickNoteScreen extends GuiScreen {
 
     /** The page list on the left, with the search field that filters it. */
     private void drawSidebar() {
-        Gui.drawRect(sidebarX(), sidebarY(), sidebarX() + SIDEBAR_WIDTH, sidebarBottom(),
+        if (!showSidebar()) return;
+        int sidebarWidth = sidebarWidth();
+        Gui.drawRect(sidebarX(), sidebarY(), sidebarX() + sidebarWidth, sidebarBottom(),
                 COLOR_SIDEBAR);
-        drawBorder(sidebarX(), sidebarY(), SIDEBAR_WIDTH, sidebarBottom() - sidebarY(),
+        drawBorder(sidebarX(), sidebarY(), sidebarWidth, sidebarBottom() - sidebarY(),
                 COLOR_SIDEBAR_BORDER);
         if (searchField != null) {
             searchField.xPosition = sidebarX() + 4;
             searchField.yPosition = panelY() + 25;
-            searchField.width = SIDEBAR_WIDTH - 8;
+            searchField.width = Math.max(1, sidebarWidth - 8);
             searchField.drawTextBox();
             if (!searchField.isFocused() && searchField.getText().isEmpty()) {
                 font().drawStringWithShadow("Search notes",
@@ -275,9 +305,9 @@ public final class QuickNoteScreen extends GuiScreen {
             int rowY = sidebarY() + 3 + i * rowHeight;
             boolean selected = pageIndex == page;
             String label = (pageIndex + 1) + ". " + store.getPreview(pageIndex);
-            String clipped = font().trimStringToWidth(label, SIDEBAR_WIDTH - 12);
+            String clipped = font().trimStringToWidth(label, Math.max(1, sidebarWidth - 12));
             if (selected) {
-                Gui.drawRect(sidebarX() + 1, rowY - 1, sidebarX() + SIDEBAR_WIDTH - 1,
+                Gui.drawRect(sidebarX() + 1, rowY - 1, sidebarX() + sidebarWidth - 1,
                         rowY + rowHeight - 1, 0x5535D3D3);
             }
             font().drawStringWithShadow(clipped, sidebarX() + 5, rowY,
@@ -288,7 +318,7 @@ public final class QuickNoteScreen extends GuiScreen {
                 ? searchHits.size() + " of " + store.getPageCount() + " pages"
                 : store.getPageCount() + " pages";
         font().drawStringWithShadow(font().trimStringToWidth(count,
-                SIDEBAR_WIDTH - 10), sidebarX() + 5, sidebarBottom() - 10, COLOR_ROW_COUNT);
+                Math.max(1, sidebarWidth - 10)), sidebarX() + 5, sidebarBottom() - 10, COLOR_ROW_COUNT);
     }
 
     private void refreshSearch() {
@@ -331,6 +361,12 @@ public final class QuickNoteScreen extends GuiScreen {
         int cursorY = boxY() + 4 + (lineIndex - scrollLine) * lineHeight();
         Gui.drawRect(cursorX, cursorY - 1, cursorX + 1, cursorY + font().FONT_HEIGHT,
                 COLOR_CURSOR);
+    }
+
+    /** Scissor clipping shares the same resolved note rectangle used for wrap, hit test and scrolling. */
+    private void beginClip(GuiLayoutToolkit.Rect rect) {
+        UIRender.scissorBegin(rect.x, rect.y, rect.w, rect.h,
+                new ScaledResolution(mc).getScaleFactor());
     }
 
     private void drawBorder(int x, int y, int w, int h, int color) {
@@ -562,7 +598,7 @@ public final class QuickNoteScreen extends GuiScreen {
     // ---------------------------------------------------------------- mouse
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        if (mouseButton == 0 && searchField != null
+        if (mouseButton == 0 && showSidebar() && searchField != null
                 && mouseX >= searchField.xPosition
                 && mouseX <= searchField.xPosition + searchField.width
                 && mouseY >= searchField.yPosition
@@ -577,7 +613,7 @@ public final class QuickNoteScreen extends GuiScreen {
         if (searchField != null) {
             searchField.setFocused(false);
         }
-        if (mouseButton == 0 && mouseX >= sidebarX() && mouseX <= sidebarX() + SIDEBAR_WIDTH
+        if (mouseButton == 0 && mouseX >= sidebarX() && showSidebar() && mouseX <= sidebarX() + sidebarWidth()
                 && mouseY >= sidebarY() && mouseY <= sidebarBottom()) {
             int rowHeight = lineHeight();
             int slot = searchScroll + Math.max(0, (mouseY - sidebarY() - 3) / rowHeight);
@@ -630,14 +666,20 @@ public final class QuickNoteScreen extends GuiScreen {
         }
         int mouseX = Mouse.getEventX() * width / mc.displayWidth;
         int mouseY = height - Mouse.getEventY() * height / mc.displayHeight - 1;
-        if (mouseX >= sidebarX() && mouseX <= sidebarX() + SIDEBAR_WIDTH) {
+        boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+        int step = Math.max(1, Math.round(2f * AppleSettings.guiScrollMultiplier() * (fine ? .25f : 1f)));
+        if (showSidebar() && mouseX >= sidebarX() && mouseX <= sidebarX() + sidebarWidth()) {
             int visible = Math.max(1, (sidebarBottom() - sidebarY() - 16) / lineHeight());
             int maxListScroll = Math.max(0, searchHits.size() - visible);
-            searchScroll = Math.max(0, Math.min(maxListScroll, searchScroll - wheel / 120 * 2));
+            searchScroll = Math.max(0, Math.min(maxListScroll, searchScroll - wheel / 120 * step));
+            return;
+        }
+        if (mouseX < boxX() || mouseX > boxX() + boxWidth()
+                || mouseY < boxY() || mouseY > boxY() + boxHeight()) {
             return;
         }
         int maxScroll = Math.max(0, lines.size() - visibleLines());
-        scrollLine = Math.max(0, Math.min(maxScroll, scrollLine - wheel / 120 * 2));
+        scrollLine = Math.max(0, Math.min(maxScroll, scrollLine - wheel / 120 * step));
     }
 
     @Override

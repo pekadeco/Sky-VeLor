@@ -37,6 +37,8 @@ public final class LoadingScreen extends GuiScreen {
     private final GuiScreen returnTo;
     private final Anim fade = new Anim(0f);
     private final AppleButton continueBtn = new AppleButton("Continue", 110f, 26f, true, this::finish);
+    /** Full scaled viewport, kept as a shared-layout rect so the loading composition never assumes 854x480. */
+    private final GuiLayoutToolkit.Rect safeViewport = new GuiLayoutToolkit.Rect();
     private long startNs;
 
     public LoadingScreen(GuiScreen returnTo) {
@@ -79,8 +81,17 @@ public final class LoadingScreen extends GuiScreen {
     public void drawScreen(int mx, int my, float partialTicks) {
         FontRenderer fr = GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);
         float a = fade.get();
-        float cx = width * 0.5f;
-        float cy = height * 0.5f;
+        GuiLayoutToolkit.clampPanel(safeViewport, 0f, 0f, width, height, width, height);
+        float cx = safeViewport.x + safeViewport.w * 0.5f;
+        // A 105px composition fits even the smallest Minecraft scaled viewport. Larger screens retain the
+        // original centred visual weight; short screens hide only nonessential footer/status chrome.
+        float blockH = Math.min(105f, Math.max(86f, safeViewport.h - 12f));
+        float top = Math.max(safeViewport.y + 6f, safeViewport.y + (safeViewport.h - blockH) * .5f);
+        float wordY = top;
+        float versionY = wordY + 26f;
+        float spinnerY = versionY + 29f;
+        float barY = Math.min(safeViewport.bottom() - 34f, spinnerY + 18f);
+        float barW = Math.min(BAR_W, Math.max(40f, safeViewport.w - 24f));
 
         UIRender.beginFrame();
         UIRender.alphaMul = 1f;
@@ -89,10 +100,12 @@ public final class LoadingScreen extends GuiScreen {
 
         // Wordmark, centred, with the version under it.
         String name = PekaVersion.DISPLAY_NAME;
-        float wordW = fr.getStringWidth(name) * 3f;
-        UIRender.text(fr, name, cx - wordW * 0.5f, cy - 40f, UIRender.withAlpha(0xFFFFFFFF, a), 3f, false);
-        String ver = PekaVersion.NAME;
-        UIRender.text(fr, ver, cx - fr.getStringWidth(ver) * 0.5f, cy - 16f,
+        float wordScale = Math.min(3f, Math.max(.75f, (safeViewport.w - 16f) / Math.max(1f, fr.getStringWidth(name))));
+        float wordW = fr.getStringWidth(name) * wordScale;
+        UIRender.text(fr, name, cx - wordW * 0.5f, wordY, UIRender.withAlpha(0xFFFFFFFF, a), wordScale, false);
+        String ver = GuiLayoutToolkit.ellipsize(PekaVersion.NAME, Math.max(1f, safeViewport.w - 24f),
+                metrics(fr));
+        UIRender.text(fr, ver, cx - fr.getStringWidth(ver) * 0.5f, versionY,
                 UIRender.withAlpha(0xFF9CC3FF, a), 1f, false);
 
         // Spinner: twelve dots on a ring, with a moving bright head. Motion only, no progress meaning.
@@ -102,7 +115,7 @@ public final class LoadingScreen extends GuiScreen {
         for (int i = 0; i < DOTS; i++) {
             double ang = Math.PI * 2.0 * i / DOTS;
             float dx = cx + ring * (float) Math.cos(ang);
-            float dy = cy + 12f + ring * (float) Math.sin(ang);
+            float dy = spinnerY + ring * (float) Math.sin(ang);
             int age = (head - i + DOTS) % DOTS;
             float alpha = (1f - age / (float) DOTS) * a;
             UIRender.circle(dx, dy, 1.8f, UIRender.withAlpha(0xFFFFFFFF, Math.max(0.12f, alpha)));
@@ -111,11 +124,10 @@ public final class LoadingScreen extends GuiScreen {
         // Progress: the real count of finished tasks.
         int total = StartupTasks.total();
         int done = StartupTasks.completed();
-        float barY = cy + 50f;
-        UIRender.roundRect(cx - BAR_W * 0.5f, barY, BAR_W, 3f, 1.5f, 0x33FFFFFF, 0x33FFFFFF, 0.5f);
+        UIRender.roundRect(cx - barW * 0.5f, barY, barW, 3f, 1.5f, 0x33FFFFFF, 0x33FFFFFF, 0.5f);
         if (total > 0) {
             float frac = Math.min(1f, done / (float) total);
-            UIRender.roundRect(cx - BAR_W * 0.5f, barY, BAR_W * frac, 3f, 1.5f, Theme.accent, Theme.accent, 0.5f);
+            UIRender.roundRect(cx - barW * 0.5f, barY, barW * frac, 3f, 1.5f, Theme.accent, Theme.accent, 0.5f);
         }
 
         String status;
@@ -130,21 +142,36 @@ public final class LoadingScreen extends GuiScreen {
             status = "Ready";
             statusCol = 0xFFA1A1A8;
         }
-        float maxW = Math.max(120f, width - 24f);
-        String shown = GuiLayoutToolkit.ellipsize(status, maxW, new GuiLayoutToolkit.TextMetrics() { public float width(String value) { return fr.getStringWidth(value); } public float height() { return fr.FONT_HEIGHT; } });
-        UIRender.text(fr, shown, cx - fr.getStringWidth(shown) * 0.5f, barY + 12f, statusCol, 1f, false);
+        if (!(StartupTasks.failed() && safeViewport.h < 150f)) {
+            float maxW = Math.max(1f, safeViewport.w - 24f);
+            String shown = GuiLayoutToolkit.ellipsize(status, maxW, metrics(fr));
+            UIRender.text(fr, shown, cx - fr.getStringWidth(shown) * 0.5f, barY + 12f, statusCol, 1f, false);
+        }
 
-        String foot = "Forge client for Minecraft 1.8.9";
-        UIRender.text(fr, foot, cx - fr.getStringWidth(foot) * 0.5f, height - 22f, 0xFF8E8E93, 1f, false);
+        if (safeViewport.h >= 150f) {
+            String foot = GuiLayoutToolkit.ellipsize("Forge client for Minecraft 1.8.9",
+                    Math.max(1f, safeViewport.w - 24f), metrics(fr));
+            UIRender.text(fr, foot, cx - fr.getStringWidth(foot) * 0.5f, safeViewport.bottom() - 22f,
+                    0xFF8E8E93, 1f, false);
+        }
         UIRender.endFrame();
 
         if (StartupTasks.failed()) {
-            continueBtn.x = cx - continueBtn.w * 0.5f;
-            continueBtn.y = barY + 34f;
+            continueBtn.x = Math.max(safeViewport.x, Math.min(cx - continueBtn.w * 0.5f,
+                    safeViewport.right() - continueBtn.w));
+            continueBtn.y = Math.min(barY + (safeViewport.h < 150f ? 16f : 34f),
+                    safeViewport.bottom() - continueBtn.h);
             UIRender.beginFrame();
             continueBtn.draw(mx, my);
             UIRender.endFrame();
         }
+    }
+
+    private static GuiLayoutToolkit.TextMetrics metrics(final FontRenderer fr) {
+        return new GuiLayoutToolkit.TextMetrics() {
+            public float width(String value) { return fr.getStringWidth(value); }
+            public float height() { return fr.FONT_HEIGHT; }
+        };
     }
 
     @Override

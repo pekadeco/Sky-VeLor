@@ -260,10 +260,12 @@ public final class AppleSettings {
         boolean hasSmooth = p.containsKey("smoothScrolling");
         String defaultSpeed = ChatQolSettings.PREFIX + "target.default.scroll.speed";
         String chatOneSpeed = ChatQolSettings.PREFIX + "target.chat1.scroll.speed";
+        String chatTwoSpeed = ChatQolSettings.PREFIX + "target.chat2.scroll.speed";
         String defaultSmooth = ChatQolSettings.PREFIX + "target.default.scroll.smooth";
         String chatOneSmooth = ChatQolSettings.PREFIX + "target.chat1.scroll.smooth";
-        String speedSource = p.containsKey(defaultSpeed) ? defaultSpeed : chatOneSpeed;
-        String smoothSource = p.containsKey(defaultSmooth) ? defaultSmooth : chatOneSmooth;
+        String chatTwoSmooth = ChatQolSettings.PREFIX + "target.chat2.scroll.smooth";
+        String speedSource = firstPresent(p, defaultSpeed, chatOneSpeed, chatTwoSpeed);
+        String smoothSource = firstPresent(p, defaultSmooth, chatOneSmooth, chatTwoSmooth);
         scrollSpeed = hasSpeed ? readInt(p, "scrollSpeed", scrollSpeed, 50, 300)
                 : readInt(p, speedSource, DEFAULT_SCROLL_SPEED, 50, 300);
         smoothScrolling = hasSmooth ? readBool(p, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING)
@@ -531,6 +533,12 @@ public final class AppleSettings {
         }
         return p.containsKey(key) ? readInt(p, key, def, min, max)
                 : readInt(p, legacyKey, def, min, max);
+    }
+
+    private static String firstPresent(Properties p, String first, String second, String third) {
+        if (p.containsKey(first)) return first;
+        if (p.containsKey(second)) return second;
+        return third;
     }
 
     private static int readInt(Properties p, String key, int def, int min, int max) {

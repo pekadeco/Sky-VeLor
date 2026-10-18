@@ -16,6 +16,8 @@ public final class GuiLayoutToolkit {
         public Rect set(float x, float y, float w, float h) {
             this.x = x; this.y = y; this.w = Math.max(0f, w); this.h = Math.max(0f, h); return this;
         }
+        public float right() { return x + w; }
+        public float bottom() { return y + h; }
         public boolean contains(float px, float py) { return px >= x && py >= y && px < x + w && py < y + h; }
         public boolean intersects(Rect other) { return other != null && x < other.x + other.w && x + w > other.x && y < other.y + other.h && y + h > other.y; }
     }

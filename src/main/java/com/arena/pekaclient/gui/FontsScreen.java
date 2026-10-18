@@ -30,18 +30,19 @@ public final class FontsScreen extends GuiLayoutScreen {
     public void drawScreen(int mx, int my, float partial) {
         drawDefaultBackground();
         beginPanel("Fonts", mx, my);
-        float y = rowY(0f);
-        row("Enable custom font", FontSettings.enabled ? "Enabled" : "Disabled", 0, y);
-        y += 31f;
-        row("Font", FontSettings.selected, 1, y);
-        y += 31f;
-        row("Scale", FontSettings.scale + "%", 2, y);
-        y += 31f;
-        row("Apply to everything", FontSettings.applyToEverything ? "Requested" : "Sky VeLor only", 3, y);
-        y += 31f;
-        row("Reset font settings", "Reset", 4, y);
-        y += 38f;
+        float naturalY = 0f;
+        row("Enable custom font", FontSettings.enabled ? "Enabled" : "Disabled", 0, rowY(naturalY));
+        naturalY += 31f;
+        row("Font", FontSettings.selected, 1, rowY(naturalY));
+        naturalY += 31f;
+        row("Scale", FontSettings.scale + "%", 2, rowY(naturalY));
+        naturalY += 31f;
+        row("Apply to everything", FontSettings.applyToEverything ? "Requested" : "Sky VeLor only", 3, rowY(naturalY));
+        naturalY += 31f;
+        row("Reset font settings", "Reset", 4, rowY(naturalY));
+        naturalY += 38f;
 
+        float y = rowY(naturalY);
         drawLabel("Live preview", content.x, y, content.w, 0xFFB8C0CF);
         FontRenderer font = GlobalFontManager.rendererFor(mc.fontRendererObj);
         UIRender.roundRect(content.x, y + 14f, content.w - 4f, 58f, 5f, 0xFF20252D, 0xFF20252D, 1f);
@@ -49,23 +50,23 @@ public final class FontsScreen extends GuiLayoutScreen {
                 0xFFFFFFFF, 1f, true);
         UIRender.text(font, "Sky VeLor — formatted §aGreen §bBlue §lBold", content.x + 8f, y + 43f,
                 0xFFEAEAF0, 1f, true);
-        y += 82f;
-        drawLabel("Built-ins: Minecraft Default, Smooth, Doodle, Rounded and Mono.", content.x, y, content.w,
+        naturalY += 82f;
+        drawLabel("Built-ins: Minecraft Default, Smooth, Doodle, Rounded and Mono.", content.x, rowY(naturalY), content.w,
                 0xFFC6CBD4);
-        y += 17f;
-        drawLabel("External .ttf/.otf: .minecraft/config/skyvelor/fonts/", content.x, y, content.w, 0xFFC6CBD4);
-        y += 17f;
+        naturalY += 17f;
+        drawLabel("External .ttf/.otf: .minecraft/config/skyvelor/fonts/", content.x, rowY(naturalY), content.w, 0xFFC6CBD4);
+        naturalY += 17f;
         drawLabel("Bundled font notices: OFL 1.1 — Abel, Architects Daughter, Nunito and JetBrains Mono.",
-                content.x, y, content.w, 0xFF9FA8B6);
-        y += 17f;
+                content.x, rowY(naturalY), content.w, 0xFF9FA8B6);
+        naturalY += 17f;
         if (FontSettings.enabled && FontSettings.applyToEverything) {
             drawLabel("Note: Minecraft-owned text stays vanilla when the safe 1.8.9 bridge is unavailable.",
-                    content.x, y, content.w, 0xFFFFC36B);
-            y += 17f;
+                    content.x, rowY(naturalY), content.w, 0xFFFFC36B);
+            naturalY += 17f;
         }
-        drawLabel("Status: " + GlobalFontManager.status(), content.x, y, content.w,
+        drawLabel("Status: " + GlobalFontManager.status(), content.x, rowY(naturalY), content.w,
                 FontSettings.enabled ? 0xFF9EE6B0 : 0xFFB8C0CF);
-        finishContent(y - content.y + 25f);
+        finishContent(naturalY + 25f);
         endPanel();
     }
 

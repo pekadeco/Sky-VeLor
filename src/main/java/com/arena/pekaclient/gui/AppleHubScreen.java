@@ -755,7 +755,8 @@ public class AppleHubScreen extends AppleScreen {
             navHover[i].update(dt, 16f);
         }
 
-        scroll.update(dt, gestureActive && gesture.kind == Gesture.SCROLL, Theme.animations, Theme.speed);
+        scroll.update(dt, gestureActive && gesture.kind == Gesture.SCROLL,
+                Theme.animations && AppleSettings.smoothScrolling, Theme.speed);
         boolean moving = gestureActive || scroll.moving();
         indicator.to(moving ? 1f : 0f);
 
@@ -1274,13 +1275,16 @@ public class AppleHubScreen extends AppleScreen {
     public void handleMouseInput() throws IOException {
         int wheel = Mouse.getEventDWheel();
         super.handleMouseInput();
-        if (wheel != 0) {
-            scroll.wheel(wheel / 120f, scrollSpeed());
+        int mx = Mouse.getEventX() * width / Minecraft.getMinecraft().displayWidth;
+        int my = height - Mouse.getEventY() * height / Minecraft.getMinecraft().displayHeight - 1;
+        if (wheel != 0 && openDropdown == null && inside(mx, my, vx, vy, vw, vh)) {
+            boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+            scroll.wheel(wheel / 120f, fine, scrollSpeed());
         }
     }
 
     private float scrollSpeed() {
-        return AppleSettings.effectiveScrollSpeed() / 100f;
+        return AppleSettings.guiScrollMultiplier();
     }
 
     @Override
