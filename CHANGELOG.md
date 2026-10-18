@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta-0.10.8.6v — 2026-10-18
+
+- Added opt-in **Disable hotbar scrolling** in Mod Settings → Mouse. `PekaClientMod` cancels only gameplay wheel input while no GUI is open; inventory/chat scrolling and 1–9 keys remain vanilla.
+- Added Chat QoL **Compact messages** with formatting-exact consecutive-message tracking, a fixed high-ID vanilla-gray `(xN)` line, original-message copy/reply/tab payloads, refreshed fade/arrival placement, and an adjustable Chat Editor counter colour.
+- Added opt-in **No block particles**, a fail-closed 1.8.9 `EffectRenderer.addEffect(EntityFX)` core hook that filters only `EntityDiggingFX`, plus `/velor selftest` hook diagnostics.
+- Added default-on visual-only **Smooth swing** and Smoothness controls in the Item Animation HUD editor. Swing blur/Intensity are intentionally unavailable because safe translucent first-person ghost passes are not supported by this narrow hook.
+- Spirit Leap now evaluates the established dungeon scoreboard detector at GUI-open time and leaves uncertain/non-dungeon menus vanilla; `/velor selftest` reports `inDungeon`, reason, and the matched sidebar line.
+- Updated display version to `Beta-0.10.8.6v` and numeric Forge `mcmod.info`/build metadata version to `0.10.8.6`.
+
 ## Beta-0.10.8.5.4v — 2026-10-18
 
 - Restyled Chat QoL tabs with semi-transparent black unselected surfaces, blue selected surfaces, lighter hover treatment, white labels, and preserved unread dots. The Tabs editor now exposes independent unselected/selected colours and opacity controls; Reset restores black/blue defaults.

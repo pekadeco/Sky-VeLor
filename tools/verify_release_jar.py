@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.5.4v] [--mcmod-version 0.10.8.5.4]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6v] [--mcmod-version 0.10.8.6]
 """
 
 import argparse
@@ -47,12 +47,18 @@ REQUIRED_CLASSES = [
     'config/ChatQolSettings',
     'feature/ItemAnimation',
     'feature/VisualSwingStateMachine',
+    'feature/SwingEasing',
+    'feature/HotbarScrollPolicy',
+    'feature/BlockParticlePolicy',
+    'feature/DungeonContext',
+    'feature/SpiritLeap',
     'feature/ChatTabs',
     'feature/ChatTabLayout',
     'feature/ChatFontPolicy',
     'feature/ChatInteractionModel',
     'feature/ChatChannelTabs',
     'command/ItemDebugCommand',
+    'command/SvCommand',
     'gui/AppleHubScreen',
     'gui/ChatUiModel',
     'gui/ChatEditorLayout',
@@ -69,6 +75,7 @@ REQUIRED_CLASSES = [
     'chat/ChatMenuPolicy',
     'chat/ChatPlayerName',
     'chat/ChatRenderGeometry',
+    'chat/ChatCompactMessages',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -84,6 +91,9 @@ REQUIRED_CLASSES = [
     'render/itemanimation/ItemAnimationHookStatus',
     'render/itemanimation/ItemAnimationLoadingPlugin',
     'render/itemanimation/ItemAnimationTransformer',
+    'render/blockparticles/BlockParticleHookStatus',
+    'render/blockparticles/BlockParticleHooks',
+    'render/blockparticles/BlockParticleTransformer',
 ]
 
 # Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
@@ -98,7 +108,7 @@ FORBIDDEN_CLASSES = [
     'gui/DungeonHudScreen',
     'hud/ClickInOrderHud',
     'command/TerminalCommand',
-    # Beta-0.10.8.5.4 retains the one-default-chat implementation and no split-chat classes.
+    # Beta-0.10.8.6 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -228,8 +238,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.5.4v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.5.4')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6')
     args = ap.parse_args()
 
     path = args.jar
@@ -373,11 +383,13 @@ def main():
     r.check(all(value in ui_constants for value in
                 ('Item Animation', 'Open the HUD editor', 'Open Item Animation Editor', 'Scale', 'Position',
                  'Animation', 'Options', 'X', 'Y', 'Z', 'Reset Position', 'Remove Haste Effect',
-                 'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Preview Swing', 'Reset to Defaults')),
+                 'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth swing', 'Smoothness',
+                 'Swing blur unavailable (no safe translucent ghosts)', 'Preview Swing', 'Reset to Defaults')),
             'ItemAnimationUiModel packages the required compact HUD/editor labels and controls')
     r.check('Open Item Animation Settings' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
-                and 'Background transparency' not in ui_constants and 'Background opacity' not in ui_constants,
-            'ItemAnimationUiModel excludes the removed settings launcher, Auto Fix, and background transparency')
+                and 'Background transparency' not in ui_constants and 'Background opacity' not in ui_constants
+                and 'Swing blur' not in ui_constants and 'Blur intensity' not in ui_constants,
+            'ItemAnimationUiModel excludes removed launchers/transparency and ships no unsafe blur or intensity control')
     model_ref = b'com/arena/pekaclient/gui/ItemAnimationUiModel'
     audit_ref = b'com/arena/pekaclient/gui/GuiSettingsAuditModel'
     layout_ref = b'com/arena/pekaclient/gui/HudEditorLayout'
@@ -397,7 +409,7 @@ def main():
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
     # --- Chat QoL ownership and one-default-chat implementation proof --------
-    # Beta-0.10.8.5.4 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
+    # Beta-0.10.8.6 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
@@ -463,6 +475,19 @@ def main():
     r.check(all(value not in chat_runtime_raw for value in
                 (b'ChatQolRouting', b'ChatFilterRules', b'ChatQolHistory', b'ChattingAnimationBridge')),
             'one Default Chat runtime carries no split-window classifier/router bridge')
+
+    # Compact Messages remains an opt-in adjunct to the one cache/renderer: exact formatted-text matching decides
+    # the duplicate at event time, then a fixed-id gray line is grouped with (not substituted for) the original.
+    compact_raw = raw_of('chat/ChatCompactMessages')
+    compact_constants = constants_of('chat/ChatCompactMessages')
+    r.check(b'ChatCompactMessages' in tabs_raw
+                and (b'printChatMessageWithOptionalDeletion' in tabs_raw or b'func_146234_a' in tabs_raw)
+                and b'Compact messages' in chat_editor_raw and b'Compact counter colour' in chat_editor_raw
+                and b'chat.qol.messages.compact' in settings_raw_chat
+                and b'chat.qol.messages.compactCounterColor' in settings_raw_chat
+                and b'COUNTER_LINE_ID' in compact_raw
+                and any('(x' in value for value in compact_constants),
+            'Compact Messages packages an opt-in exact-message tracker, fixed cache replacement, and editor colour')
     font_raw = raw_of('render/GlobalFontManager')
     r.check(all(value in font_raw for value in
                 (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'rounded-nunito.ttf',
@@ -485,6 +510,36 @@ def main():
     r.check(b'com/arena/pekaclient/feature/ChatChannelTabs' in client_raw
                 and b'key.pekaclient.chatTab' in client_raw and b'key.pekaclient.chatEditor' in client_raw,
             'PekaClientMod registers native Chat QoL and its optional cycle/editor keybindings')
+
+    # The gameplay wheel guard is deliberately one narrow MouseEvent predicate, with the visible toggle beside
+    # scroll settings. GUI input and number-key selection do not enter the policy at all.
+    mod_settings_raw = raw_of('gui/ModSettingsScreen')
+    apple_constants = constants_of('config/AppleSettings')
+    r.check(b'HotbarScrollPolicy' in client_raw and 'shouldCancel' in members_of('PekaClientMod')
+                and b'Disable hotbar scrolling' in mod_settings_raw
+                and 'mouse.disableHotbarScrolling' in apple_constants,
+            'hotbar wheel guard is opt-in, gameplay-only, and persisted in Mod Settings Mouse')
+
+    # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
+    # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.
+    sv_raw = raw_of('command/SvCommand')
+    r.check(b'DungeonContext' in client_raw and 'evaluateNow' in members_of('PekaClientMod')
+                and b'inDungeon' in client_raw and b'SpiritLeap' in client_raw
+                and b'inDungeon' in sv_raw and b'matchedScoreboardLine' in sv_raw and b'reason' in sv_raw,
+            'Spirit Leap requires a fresh positive dungeon result and selftest reports the detector evidence')
+
+    # Only EffectRenderer.addEffect(EntityFX) may receive the block-particle branch. The target strings and strict
+    # EntityDiggingFX predicate are retained in the JAR as a release-time proof of the fail-closed coremod contract.
+    block_transformer_constants = constants_of('render/blockparticles/BlockParticleTransformer')
+    block_hooks_raw = raw_of('render/blockparticles/BlockParticleHooks')
+    loading_raw = raw_of('render/itemanimation/ItemAnimationLoadingPlugin')
+    block_hooks_members = members_of('render/blockparticles/BlockParticleHooks')
+    r.check(all(value in block_transformer_constants for value in
+                ('net.minecraft.client.particle.EffectRenderer', 'bec', 'addEffect', 'func_78873_a', 'a',
+                 '(Lnet/minecraft/client/particle/EntityFX;)V', '(Lbeb;)V', 'shouldSuppress'))
+                and 'shouldSuppress' in block_hooks_members and b'noBlockParticles' in block_hooks_raw
+                and b'BlockParticleTransformer' in loading_raw,
+            'No block particles packages only the explicit EffectRenderer EntityFX hook and block-digging policy')
     fishing_constants = constants_of('fishing/FishingStats')
     r.check(all(name in fishing_constants for name in ('commonCreatureCount', 'legendaryCreatureCount')),
             'FishingStats packages separate Common Creature and preserved Legendary/Mythic totals')
@@ -558,11 +613,19 @@ def main():
         r.check(b'java/lang/reflect' not in zf.read(MOD_PACKAGE
                 + 'render/itemanimation/ItemAnimationHooks.class'),
                 'ItemAnimationHooks uses no reflection on the frame path')
+    smooth_hook_raw = raw_of('render/itemanimation/ItemAnimationHooks')
+    r.check(b'SwingEasing' in smooth_hook_raw and 'ease' in members_of('render/itemanimation/ItemAnimationHooks')
+                and 'isSmoothSwingEnabled' in members_of('render/itemanimation/ItemAnimationHooks')
+                and 'getSmoothness' in members_of('render/itemanimation/ItemAnimationHooks'),
+            'Smooth Swing uses the stateless first-person easing bridge before optional hit/slash styling')
     if MOD_PACKAGE + 'config/AppleSettings.class' in names:
         settings_constants = constants_of('config/AppleSettings')
         settings_raw = raw_of('config/AppleSettings')
         r.check('itemAnimation.enabled' in settings_constants,
                 'default-on Item Animation master toggle is persisted')
+        r.check('itemAnimation.smoothSwing' in settings_constants and 'itemAnimation.smoothness' in settings_constants
+                    and b'itemAnimationSmoothSwing' in settings_raw and b'itemAnimationSmoothness' in settings_raw,
+                'default-on Smooth Swing and bounded smoothness persistence are packaged')
         r.check(b'itemAnimationAutoFixHitSlash' not in settings_raw,
                 'AppleSettings retains no hidden Auto Fix setting state')
         r.check('chat.qol.' in constants_of('config/ChatQolSettings')
