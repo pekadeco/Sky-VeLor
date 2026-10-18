@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  */
 public final class ChatPlayerName {
 
-    private static final Pattern TRAILING_NAME = Pattern.compile("([A-Za-z0-9_]{3,16})$");
+    private static final Pattern TRAILING_NAME = Pattern.compile("(?<![A-Za-z0-9_])([A-Za-z0-9_]{3,16})$");
 
     private ChatPlayerName() {
     }
