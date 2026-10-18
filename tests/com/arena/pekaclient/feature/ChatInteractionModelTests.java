@@ -61,6 +61,7 @@ public final class ChatInteractionModelTests {
         check("menu is clamped on screen", menu.x >= 2 && menu.y >= 2 && menu.x + menu.w <= 118.01f
                 && menu.y + menu.h <= 108.01f);
         check("two-row system menu has no third hit row", showTwoRowsHasNoThird(menu));
+        menu.show(10, 10, 320, 180, 3);
         ChatInteractionModel.Hover hover = new ChatInteractionModel.Hover();
         hover.update("row", 1f / 30f);
         float first = hover.alpha();
