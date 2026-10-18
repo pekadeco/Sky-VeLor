@@ -543,11 +543,9 @@ def main():
                 'AppleSettings delegates native chat.qol persistence and migration to the bounded Chat QoL settings model')
         r.check('fishing.nearbyEncounterAlert' in settings_constants,
                 'AppleSettings persists the safe-default nearby encounter title toggle')
-        chat_settings_raw = raw_of('config/ChatQolSettings')
         r.check('scrollSpeed' in settings_constants and 'smoothScrolling' in settings_constants
-                    and b'target.default.scroll.speed' in settings_raw
-                    and b'target.default.scroll.speed' not in chat_settings_raw,
-                'AppleSettings migrates retired target scroll values into one global persisted policy')
+                    and b'target.default.scroll.speed' not in settings_raw,
+                'AppleSettings keeps one global scroll policy and ignores retired split-chat target values')
     if MOD_PACKAGE + 'command/ItemDebugCommand.class' in names:
         debug = members_of('command/ItemDebugCommand')
         r.check(all(name in debug for name in ('isEnabled', 'getX', 'getY', 'getZ', 'getSize', 'getSpeed',
