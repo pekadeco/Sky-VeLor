@@ -32,9 +32,16 @@ final class ScrollState {
         wheel(notches, false, speed);
     }
 
-    /** One wheel event changes the shared target exactly once. */
+    /**
+     * One physical mouse event normally carries +/-1 and changes the shared target once. The magnitude is retained
+     * for touchpads/tests that coalesce several notches into one value, matching the legacy public contract without
+     * adding a second independent scroll state.
+     */
     void wheel(float notches, boolean fine, float speed) {
-        shared.wheel(notches, fine, speed, WHEEL_STEP);
+        if (notches == 0f) return;
+        float step = WHEEL_STEP * (fine ? .25f : 1f)
+                * GuiLayoutToolkit.clamp(speed, .25f, 6f) * Math.abs(notches);
+        shared.nudge(-Math.signum(notches) * step);
         velocity = 0f;
     }
 
