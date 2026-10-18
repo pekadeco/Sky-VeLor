@@ -201,8 +201,9 @@ public final class ChatInteractionModel {
             if (animationMillis == 0) {
                 open = 1f;
             } else {
-                openElapsed = Math.min(animationMillis / 1000f, openElapsed + dt);
-                open = easeOut(openElapsed / (animationMillis / 1000f));
+                float duration = animationMillis / 1000f;
+                openElapsed = Math.min(duration, openElapsed + dt);
+                open = openElapsed >= duration ? 1f : easeOut(openElapsed / duration);
             }
         }
 
