@@ -40,14 +40,17 @@ public final class ChatQolSettingsTests {
         legacy.setProperty("chat.qol.window2.name", "Old Chat 2");
         legacy.setProperty("chat.qol.patterns.count", "2");
         legacy.setProperty("chat.qol.patterns.0.regex", "[");
+        legacy.setProperty("chat.qol.target.default.background.opacity", "99");
         legacy.setProperty("chat.qol.tabs.selected", "2");
         ChatQolSettings.load(legacy);
         check("old separate key does not create split tabs", ChatQolSettings.tabs().size() == 3);
         check("old selected tab key is ignored safely", ChatTabs.ALL.equals(ChatQolSettings.selectedTabId()));
+        check("retired target visual key is ignored", ChatQolSettings.backgroundOpacityOpen == 45);
         check("old keys request rewrite", ChatQolSettings.isMigrationPending());
         ChatQolSettings.save(legacy);
         check("save drops separate key", !legacy.containsKey("chat.qol.separate")
-                && !legacy.containsKey("chat.qol.window1.name") && !legacy.containsKey("chat.qol.patterns.count"));
+                && !legacy.containsKey("chat.qol.window1.name") && !legacy.containsKey("chat.qol.patterns.count")
+                && !legacy.containsKey("chat.qol.target.default.background.opacity"));
     }
 
     private static void customTabPersistence() {
@@ -71,6 +74,9 @@ public final class ChatQolSettingsTests {
 
     private static void invalidRegexAndBounds() {
         ChatQolSettings.resetDefaults();
+        ChatQolSettings.setTabVisible(ChatTabs.PARTY, false);
+        check("hidden built-in filter remains valid", !ChatQolSettings.tab(ChatTabs.PARTY).enabled()
+                && ChatQolSettings.tab(ChatTabs.PARTY).matches("Party > Alex: hello"));
         ChatQolSettings.Result made = ChatQolSettings.addCustomTab("Regex");
         ChatQolSettings.Result invalid = ChatQolSettings.updateCustomTab(made.id, "Regex", ChatTabs.REGEX,
                 "[", "", 0x123456, false, true);
