@@ -8,7 +8,9 @@ import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +36,8 @@ public final class GuiDebugOverlay {
 
     private static final List<Box> BOXES = new ArrayList<Box>();
     private static final List<Pair> OVERLAPS = new ArrayList<Pair>();
+    /** GuiScreen keeps this list protected; resolve it once so debug instrumentation never changes GUI ownership. */
+    private static final Field GUI_BUTTON_LIST = resolveButtonList();
     private static boolean enabled;
     private static boolean collecting;
     private static String lastOverlapSignature = "";
@@ -41,6 +45,16 @@ public final class GuiDebugOverlay {
 
     /** Forge event listener instance; all diagnostic state remains static so command and renderer agree. */
     public GuiDebugOverlay() {
+    }
+
+    private static Field resolveButtonList() {
+        try {
+            Field field = ReflectionHelper.findField(GuiScreen.class, "buttonList", "field_146292_n", "n");
+            field.setAccessible(true);
+            return field;
+        } catch (RuntimeException | LinkageError ignored) {
+            return null;
+        }
     }
 
     /** Toggles the screen-space overlay. This command-owned state is intentionally not persisted. */
@@ -108,13 +122,19 @@ public final class GuiDebugOverlay {
     /** Vanilla GuiButton lists are the one common control surface that does not pass through Widget. */
     @SuppressWarnings("unchecked")
     private static void recordVanillaButtons(GuiScreen screen) {
-        if (screen == null || screen.buttonList == null) return;
-        for (Object candidate : screen.buttonList) {
-            if (!(candidate instanceof GuiButton)) continue;
-            GuiButton button = (GuiButton) candidate;
-            if (!button.visible) continue;
-            recordControl("GuiButton " + button.id + " " + button.displayString,
-                    button.xPosition, button.yPosition, button.width, button.height);
+        if (screen == null || GUI_BUTTON_LIST == null) return;
+        try {
+            Object source = GUI_BUTTON_LIST.get(screen);
+            if (!(source instanceof Iterable)) return;
+            for (Object candidate : (Iterable<Object>) source) {
+                if (!(candidate instanceof GuiButton)) continue;
+                GuiButton button = (GuiButton) candidate;
+                if (!button.visible) continue;
+                recordControl("GuiButton " + button.id + " " + button.displayString,
+                        button.xPosition, button.yPosition, button.width, button.height);
+            }
+        } catch (IllegalAccessException | RuntimeException ignored) {
+            // Debug collection is intentionally fail-closed. A mapping mismatch must not affect the screen itself.
         }
     }
 
