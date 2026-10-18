@@ -43,6 +43,11 @@ public final class ChatInteractionModelTests {
                 && "Message player: /msg Alex_99".equals(menuActions.labelAt(2)));
         menuActions.setPlayerName("");
         check("system message hides third action", menuActions.optionCount() == 2 && menuActions.labelAt(2).length() == 0);
+        CapturedChatMenu system = new CapturedChatMenu();
+        system.open("system", "System: You sold this for 1 coin", "System: You sold this for 1 coin");
+        menuActions.setPlayerName(system.message().playerName);
+        check("stored system fixture cannot expose message player", system.message().playerName.length() == 0
+                && menuActions.optionCount() == 2);
 
         ChatInteractionModel.Menu menu = new ChatInteractionModel.Menu();
         menu.show(10, 10, 320, 180, 3);

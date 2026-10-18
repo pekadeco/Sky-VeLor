@@ -55,23 +55,37 @@ public final class ChatQolLayoutTests {
     /** Covers 0/1/3/20 visible lines, open fit/full, text-fit width, and the final fade-to-empty frame. */
     private static void messageOnlyBackgrounds() {
         ChatRenderGeometry.Rect target = new ChatRenderGeometry.Rect();
-        check("zero visible lines has no background", !ChatRenderGeometry.messageBackground(target,
+        check("zero closed lines has no background", !ChatRenderGeometry.messageBackground(target,
                 2f, 100f, 100f, 20f, 120f, 60f, false, false, 4f) && target.h == 0f);
+        check("zero open full-area lines still has no background", !ChatRenderGeometry.messageBackground(target,
+                2f, 100f, 100f, 20f, 120f, 60f, false, true, 4f) && target.h == 0f);
 
         check("one closed line fits its line", ChatRenderGeometry.messageBackground(target,
                 2f, 91f, 100f, 20f, 120f, 60f, false, false, 4f)
                 && target.y == 91f && target.h == 9f && target.w == 120f);
+        check("one open fit line hugs its line", ChatRenderGeometry.messageBackground(target,
+                2f, 91f, 100f, 20f, 120f, 60f, false, false, 4f)
+                && target.y == 91f && target.h == 9f);
+        check("one open full-area line begins at viewport", ChatRenderGeometry.messageBackground(target,
+                2f, 91f, 100f, 20f, 120f, 60f, false, true, 4f)
+                && target.y == 20f && target.h == 80f);
         check("three closed lines fit their rows", ChatRenderGeometry.messageBackground(target,
                 2f, 73f, 100f, 20f, 120f, 60f, false, false, 4f)
                 && target.y == 73f && target.h == 27f);
-        check("twenty visible lines are clipped to viewport", ChatRenderGeometry.messageBackground(target,
-                2f, -80f, 100f, 20f, 120f, 60f, false, false, 4f)
-                && target.y == 20f && target.h == 80f);
-        check("open fit mode still hugs messages", ChatRenderGeometry.messageBackground(target,
+        check("three open fit lines hug messages", ChatRenderGeometry.messageBackground(target,
                 2f, 73f, 100f, 20f, 120f, 60f, false, false, 4f)
                 && target.y == 73f && target.h == 27f);
-        check("open full-area mode begins at viewport", ChatRenderGeometry.messageBackground(target,
+        check("three open full-area lines begin at viewport", ChatRenderGeometry.messageBackground(target,
                 2f, 73f, 100f, 20f, 120f, 60f, false, true, 4f)
+                && target.y == 20f && target.h == 80f);
+        check("twenty closed lines are clipped to viewport", ChatRenderGeometry.messageBackground(target,
+                2f, -80f, 100f, 20f, 120f, 60f, false, false, 4f)
+                && target.y == 20f && target.h == 80f);
+        check("twenty open fit lines are clipped to viewport", ChatRenderGeometry.messageBackground(target,
+                2f, -80f, 100f, 20f, 120f, 60f, false, false, 4f)
+                && target.y == 20f && target.h == 80f);
+        check("twenty open full-area lines remain bounded", ChatRenderGeometry.messageBackground(target,
+                2f, -80f, 100f, 20f, 120f, 60f, false, true, 4f)
                 && target.y == 20f && target.h == 80f);
         check("fit-width uses widest text plus edge pad", ChatRenderGeometry.messageBackground(target,
                 2f, 91f, 100f, 20f, 120f, 54f, true, false, 4f) && target.w == 60f);
