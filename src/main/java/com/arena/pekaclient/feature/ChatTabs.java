@@ -203,10 +203,41 @@ public final class ChatTabs {
         return tab.sendPrefix() + (tab.sendPrefix().endsWith(" ") ? "" : " ") + raw;
     }
 
+    /**
+     * Party is both a chat channel and a command-result stream on Hypixel-style servers. Do not reduce it to the
+     * visible "Party >" chat prefix: invite/join/leave/kick/disband/transfer/promote/warp/list responses belong in
+     * the same tab while All still accepts every line.
+     */
     public static boolean partyLine(String clean) {
         String value = clean == null ? "" : clean.trim().toLowerCase(Locale.ROOT);
-        return value.startsWith("party >") || value.startsWith("party>") || value.startsWith("p >")
-                || value.startsWith("p>") || value.contains(" party >");
+        if (value.startsWith("party >") || value.startsWith("party>") || value.startsWith("p >")
+                || value.startsWith("p>") || value.startsWith("[party]") || value.contains(" party >")) return true;
+        return partyCommandLine(value);
+    }
+
+    private static boolean partyCommandLine(String value) {
+        if (value.length() == 0) return false;
+        // /party list output and Party Warp notifications.
+        if (value.startsWith("party leader") || value.startsWith("party moderator")
+                || value.startsWith("party member") || value.startsWith("party members")
+                || value.startsWith("party list") || value.startsWith("party warp")) return true;
+        // Invitations and joins, including "You have joined <name>'s party".
+        if (value.contains("party invite") || value.contains("party invitation")
+                || value.contains("invited") && value.contains("party")
+                || value.contains("joined the party") || value.contains("joined a party")
+                || value.contains("joined your party") || value.contains("'s party")) return true;
+        // Member changes and command acknowledgements.
+        if (value.contains("left the party") || value.contains("left a party") || value.contains("left your party")
+                || value.contains("kicked from the party") || value.contains("removed from the party")
+                || value.contains("party was disbanded") || value.contains("disbanded the party")
+                || value.contains("disbanded your party") || value.contains("transferred the party")
+                || value.contains("party has been transferred") || value.contains("warped the party")
+                || value.contains("summoned the party") || value.contains("promoted to party")
+                || value.contains("demoted to party") || value.contains("party leader")
+                || value.contains("party moderator") || value.contains("party members")) return true;
+        // Common command failures/successes still describe the current party and must remain visible to its tab.
+        return value.contains("not currently in a party") || value.contains("not in a party")
+                || value.contains("already in a party") || value.contains("in your party");
     }
 
     public static boolean replyLine(String clean) {

@@ -568,9 +568,14 @@ public final class ChatChannelTabs {
             boolean selected = rect.id.equals(ChatQolSettings.selectedTabId());
             boolean hot = rect.contains(mouseX, mouseY);
             float alpha = (selected ? ChatQolSettings.tabActiveOpacity : ChatQolSettings.tabOpacity) / 100f;
-            if (hot) alpha = Math.min(1f, alpha + .08f);
-            int fill = withAlpha(ChatQolSettings.tabBackgroundColor, alpha);
-            int border = withAlpha(ChatQolSettings.tabBackgroundColor, Math.min(1f, alpha + .18f));
+            int surface = selected ? ChatQolSettings.tabBackgroundColor : ChatQolSettings.tabInactiveColor;
+            // Raising opacity would make a black button darker, so hover instead lifts the RGB surface slightly.
+            if (hot) {
+                surface = lighter(surface, .12f);
+                alpha = Math.min(1f, alpha + .05f);
+            }
+            int fill = withAlpha(surface, alpha);
+            int border = withAlpha(lighter(surface, .18f), Math.min(1f, alpha + .18f));
             UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, 3f, fill, fill, border);
             String label = fit(font, tab.name(), Math.max(1f, rect.w - 12f), .70f);
             UIRender.text(font, label, rect.x + 5f, rect.y + 5f, 0xFFFFFFFF, .70f, false,
@@ -814,6 +819,18 @@ public final class ChatChannelTabs {
     private static int withAlpha(int rgb, float alpha) {
         int value = Math.max(0, Math.min(255, Math.round(Math.max(0f, Math.min(1f, alpha)) * 255f)));
         return (value << 24) | (rgb & 0xFFFFFF);
+    }
+
+    /** Lifts a tab surface toward white without changing its configured alpha or accent colour. */
+    private static int lighter(int rgb, float amount) {
+        float mix = Math.max(0f, Math.min(1f, amount));
+        int red = (rgb >>> 16) & 0xFF;
+        int green = (rgb >>> 8) & 0xFF;
+        int blue = rgb & 0xFF;
+        red = Math.round(red + (255 - red) * mix);
+        green = Math.round(green + (255 - green) * mix);
+        blue = Math.round(blue + (255 - blue) * mix);
+        return (red << 16) | (green << 8) | blue;
     }
 
     private static String fit(FontRenderer font, String value, float width, float scale) {

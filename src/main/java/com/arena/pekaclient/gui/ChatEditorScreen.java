@@ -65,6 +65,7 @@ public final class ChatEditorScreen extends AppleScreen {
     private final List<SearchField> fields = new ArrayList<SearchField>();
 
     private final SearchField backgroundColour = field("#000000");
+    private final SearchField tabInactiveColour = field("#000000");
     private final SearchField tabBaseColour = field("#2F7DFF");
     private final SearchField tabName = field("Custom tab name");
     private final SearchField filterText = field("Filter text");
@@ -149,7 +150,8 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Use smooth messages", new AppleToggle(
                 () -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
 
-        entries.add(new Entry(ChatEditorLayout.TABS, "Tab base colour", tabBaseColour));
+        entries.add(new Entry(ChatEditorLayout.TABS, "Unselected tab colour", tabInactiveColour));
+        entries.add(new Entry(ChatEditorLayout.TABS, "Selected tab colour", tabBaseColour));
         entries.add(new Entry(ChatEditorLayout.TABS, "Tab opacity", slider(0, 100, 1, "%",
                 () -> ChatQolSettings.tabOpacity, value -> ChatQolSettings.tabOpacity = value)));
         entries.add(new Entry(ChatEditorLayout.TABS, "Active tab opacity", slider(0, 100, 1, "%",
@@ -324,6 +326,7 @@ public final class ChatEditorScreen extends AppleScreen {
 
     private void syncFields(boolean tabFields) {
         if (!backgroundColour.isFocused()) backgroundColour.setText(colourText(ChatQolSettings.backgroundColor));
+        if (!tabInactiveColour.isFocused()) tabInactiveColour.setText(colourText(ChatQolSettings.tabInactiveColor));
         if (!tabBaseColour.isFocused()) tabBaseColour.setText(colourText(ChatQolSettings.tabBackgroundColor));
         if (!hoverColour.isFocused()) hoverColour.setText(colourText(ChatQolSettings.hoverColor));
         if (!tabFields) return;
@@ -339,9 +342,11 @@ public final class ChatEditorScreen extends AppleScreen {
 
     private void commitColourFields() {
         Integer background = parseColour(backgroundColour.text());
+        Integer tabInactive = parseColour(tabInactiveColour.text());
         Integer tabBase = parseColour(tabBaseColour.text());
         Integer hover = parseColour(hoverColour.text());
         if (background != null) ChatQolSettings.backgroundColor = background.intValue();
+        if (tabInactive != null) ChatQolSettings.tabInactiveColor = tabInactive.intValue();
         if (tabBase != null) ChatQolSettings.tabBackgroundColor = tabBase.intValue();
         if (hover != null) ChatQolSettings.hoverColor = hover.intValue();
     }

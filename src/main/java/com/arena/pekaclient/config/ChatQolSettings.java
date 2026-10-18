@@ -40,7 +40,8 @@ public final class ChatQolSettings {
     public static boolean backgroundOpenFullArea;
     /** False keeps the configured vanilla chat width; true uses the widest visible line plus a small edge pad. */
     public static boolean backgroundFitWidth;
-    /** Shared translucent blue tab surface; custom tab colours are rendered only as small accents. */
+    /** Unselected tabs default to translucent black; selected tabs stay blue and custom colours remain accents. */
+    public static int tabInactiveColor;
     public static int tabBackgroundColor;
     public static int tabOpacity;
     public static int tabActiveOpacity;
@@ -209,9 +210,10 @@ public final class ChatQolSettings {
         TABS.addAll(ChatTabs.defaults());
         selectedTabId = ChatTabs.ALL;
         tabsEnabled = true;
+        tabInactiveColor = 0x000000;
         tabBackgroundColor = 0x2F7DFF;
-        tabOpacity = 28;
-        tabActiveOpacity = 48;
+        tabOpacity = 55;
+        tabActiveOpacity = 60;
     }
 
     public static void resetMenuHighlight() {
@@ -258,9 +260,10 @@ public final class ChatQolSettings {
         backgroundRadius = integer(p, PREFIX + "background.radius", 4, 0, 12);
         backgroundOpenFullArea = bool(p, PREFIX + "background.openFullArea", false);
         backgroundFitWidth = bool(p, PREFIX + "background.fitWidth", false);
+        tabInactiveColor = colour(p, PREFIX + "tabs.inactiveColor", 0x000000);
         tabBackgroundColor = colour(p, PREFIX + "tabs.baseColor", 0x2F7DFF);
-        tabOpacity = integer(p, PREFIX + "tabs.opacity", 28, 0, 100);
-        tabActiveOpacity = integer(p, PREFIX + "tabs.activeOpacity", 48, 0, 100);
+        tabOpacity = integer(p, PREFIX + "tabs.opacity", 55, 0, 100);
+        tabActiveOpacity = integer(p, PREFIX + "tabs.activeOpacity", 60, 0, 100);
         messageAnimationMillis = integer(p, PREFIX + "messages.animation", 140, 0, 600);
         fadeSeconds = integer(p, PREFIX + "messages.fade", 10, 0, 60);
         hoverColor = colour(p, PREFIX + "highlight.color", 0xFFFFFF);
@@ -282,6 +285,7 @@ public final class ChatQolSettings {
         p.setProperty(PREFIX + "enabled", Boolean.toString(enabled));
         p.setProperty(PREFIX + "tabs", Boolean.toString(tabsEnabled));
         p.setProperty(PREFIX + "tabs.selectedId", selectedTabId());
+        p.setProperty(PREFIX + "tabs.inactiveColor", colourString(tabInactiveColor));
         p.setProperty(PREFIX + "tabs.baseColor", colourString(tabBackgroundColor));
         p.setProperty(PREFIX + "tabs.opacity", Integer.toString(tabOpacity));
         p.setProperty(PREFIX + "tabs.activeOpacity", Integer.toString(tabActiveOpacity));
@@ -380,6 +384,7 @@ public final class ChatQolSettings {
         backgroundOpacityOpen = clamp(backgroundOpacityOpen, 0, 100);
         backgroundOpacityClosed = clamp(backgroundOpacityClosed, 0, 100);
         backgroundRadius = clamp(backgroundRadius, 0, 12);
+        tabInactiveColor = validColour(tabInactiveColor, 0x000000);
         tabBackgroundColor = validColour(tabBackgroundColor, 0x2F7DFF);
         tabOpacity = clamp(tabOpacity, 0, 100);
         tabActiveOpacity = clamp(tabActiveOpacity, 0, 100);

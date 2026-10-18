@@ -10,6 +10,7 @@ public final class ChatTabsTests {
 
     public static void main(String[] args) {
         builtIns();
+        partyCommandResults();
         customFiltersAndAll();
         invalidRegexFailsClosed();
         prefixes();
@@ -23,6 +24,36 @@ public final class ChatTabsTests {
         check("Party rejects reply", !ChatTabs.appearsIn(ChatTabs.PARTY, "From Alex: hello", tabs));
         check("Reply matches inbound private", ChatTabs.appearsIn(ChatTabs.REPLY, "From Alex: hello", tabs));
         check("Reply matches outbound private", ChatTabs.appearsIn(ChatTabs.REPLY, "To Alex: hello", tabs));
+    }
+
+    /** Representative Hypixel-style results used because no real lines were supplied with the request. */
+    private static void partyCommandResults() {
+        List<ChatTabs.Tab> tabs = ChatTabs.defaults();
+        String[] lines = {
+                "Party > [MVP+] PartyGuy: ready",
+                "[PARTY] [VIP] Party_Mate: hello",
+                "You have joined [MVP+] Host_99's party!",
+                "[MVP+] Party_Mate has joined the party!",
+                "[VIP] Party_Mate has left the party.",
+                "You invited [VIP] Friend_42 to the party!",
+                "[MVP+] Host_99 has invited you to join their party!",
+                "[VIP] Friend_42 has been kicked from the party!",
+                "The party was disbanded because all invites expired and the party was empty.",
+                "[MVP+] Host_99 transferred the party to [VIP] NewHost!",
+                "[VIP] Friend_42 was promoted to Party Leader!",
+                "Party Warp > [MVP+] Host_99 summoned you to their server.",
+                "Party Members (3)",
+                "Party Leader: [MVP+] Host_99 ●",
+                "You are not currently in a party!"
+        };
+        for (String line : lines) {
+            check("Party includes command/result line " + line,
+                    ChatTabs.appearsIn(ChatTabs.PARTY, line, tabs));
+            check("Party result remains in All " + line,
+                    ChatTabs.appearsIn(ChatTabs.ALL, line, tabs));
+        }
+        check("Party avoids unrelated Party Finder traffic",
+                !ChatTabs.appearsIn(ChatTabs.PARTY, "Party Finder > Looking for a dungeon", tabs));
     }
 
     private static void customFiltersAndAll() {

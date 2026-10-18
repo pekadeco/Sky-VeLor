@@ -31,8 +31,9 @@ public final class ChatQolSettingsTests {
         check("default menu is Both and instant", ChatQolSettings.menuOpenMode == ChatMenuPolicy.BOTH);
         check("background defaults fit messages and chat width", !ChatQolSettings.backgroundOpenFullArea
                 && !ChatQolSettings.backgroundFitWidth);
-        check("tabs reset to translucent blue", ChatQolSettings.tabBackgroundColor == 0x2F7DFF
-                && ChatQolSettings.tabOpacity == 28 && ChatQolSettings.tabActiveOpacity == 48);
+        check("tabs default to translucent black with a blue selection", ChatQolSettings.tabInactiveColor == 0x000000
+                && ChatQolSettings.tabBackgroundColor == 0x2F7DFF && ChatQolSettings.tabOpacity == 55
+                && ChatQolSettings.tabActiveOpacity == 60);
     }
 
     private static void retiredSeparateKeysAreIgnored() {
@@ -65,6 +66,7 @@ public final class ChatQolSettingsTests {
         ChatQolSettings.resetDefaults();
         ChatQolSettings.backgroundOpenFullArea = true;
         ChatQolSettings.backgroundFitWidth = true;
+        ChatQolSettings.tabInactiveColor = 0x101820;
         ChatQolSettings.tabBackgroundColor = 0x1555AA;
         ChatQolSettings.tabOpacity = 31;
         ChatQolSettings.tabActiveOpacity = 49;
@@ -83,9 +85,10 @@ public final class ChatQolSettingsTests {
                 && restored.matches("SELLING sword") && "/pc".equals(restored.sendPrefix()) && restored.sound());
         check("custom match remains in All", ChatTabs.appearsIn(ChatTabs.ALL, "SELLING sword", ChatQolSettings.tabs()));
         check("selected custom tab survives", created.id.equals(ChatQolSettings.selectedTabId()));
-        check("background and blue tab style survive save/load", ChatQolSettings.backgroundOpenFullArea
-                && ChatQolSettings.backgroundFitWidth && ChatQolSettings.tabBackgroundColor == 0x1555AA
-                && ChatQolSettings.tabOpacity == 31 && ChatQolSettings.tabActiveOpacity == 49);
+        check("background and both tab surfaces survive save/load", ChatQolSettings.backgroundOpenFullArea
+                && ChatQolSettings.backgroundFitWidth && ChatQolSettings.tabInactiveColor == 0x101820
+                && ChatQolSettings.tabBackgroundColor == 0x1555AA && ChatQolSettings.tabOpacity == 31
+                && ChatQolSettings.tabActiveOpacity == 49);
     }
 
     private static void invalidRegexAndBounds() {
@@ -109,12 +112,14 @@ public final class ChatQolSettingsTests {
                 && ChatQolSettings.messageAnimationMillis == 600 && ChatQolSettings.hoverOpacity == 0);
         for (ChatTabs.Tab tab : ChatQolSettings.tabs()) ChatQolSettings.setTabVisible(tab.id(), false);
         check("at least one tab remains visible", !ChatQolSettings.visibleTabs().isEmpty());
+        ChatQolSettings.tabInactiveColor = 0x654321;
         ChatQolSettings.tabBackgroundColor = 0x123456;
         ChatQolSettings.tabOpacity = 1;
         ChatQolSettings.tabActiveOpacity = 99;
         ChatQolSettings.resetTabs();
-        check("reset tabs restores the translucent blue style", ChatQolSettings.tabBackgroundColor == 0x2F7DFF
-                && ChatQolSettings.tabOpacity == 28 && ChatQolSettings.tabActiveOpacity == 48);
+        check("reset tabs restores black inactive and blue selected surfaces", ChatQolSettings.tabInactiveColor == 0x000000
+                && ChatQolSettings.tabBackgroundColor == 0x2F7DFF && ChatQolSettings.tabOpacity == 55
+                && ChatQolSettings.tabActiveOpacity == 60);
     }
 
     private static void check(String name, boolean ok) {
