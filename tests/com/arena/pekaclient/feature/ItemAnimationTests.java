@@ -18,6 +18,9 @@ public final class ItemAnimationTests {
         check("animation speed defaults to 100%", AppleSettings.itemAnimationSpeed == 100);
         check("size switch defaults on", AppleSettings.itemAnimationSizeOn);
         check("speed switch defaults on", AppleSettings.itemAnimationSpeedOn);
+        check("Smooth swing defaults on", AppleSettings.itemAnimationSmoothSwing);
+        check("Smoothness defaults to the configured visual curve", AppleSettings.itemAnimationSmoothness
+                == AppleSettings.DEFAULT_ITEM_ANIMATION_SMOOTHNESS);
         check("saved style indexes keep their original names", "Vanilla".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[0])
                 && "Classic Hit".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[1])
                 && "Slash".equals(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[2]));
@@ -62,21 +65,30 @@ public final class ItemAnimationTests {
         check("size clamp bounds mirror the range the loader clamps to",
                 ItemAnimation.MIN_SIZE_PERCENT == AppleSettings.ITEM_ANIMATION_SIZE_MIN_PERCENT
                         && ItemAnimation.MAX_SIZE_PERCENT == AppleSettings.ITEM_ANIMATION_SIZE_MAX_PERCENT);
+        check("smoothness clamp leaves an in-range value alone", ItemAnimation.clampSmoothness(65) == 65);
+        check("smoothness clamp protects both bounds", ItemAnimation.clampSmoothness(-1) == 0
+                && ItemAnimation.clampSmoothness(101) == 100);
         check("defaults sit inside the clamp bounds",
                 ItemAnimation.clampSize(ItemAnimation.DEFAULT_SIZE_PERCENT)
                         == ItemAnimation.DEFAULT_SIZE_PERCENT
                         && ItemAnimation.clampSpeed(ItemAnimation.DEFAULT_SPEED_PERCENT)
-                        == ItemAnimation.DEFAULT_SPEED_PERCENT);
+                        == ItemAnimation.DEFAULT_SPEED_PERCENT
+                        && ItemAnimation.clampSmoothness(ItemAnimation.DEFAULT_SMOOTHNESS_PERCENT)
+                        == ItemAnimation.DEFAULT_SMOOTHNESS_PERCENT);
 
         AppleSettings.itemAnimationSize = 200;
         AppleSettings.itemAnimationSpeed = 50;
         AppleSettings.itemAnimationSizeOn = false;
         AppleSettings.itemAnimationSpeedOn = false;
+        AppleSettings.itemAnimationSmoothSwing = false;
+        AppleSettings.itemAnimationSmoothness = 0;
         ItemAnimation.resetToDefaults();
         check("reset restores the size slider", AppleSettings.itemAnimationSize == 100);
         check("reset restores the animation slider", AppleSettings.itemAnimationSpeed == 100);
         check("reset turns the size switch back on", AppleSettings.itemAnimationSizeOn);
         check("reset turns the animation switch back on", AppleSettings.itemAnimationSpeedOn);
+        check("reset restores default-on Smooth swing", AppleSettings.itemAnimationSmoothSwing
+                && AppleSettings.itemAnimationSmoothness == AppleSettings.DEFAULT_ITEM_ANIMATION_SMOOTHNESS);
         check("reset leaves the renderer at vanilla multipliers",
                 ItemAnimation.getSize() == 1.0f && ItemAnimation.getSpeed() == 1.0f);
 

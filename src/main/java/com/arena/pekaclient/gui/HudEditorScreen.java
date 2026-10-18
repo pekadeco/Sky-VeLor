@@ -105,6 +105,28 @@ public final class HudEditorScreen extends AppleScreen {
         }
     }
 
+    /** Informational rather than interactive: translucent ghost re-renders are intentionally not attempted. */
+    private static final class ItemAnimationNoteWidget extends Widget {
+        private final String note;
+
+        ItemAnimationNoteWidget(float width, String note) {
+            super(width, 22f);
+            this.note = note == null ? "" : note;
+        }
+
+        @Override
+        public void draw(int mouseX, int mouseY) {
+            UIRender.roundRectBorder(x, y, w, h, 5f, 0x243F4856, 0x243F4856, 0xFF586473);
+            UIRender.text(font(), fit(font(), note, Math.max(0f, w - 14f)), x + 7f, y + 7f,
+                    0xFFB9C1CD, 0.68f, false);
+        }
+
+        @Override
+        public void onPress(int mouseX, int mouseY) {
+            // Informational only; this deliberately cannot be mistaken for a blur toggle or intensity slider.
+        }
+    }
+
     /** One compact slider plus exact-number box. It is still one fixed inspector row, not two overlapping rows. */
     private final class ExactSliderWidget extends Widget implements HorizontalDragWidget {
         private final ItemAnimationValue value;
@@ -613,6 +635,19 @@ public final class HudEditorScreen extends AppleScreen {
                             })));
             entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("hit-slash-speed", itemAnimationPanel),
                     itemAnimationSpeedControl));
+            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("smooth-swing", itemAnimationPanel),
+                    new AppleToggle(ItemAnimation::isSmoothSwingEnabled, value -> {
+                        AppleSettings.itemAnimationSmoothSwing = value;
+                        changed();
+                    })));
+            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("smoothness", itemAnimationPanel),
+                    new AppleSlider(ItemAnimation.MIN_SMOOTHNESS_PERCENT, ItemAnimation.MAX_SMOOTHNESS_PERCENT,
+                            5, "%", CONTROL_W, ItemAnimation::getSmoothness, value -> {
+                                AppleSettings.itemAnimationSmoothness = ItemAnimation.clampSmoothness(value);
+                                changed();
+                            }).fineStep(1)));
+            entries.add(new Entry(null, new ItemAnimationNoteWidget(CONTROL_W,
+                    ItemAnimationUiModel.panelControlLabel("swing-blur-status", itemAnimationPanel))));
         }
 
         entries.add(new Entry(null, new GroupWidget(ItemAnimationUiModel.panelControlLabel("options", itemAnimationPanel),
@@ -668,8 +703,11 @@ public final class HudEditorScreen extends AppleScreen {
 
     private String animationSummary() {
         int style = ItemAnimation.clampHitSlashStyle(AppleSettings.itemAnimationHitSlashStyle);
+        String smooth = AppleSettings.itemAnimationSmoothSwing ? "Smooth " + ItemAnimation.getSmoothness() + "%"
+                : "Smooth off";
+        // A matrix-local hook has no safe second translucent first-person pass, so ghost blur is intentionally absent.
         return AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[style] + "  "
-                + AppleSettings.effectiveItemAnimationSpeed() + "%";
+                + AppleSettings.effectiveItemAnimationSpeed() + "%  " + smooth + "  Blur unavailable";
     }
 
     private String optionsSummary() {

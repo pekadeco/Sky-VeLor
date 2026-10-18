@@ -92,7 +92,7 @@ public final class GuiSettingsAuditModel {
                     "puzzle-names", "party-announce"}),
             new Feature("item-animation", "Item Animation", "Visual first-person transforms only",
                     new String[]{"enabled"}, new String[]{"scale", "position", "hit-slash-style",
-                    "hit-slash-speed", "remove-haste", "preview", "reset"})
+                    "hit-slash-speed", "smooth-swing", "smoothness", "remove-haste", "preview", "reset"})
     ));
 
     private GuiSettingsAuditModel() {

@@ -24,6 +24,9 @@ public final class ItemAnimation {
 
     public static final int DEFAULT_SIZE_PERCENT = AppleSettings.DEFAULT_ITEM_ANIMATION_SIZE;
     public static final int DEFAULT_SPEED_PERCENT = AppleSettings.DEFAULT_ITEM_ANIMATION_SPEED;
+    public static final int MIN_SMOOTHNESS_PERCENT = AppleSettings.ITEM_ANIMATION_SMOOTHNESS_MIN_PERCENT;
+    public static final int MAX_SMOOTHNESS_PERCENT = AppleSettings.ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT;
+    public static final int DEFAULT_SMOOTHNESS_PERCENT = AppleSettings.DEFAULT_ITEM_ANIMATION_SMOOTHNESS;
     private static volatile long previewSwingStartedNanos = -1L;
 
     private ItemAnimation() {
@@ -54,6 +57,11 @@ public final class ItemAnimation {
         return Math.max(0, Math.min(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES.length - 1, value));
     }
 
+    /** Clamps the linear-to-smoothstep blend shown by the Smoothness slider. */
+    public static int clampSmoothness(int value) {
+        return Math.max(MIN_SMOOTHNESS_PERCENT, Math.min(MAX_SMOOTHNESS_PERCENT, value));
+    }
+
     /** The custom renderer uses a fixed visual timeline rather than touching the real Haste potion effect. */
     public static boolean isHasteEffectRemoved() {
         return AppleSettings.itemAnimationRemoveHasteEffect;
@@ -62,6 +70,16 @@ public final class ItemAnimation {
     /** Visual first-person hit/slash shape; no entity swing field is read or written by this value. */
     public static int getHitSlashStyle() {
         return clampHitSlashStyle(AppleSettings.itemAnimationHitSlashStyle);
+    }
+
+    /** Default-on first-person curve switch. The hook still returns exact vanilla progress when the master is off. */
+    public static boolean isSmoothSwingEnabled() {
+        return AppleSettings.itemAnimationSmoothSwing;
+    }
+
+    /** Current 0..100 curve blend used directly with partial-tick swing progress. */
+    public static int getSmoothness() {
+        return clampSmoothness(AppleSettings.itemAnimationSmoothness);
     }
 
     /** Starts one local renderer-only preview; it sends no input, packet, or gameplay action. */
@@ -142,6 +160,8 @@ public final class ItemAnimation {
         AppleSettings.itemAnimationSpeedOn = true;
         AppleSettings.itemAnimationRemoveHasteEffect = true;
         AppleSettings.itemAnimationHitSlashStyle = AppleSettings.DEFAULT_ITEM_ANIMATION_HIT_SLASH_STYLE;
+        AppleSettings.itemAnimationSmoothSwing = AppleSettings.DEFAULT_ITEM_ANIMATION_SMOOTH_SWING;
+        AppleSettings.itemAnimationSmoothness = DEFAULT_SMOOTHNESS_PERCENT;
         AppleSettings.itemAnimationSize = DEFAULT_SIZE_PERCENT;
         AppleSettings.itemAnimationSpeed = DEFAULT_SPEED_PERCENT;
         AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;

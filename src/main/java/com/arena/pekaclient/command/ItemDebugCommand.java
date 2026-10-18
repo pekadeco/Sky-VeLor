@@ -66,9 +66,10 @@ public final class ItemDebugCommand extends CommandBase {
                 + ", hook=" + state + " (" + ItemAnimationHookStatus.getReason() + ").");
         // These are the same effective live values read by the direct ItemRenderer callbacks, not a saved snapshot.
         say(sender, String.format(Locale.ROOT,
-                "Live: X=%+.2f, Y=%+.2f, Z=%+.2f, Size=%.2fx, Speed=%.2fx",
+                "Live: X=%+.2f, Y=%+.2f, Z=%+.2f, Size=%.2fx, Speed=%.2fx, Smooth=%s %d%%",
                 ItemAnimation.getX(), ItemAnimation.getY(), ItemAnimation.getZ(),
-                ItemAnimation.getSize(), ItemAnimation.getSpeed()));
+                ItemAnimation.getSize(), ItemAnimation.getSpeed(),
+                ItemAnimation.isSmoothSwingEnabled() ? "ON" : "OFF", ItemAnimation.getSmoothness()));
         say(sender, String.format(Locale.ROOT,
                 "Hook calls last second=%d, visual swing=%.3f, total hand calls=%d.",
                 ItemAnimationHooks.getRenderCallsLastSecond(), ItemAnimationHooks.getVisualSwingProgress(),

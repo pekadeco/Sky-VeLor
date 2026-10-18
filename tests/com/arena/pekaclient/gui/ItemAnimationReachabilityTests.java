@@ -58,13 +58,18 @@ public final class ItemAnimationReachabilityTests {
         List<ItemAnimationUiModel.Entry> expanded = ItemAnimationUiModel.buildPanelControlModel(panel);
         String[] requiredControls = {
                 "enable", "scale", "position", "animation", "options", "hit-slash-style", "hit-slash-speed",
-                "remove-haste", "preview-swing", "reset-defaults"
+                "smooth-swing", "smoothness", "remove-haste", "preview-swing", "reset-defaults"
         };
         for (String id : requiredControls) {
             requireInteractive(expanded, id, "Item Animation control registered: " + id);
         }
         check("Auto Fix option is absent from expanded Item Animation model",
                 !contains(expanded, "auto-fix-hit-slash") && !hasLabel(expanded, "Auto Fix Hit/Slash"));
+        ItemAnimationUiModel.Entry blurStatus = find(expanded, "swing-blur-status");
+        check("blur is plainly reported as unavailable, not shipped as a control", blurStatus != null
+                && !blurStatus.isControlRegistered() && blurStatus.getLabel().contains("unavailable"));
+        check("no unsafe blur or intensity controls are registered", !contains(expanded, "swing-blur")
+                && !contains(expanded, "swing-blur-intensity"));
         check("renderer panel has no background transparency control", !contains(expanded, "background-transparency")
                 && !contains(expanded, "background-opacity") && !hasLabel(expanded, "Background transparency")
                 && !hasLabel(expanded, "Background opacity"));

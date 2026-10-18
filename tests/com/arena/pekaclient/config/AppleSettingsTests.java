@@ -40,20 +40,27 @@ public final class AppleSettingsTests {
         beta0108.setProperty("itemAnimation.y", "25");
         beta0108.setProperty("itemAnimation.z", "50");
         beta0108.setProperty("itemAnimation.autoFixHitSlash", "false");
+        beta0108.setProperty("itemAnimation.smoothSwing", "false");
+        beta0108.setProperty("itemAnimation.smoothness", "82");
+        beta0108.setProperty("itemAnimation.swingBlur", "true");
+        beta0108.setProperty("itemAnimation.swingBlurIntensity", "75");
         beta0108.setProperty("itemAnimation.backgroundTransparency", "12");
         beta0108.setProperty("itemAnimation.backgroundOpacity", "95");
         AppleSettings.loadItemAnimationSettings(beta0108);
         check("0.10.8v config with obsolete Auto Fix/background keys loads cleanly",
                 !AppleSettings.itemAnimationEnabled && AppleSettings.itemAnimationSize == 145
                         && AppleSettings.itemAnimationSpeed == 175 && AppleSettings.itemAnimationX == -75
-                        && AppleSettings.itemAnimationY == 25 && AppleSettings.itemAnimationZ == 50);
+                        && AppleSettings.itemAnimationY == 25 && AppleSettings.itemAnimationZ == 50
+                        && !AppleSettings.itemAnimationSmoothSwing && AppleSettings.itemAnimationSmoothness == 82);
         Properties migrated = new Properties();
         migrated.putAll(beta0108);
         AppleSettings.saveItemAnimationSettings(migrated);
         check("obsolete Item Animation keys are not written back",
                 !migrated.containsKey("itemAnimation.autoFixHitSlash")
                         && !migrated.containsKey("itemAnimation.backgroundTransparency")
-                        && !migrated.containsKey("itemAnimation.backgroundOpacity"));
+                        && !migrated.containsKey("itemAnimation.backgroundOpacity")
+                        && !migrated.containsKey("itemAnimation.swingBlur")
+                        && !migrated.containsKey("itemAnimation.swingBlurIntensity"));
 
         fishingSettingsCompatibility();
         chatSettingsCompatibility();

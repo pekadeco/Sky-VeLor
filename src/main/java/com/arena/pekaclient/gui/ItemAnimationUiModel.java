@@ -132,6 +132,12 @@ public final class ItemAnimationUiModel {
         if (panel.isAnimationExpanded()) {
             entries.add(new Entry("hit-slash-style", "Custom Hit/Slash Style", true, true));
             entries.add(new Entry("hit-slash-speed", "Custom Hit/Slash Speed", true, true));
+            entries.add(new Entry("smooth-swing", "Smooth swing", true, true));
+            entries.add(new Entry("smoothness", "Smoothness", true, true));
+            // This is information, not a hidden control: duplicating first-person renders with transparent ghost
+            // passes is not safe in the narrow ItemRenderer hook, so no blur or intensity option is shipped.
+            entries.add(new Entry("swing-blur-status", "Swing blur unavailable (no safe translucent ghosts)", true,
+                    false));
         }
         entries.add(new Entry("options", "Options", true, true));
         if (panel.isOptionsExpanded()) {

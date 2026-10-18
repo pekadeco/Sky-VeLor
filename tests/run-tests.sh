@@ -42,6 +42,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.BlockParticlePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.blockparticles.BlockParticleTransformerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ItemAnimationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.VisualSwingStateMachineTests
+java -cp "$OUT:$CP" com.arena.pekaclient.feature.SwingEasingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatInteractionModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatQolLayoutTests

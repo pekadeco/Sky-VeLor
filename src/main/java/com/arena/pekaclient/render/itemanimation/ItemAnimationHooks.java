@@ -34,6 +34,8 @@ public final class ItemAnimationHooks {
     private static float cachedSpeed = 1.0F;
     private static boolean cachedRemoveHasteEffect;
     private static int cachedHitSlashStyle;
+    private static boolean cachedSmoothSwing;
+    private static int cachedSmoothness;
 
     /** Reused primitive-only state machine; it restarts visual cycles while attack/mining is held. */
     private static final VisualSwingStateMachine VISUAL_SWING = new VisualSwingStateMachine();
@@ -120,7 +122,7 @@ public final class ItemAnimationHooks {
 
         float preview = previewSwingProgress();
         if (preview >= 0.0F) {
-            float styledPreview = applyHitSlashStyle(preview);
+            float styledPreview = shapeVisualSwing(preview);
             lastSwingProgress = styledPreview;
             return styledPreview;
         }
@@ -145,7 +147,8 @@ public final class ItemAnimationHooks {
         boolean attackHeld = (mc.gameSettings != null && mc.gameSettings.keyBindAttack != null
                 && mc.gameSettings.keyBindAttack.isKeyDown())
                 || (mc.playerController != null && mc.playerController.getIsHittingBlock());
-        boolean customVisual = cachedRemoveHasteEffect || cachedSpeed != 1.0F || cachedHitSlashStyle != 0;
+        boolean customVisual = cachedRemoveHasteEffect || cachedSpeed != 1.0F || cachedHitSlashStyle != 0
+                || (cachedSmoothSwing && cachedSmoothness > 0);
         if (!customVisual && !attackHeld) {
             // With every custom visual option off, preserve a normal unheld vanilla click exactly as before.
             clearVisualSwing();
@@ -158,7 +161,7 @@ public final class ItemAnimationHooks {
             lastSwingProgress = vanillaProgress;
             return vanillaProgress;
         }
-        float styled = applyHitSlashStyle(raw);
+        float styled = shapeVisualSwing(raw);
         lastSwingProgress = styled;
         return styled;
     }
@@ -176,6 +179,13 @@ public final class ItemAnimationHooks {
             return 1.0F;
         }
         return Math.max(0.0F, visual);
+    }
+
+    /** Applies the stateless Smooth Swing curve before an optional visual hit/slash shape. */
+    private static float shapeVisualSwing(float progress) {
+        float shaped = cachedSmoothSwing ? com.arena.pekaclient.feature.SwingEasing.ease(progress, cachedSmoothness)
+                : progress;
+        return applyHitSlashStyle(shaped);
     }
 
     /** Applies a first-person-only shape to the local ItemRenderer swing value. */
@@ -229,6 +239,8 @@ public final class ItemAnimationHooks {
         cachedSpeed = cachedEnabled ? ItemAnimation.getConfiguredSpeed() : 1.0F;
         cachedRemoveHasteEffect = cachedEnabled && ItemAnimation.isHasteEffectRemoved();
         cachedHitSlashStyle = cachedEnabled ? ItemAnimation.getHitSlashStyle() : 0;
+        cachedSmoothSwing = cachedEnabled && ItemAnimation.isSmoothSwingEnabled();
+        cachedSmoothness = cachedEnabled ? ItemAnimation.getSmoothness() : 0;
     }
 
     private static boolean isMap(ItemStack held) {

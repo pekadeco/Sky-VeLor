@@ -64,6 +64,11 @@ public final class AppleSettings {
     public static final int DEFAULT_ITEM_ANIMATION_Y = 0;
     public static final int DEFAULT_ITEM_ANIMATION_Z = 0;
     public static final int DEFAULT_ITEM_ANIMATION_HIT_SLASH_STYLE = 0;
+    /** Smooth Swing is default-on; its curve is visual-only and evaluates from the current partial-tick progress. */
+    public static final boolean DEFAULT_ITEM_ANIMATION_SMOOTH_SWING = true;
+    public static final int ITEM_ANIMATION_SMOOTHNESS_MIN_PERCENT = 0;
+    public static final int ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT = 100;
+    public static final int DEFAULT_ITEM_ANIMATION_SMOOTHNESS = 65;
     // Existing indexes stay fixed so saved 0.10.7.x style values keep their exact appearance; new styles append.
     public static final String[] ITEM_ANIMATION_HIT_SLASH_STYLES = {
             "Vanilla", "Classic Hit", "Slash", "Chop", "Stab"
@@ -77,6 +82,10 @@ public final class AppleSettings {
     public static boolean itemAnimationRemoveHasteEffect = true;
     /** Visual first-person hit/slash shape, indexed by {@link #ITEM_ANIMATION_HIT_SLASH_STYLES}. */
     public static int itemAnimationHitSlashStyle = DEFAULT_ITEM_ANIMATION_HIT_SLASH_STYLE;
+    /** Local first-person curve only; it never changes swing timing, packets, attacks, or potion effects. */
+    public static boolean itemAnimationSmoothSwing = DEFAULT_ITEM_ANIMATION_SMOOTH_SWING;
+    /** Blend between linear and smoothstep motion, in percent. */
+    public static int itemAnimationSmoothness = DEFAULT_ITEM_ANIMATION_SMOOTHNESS;
 
     /** Corner radius in use: the slider value when its switch is on, otherwise the default. */
     public static int effectiveCornerRadius() {
@@ -184,6 +193,11 @@ public final class AppleSettings {
             "itemAnimation.backgroundTransparency", "itemAnimation.backgroundOpacity", "itemAnimation.backgroundAlpha",
             "itemAnimation.transparent", "firstPersonItemBackgroundTransparency", "firstPersonItemBackgroundOpacity",
             "firstPersonItemBackgroundAlpha"
+    };
+    /** Blur duplicates require unsafe translucent re-rendering, so historic draft keys are harmless and never saved. */
+    private static final String[] RETIRED_ITEM_ANIMATION_BLUR_KEYS = {
+            "itemAnimation.swingBlur", "itemAnimation.swingBlurIntensity", "itemAnimation.blur",
+            "itemAnimation.blurIntensity", "firstPersonSwingBlur", "firstPersonSwingBlurIntensity"
     };
     /** Set when target-local Chat QoL scrolling is promoted into the one global viewport policy. */
     private static boolean globalScrollMigrationPending;
@@ -302,7 +316,7 @@ public final class AppleSettings {
      */
     static void loadItemAnimationSettings(Properties settings) {
         Properties p = settings == null ? new Properties() : settings;
-        itemAnimationMigrationPending = hasRetiredItemAnimationBackgroundKey(p);
+        itemAnimationMigrationPending = hasRetiredItemAnimationBackgroundKey(p) || hasRetiredItemAnimationBlurKey(p);
         // New category names win when both names exist; old firstPerson* keys are read once and then rewritten.
         // Beta-0.10.8v's itemAnimation.autoFixHitSlash key is intentionally ignored: the corrected visual timeline
         // is permanent and no replacement setting is retained.
@@ -315,6 +329,9 @@ public final class AppleSettings {
                 itemAnimationRemoveHasteEffect);
         itemAnimationHitSlashStyle = readInt(p, "itemAnimation.hitSlashStyle", itemAnimationHitSlashStyle, 0,
                 ITEM_ANIMATION_HIT_SLASH_STYLES.length - 1);
+        itemAnimationSmoothSwing = readBool(p, "itemAnimation.smoothSwing", DEFAULT_ITEM_ANIMATION_SMOOTH_SWING);
+        itemAnimationSmoothness = readInt(p, "itemAnimation.smoothness", DEFAULT_ITEM_ANIMATION_SMOOTHNESS,
+                ITEM_ANIMATION_SMOOTHNESS_MIN_PERCENT, ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT);
         itemAnimationSize = readItemAnimationInt(p, "itemAnimation.size", "firstPersonItemScale",
                 itemAnimationSize, ITEM_ANIMATION_SIZE_MIN_PERCENT, ITEM_ANIMATION_SIZE_MAX_PERCENT);
         itemAnimationSpeed = readItemAnimationInt(p, "itemAnimation.speed", "firstPersonAnimSpeed",
@@ -338,6 +355,8 @@ public final class AppleSettings {
         p.setProperty("itemAnimation.speedOn", Boolean.toString(itemAnimationSpeedOn));
         p.setProperty("itemAnimation.removeHasteEffect", Boolean.toString(itemAnimationRemoveHasteEffect));
         p.setProperty("itemAnimation.hitSlashStyle", Integer.toString(itemAnimationHitSlashStyle));
+        p.setProperty("itemAnimation.smoothSwing", Boolean.toString(itemAnimationSmoothSwing));
+        p.setProperty("itemAnimation.smoothness", Integer.toString(itemAnimationSmoothness));
         p.setProperty("itemAnimation.size", Integer.toString(itemAnimationSize));
         p.setProperty("itemAnimation.speed", Integer.toString(itemAnimationSpeed));
         p.setProperty("itemAnimation.x", Integer.toString(itemAnimationX));
@@ -396,6 +415,8 @@ public final class AppleSettings {
                 Math.min(ITEM_ANIMATION_OFFSET_MAX, itemAnimationZ));
         itemAnimationHitSlashStyle = Math.max(0, Math.min(ITEM_ANIMATION_HIT_SLASH_STYLES.length - 1,
                 itemAnimationHitSlashStyle));
+        itemAnimationSmoothness = Math.max(ITEM_ANIMATION_SMOOTHNESS_MIN_PERCENT,
+                Math.min(ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT, itemAnimationSmoothness));
         Properties p = new Properties();
         p.setProperty("accent", Integer.toString(accent));
         p.setProperty("darkMode", Boolean.toString(darkMode));
@@ -551,9 +572,16 @@ public final class AppleSettings {
         return false;
     }
 
+    private static boolean hasRetiredItemAnimationBlurKey(Properties p) {
+        if (p == null) return false;
+        for (String key : RETIRED_ITEM_ANIMATION_BLUR_KEYS) if (p.containsKey(key)) return true;
+        return false;
+    }
+
     private static void removeRetiredItemAnimationKeys(Properties p) {
         if (p == null) return;
         for (String key : RETIRED_ITEM_ANIMATION_BACKGROUND_KEYS) p.remove(key);
+        for (String key : RETIRED_ITEM_ANIMATION_BLUR_KEYS) p.remove(key);
         // Beta-0.10.8's corrected swing is permanent as well; never retain the obsolete toggle on an in-place save.
         p.remove("itemAnimation.autoFixHitSlash");
     }
