@@ -1489,16 +1489,20 @@ public final class ChatChannelTabs {
                 if (input == null) {
                     toast("Could not copy to chat box; chat input is unavailable");
                 } else {
-                    // GuiTextField.writeText is the native cursor/selection-aware insertion path. Keep it focused,
-                    // lift its vanilla 100-character cap to the promised safe 256, and bound the inserted slice.
-                    String cleanText = ChatClipboard.clean(clean);
-                    int room = Math.max(0, ChatInputInsertion.MAX_LENGTH - input.getText().length());
-                    if (room <= 0 || cleanText.length() == 0) {
-                        toast(room <= 0 ? "Chat box already has 256 characters" : "Nothing to copy to chat box");
+                    // Keep the production field on the same clean, cursor/selection-aware, 256-character contract
+                    // exercised by ChatInputInsertion's headless tests. Do not use writeText here: it is easy for a
+                    // changed GuiTextField limit to bypass the shared cap/selection behavior.
+                    ChatInputInsertion.Result insertion = ChatInputInsertion.insert(input.getText(),
+                            input.getCursorPosition(), input.getSelectionEnd(), clean);
+                    if (!insertion.inserted) {
+                        toast(input.getText().length() >= ChatInputInsertion.MAX_LENGTH
+                                ? "Chat box already has 256 characters" : "Nothing to copy to chat box");
                     } else {
                         input.setMaxStringLength(ChatInputInsertion.MAX_LENGTH);
+                        input.setText(insertion.text);
+                        input.setCursorPosition(insertion.cursor);
+                        input.setSelectionPos(insertion.cursor);
                         input.setFocused(true);
-                        input.writeText(cleanText.length() > room ? cleanText.substring(0, room) : cleanText);
                         toast("Copied to chat box");
                     }
                 }

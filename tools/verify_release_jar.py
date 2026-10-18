@@ -70,6 +70,7 @@ REQUIRED_CLASSES = [
     'chat/ChatPipeline',
     'chat/ChatClipboard',
     'chat/ChatContextMenu',
+    'chat/ChatInputInsertion',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -415,6 +416,9 @@ def main():
                 and b'ChatInteractionModel' in tabs_raw and b'ChatPipeline' in tabs_raw
                 and b'ChatContextMenu' in chat_runtime_raw and b'ChatClipboard' in chat_runtime_raw,
             'Chat QoL packages one Default/Chat 1/Chat 2 pipeline with exact two-action copy labels')
+    r.check(b'com/arena/pekaclient/chat/ChatInputInsertion' in copy_menu_raw
+                and 'insert' in members_of('feature/ChatChannelTabs$CopyMenu'),
+            'production Copy to chat box calls the shared clean cursor/selection/256-character insertion path')
     r.check(b'Copy clean' not in chat_runtime_raw and b'Copy colours' not in chat_runtime_raw
                 and b'Copy to box' not in chat_runtime_raw,
             'Chat QoL excludes retired alternate copy actions from the runtime menu')
