@@ -16,7 +16,7 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
     private final GuiScreen parent;
     private final GuiLayoutToolkit.Rect[] controls = {
             new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect(),
-            new GuiLayoutToolkit.Rect()
+            new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect()
     };
 
     public ModSettingsScreen(GuiScreen parent) {
@@ -25,7 +25,7 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
 
     @Override
     public void initGui() {
-        placePanel(Math.min(540f, width - 12f), Math.min(286f, height - 12f));
+        placePanel(Math.min(540f, width - 12f), Math.min(336f, height - 12f));
     }
 
     @Override
@@ -33,18 +33,25 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
         drawDefaultBackground();
         beginPanel("Mod Settings", mx, my);
         float naturalY = 0f;
+        drawLabel("Mouse", content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
+        naturalY += 17f;
         row("Scroll speed", multiplier(AppleSettings.effectiveScrollSpeed()), 0, rowY(naturalY));
         naturalY += 31f;
         row("Smooth scrolling", AppleSettings.smoothScrolling ? "Enabled" : "Disabled", 1, rowY(naturalY));
         naturalY += 31f;
-        row("Chat QoL master", ChatQolSettings.isEnabled() ? "Enabled" : "Disabled", 2, rowY(naturalY));
+        row("Disable hotbar scrolling", AppleSettings.disableHotbarScrolling ? "Enabled" : "Disabled", 2,
+                rowY(naturalY));
+        naturalY += 39f;
+        drawLabel("Features", content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
+        naturalY += 17f;
+        row("Chat QoL master", ChatQolSettings.isEnabled() ? "Enabled" : "Disabled", 3, rowY(naturalY));
         naturalY += 31f;
-        row("Item Animation", AppleSettings.itemAnimationEnabled ? "Enabled" : "Disabled", 3, rowY(naturalY));
+        row("Item Animation", AppleSettings.itemAnimationEnabled ? "Enabled" : "Disabled", 4, rowY(naturalY));
         naturalY += 42f;
         drawLabel("Shift + wheel uses fine scrolling. A wheel event is applied once only to its hovered viewport.",
                 content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
         naturalY += 18f;
-        drawLabel("This global policy is used by settings, editors, HUD panels, and the Chat QoL renderer.",
+        drawLabel("Hotbar scrolling applies only in gameplay; chat, inventory, and number keys remain unchanged.",
                 content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
         finishContent(naturalY + 28f);
         endPanel();
@@ -73,6 +80,8 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
             } else if (i == 1) {
                 AppleSettings.smoothScrolling = !AppleSettings.smoothScrolling;
             } else if (i == 2) {
+                AppleSettings.disableHotbarScrolling = !AppleSettings.disableHotbarScrolling;
+            } else if (i == 3) {
                 ChatQolSettings.enabled = !ChatQolSettings.enabled;
                 if (!ChatQolSettings.enabled) ChatChannelTabs.disableAndRestoreAll();
             } else {

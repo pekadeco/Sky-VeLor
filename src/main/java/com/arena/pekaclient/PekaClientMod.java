@@ -16,6 +16,7 @@ import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.feature.LeapUse;
+import com.arena.pekaclient.feature.HotbarScrollPolicy;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.gui.AppleHubScreen;
@@ -250,10 +251,17 @@ public class PekaClientMod {
     /** A left-click on a held Spirit Leap item triggers the leap, so the server opens the menu the GUI replaces. */
     @SubscribeEvent
     public void onMouse(MouseEvent event) {
-        if (event.button != 0 || !event.buttonstate) {
+        Minecraft mc = Minecraft.getMinecraft();
+        // Forge emits this same event for wheel and button input. Only opt-in gameplay wheel movement is cancelled:
+        // GuiChat/inventory screens keep their own scroll paths, and number-key hotbar selection is keyboard input.
+        if (event != null && HotbarScrollPolicy.shouldCancel(AppleSettings.disableHotbarScrolling, event.dwheel,
+                mc.currentScreen != null)) {
+            event.setCanceled(true);
             return;
         }
-        Minecraft mc = Minecraft.getMinecraft();
+        if (event == null || event.button != 0 || !event.buttonstate) {
+            return;
+        }
         if (mc.currentScreen != null || mc.thePlayer == null || !DungeonContext.inDungeon()) {
             return;
         }

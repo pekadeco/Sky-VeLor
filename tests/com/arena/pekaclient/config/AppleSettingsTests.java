@@ -58,6 +58,7 @@ public final class AppleSettingsTests {
         fishingSettingsCompatibility();
         chatSettingsCompatibility();
         globalScrollCompatibility();
+        mouseSettingsCompatibility();
 
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
@@ -123,6 +124,21 @@ public final class AppleSettingsTests {
         AppleSettings.loadGlobalScrollSettings(nativeGlobal);
         check("native global scroll values remain authoritative", AppleSettings.scrollSpeed == 150
                 && AppleSettings.smoothScrolling);
+    }
+
+    private static void mouseSettingsCompatibility() {
+        AppleSettings.disableHotbarScrolling = true;
+        AppleSettings.loadMouseSettings(new Properties());
+        check("old config keeps hotbar wheel scrolling enabled", !AppleSettings.disableHotbarScrolling);
+
+        Properties stored = new Properties();
+        stored.setProperty("mouse.disableHotbarScrolling", "true");
+        AppleSettings.loadMouseSettings(stored);
+        check("hotbar wheel choice loads", AppleSettings.disableHotbarScrolling);
+        Properties saved = new Properties();
+        AppleSettings.saveMouseSettings(saved);
+        check("hotbar wheel choice has one stable key",
+                "true".equals(saved.getProperty("mouse.disableHotbarScrolling")) && saved.size() == 1);
     }
 
     private static void check(String name, boolean ok) {

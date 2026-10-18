@@ -37,6 +37,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.hud.DollConfigTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.SpiritLeapTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.DungeonContextTests
+java -cp "$OUT:$CP" com.arena.pekaclient.feature.HotbarScrollPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ItemAnimationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.VisualSwingStateMachineTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabsTests

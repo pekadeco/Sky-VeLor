@@ -43,6 +43,9 @@ public final class AppleSettings {
     public static final int DEFAULT_SCROLL_SPEED = 100;
     /** One global animation policy for all Sky VeLor-owned scroll viewports, including chat. */
     public static final boolean DEFAULT_SMOOTH_SCROLLING = true;
+    /** Opt-in gameplay mouse policy; GUI wheel scrolling and numeric hotbar keys are never affected. */
+    public static final boolean DEFAULT_DISABLE_HOTBAR_SCROLLING = false;
+    public static boolean disableHotbarScrolling = DEFAULT_DISABLE_HOTBAR_SCROLLING;
     
     // Item Animation. Percent controls use 100% for untouched vanilla; offsets are hundredths of a
     // first-person render unit. Keeping the bounds here makes loading, exact-value entry and sliders agree.
@@ -207,6 +210,7 @@ public final class AppleSettings {
         shadows = readBool(p, "shadows", shadows);
         loadPerformanceSettings(p);
         loadGlobalScrollSettings(p);
+        loadMouseSettings(p);
 
         loadItemAnimationSettings(p);
 
@@ -263,6 +267,18 @@ public final class AppleSettings {
         scrollSpeed = readInt(p, "scrollSpeed", DEFAULT_SCROLL_SPEED, 50, 300);
         smoothScrolling = readBool(p, "smoothScrolling", DEFAULT_SMOOTH_SCROLLING);
         globalScrollMigrationPending = false;
+    }
+
+    /** Reads the Mouse section independently so old files simply retain vanilla hotbar-wheel selection. */
+    static void loadMouseSettings(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        disableHotbarScrolling = readBool(p, "mouse.disableHotbarScrolling", DEFAULT_DISABLE_HOTBAR_SCROLLING);
+    }
+
+    static void saveMouseSettings(Properties p) {
+        if (p != null) {
+            p.setProperty("mouse.disableHotbarScrolling", Boolean.toString(disableHotbarScrolling));
+        }
     }
 
     /**
@@ -381,6 +397,7 @@ public final class AppleSettings {
         p.setProperty("adaptive", Boolean.toString(adaptive));
         p.setProperty("scrollSpeed", Integer.toString(scrollSpeed));
         p.setProperty("smoothScrolling", Boolean.toString(smoothScrolling));
+        saveMouseSettings(p);
         
         // Item Animation. Save only the current supported category; old and obsolete keys are deliberately retired.
         saveItemAnimationSettings(p);
