@@ -174,6 +174,11 @@ public final class AppleSettings {
 
     /** Set while a legacy firstPerson* key was read; load immediately writes its Item Animation replacement. */
     private static boolean itemAnimationMigrationPending;
+    private static final String[] RETIRED_ITEM_ANIMATION_BACKGROUND_KEYS = {
+            "itemAnimation.backgroundTransparency", "itemAnimation.backgroundOpacity", "itemAnimation.backgroundAlpha",
+            "itemAnimation.transparent", "firstPersonItemBackgroundTransparency", "firstPersonItemBackgroundOpacity",
+            "firstPersonItemBackgroundAlpha"
+    };
     /** Set when target-local Chat QoL scrolling is promoted into the one global viewport policy. */
     private static boolean globalScrollMigrationPending;
 
@@ -296,6 +301,7 @@ public final class AppleSettings {
         if (p == null) {
             return;
         }
+        removeRetiredItemAnimationKeys(p);
         p.setProperty("itemAnimation.enabled", Boolean.toString(itemAnimationEnabled));
         p.setProperty("itemAnimation.sizeOn", Boolean.toString(itemAnimationSizeOn));
         p.setProperty("itemAnimation.speedOn", Boolean.toString(itemAnimationSpeedOn));
@@ -507,13 +513,16 @@ public final class AppleSettings {
 
     /** Legacy Item Animation background controls never affected the renderer and are now actively rewritten away. */
     private static boolean hasRetiredItemAnimationBackgroundKey(Properties p) {
-        return p.containsKey("itemAnimation.backgroundTransparency")
-                || p.containsKey("itemAnimation.backgroundOpacity")
-                || p.containsKey("itemAnimation.backgroundAlpha")
-                || p.containsKey("itemAnimation.transparent")
-                || p.containsKey("firstPersonItemBackgroundTransparency")
-                || p.containsKey("firstPersonItemBackgroundOpacity")
-                || p.containsKey("firstPersonItemBackgroundAlpha");
+        if (p == null) return false;
+        for (String key : RETIRED_ITEM_ANIMATION_BACKGROUND_KEYS) if (p.containsKey(key)) return true;
+        return false;
+    }
+
+    private static void removeRetiredItemAnimationKeys(Properties p) {
+        if (p == null) return;
+        for (String key : RETIRED_ITEM_ANIMATION_BACKGROUND_KEYS) p.remove(key);
+        // Beta-0.10.8's corrected swing is permanent as well; never retain the obsolete toggle on an in-place save.
+        p.remove("itemAnimation.autoFixHitSlash");
     }
 
     private static boolean readItemAnimationBool(Properties p, String key, String legacyKey, boolean def) {

@@ -48,6 +48,7 @@ public final class AppleSettingsTests {
                         && AppleSettings.itemAnimationSpeed == 175 && AppleSettings.itemAnimationX == -75
                         && AppleSettings.itemAnimationY == 25 && AppleSettings.itemAnimationZ == 50);
         Properties migrated = new Properties();
+        migrated.putAll(beta0108);
         AppleSettings.saveItemAnimationSettings(migrated);
         check("obsolete Item Animation keys are not written back",
                 !migrated.containsKey("itemAnimation.autoFixHitSlash")
