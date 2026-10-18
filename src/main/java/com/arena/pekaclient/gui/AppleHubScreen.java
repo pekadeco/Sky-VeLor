@@ -1015,6 +1015,7 @@ public class AppleHubScreen extends AppleScreen {
             if (!shown(r) || r.y + r.height < top || r.y > bottom) {
                 continue;
             }
+            GuiDebugOverlay.recordRow("Hub: " + r.label, vx, r.y, vw, r.height);
             if (r.kind == Row.SECTION) {
                 UIRender.text(fr, r.label, vx + 2f, r.y + 4f, Theme.textTertiary, 0.85f, false);
             } else if (r.kind == Row.HEADER) {

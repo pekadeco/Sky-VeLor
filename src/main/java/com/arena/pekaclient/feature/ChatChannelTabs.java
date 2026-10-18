@@ -220,7 +220,13 @@ public final class ChatChannelTabs {
     public void onOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
         rendererSeparateState = ChatQolSettings.isSeparateChats();
-        if (shouldDrawSeparate()) renderSeparate(event.resolution);
+        if (shouldDrawSeparate()) {
+            renderSeparate(event.resolution);
+        } else if (chatDebug && ChatQolSettings.isEnabled() && CACHE_REFLECTION_READY) {
+            // Diagnostic-only vanilla outlines: the normal Separate Chats OFF path still neither routes nor draws a
+            // replacement Default Chat. This runs after vanilla's own renderer and changes no chat cache.
+            renderVanillaDefaultDebugOutlines();
+        }
     }
 
     @SubscribeEvent
@@ -808,9 +814,48 @@ public final class ChatChannelTabs {
     }
 
     /**
-     * Default Chat is no longer a special renderer: it feeds vanilla's already-component-preserving cache into the
-     * same wrapping/layout/hit/hover/scroll pipeline used by Chat 1 and Chat 2. Vanilla remains completely untouched
-     * while the master Chat QoL switch is off.
+     * Debug-only group overlay for the untouched vanilla Default Chat. Consecutive wrapped ChatLine entries carrying
+     * the same native update counter form one message box. It is intentionally invoked only by /velor chatdebug and
+     * only while GuiChat is open, so Separate Chats OFF remains a fully vanilla render/input path in normal play.
+     */
+    private void renderVanillaDefaultDebugOutlines() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null || !(mc.currentScreen instanceof GuiChat) || mc.ingameGUI == null) return;
+        GuiNewChat nativeChat = mc.ingameGUI.getChatGUI();
+        if (nativeChat == null) return;
+        try {
+            List<ChatLine> lines = drawnLines(nativeChat);
+            int count = Math.min(Math.max(0, nativeChat.getLineCount()), lines.size());
+            if (count <= 0) return;
+            float scale = Math.max(.01f, nativeChat.getChatScale());
+            float rowH = 9f * scale;
+            float width = Math.max(1f, nativeChat.getChatWidth() * scale + 4f);
+            UIRender.beginFrame();
+            for (int first = 0; first < count;) {
+                ChatLine line = lines.get(first);
+                int counter = line == null ? Integer.MIN_VALUE + first : line.getUpdatedCounter();
+                int last = first;
+                while (last + 1 < count) {
+                    ChatLine next = lines.get(last + 1);
+                    int nextCounter = next == null ? Integer.MIN_VALUE + last + 1 : next.getUpdatedCounter();
+                    if (nextCounter != counter) break;
+                    last++;
+                }
+                // Vanilla draws from its bottom-left anchor at y=20. The enclosing rectangle covers every wrapped
+                // row in this native message group and is intentionally thin so debugging does not obscure text.
+                float y = 20f - (last + 1) * rowH;
+                UIRender.roundRectRing(2f, y, width, (last - first + 1) * rowH, 0f, 1f, 0xFFFF4A4A);
+                first = last + 1;
+            }
+            UIRender.endFrame();
+        } catch (IllegalAccessException | RuntimeException ignored) {
+            // This diagnostic must never change the fail-closed normal chat path.
+        }
+    }
+
+    /**
+     * Legacy custom-default implementation retained solely for compatibility with old private layout helpers. It is
+     * never selected: Separate Chats OFF now means fully vanilla default chat.
      */
     private void renderCustomDefault(ScaledResolution resolution) {
         cacheDefaultLines(resolution);

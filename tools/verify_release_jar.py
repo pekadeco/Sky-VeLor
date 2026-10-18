@@ -390,13 +390,14 @@ def main():
     # The Hub exposes exactly the requested compact switch set and editor route. All deeper styling, positioning,
     # classification and copy settings are editor-owned; the jar never bundles a foreign chat implementation.
     chat_ui_constants = constants_of('gui/ChatUiModel')
+    chat_editor_raw = raw_of('gui/ChatEditorScreen')
     r.check(all(value in chat_ui_constants for value in
                 ('Chat QoL', 'Chat Tabs', 'Separate Chats', 'Smooth Messages', 'Hover Highlight',
-                 'Right Click Menu', 'Open Chat Editor'))
+                 'Open Chat Editor'))
+                and b'Open menu with' in chat_editor_raw and b'Menu animation' in chat_editor_raw
                 and 'Global Font' not in chat_ui_constants and 'Open Font Settings' not in chat_ui_constants
                 and 'Chatting animation bridge' not in chat_ui_constants,
-            'ChatUiModel packages only the native Chat QoL switches; global Fonts are top-level owned')
-    chat_editor_raw = raw_of('gui/ChatEditorScreen')
+            'ChatUiModel keeps compact native switches while Chat Editor owns menu trigger and animation controls')
     chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
     r.check(all(value in chat_editor_raw for value in
                 (b'Windows', b'Background', b'Messages', b'Global settings', b'Tabs', b'Hover / menu'))

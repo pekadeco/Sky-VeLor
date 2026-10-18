@@ -2,6 +2,8 @@ package com.arena.pekaclient.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.client.event.GuiScreenEvent;
@@ -95,11 +97,25 @@ public final class GuiDebugOverlay {
     @SubscribeEvent
     public void onDrawPost(GuiScreenEvent.DrawScreenEvent.Post event) {
         if (!enabled || !collecting) return;
+        recordVanillaButtons(event.gui);
         collecting = false;
         findOverlaps();
         for (Box box : BOXES) drawOutline(box, box.overlap ? HOT_RED : THIN_RED);
         for (Pair pair : OVERLAPS) drawIntersection(pair.left, pair.right);
         reportOverlaps();
+    }
+
+    /** Vanilla GuiButton lists are the one common control surface that does not pass through Widget. */
+    @SuppressWarnings("unchecked")
+    private static void recordVanillaButtons(GuiScreen screen) {
+        if (screen == null || screen.buttonList == null) return;
+        for (Object candidate : screen.buttonList) {
+            if (!(candidate instanceof GuiButton)) continue;
+            GuiButton button = (GuiButton) candidate;
+            if (!button.visible) continue;
+            recordControl("GuiButton " + button.id + " " + button.displayString,
+                    button.xPosition, button.yPosition, button.width, button.height);
+        }
     }
 
     private static void findOverlaps() {
