@@ -1,5 +1,13 @@
 # Changelog
 
+## Beta-0.10.8.5.4v — 2026-10-18
+
+- Restyled Chat QoL tabs with semi-transparent black unselected surfaces, blue selected surfaces, lighter hover treatment, white labels, and preserved unread dots. The Tabs editor now exposes independent unselected/selected colours and opacity controls; Reset restores black/blue defaults.
+- Extended the Party filter beyond `Party >` chat to typical Hypixel-style party command results: invitations, joins/leaves, kicks, disbands, transfers, promotions, warps, and party member/list output. Matching messages remain in All.
+- Consolidated the copied-message menu into one captured `ChatMenuState` for both mouse paths. Copy to chat, clipboard, and Message player retain that state until after action completion; empty unformatted composite chat roots now fall back to visible formatted text.
+- Removed the in-box channel/mode label and its input-width reservation. Tab prefixes still send Party through `/pc`, Reply through `/r`, and All normally.
+- Updated display version to `Beta-0.10.8.5.4v` and numeric Forge `mcmod.info` version to `0.10.8.5.4`.
+
 ## Beta-0.10.8.5.3v — 2026-10-18
 
 - Changed the opt-in Default Chat background to follow only currently visible message rows. Closed chat has no panel when no rows are visible; open chat defaults to **Fit to messages** with optional **Full area** and **Fit width to text** controls. The rounded shape eases between live message bounds and clears on the final fade.

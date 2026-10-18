@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.5.3v] [--mcmod-version 0.10.8.5.3]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.5.4v] [--mcmod-version 0.10.8.5.4]
 """
 
 import argparse
@@ -62,6 +62,7 @@ REQUIRED_CLASSES = [
     'gui/FontsScreen',
     'notes/QuickNoteLayout',
     'chat/CapturedChatMenu',
+    'chat/ChatMenuState',
     'chat/ChatClipboard',
     'chat/ChatContextMenu',
     'chat/ChatInputInsertion',
@@ -97,7 +98,7 @@ FORBIDDEN_CLASSES = [
     'gui/DungeonHudScreen',
     'hud/ClickInOrderHud',
     'command/TerminalCommand',
-    # Beta-0.10.8.5.3 retains the one-default-chat implementation and no split-chat classes.
+    # Beta-0.10.8.5.4 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -227,8 +228,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.5.3v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.5.3')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.5.4v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.5.4')
     args = ap.parse_args()
 
     path = args.jar
@@ -396,7 +397,7 @@ def main():
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
     # --- Chat QoL ownership and one-default-chat implementation proof --------
-    # Beta-0.10.8.5.3 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
+    # Beta-0.10.8.5.4 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
@@ -408,16 +409,20 @@ def main():
     chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
     r.check(all(value in chat_editor_raw for value in
                 (b'Background', b'Messages', b'Tabs', b'Menu and Highlight', b'Reset', b'Invalid regex',
-                 b'Open chat background', b'Fit width to text', b'Tab base colour', b'Active tab opacity'))
+                 b'Open chat background', b'Fit width to text', b'Unselected tab colour', b'Selected tab colour',
+                 b'Active tab opacity'))
                 and all(value not in chat_editor_raw for value in
-                        (b'Windows', b'Link all', b'Copy from', b'Chat 1', b'Chat 2', b'Show tabs', b'Menu animation'))
+                        (b'Windows', b'Link all', b'Copy from', b'Chat 1', b'Chat 2', b'Show tabs', b'Menu animation',
+                         b'Tab base colour'))
                 and b'com/arena/pekaclient/gui/ChatEditorLayout' in chat_editor_raw
                 and b'com/arena/pekaclient/gui/GuiLayoutToolkit' in chat_editor_raw
                 and len(chat_editor_layout_raw) > 0,
-            'ChatEditorScreen packages five sections plus message-fit background and blue-tab controls without retired controls')
+            'ChatEditorScreen packages five sections plus adjustable black-inactive and blue-selected tab controls')
     menu_constants = constants_of('chat/ChatContextMenu')
     menu_members = members_of('chat/ChatContextMenu')
     player_constants = constants_of('chat/ChatPlayerName')
+    menu_state_raw = raw_of('chat/ChatMenuState')
+    menu_state_members = members_of('chat/ChatMenuState')
     tabs_raw = raw_of('feature/ChatChannelTabs')
     copy_menu_raw = raw_of('feature/ChatChannelTabs$CopyMenu')
     tabs_model_raw = raw_of('feature/ChatTabs')
@@ -426,27 +431,32 @@ def main():
     chat_runtime_raw = tabs_raw + copy_menu_raw
     r.check(all(value in menu_constants for value in ('Copy to clipboard', 'Copy to chat box', 'Message player'))
                 and all(not value.startswith('Message player' + ':') for value in player_constants)
-                and 'extract' in menu_members
+                and 'extract' in menu_members and b'ChatMenuState' in copy_menu_raw
                 and b'ChatInteractionModel' in tabs_raw and b'CapturedChatMenu' in chat_runtime_raw
                 and b'ChatRenderGeometry' in tabs_raw and b'ChatTabs' in tabs_raw
-                and b'ChatContextMenu' in chat_runtime_raw and b'ChatClipboard' in chat_runtime_raw
-                and b'ChatPlayerName' in chat_runtime_raw and b'ChatPipeline' not in chat_runtime_raw,
-            'Chat QoL packages three fixed captured-menu labels and preserves recipient parsing for Message player')
-    r.check(b'com/arena/pekaclient/chat/ChatInputInsertion' in copy_menu_raw
-                and all(name in members_of('feature/ChatChannelTabs$CopyMenu') for name in ('insert', 'messagePlayer')),
-            'production Copy to chat box and Message player call bounded shared insertion paths')
+                and b'ChatContextMenu' in menu_state_raw and b'ChatClipboard' in chat_runtime_raw
+                and b'ChatPlayerName' in menu_state_raw and b'ChatPipeline' not in chat_runtime_raw,
+            'Chat QoL packages three fixed menu labels and a captured MenuState with recipient parsing')
+    r.check(all(name in menu_state_members for name in ('insert', 'messagePlayer'))
+                and 'insertInto' in members_of('feature/ChatChannelTabs$CopyMenu')
+                and b'Nothing selected' not in chat_runtime_raw,
+            'production Copy to chat box and Message player use MenuState after mouse release without stale-selection text')
     interaction_members = members_of('feature/ChatInteractionModel$Menu')
     r.check('setAnimationMillis' not in interaction_members and 'openAmount' not in interaction_members,
             'context menu opens and closes instantly while retaining only row-hover easing')
     r.check(all(value in tabs_raw for value in (b'backgroundOpenFullArea', b'backgroundFitWidth',
-                                                  b'tabBackgroundColor', b'tabActiveOpacity'))
+                                                  b'tabInactiveColor', b'tabBackgroundColor', b'tabOpacity',
+                                                  b'tabActiveOpacity'))
                 and b'BackgroundTransition' in geometry_raw and b'messageBackground' in geometry_raw
                 and b'tabs.always' in settings_raw_chat and b'menu.animation' in settings_raw_chat,
-            'message-only background uses eased geometry; retired tab/menu keys remain compatibility input only')
+            'message-only background uses eased geometry with black inactive and blue selected tab surfaces')
     r.check(all(value in tabs_model_raw for value in
-                (b'custom-', b'Invalid regex', b'Contains text', b'Starts with', b'Regex'))
+                (b'custom-', b'Invalid regex', b'Contains text', b'Starts with', b'Regex', b'partyCommandLine',
+                 b'joined the party', b'party was disbanded', b'party members'))
                 and b'MAX_TABS' in tabs_model_raw,
-            'ChatTabs packages bounded custom filtering and safe invalid-regex handling')
+            'ChatTabs packages Party chat plus party command results, bounded custom filtering, and safe regex handling')
+    r.check(b'drawInputChannelLabel' not in tabs_raw and b'selectedLabel' not in tabs_raw,
+            'ChatChannelTabs leaves the chat field unshifted and has no in-box channel/mode label')
     r.check(b'Copy clean' not in chat_runtime_raw and b'Copy colours' not in chat_runtime_raw
                 and b'Copy to box' not in chat_runtime_raw,
             'Chat QoL excludes retired alternate copy actions from the runtime menu')
