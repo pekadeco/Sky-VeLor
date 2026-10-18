@@ -104,7 +104,15 @@ jobs:
       - name: Run the standalone logic tests
         run: |
           set -o pipefail
-          TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh 2>&1 | tee "$RUNNER_TEMP/tests.log"
+          if ! TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh 2>&1 | tee "$RUNNER_TEMP/tests.log"; then
+            # Action log downloads may be blocked by a redirect in restricted environments. Mirror the actual
+            # assertion lines into check annotations so a failed headless suite is always diagnosable.
+            grep -E '^(FAIL |.*passed [0-9]+, failed [1-9])' "$RUNNER_TEMP/tests.log" | tail -50 | while IFS= read -r line; do
+              echo "::error title=LOGIC-TEST::${line}"
+            done
+            echo "::error title=LOGIC-TEST::tests/run-tests.sh exited nonzero"
+            exit 1
+          fi
           echo "=== suites ==="
           grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" | tail -40
 
