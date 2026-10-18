@@ -9,11 +9,14 @@ public final class CapturedChatMenu {
         public final String groupId;
         public final String clean;
         public final String formatted;
+        /** Sender/recipient extracted once from the stored clean message; never recomputed from pointer hover. */
+        public final String playerName;
 
         private Message(String groupId, String clean, String formatted) {
             this.groupId = groupId == null ? "" : groupId;
             this.clean = ChatText.clean(clean == null ? "" : clean);
             this.formatted = formatted == null ? "" : formatted;
+            this.playerName = ChatPlayerName.extract(this.clean);
         }
     }
 

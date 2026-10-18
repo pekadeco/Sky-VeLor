@@ -31,14 +31,19 @@ public final class ChatQolSettings {
     public static boolean smoothMessages;
     public static boolean hoverHighlight;
     public static int menuOpenMode;
-    public static int menuAnimationMillis;
-    /** False = only an open chat screen shows the strip; true = draw the strip above the normal chat as well. */
-    public static boolean showTabsAlways;
 
     public static int backgroundColor;
     public static int backgroundOpacityOpen;
     public static int backgroundOpacityClosed;
     public static int backgroundRadius;
+    /** Open chat uses message-fit height by default; true deliberately reserves the full visible chat area. */
+    public static boolean backgroundOpenFullArea;
+    /** False keeps the configured vanilla chat width; true uses the widest visible line plus a small edge pad. */
+    public static boolean backgroundFitWidth;
+    /** Shared translucent blue tab surface; custom tab colours are rendered only as small accents. */
+    public static int tabBackgroundColor;
+    public static int tabOpacity;
+    public static int tabActiveOpacity;
     public static int messageAnimationMillis;
     public static int fadeSeconds;
     public static int hoverColor;
@@ -184,15 +189,13 @@ public final class ChatQolSettings {
         menuOpenMode = value == ChatMenuPolicy.DISABLED ? ChatMenuPolicy.DISABLED : ChatMenuPolicy.normalize(value);
     }
 
-    public static void setMenuAnimationMillis(int value) {
-        menuAnimationMillis = clamp(value, 0, 240);
-    }
-
     public static void resetBackground() {
         backgroundColor = 0x000000;
         backgroundOpacityOpen = 45;
         backgroundOpacityClosed = 25;
         backgroundRadius = 4;
+        backgroundOpenFullArea = false;
+        backgroundFitWidth = false;
     }
 
     public static void resetMessages() {
@@ -206,7 +209,9 @@ public final class ChatQolSettings {
         TABS.addAll(ChatTabs.defaults());
         selectedTabId = ChatTabs.ALL;
         tabsEnabled = true;
-        showTabsAlways = false;
+        tabBackgroundColor = 0x2F7DFF;
+        tabOpacity = 28;
+        tabActiveOpacity = 48;
     }
 
     public static void resetMenuHighlight() {
@@ -214,7 +219,6 @@ public final class ChatQolSettings {
         hoverColor = 0xFFFFFF;
         hoverOpacity = 25;
         setMenuOpenMode(ChatMenuPolicy.BOTH);
-        setMenuAnimationMillis(100);
     }
 
     public static void resetDefaults() {
@@ -241,19 +245,22 @@ public final class ChatQolSettings {
         tabsEnabled = bool(p, PREFIX + "tabs", true);
         smoothMessages = bool(p, PREFIX + "smooth", smoothMessages);
         hoverHighlight = bool(p, PREFIX + "hover", hoverHighlight);
-        showTabsAlways = bool(p, PREFIX + "tabs.always", false);
         if (p.containsKey(PREFIX + "menu.open")) {
             setMenuOpenMode(integer(p, PREFIX + "menu.open", menuOpenMode, ChatMenuPolicy.DISABLED,
                     ChatMenuPolicy.BOTH));
         } else if (p.containsKey(PREFIX + "menu")) {
             setMenuOpenMode(bool(p, PREFIX + "menu", false) ? ChatMenuPolicy.RIGHT : ChatMenuPolicy.DISABLED);
         }
-        setMenuAnimationMillis(integer(p, PREFIX + "menu.animation", menuAnimationMillis, 0, 240));
 
         backgroundColor = colour(p, PREFIX + "background.color", 0x000000);
         backgroundOpacityOpen = integer(p, PREFIX + "background.openOpacity", 45, 0, 100);
         backgroundOpacityClosed = integer(p, PREFIX + "background.closedOpacity", 25, 0, 100);
         backgroundRadius = integer(p, PREFIX + "background.radius", 4, 0, 12);
+        backgroundOpenFullArea = bool(p, PREFIX + "background.openFullArea", false);
+        backgroundFitWidth = bool(p, PREFIX + "background.fitWidth", false);
+        tabBackgroundColor = colour(p, PREFIX + "tabs.baseColor", 0x2F7DFF);
+        tabOpacity = integer(p, PREFIX + "tabs.opacity", 28, 0, 100);
+        tabActiveOpacity = integer(p, PREFIX + "tabs.activeOpacity", 48, 0, 100);
         messageAnimationMillis = integer(p, PREFIX + "messages.animation", 140, 0, 600);
         fadeSeconds = integer(p, PREFIX + "messages.fade", 10, 0, 60);
         hoverColor = colour(p, PREFIX + "highlight.color", 0xFFFFFF);
@@ -274,16 +281,19 @@ public final class ChatQolSettings {
         normalise();
         p.setProperty(PREFIX + "enabled", Boolean.toString(enabled));
         p.setProperty(PREFIX + "tabs", Boolean.toString(tabsEnabled));
-        p.setProperty(PREFIX + "tabs.always", Boolean.toString(showTabsAlways));
         p.setProperty(PREFIX + "tabs.selectedId", selectedTabId());
+        p.setProperty(PREFIX + "tabs.baseColor", colourString(tabBackgroundColor));
+        p.setProperty(PREFIX + "tabs.opacity", Integer.toString(tabOpacity));
+        p.setProperty(PREFIX + "tabs.activeOpacity", Integer.toString(tabActiveOpacity));
         p.setProperty(PREFIX + "smooth", Boolean.toString(smoothMessages));
         p.setProperty(PREFIX + "hover", Boolean.toString(hoverHighlight));
         p.setProperty(PREFIX + "menu.open", Integer.toString(menuOpenMode));
-        p.setProperty(PREFIX + "menu.animation", Integer.toString(menuAnimationMillis));
         p.setProperty(PREFIX + "background.color", colourString(backgroundColor));
         p.setProperty(PREFIX + "background.openOpacity", Integer.toString(backgroundOpacityOpen));
         p.setProperty(PREFIX + "background.closedOpacity", Integer.toString(backgroundOpacityClosed));
         p.setProperty(PREFIX + "background.radius", Integer.toString(backgroundRadius));
+        p.setProperty(PREFIX + "background.openFullArea", Boolean.toString(backgroundOpenFullArea));
+        p.setProperty(PREFIX + "background.fitWidth", Boolean.toString(backgroundFitWidth));
         p.setProperty(PREFIX + "messages.animation", Integer.toString(messageAnimationMillis));
         p.setProperty(PREFIX + "messages.fade", Integer.toString(fadeSeconds));
         p.setProperty(PREFIX + "highlight.color", colourString(hoverColor));
@@ -370,12 +380,14 @@ public final class ChatQolSettings {
         backgroundOpacityOpen = clamp(backgroundOpacityOpen, 0, 100);
         backgroundOpacityClosed = clamp(backgroundOpacityClosed, 0, 100);
         backgroundRadius = clamp(backgroundRadius, 0, 12);
+        tabBackgroundColor = validColour(tabBackgroundColor, 0x2F7DFF);
+        tabOpacity = clamp(tabOpacity, 0, 100);
+        tabActiveOpacity = clamp(tabActiveOpacity, 0, 100);
         messageAnimationMillis = clamp(messageAnimationMillis, 0, 600);
         fadeSeconds = clamp(fadeSeconds, 0, 60);
         hoverColor = validColour(hoverColor, 0xFFFFFF);
         hoverOpacity = clamp(hoverOpacity, 0, 100);
         setMenuOpenMode(menuOpenMode);
-        setMenuAnimationMillis(menuAnimationMillis);
         ensureOneVisible();
         ensureSelectedVisible();
     }
@@ -416,7 +428,8 @@ public final class ChatQolSettings {
     }
 
     private static boolean hasRetiredSimpleKeys(Properties p) {
-        return p.containsKey(PREFIX + "tabs.selected") || p.containsKey(PREFIX + "background.opacity")
+        return p.containsKey(PREFIX + "tabs.selected") || p.containsKey(PREFIX + "tabs.always")
+                || p.containsKey(PREFIX + "menu.animation") || p.containsKey(PREFIX + "background.opacity")
                 || p.containsKey(PREFIX + "smooth.duration") || p.containsKey(PREFIX + "hover.opacity")
                 || p.containsKey("chat.tabMode") || p.containsKey("chat.filterMode")
                 || p.containsKey("chat.animation.enabled") || p.containsKey("chat.animation.messages");
@@ -447,6 +460,7 @@ public final class ChatQolSettings {
                 || key.startsWith(PREFIX + "window2.") || key.startsWith(PREFIX + "windows.")
                 || key.startsWith(PREFIX + "patterns.") || key.startsWith(PREFIX + "target.")
                 || key.startsWith(PREFIX + "editor.") || key.equals(PREFIX + "tabs.selected")
+                || key.equals(PREFIX + "tabs.always") || key.equals(PREFIX + "menu.animation")
                 || key.equals(PREFIX + "background.opacity") || key.equals(PREFIX + "smooth.duration")
                 || key.equals(PREFIX + "hover.opacity") || key.equals("chat.tabMode")
                 || key.equals("chat.filterMode") || key.equals("chat.animation.enabled")

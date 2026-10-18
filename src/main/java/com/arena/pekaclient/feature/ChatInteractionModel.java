@@ -2,14 +2,15 @@ package com.arena.pekaclient.feature;
 
 /**
  * Minecraft-free interaction contract for the one Default Chat replacement. It owns deterministic grouped hit bounds,
- * eased hover/menu feedback, copy-menu labels, and one application of a mouse-wheel delta.
+ * eased hover feedback, context-menu geometry, and one application of a mouse-wheel delta.
  */
 public final class ChatInteractionModel {
 
-    /** The only two context-menu labels. Keep these literals central so alternate copy paths cannot reappear. */
+    /** Copy labels are intentionally exact and stable; the third label is generated from the captured player name. */
     public static final String COPY_TO_CLIPBOARD = "Copy to clipboard";
     public static final String COPY_TO_CHAT_BOX = "Copy to chat box";
-    public static final String[] MENU_LABELS = {COPY_TO_CLIPBOARD, COPY_TO_CHAT_BOX};
+    public static final String MESSAGE_PLAYER = "Message player";
+    public static final String[] MENU_LABELS = {COPY_TO_CLIPBOARD, COPY_TO_CHAT_BOX, MESSAGE_PLAYER};
 
     private ChatInteractionModel() {
     }
@@ -111,52 +112,40 @@ public final class ChatInteractionModel {
         return clamp(current + delta, 0f, Math.max(0f, maximum));
     }
 
-    /** Context menu position, 0–240 ms ease-out opening, and matching snappy row-hover feedback. */
+    /**
+     * Context-menu geometry. Open/close is deliberately immediate; only the individual row hover remains eased.
+     * The caller supplies whether the stored message exposed the third, recipient-specific action.
+     */
     public static final class Menu {
+        public static final float ROW_HEIGHT = 20f;
         public float x;
         public float y;
         public float w = 142f;
-        public float h = 42f;
+        public float h = ROW_HEIGHT * 2f + 2f;
         public boolean visible;
-        private float open;
-        private float openElapsed;
-        private int animationMillis = 100;
+        private int rows = 2;
         private final float[] rowHover = new float[MENU_LABELS.length];
         private final float[] rowHoverStart = new float[MENU_LABELS.length];
         private final float[] rowHoverTarget = new float[MENU_LABELS.length];
         private final float[] rowHoverElapsed = new float[MENU_LABELS.length];
 
-        public void setAnimationMillis(int value) { animationMillis = value < 0 ? 0 : value > 240 ? 240 : value; }
-        public int animationMillis() { return animationMillis; }
-
-        public void show(float mouseX, float mouseY, float screenW, float screenH) {
+        public void show(float mouseX, float mouseY, float screenW, float screenH, int requestedRows) {
+            rows = Math.max(2, Math.min(MENU_LABELS.length, requestedRows));
             w = Math.max(112f, Math.min(176f, screenW - 4f));
-            h = 42f;
+            h = rows * ROW_HEIGHT + 2f;
             x = clamp(mouseX, 2f, Math.max(2f, screenW - w - 2f));
             y = clamp(mouseY, 2f, Math.max(2f, screenH - h - 2f));
             visible = true;
-            openElapsed = 0f;
-            open = animationMillis == 0 ? 1f : 0f;
             clearRowHover();
         }
 
-        public void hide() { visible = false; open = 0f; openElapsed = 0f; clearRowHover(); }
-
-        public void update(float seconds) {
-            if (!visible) return;
-            float dt = clamp(seconds, 0f, 0.1f);
-            if (animationMillis == 0) open = 1f;
-            else {
-                float duration = animationMillis / 1000f;
-                openElapsed = Math.min(duration, openElapsed + dt);
-                open = openElapsed >= duration ? 1f : easeOut(openElapsed / duration);
-            }
-        }
+        public void hide() { visible = false; clearRowHover(); }
+        public int optionCount() { return rows; }
 
         public void updateHover(float seconds, int hoveredRow) {
             float dt = clamp(seconds, 0f, .1f);
             for (int i = 0; i < rowHover.length; i++) {
-                float next = i == hoveredRow ? 1f : 0f;
+                float next = i < rows && i == hoveredRow ? 1f : 0f;
                 if (next != rowHoverTarget[i]) {
                     rowHoverStart[i] = rowHover[i];
                     rowHoverTarget[i] = next;
@@ -170,15 +159,16 @@ public final class ChatInteractionModel {
         }
 
         private void clearRowHover() {
-            for (int i = 0; i < rowHover.length; i++) rowHover[i] = rowHoverStart[i] = rowHoverTarget[i] = rowHoverElapsed[i] = 0f;
+            for (int i = 0; i < rowHover.length; i++) {
+                rowHover[i] = rowHoverStart[i] = rowHoverTarget[i] = rowHoverElapsed[i] = 0f;
+            }
         }
 
         public float hoverAmount(int row) { return row < 0 || row >= rowHover.length ? 0f : rowHover[row]; }
-        public float openAmount() { return open; }
         public int rowAt(float mouseX, float mouseY) {
             if (!visible || mouseX < x || mouseX >= x + w || mouseY < y || mouseY >= y + h) return -1;
-            int row = (int) ((mouseY - y) / 20f);
-            return row >= 0 && row < MENU_LABELS.length ? row : -1;
+            int row = (int) ((mouseY - y) / ROW_HEIGHT);
+            return row >= 0 && row < rows ? row : -1;
         }
     }
 

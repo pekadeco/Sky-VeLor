@@ -28,8 +28,11 @@ public final class ChatQolSettingsTests {
                 && ChatQolSettings.backgroundOpacityOpen == 45 && ChatQolSettings.backgroundOpacityClosed == 25);
         check("default highlight is soft white", ChatQolSettings.hoverColor == 0xFFFFFF
                 && ChatQolSettings.hoverOpacity == 25);
-        check("default menu is Both at 100 ms", ChatQolSettings.menuOpenMode == ChatMenuPolicy.BOTH
-                && ChatQolSettings.menuAnimationMillis == 100);
+        check("default menu is Both and instant", ChatQolSettings.menuOpenMode == ChatMenuPolicy.BOTH);
+        check("background defaults fit messages and chat width", !ChatQolSettings.backgroundOpenFullArea
+                && !ChatQolSettings.backgroundFitWidth);
+        check("tabs reset to translucent blue", ChatQolSettings.tabBackgroundColor == 0x2F7DFF
+                && ChatQolSettings.tabOpacity == 28 && ChatQolSettings.tabActiveOpacity == 48);
     }
 
     private static void retiredSeparateKeysAreIgnored() {
@@ -42,19 +45,29 @@ public final class ChatQolSettingsTests {
         legacy.setProperty("chat.qol.patterns.0.regex", "[");
         legacy.setProperty("chat.qol.target.default.background.opacity", "99");
         legacy.setProperty("chat.qol.tabs.selected", "2");
+        legacy.setProperty("chat.qol.tabs.always", "true");
+        legacy.setProperty("chat.qol.menu.animation", "200");
         ChatQolSettings.load(legacy);
         check("old separate key does not create split tabs", ChatQolSettings.tabs().size() == 3);
         check("old selected tab key is ignored safely", ChatTabs.ALL.equals(ChatQolSettings.selectedTabId()));
         check("retired target visual key is ignored", ChatQolSettings.backgroundOpacityOpen == 45);
+        check("removed presentation keys are ignored", !ChatQolSettings.backgroundOpenFullArea
+                && ChatQolSettings.menuOpenMode == ChatMenuPolicy.BOTH);
         check("old keys request rewrite", ChatQolSettings.isMigrationPending());
         ChatQolSettings.save(legacy);
         check("save drops separate key", !legacy.containsKey("chat.qol.separate")
                 && !legacy.containsKey("chat.qol.window1.name") && !legacy.containsKey("chat.qol.patterns.count")
-                && !legacy.containsKey("chat.qol.target.default.background.opacity"));
+                && !legacy.containsKey("chat.qol.target.default.background.opacity")
+                && !legacy.containsKey("chat.qol.tabs.always") && !legacy.containsKey("chat.qol.menu.animation"));
     }
 
     private static void customTabPersistence() {
         ChatQolSettings.resetDefaults();
+        ChatQolSettings.backgroundOpenFullArea = true;
+        ChatQolSettings.backgroundFitWidth = true;
+        ChatQolSettings.tabBackgroundColor = 0x1555AA;
+        ChatQolSettings.tabOpacity = 31;
+        ChatQolSettings.tabActiveOpacity = 49;
         ChatQolSettings.Result created = ChatQolSettings.addCustomTab("Trade");
         check("custom tab added", created.success);
         ChatQolSettings.Result updated = ChatQolSettings.updateCustomTab(created.id, "Trade", ChatTabs.CONTAINS,
@@ -70,6 +83,9 @@ public final class ChatQolSettingsTests {
                 && restored.matches("SELLING sword") && "/pc".equals(restored.sendPrefix()) && restored.sound());
         check("custom match remains in All", ChatTabs.appearsIn(ChatTabs.ALL, "SELLING sword", ChatQolSettings.tabs()));
         check("selected custom tab survives", created.id.equals(ChatQolSettings.selectedTabId()));
+        check("background and blue tab style survive save/load", ChatQolSettings.backgroundOpenFullArea
+                && ChatQolSettings.backgroundFitWidth && ChatQolSettings.tabBackgroundColor == 0x1555AA
+                && ChatQolSettings.tabOpacity == 31 && ChatQolSettings.tabActiveOpacity == 49);
     }
 
     private static void invalidRegexAndBounds() {
@@ -93,6 +109,12 @@ public final class ChatQolSettingsTests {
                 && ChatQolSettings.messageAnimationMillis == 600 && ChatQolSettings.hoverOpacity == 0);
         for (ChatTabs.Tab tab : ChatQolSettings.tabs()) ChatQolSettings.setTabVisible(tab.id(), false);
         check("at least one tab remains visible", !ChatQolSettings.visibleTabs().isEmpty());
+        ChatQolSettings.tabBackgroundColor = 0x123456;
+        ChatQolSettings.tabOpacity = 1;
+        ChatQolSettings.tabActiveOpacity = 99;
+        ChatQolSettings.resetTabs();
+        check("reset tabs restores the translucent blue style", ChatQolSettings.tabBackgroundColor == 0x2F7DFF
+                && ChatQolSettings.tabOpacity == 28 && ChatQolSettings.tabActiveOpacity == 48);
     }
 
     private static void check(String name, boolean ok) {

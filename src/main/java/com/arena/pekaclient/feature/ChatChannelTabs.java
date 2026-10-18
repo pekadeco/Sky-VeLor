@@ -5,6 +5,7 @@ import com.arena.pekaclient.chat.ChatClipboard;
 import com.arena.pekaclient.chat.ChatContextMenu;
 import com.arena.pekaclient.chat.ChatInputInsertion;
 import com.arena.pekaclient.chat.ChatMenuPolicy;
+import com.arena.pekaclient.chat.ChatPlayerName;
 import com.arena.pekaclient.chat.ChatRenderGeometry;
 import com.arena.pekaclient.chat.ChatText;
 import com.arena.pekaclient.config.AppleSettings;
@@ -104,7 +105,9 @@ public final class ChatChannelTabs {
     private final ChatTabLayout.Layout tabLayout = new ChatTabLayout.Layout();
     private final ChatInteractionModel.Hover hover = new ChatInteractionModel.Hover();
     private final CopyMenu copyMenu = new CopyMenu();
-    private final ChatRenderGeometry.Rect background = new ChatRenderGeometry.Rect();
+    private final ChatRenderGeometry.Rect backgroundTarget = new ChatRenderGeometry.Rect();
+    private final ChatRenderGeometry.BackgroundTransition backgroundTransition =
+            new ChatRenderGeometry.BackgroundTransition();
 
     private GuiChat inputOwner;
     private GuiTextField cachedInput;
@@ -365,7 +368,8 @@ public final class ChatChannelTabs {
     private static String describeGroup(MessageGroup group) {
         if (group == null) return "none";
         String clean = group.clean.length() > 42 ? group.clean.substring(0, 39) + "..." : group.clean;
-        return "#" + group.id + " [" + clean + "]";
+        String player = ChatPlayerName.extract(group.clean);
+        return "#" + group.id + " [" + clean + "] player=" + (player.length() == 0 ? "none" : player);
     }
 
     private void renderDefaultChat(ScaledResolution resolution) {
@@ -396,16 +400,18 @@ public final class ChatChannelTabs {
         // A smooth scroll update shifts every hit rectangle, so lay out once more using the current eased value.
         layoutRows(viewportTop, messageBottom, width, lineH, visibleLines, scale, chatOpen);
 
+        FontRenderer font = mc.fontRendererObj;
+        boolean hasMessageBackground = updateMessageBackground(viewportTop, messageBottom, width, scale, font,
+                chatOpen, dt);
         int opacity = chatOpen ? ChatQolSettings.backgroundOpacityOpen : ChatQolSettings.backgroundOpacityClosed;
-        ChatRenderGeometry.background(background, 2f, messageBottom, width, viewportH, ChatQolSettings.backgroundRadius);
         UIRender.beginFrame();
-        if (opacity > 0) {
+        if (hasMessageBackground && opacity > 0) {
+            ChatRenderGeometry.Rect background = backgroundTransition.rect;
             int colour = withOpacity(ChatQolSettings.backgroundColor, opacity);
             UIRender.roundRect(background.x, background.y, background.w, background.h, background.radius,
                     colour, colour, 1f);
         }
         UIRender.scissorBegin(2f, viewportTop, width, viewportH, resolution.getScaleFactor());
-        FontRenderer font = mc.fontRendererObj;
         for (RenderRow row : rows) {
             if (row.y + row.h <= viewportTop || row.y >= messageBottom) continue;
             float alpha = row.group.alpha;
@@ -417,8 +423,30 @@ public final class ChatChannelTabs {
         }
         if (debug) drawGroupOutlines(viewportTop, messageBottom);
         UIRender.scissorEnd();
-        if (!chatOpen && ChatQolSettings.showTabsAlways) drawTabs(-1, -1);
         UIRender.endFrame();
+    }
+
+    /** Builds a rounded message-only background from live, currently visible rows rather than the fixed viewport. */
+    private boolean updateMessageBackground(float viewportTop, float messageBottom, float chatWidth, float textScale,
+                                            FontRenderer font, boolean chatOpen, float dt) {
+        float top = Float.MAX_VALUE;
+        float bottom = -Float.MAX_VALUE;
+        float widestText = 0f;
+        for (RenderRow row : rows) {
+            if (row.group.alpha <= .001f) continue;
+            float rowTop = Math.max(viewportTop, row.y);
+            float rowBottom = Math.min(messageBottom, row.y + row.h);
+            if (rowBottom <= rowTop) continue;
+            top = Math.min(top, rowTop);
+            bottom = Math.max(bottom, rowBottom);
+            if (font != null) widestText = Math.max(widestText, font.getStringWidth(row.formatted) * textScale);
+        }
+        boolean messages = bottom > top && top < Float.MAX_VALUE;
+        boolean fullArea = chatOpen && ChatQolSettings.backgroundOpenFullArea;
+        boolean target = messages && ChatRenderGeometry.messageBackground(backgroundTarget, 2f, top, bottom,
+                viewportTop, chatWidth, widestText, ChatQolSettings.backgroundFitWidth, fullArea,
+                ChatQolSettings.backgroundRadius);
+        return backgroundTransition.update(backgroundTarget, target, dt);
     }
 
     /** Reads the vanilla complete/drawn cache but never writes it. A failed read clears our transient view and fails open. */
@@ -525,7 +553,8 @@ public final class ChatChannelTabs {
     }
 
     private boolean shouldShowTabs(boolean chatOpen) {
-        return ChatQolSettings.tabsEnabled && (chatOpen || ChatQolSettings.showTabsAlways) && tabLayout.count > 0;
+        // The strip belongs to the live input surface only. Closed chat never reserves space or draws tabs.
+        return ChatQolSettings.tabsEnabled && chatOpen && tabLayout.count > 0;
     }
 
     private void drawTabs(int mouseX, int mouseY) {
@@ -538,14 +567,21 @@ public final class ChatChannelTabs {
             if (tab == null) continue;
             boolean selected = rect.id.equals(ChatQolSettings.selectedTabId());
             boolean hot = rect.contains(mouseX, mouseY);
-            int fill = selected ? withAlpha(tab.colour(), .42f) : hot ? Theme.cardHover : Theme.card;
-            UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, 3f, fill, fill,
-                    selected ? withAlpha(tab.colour(), .9f) : Theme.border);
+            float alpha = (selected ? ChatQolSettings.tabActiveOpacity : ChatQolSettings.tabOpacity) / 100f;
+            if (hot) alpha = Math.min(1f, alpha + .08f);
+            int fill = withAlpha(ChatQolSettings.tabBackgroundColor, alpha);
+            int border = withAlpha(ChatQolSettings.tabBackgroundColor, Math.min(1f, alpha + .18f));
+            UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, 3f, fill, fill, border);
             String label = fit(font, tab.name(), Math.max(1f, rect.w - 12f), .70f);
-            UIRender.text(font, label, rect.x + 5f, rect.y + 5f, selected ? 0xFFFFFFFF : Theme.textSecondary,
-                    .70f, false, GlobalFontManager.Area.TAB);
+            UIRender.text(font, label, rect.x + 5f, rect.y + 5f, 0xFFFFFFFF, .70f, false,
+                    GlobalFontManager.Area.TAB);
+            // Custom colours are accents, not competing tab backgrounds, so the strip remains a coherent blue.
+            if (!tab.builtIn() && rect.w > 8f) {
+                UIRender.rect(rect.x + 3f, rect.y + rect.h - 2f, rect.w - 6f, 1.2f, withAlpha(tab.colour(), .95f));
+            }
             if (unreadTabs.contains(rect.id)) {
-                UIRender.circle(rect.x + rect.w - 5f, rect.y + 5f, 2.2f, tab.colour());
+                UIRender.circle(rect.x + rect.w - 5f, rect.y + 5f, 2.2f,
+                        tab.builtIn() ? 0xFFFFFFFF : tab.colour());
             }
         }
         tabBarDrawn = true;
@@ -809,9 +845,10 @@ public final class ChatChannelTabs {
             if (group == null) return;
             // Capture the full original group once. Pointer movement/re-layout after this point cannot change actions.
             captured.open(Integer.toString(group.id), group.clean, group.formatted);
+            CapturedChatMenu.Message message = captured.message();
             actions.clear();
-            geometry.setAnimationMillis(ChatQolSettings.menuAnimationMillis);
-            geometry.show(mouseX, mouseY, screenW, screenH);
+            actions.setPlayerName(message == null ? "" : message.playerName);
+            geometry.show(mouseX, mouseY, screenW, screenH, actions.optionCount());
         }
 
         void hide() {
@@ -831,18 +868,22 @@ public final class ChatChannelTabs {
                 hide();
                 return;
             }
-            if (action == 0) {
+            if (action == ChatContextMenu.COPY_TO_CLIPBOARD) {
                 ChatClipboard.Result result = ChatClipboard.copy(message.clean);
                 toast(result.success ? "Copied to clipboard" : "Could not copy to clipboard");
             } else {
                 GuiTextField input = input(chat);
                 if (input == null) {
-                    toast("Could not copy to chat box; input unavailable");
+                    toast(action == ChatContextMenu.MESSAGE_PLAYER
+                            ? "Could not prepare message; input unavailable" : "Could not copy to chat box; input unavailable");
                 } else {
-                    ChatInputInsertion.Result inserted = ChatInputInsertion.insert(input.getText(),
-                            input.getCursorPosition(), input.getSelectionEnd(), message.clean);
+                    ChatInputInsertion.Result inserted = action == ChatContextMenu.MESSAGE_PLAYER
+                            ? ChatInputInsertion.messagePlayer(input.getText(), message.playerName)
+                            : ChatInputInsertion.insert(input.getText(), input.getCursorPosition(),
+                                    input.getSelectionEnd(), message.clean);
                     if (!inserted.inserted) {
-                        toast(input.getText().length() >= ChatInputInsertion.MAX_LENGTH
+                        toast(action == ChatContextMenu.MESSAGE_PLAYER ? "No player name in this message"
+                                : input.getText().length() >= ChatInputInsertion.MAX_LENGTH
                                 ? "Chat box already has 256 characters" : "Nothing selected");
                     } else {
                         // Raise the real field's cap before setting text so GuiTextField cannot truncate a valid
@@ -852,7 +893,7 @@ public final class ChatChannelTabs {
                         input.setCursorPosition(inserted.cursor);
                         input.setSelectionPos(inserted.cursor);
                         input.setFocused(true);
-                        toast("Copied to chat box");
+                        toast(action == ChatContextMenu.MESSAGE_PLAYER ? "Message player command ready" : "Copied to chat box");
                     }
                 }
             }
@@ -861,31 +902,27 @@ public final class ChatChannelTabs {
 
         void draw(int mouseX, int mouseY, float dt) {
             if (!geometry.visible) return;
-            geometry.setAnimationMillis(ChatQolSettings.menuAnimationMillis);
-            geometry.update(dt);
             int hovered = geometry.rowAt(mouseX, mouseY);
             geometry.updateHover(dt, hovered);
-            float opened = geometry.openAmount();
-            float old = UIRender.alphaMul;
-            UIRender.alphaMul = old * opened;
-            float y = geometry.y + (1f - opened) * -4f;
-            UIRender.roundRectBorder(geometry.x, y, geometry.w, geometry.h, 4f, Theme.popup, Theme.popup, Theme.border);
+            UIRender.roundRectBorder(geometry.x, geometry.y, geometry.w, geometry.h, 4f,
+                    Theme.popup, Theme.popup, Theme.border);
             FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-            for (int i = 0; i < ChatInteractionModel.MENU_LABELS.length; i++) {
+            for (int i = 0; i < actions.optionCount(); i++) {
                 float hot = geometry.hoverAmount(i);
-                if (hot > .002f) UIRender.roundRect(geometry.x + 2f, y + i * 20f + 1f, geometry.w - 4f, 18f,
+                float rowY = geometry.y + i * ChatInteractionModel.Menu.ROW_HEIGHT;
+                if (hot > .002f) UIRender.roundRect(geometry.x + 2f, rowY + 1f, geometry.w - 4f, 18f,
                         3f, UIRender.withAlpha(Theme.cardHover, hot), UIRender.withAlpha(Theme.cardHover, hot), 0f);
-                UIRender.text(font, ChatInteractionModel.MENU_LABELS[i], geometry.x + 7f, y + i * 20f + 6f,
+                UIRender.text(font, fit(font, actions.labelAt(i), geometry.w - 14f, .78f), geometry.x + 7f, rowY + 6f,
                         hot > .5f ? Theme.textPrimary : Theme.textSecondary, .78f, false, GlobalFontManager.Area.CHAT);
             }
-            UIRender.alphaMul = old;
         }
 
         String describeStored() {
             CapturedChatMenu.Message message = captured.message();
             if (message == null) return "none";
             String text = message.clean.length() > 42 ? message.clean.substring(0, 39) + "..." : message.clean;
-            return "#" + message.groupId + " [" + text + "]";
+            return "#" + message.groupId + " [" + text + "] player="
+                    + (message.playerName.length() == 0 ? "none" : message.playerName);
         }
     }
 

@@ -112,7 +112,10 @@ public final class ItemAnimationUiModel {
         return buildPanelControlModel(new PanelState());
     }
 
-    /** Required controls for the current compact-panel expansion state. */
+    /**
+     * Required controls for the current compact-panel expansion state. Item Animation is a renderer-only surface:
+     * it deliberately owns no HUD background/transparency control in either this panel or the HUD-tab dropdown.
+     */
     public static List<Entry> buildPanelControlModel(PanelState state) {
         PanelState panel = state == null ? new PanelState() : state;
         List<Entry> entries = new ArrayList<Entry>();

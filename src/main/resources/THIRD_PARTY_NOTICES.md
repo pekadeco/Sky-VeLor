@@ -2,7 +2,7 @@
 
 ## Bundled selectable fonts
 
-Sky VeLor `Beta-0.10.8.5.2v` packages the following unmodified fonts in
+Sky VeLor `Beta-0.10.8.5.3v` packages the following unmodified fonts in
 `assets/skyvelor/fonts/`. Each is licensed under the **SIL Open Font License, Version 1.1**.
 The complete license text shipped with each asset is in that directory.
 

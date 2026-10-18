@@ -26,6 +26,9 @@ if errorlevel 1 goto fail
 
 set "CP=%OUT%;%CLASSES%;%TEST_CP%"
 call :run com.arena.pekaclient.gui.PureLogicTests || goto fail
+call :run com.arena.pekaclient.gui.GuiLayoutToolkitTests || goto fail
+call :run com.arena.pekaclient.chat.ClipboardChainTests || goto fail
+call :run com.arena.pekaclient.chat.ChatPlayerNameTests || goto fail
 call :run com.arena.pekaclient.hud.ConfigTests || goto fail
 call :run com.arena.pekaclient.feature.LeapTextTests || goto fail
 call :run com.arena.pekaclient.feature.LeapIdentityTests || goto fail

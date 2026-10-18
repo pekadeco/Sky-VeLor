@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta-0.10.8.5.3v — 2026-10-18
+
+- Changed the opt-in Default Chat background to follow only currently visible message rows. Closed chat has no panel when no rows are visible; open chat defaults to **Fit to messages** with optional **Full area** and **Fit width to text** controls. The rounded shape eases between live message bounds and clears on the final fade.
+- Retired the Chat Editor's **Show tabs** and **Menu animation** controls. Tabs draw only with an open chat, and the copied-message menu now opens/closes instantly while retaining hover feedback. Old setting keys are ignored and removed on save.
+- Restyled tabs around a translucent blue base with white text, stronger active opacity, light hover, unread dots, custom accent underlines, and Tabs-section colour/opacity reset controls.
+- Added the stored-message **Message player** action. It detects safe Fakepixel-style names from ranked/badged/party/From/To lines and prepares a bounded focused `/msg <Name> ` command without changing copy or component-click behavior.
+- Retired Item Animation background transparency compatibility keys; the renderer-only Item Animation panel and HUD dropdown expose no such control, while old configs load safely and rewrite without it.
+- Updated display version to `Beta-0.10.8.5.3v` and numeric Forge `mcmod.info` version to `0.10.8.5.3`.
+
 ## Beta-0.10.8.5.2v — 2026-10-18
 
 - Replaced the fragile split-chat runtime with one guarded Forge renderer for the real Default Chat. Chat 1/Chat 2 windows, classifier and pattern routing, target/link-all editor state, and their persisted output are removed; retired keys are harmlessly ignored and omitted on save.

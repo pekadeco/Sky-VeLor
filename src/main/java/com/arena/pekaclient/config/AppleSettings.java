@@ -266,7 +266,7 @@ public final class AppleSettings {
      */
     static void loadItemAnimationSettings(Properties settings) {
         Properties p = settings == null ? new Properties() : settings;
-        itemAnimationMigrationPending = false;
+        itemAnimationMigrationPending = hasRetiredItemAnimationBackgroundKey(p);
         // New category names win when both names exist; old firstPerson* keys are read once and then rewritten.
         // Beta-0.10.8v's itemAnimation.autoFixHitSlash key is intentionally ignored: the corrected visual timeline
         // is permanent and no replacement setting is retained.
@@ -503,6 +503,17 @@ public final class AppleSettings {
 
     private static File readFile() {
         return ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME);
+    }
+
+    /** Legacy Item Animation background controls never affected the renderer and are now actively rewritten away. */
+    private static boolean hasRetiredItemAnimationBackgroundKey(Properties p) {
+        return p.containsKey("itemAnimation.backgroundTransparency")
+                || p.containsKey("itemAnimation.backgroundOpacity")
+                || p.containsKey("itemAnimation.backgroundAlpha")
+                || p.containsKey("itemAnimation.transparent")
+                || p.containsKey("firstPersonItemBackgroundTransparency")
+                || p.containsKey("firstPersonItemBackgroundOpacity")
+                || p.containsKey("firstPersonItemBackgroundAlpha");
     }
 
     private static boolean readItemAnimationBool(Properties p, String key, String legacyKey, boolean def) {

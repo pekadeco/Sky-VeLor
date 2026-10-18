@@ -1,6 +1,7 @@
 package com.arena.pekaclient.feature;
 
 import com.arena.pekaclient.chat.CapturedChatMenu;
+import com.arena.pekaclient.chat.ChatContextMenu;
 import com.arena.pekaclient.chat.ChatMenuPolicy;
 
 /** Headless proof for the one Default Chat interaction contract. */
@@ -10,9 +11,8 @@ public final class ChatInteractionModelTests {
 
     public static void main(String[] args) {
         defaultHitPath();
-        exactlyTwoMenuActions();
+        menuActionsAndInstantGeometry();
         boundedMenuAndHover();
-        menuTimingAndMousePolicy();
         capturedMessageSurvivesPointerMovement();
         oneWheelApplication();
         System.out.println("chat interaction model: passed " + passed + ", failed " + failed);
@@ -30,52 +30,61 @@ public final class ChatInteractionModelTests {
         check("outside default group is not hit", !hit.found());
     }
 
-    private static void exactlyTwoMenuActions() {
-        check("menu has exactly two labels", ChatInteractionModel.MENU_LABELS.length == 2);
-        check("first menu label is clean clipboard", "Copy to clipboard".equals(ChatInteractionModel.MENU_LABELS[0]));
-        check("second menu label inserts in chat", "Copy to chat box".equals(ChatInteractionModel.MENU_LABELS[1]));
+    private static void menuActionsAndInstantGeometry() {
+        check("menu has three ordered labels", ChatInteractionModel.MENU_LABELS.length == 3
+                && "Copy to clipboard".equals(ChatInteractionModel.MENU_LABELS[0])
+                && "Copy to chat box".equals(ChatInteractionModel.MENU_LABELS[1])
+                && "Message player".equals(ChatInteractionModel.MENU_LABELS[2]));
+        ChatContextMenu menuActions = new ChatContextMenu();
+        menuActions.setPlayerName("Alex_99");
+        check("player message menu exposes three ordered actions", menuActions.optionCount() == 3
+                && "Copy to clipboard".equals(menuActions.labelAt(0))
+                && "Copy to chat box".equals(menuActions.labelAt(1))
+                && "Message player: /msg Alex_99".equals(menuActions.labelAt(2)));
+        menuActions.setPlayerName("");
+        check("system message hides third action", menuActions.optionCount() == 2 && menuActions.labelAt(2).length() == 0);
+
+        ChatInteractionModel.Menu menu = new ChatInteractionModel.Menu();
+        menu.show(10, 10, 320, 180, 3);
+        check("menu opens instantly with all three rows", menu.visible && menu.optionCount() == 3
+                && menu.rowAt(menu.x + 3, menu.y + 3) == 0
+                && menu.rowAt(menu.x + 3, menu.y + 23) == 1
+                && menu.rowAt(menu.x + 3, menu.y + 43) == 2);
+        check("Both policy keeps clickable left components native", !ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 0, true)
+                && ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 0, false)
+                && ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 1, true));
     }
 
     private static void boundedMenuAndHover() {
         ChatInteractionModel.Menu menu = new ChatInteractionModel.Menu();
-        menu.show(98, 99, 120, 110);
+        menu.show(98, 99, 120, 110, 3);
         check("menu is clamped on screen", menu.x >= 2 && menu.y >= 2 && menu.x + menu.w <= 118.01f
                 && menu.y + menu.h <= 108.01f);
-        check("menu rows resolve only two actions", menu.rowAt(menu.x + 3, menu.y + 3) == 0
-                && menu.rowAt(menu.x + 3, menu.y + 23) == 1 && menu.rowAt(menu.x + 3, menu.y + 41) == -1);
+        check("two-row system menu has no third hit row", showTwoRowsHasNoThird(menu));
         ChatInteractionModel.Hover hover = new ChatInteractionModel.Hover();
         hover.update("row", 1f / 30f);
         float first = hover.alpha();
         hover.update("row", 1f / 30f);
         check("hover eases instead of popping", first > 0f && first < 1f
                 && hover.alpha() > first && hover.alpha() < 1f);
+        menu.updateHover(1f / 30f, 2);
+        check("menu row hover remains eased after instant open", menu.hoverAmount(2) > 0f && menu.hoverAmount(2) < 1f);
     }
 
-    private static void menuTimingAndMousePolicy() {
-        ChatInteractionModel.Menu menu = new ChatInteractionModel.Menu();
-        menu.setAnimationMillis(100);
-        menu.show(10, 10, 320, 180);
-        menu.update(.05f);
-        check("100 ms menu eases part-way at 50 ms", menu.openAmount() > .5f && menu.openAmount() < 1f);
-        menu.update(.05f);
-        check("100 ms menu completes at 100 ms", menu.openAmount() == 1f);
-        menu.setAnimationMillis(0);
-        menu.show(10, 10, 320, 180);
-        check("menu animation Off is immediate", menu.openAmount() == 1f);
-        check("Both policy keeps clickable left components native", !ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 0, true)
-                && ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 0, false)
-                && ChatMenuPolicy.opens(ChatMenuPolicy.BOTH, 1, true));
+    private static boolean showTwoRowsHasNoThird(ChatInteractionModel.Menu menu) {
+        menu.show(10, 10, 320, 180, 2);
+        return menu.optionCount() == 2 && menu.rowAt(menu.x + 3, menu.y + 43) == -1;
     }
 
     private static void capturedMessageSurvivesPointerMovement() {
         CapturedChatMenu captured = new CapturedChatMenu();
-        captured.open("group-a", "§aThe full grouped message", "§aThe full grouped message");
+        captured.open("group-a", "§aFrom [MVP+] Alex_99: The full grouped message", "§aFrom [MVP+] Alex_99: The full grouped message");
         // A later hover over another row must not alter the payload selected by either menu action.
         String laterHover = "a different row";
         check("captured message stays clean", captured.hasMessage()
-                && "The full grouped message".equals(captured.message().clean));
-        check("captured message stays tied to opening group", "group-a".equals(captured.message().groupId)
-                && !captured.message().clean.equals(laterHover));
+                && "From [MVP+] Alex_99: The full grouped message".equals(captured.message().clean));
+        check("captured message keeps name from opening group", "group-a".equals(captured.message().groupId)
+                && "Alex_99".equals(captured.message().playerName) && !captured.message().clean.equals(laterHover));
         captured.clear();
         check("captured payload clears after use", !captured.hasMessage());
     }

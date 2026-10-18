@@ -65,6 +65,7 @@ public final class ChatEditorScreen extends AppleScreen {
     private final List<SearchField> fields = new ArrayList<SearchField>();
 
     private final SearchField backgroundColour = field("#000000");
+    private final SearchField tabBaseColour = field("#2F7DFF");
     private final SearchField tabName = field("Custom tab name");
     private final SearchField filterText = field("Filter text");
     private final SearchField sendPrefix = field("Optional send prefix, e.g. /pc");
@@ -72,7 +73,6 @@ public final class ChatEditorScreen extends AppleScreen {
     private final SearchField sampleText = field("Sample line to test");
     private final SearchField hoverColour = field("#FFFFFF");
 
-    private final AppleDropdown tabDisplayMode;
     private final AppleDropdown filterType;
     private final AppleDropdown menuMode;
     private final AppleToggle tabVisible;
@@ -100,9 +100,6 @@ public final class ChatEditorScreen extends AppleScreen {
 
     public ChatEditorScreen(GuiScreen parent) {
         this.parent = parent;
-        tabDisplayMode = dropdown(new String[]{"When chat is open", "Always"},
-                () -> ChatQolSettings.showTabsAlways ? 1 : 0,
-                value -> ChatQolSettings.showTabsAlways = value == 1);
         filterType = dropdown(new String[]{"Contains text", "Starts with", "Regex"}, () -> draftFilterType,
                 value -> draftFilterType = ChatTabs.normalizeFilterType(value));
         menuMode = dropdown(new String[]{"Right click", "Left click", "Both"}, this::menuModeIndex,
@@ -136,6 +133,12 @@ public final class ChatEditorScreen extends AppleScreen {
                 () -> ChatQolSettings.backgroundOpacityClosed, value -> ChatQolSettings.backgroundOpacityClosed = value)));
         entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Corner radius", slider(0, 12, 1, " px",
                 () -> ChatQolSettings.backgroundRadius, value -> ChatQolSettings.backgroundRadius = value)));
+        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Open chat background", dropdown(
+                new String[]{"Fit to messages", "Full area"},
+                () -> ChatQolSettings.backgroundOpenFullArea ? 1 : 0,
+                value -> ChatQolSettings.backgroundOpenFullArea = value == 1)));
+        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Fit width to text", new AppleToggle(
+                () -> ChatQolSettings.backgroundFitWidth, value -> ChatQolSettings.backgroundFitWidth = value)));
 
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Message animation", slider(0, 600, 20, " ms",
                 () -> ChatQolSettings.messageAnimationMillis, value -> ChatQolSettings.messageAnimationMillis = value)
@@ -146,7 +149,11 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Use smooth messages", new AppleToggle(
                 () -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
 
-        entries.add(new Entry(ChatEditorLayout.TABS, "Show tabs", tabDisplayMode));
+        entries.add(new Entry(ChatEditorLayout.TABS, "Tab base colour", tabBaseColour));
+        entries.add(new Entry(ChatEditorLayout.TABS, "Tab opacity", slider(0, 100, 1, "%",
+                () -> ChatQolSettings.tabOpacity, value -> ChatQolSettings.tabOpacity = value)));
+        entries.add(new Entry(ChatEditorLayout.TABS, "Active tab opacity", slider(0, 100, 1, "%",
+                () -> ChatQolSettings.tabActiveOpacity, value -> ChatQolSettings.tabActiveOpacity = value)));
         entries.add(new Entry(ChatEditorLayout.TABS, new Label() {
             @Override public String text() { return "Editing: " + (currentTab() == null ? "All" : currentTab().name()); }
         }, new AppleButton("Previous", 74f, 22f, false, () -> cycleEditingTab(-1))));
@@ -159,7 +166,7 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.TABS, "Filter type", filterType));
         entries.add(new Entry(ChatEditorLayout.TABS, "Filter text", filterText));
         entries.add(new Entry(ChatEditorLayout.TABS, "Send prefix", sendPrefix));
-        entries.add(new Entry(ChatEditorLayout.TABS, "Tab colour", tabColour));
+        entries.add(new Entry(ChatEditorLayout.TABS, "Custom accent colour", tabColour));
         entries.add(new Entry(ChatEditorLayout.TABS, "Message sound", tabSound));
         entries.add(new Entry(ChatEditorLayout.TABS, "Test filter", new AppleButton("Test", 60f, 22f, false,
                 this::testFilter)));
@@ -176,9 +183,6 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.MENU_HIGHLIGHT, "Highlight opacity", slider(0, 100, 5, "%",
                 () -> ChatQolSettings.hoverOpacity, value -> ChatQolSettings.hoverOpacity = value)));
         entries.add(new Entry(ChatEditorLayout.MENU_HIGHLIGHT, "Open menu with", menuMode));
-        entries.add(new Entry(ChatEditorLayout.MENU_HIGHLIGHT, "Menu animation", slider(0, 240, 10, " ms",
-                () -> ChatQolSettings.menuAnimationMillis, ChatQolSettings::setMenuAnimationMillis)
-                .valueLabel(value -> value == 0 ? "Off" : value + " ms")));
 
         entries.add(new Entry(ChatEditorLayout.RESET, "Reset background", new AppleButton("Reset", 64f, 22f, false,
                 () -> { ChatQolSettings.resetBackground(); backgroundColour.setFocused(false); syncFields(false); })));
@@ -320,6 +324,7 @@ public final class ChatEditorScreen extends AppleScreen {
 
     private void syncFields(boolean tabFields) {
         if (!backgroundColour.isFocused()) backgroundColour.setText(colourText(ChatQolSettings.backgroundColor));
+        if (!tabBaseColour.isFocused()) tabBaseColour.setText(colourText(ChatQolSettings.tabBackgroundColor));
         if (!hoverColour.isFocused()) hoverColour.setText(colourText(ChatQolSettings.hoverColor));
         if (!tabFields) return;
         ChatTabs.Tab tab = currentTab();
@@ -334,8 +339,10 @@ public final class ChatEditorScreen extends AppleScreen {
 
     private void commitColourFields() {
         Integer background = parseColour(backgroundColour.text());
+        Integer tabBase = parseColour(tabBaseColour.text());
         Integer hover = parseColour(hoverColour.text());
         if (background != null) ChatQolSettings.backgroundColor = background.intValue();
+        if (tabBase != null) ChatQolSettings.tabBackgroundColor = tabBase.intValue();
         if (hover != null) ChatQolSettings.hoverColor = hover.intValue();
     }
 

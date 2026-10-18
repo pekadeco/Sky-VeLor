@@ -12,6 +12,7 @@ public final class ChatQolLayoutTests {
     public static void main(String[] args) {
         tabStripGeometry();
         groupedMessageBounds();
+        messageOnlyBackgrounds();
         editorFlowNoOverlap();
         done();
     }
@@ -49,6 +50,40 @@ public final class ChatQolLayoutTests {
         check("long-word wrapped bounds cover every line", longWord.h > five.h && longWord.contains(109, longWord.bottom() - 1));
         check("rounded rect keeps corner radius within geometry", ChatRenderGeometry.clampRadius(12, 8, 6) == 3f
                 && ChatRenderGeometry.clampRadius(0, 100, 100) == 0f);
+    }
+
+    /** Covers 0/1/3/20 visible lines, open fit/full, text-fit width, and the final fade-to-empty frame. */
+    private static void messageOnlyBackgrounds() {
+        ChatRenderGeometry.Rect target = new ChatRenderGeometry.Rect();
+        check("zero visible lines has no background", !ChatRenderGeometry.messageBackground(target,
+                2f, 100f, 100f, 20f, 120f, 60f, false, false, 4f) && target.h == 0f);
+
+        check("one closed line fits its line", ChatRenderGeometry.messageBackground(target,
+                2f, 91f, 100f, 20f, 120f, 60f, false, false, 4f)
+                && target.y == 91f && target.h == 9f && target.w == 120f);
+        check("three closed lines fit their rows", ChatRenderGeometry.messageBackground(target,
+                2f, 73f, 100f, 20f, 120f, 60f, false, false, 4f)
+                && target.y == 73f && target.h == 27f);
+        check("twenty visible lines are clipped to viewport", ChatRenderGeometry.messageBackground(target,
+                2f, -80f, 100f, 20f, 120f, 60f, false, false, 4f)
+                && target.y == 20f && target.h == 80f);
+        check("open fit mode still hugs messages", ChatRenderGeometry.messageBackground(target,
+                2f, 73f, 100f, 20f, 120f, 60f, false, false, 4f)
+                && target.y == 73f && target.h == 27f);
+        check("open full-area mode begins at viewport", ChatRenderGeometry.messageBackground(target,
+                2f, 73f, 100f, 20f, 120f, 60f, false, true, 4f)
+                && target.y == 20f && target.h == 80f);
+        check("fit-width uses widest text plus edge pad", ChatRenderGeometry.messageBackground(target,
+                2f, 91f, 100f, 20f, 120f, 54f, true, false, 4f) && target.w == 60f);
+
+        ChatRenderGeometry.BackgroundTransition transition = new ChatRenderGeometry.BackgroundTransition();
+        ChatRenderGeometry.messageBackground(target, 2f, 91f, 100f, 20f, 120f, 54f, false, false, 4f);
+        transition.update(target, true, .04f);
+        check("arriving line eases background height", transition.rect.h > 0f && transition.rect.h < target.h);
+        transition.update(target, true, .2f);
+        check("settled background reaches target", Math.abs(transition.rect.h - target.h) < .01f);
+        check("last faded line clears background immediately", !transition.update(target, false, .04f)
+                && transition.rect.h == 0f && transition.rect.w == 0f);
     }
 
     private static void editorFlowNoOverlap() {

@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.5.2v
+# Sky VeLor — Beta-0.10.8.5.3v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -12,7 +12,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Dungeon map with room/puzzle templates, party labels, plus mob highlights, Floor VII overlays and dragon alerts.
 - Fishing and Slayer trackers, plus quick notes and client commands.
 - Item Animation: live first-person X/Y/Z position, size and equip-animation controls, exact-value entry, clamped persistence and reset actions.
-- Opt-in Default Chat QoL: rounded background, grouped hover/copy menu, smooth scrolling, and attached All/Party/Reply/custom filter tabs without split chat windows.
+- Opt-in Default Chat QoL: rounded message-only background, grouped hover/three-action copy menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 
 ## Requirements
 
@@ -56,7 +56,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.5.2v.jar --version Beta-0.10.8.5.2v --mcmod-version 0.10.8.5.2
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.5.3v.jar --version Beta-0.10.8.5.3v --mcmod-version 0.10.8.5.3
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -67,7 +67,7 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.5.2v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.5.3v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Animation — Renderer

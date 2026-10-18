@@ -65,6 +65,12 @@ public final class ItemAnimationReachabilityTests {
         }
         check("Auto Fix option is absent from expanded Item Animation model",
                 !contains(expanded, "auto-fix-hit-slash") && !hasLabel(expanded, "Auto Fix Hit/Slash"));
+        check("renderer panel has no background transparency control", !contains(expanded, "background-transparency")
+                && !contains(expanded, "background-opacity") && !hasLabel(expanded, "Background transparency")
+                && !hasLabel(expanded, "Background opacity"));
+        check("HUD dropdown has no Item Animation background transparency duplicate",
+                !contains(itemAnimationDropdown, "background-transparency")
+                        && !hasLabel(itemAnimationDropdown, "Background transparency"));
 
         verifyNoCustomizationDuplicates();
         verifyFriendFeatureGuiOwnership();
