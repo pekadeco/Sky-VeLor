@@ -45,8 +45,8 @@ The menu opens and closes instantly. It always contains:
 1. `Copy to clipboard`
 2. `Copy to chat box`
 
-A third `Message player: /msg <Name>` action appears only when the stored line has a safe 3–16 character player name.
-It prepares `/msg <Name> ` in the focused chat box, retaining ordinary text or replacing the prior `/msg`, `/w`, or
+A third `Message player` action appears only when the stored line has a safe 3–16 character player name. Choosing it
+prepares `/msg <Name> ` in the focused chat box, retaining ordinary text or replacing the prior `/msg`, `/w`, or
 `/tell` recipient segment. Clipboard text is clean/unformatted. **Copy to chat box** uses the real focused chat input,
 preserves open chat, inserts at the cursor/selection, and enforces Minecraft's 256-character bound. Left-click
 components with a native `ClickEvent` are forwarded through guarded vanilla handling; the menu never steals them.

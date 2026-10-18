@@ -40,7 +40,7 @@ public final class ChatInteractionModelTests {
         check("player message menu exposes three ordered actions", menuActions.optionCount() == 3
                 && "Copy to clipboard".equals(menuActions.labelAt(0))
                 && "Copy to chat box".equals(menuActions.labelAt(1))
-                && "Message player: /msg Alex_99".equals(menuActions.labelAt(2)));
+                && "Message player".equals(menuActions.labelAt(2)));
         menuActions.setPlayerName("");
         check("system message hides third action", menuActions.optionCount() == 2 && menuActions.labelAt(2).length() == 0);
         CapturedChatMenu system = new CapturedChatMenu();

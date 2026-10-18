@@ -7,6 +7,7 @@ public final class ChatContextMenu {
     public static final int MESSAGE_PLAYER = 2;
     public static final String COPY_TO_CLIPBOARD_LABEL = "Copy to clipboard";
     public static final String COPY_TO_CHAT_BOX_LABEL = "Copy to chat box";
+    public static final String MESSAGE_PLAYER_LABEL = "Message player";
 
     private static final String[] COPY_OPTIONS = {COPY_TO_CLIPBOARD_LABEL, COPY_TO_CHAT_BOX_LABEL};
     private int pressed = -1;
@@ -14,9 +15,8 @@ public final class ChatContextMenu {
 
     /** Uses the captured message's sender. Invalid/system messages deliberately retain only the two copy actions. */
     public void setPlayerName(String value) {
-        String label = ChatPlayerName.messageLabel(value);
-        playerName = label.length() == 0 ? "" : ChatPlayerName.extract("From " + value + ": preview");
-        if (playerName.length() == 0) playerName = "";
+        // The recipient stays captured for the action, but the visible third row is deliberately the fixed label.
+        playerName = ChatPlayerName.extract("From " + (value == null ? "" : value) + ": preview");
     }
 
     public String playerName() { return playerName; }
@@ -25,7 +25,7 @@ public final class ChatContextMenu {
     public String labelAt(int option) {
         if (option == COPY_TO_CLIPBOARD) return COPY_TO_CLIPBOARD_LABEL;
         if (option == COPY_TO_CHAT_BOX) return COPY_TO_CHAT_BOX_LABEL;
-        return option == MESSAGE_PLAYER && playerName.length() > 0 ? ChatPlayerName.messageLabel(playerName) : "";
+        return option == MESSAGE_PLAYER && playerName.length() > 0 ? MESSAGE_PLAYER_LABEL : "";
     }
 
     public boolean press(int option) {

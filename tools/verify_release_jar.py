@@ -416,6 +416,7 @@ def main():
                 and len(chat_editor_layout_raw) > 0,
             'ChatEditorScreen packages five sections plus message-fit background and blue-tab controls without retired controls')
     menu_constants = constants_of('chat/ChatContextMenu')
+    menu_members = members_of('chat/ChatContextMenu')
     player_constants = constants_of('chat/ChatPlayerName')
     tabs_raw = raw_of('feature/ChatChannelTabs')
     copy_menu_raw = raw_of('feature/ChatChannelTabs$CopyMenu')
@@ -423,13 +424,14 @@ def main():
     geometry_raw = raw_of('chat/ChatRenderGeometry')
     settings_raw_chat = raw_of('config/ChatQolSettings')
     chat_runtime_raw = tabs_raw + copy_menu_raw
-    r.check(all(value in menu_constants for value in ('Copy to clipboard', 'Copy to chat box'))
-                and 'Message player: /msg ' in player_constants
+    r.check(all(value in menu_constants for value in ('Copy to clipboard', 'Copy to chat box', 'Message player'))
+                and all(not value.startswith('Message player' + ':') for value in player_constants)
+                and 'extract' in menu_members
                 and b'ChatInteractionModel' in tabs_raw and b'CapturedChatMenu' in chat_runtime_raw
                 and b'ChatRenderGeometry' in tabs_raw and b'ChatTabs' in tabs_raw
                 and b'ChatContextMenu' in chat_runtime_raw and b'ChatClipboard' in chat_runtime_raw
                 and b'ChatPlayerName' in chat_runtime_raw and b'ChatPipeline' not in chat_runtime_raw,
-            'Chat QoL packages one Default Chat renderer with three captured-menu actions including Message player')
+            'Chat QoL packages three fixed captured-menu labels and preserves recipient parsing for Message player')
     r.check(b'com/arena/pekaclient/chat/ChatInputInsertion' in copy_menu_raw
                 and all(name in members_of('feature/ChatChannelTabs$CopyMenu') for name in ('insert', 'messagePlayer')),
             'production Copy to chat box and Message player call bounded shared insertion paths')

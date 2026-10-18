@@ -46,7 +46,7 @@ public final class ClipboardChainTests {
         menu.setPlayerName("Player_42");
         check("exact first label", "Copy to clipboard".equals(menu.labelAt(0)));
         check("exact second label", "Copy to chat box".equals(menu.labelAt(1)));
-        check("third action is message player", "Message player: /msg Player_42".equals(menu.labelAt(2))
+        check("third action has the exact fixed message-player label", "Message player".equals(menu.labelAt(2))
                 && menu.optionCount() == 3);
         menu.press(0);
         check("press does not execute", menu.armed());

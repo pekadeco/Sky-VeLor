@@ -32,12 +32,6 @@ public final class ChatPlayerName {
         return systemName(name) ? "" : name;
     }
 
-    /** A menu label stays concrete about the command while leaving the two legacy copy labels unchanged. */
-    public static String messageLabel(String name) {
-        String clean = extract("From " + (name == null ? "" : name) + ": preview");
-        return clean.length() == 0 ? "" : "Message player: /msg " + clean;
-    }
-
     private static boolean systemPrefix(String value) {
         String lower = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
         return lower.startsWith("you ") || lower.startsWith("your ") || lower.startsWith("server")
