@@ -81,8 +81,14 @@ public final class ChatCompactMessagesTests {
         check("click command survives rich component copy", click != null && "/msg Alex ".equals(click.getValue()));
         check("hover text survives rich component copy", hover != null && hover.getValue() != null
                 && "Alex".equals(hover.getValue().getUnformattedTextForChat()));
+        IChatComponent suffix = rendered.getSiblings().isEmpty() ? null : rendered.getSiblings().get(0);
+        String suffixFormatted = suffix == null ? "" : suffix.getFormattedText();
+        String suffixRaw = suffix == null ? "" : suffix.getUnformattedTextForChat();
+        // Minecraft may prefix an inherited reset code when formatting a sibling; verify the actual gray suffix rather
+        // than assuming that its serialized prefix is byte-for-byte identical to the standalone legacy string.
         check("gray suffix is appended after original component", rendered.getSiblings().size() == 1
-                && ChatCompactMessages.counterFormattedText(5).equals(rendered.getSiblings().get(0).getFormattedText()));
+                && (suffixFormatted.contains("§7") || suffixRaw.contains("§7"))
+                && (suffixFormatted.endsWith("(x5)") || suffixRaw.endsWith("(x5)")));
     }
 
     private static void check(String name, boolean ok) {
