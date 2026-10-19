@@ -10,6 +10,7 @@ import com.arena.pekaclient.chat.ChatMenuState;
 import com.arena.pekaclient.chat.ChatPlayerName;
 import com.arena.pekaclient.chat.ChatRenderGeometry;
 import com.arena.pekaclient.chat.ChatText;
+import com.arena.pekaclient.chat.ChatVisibilityAudit;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.gui.GuiLayoutToolkit;
@@ -97,10 +98,12 @@ public final class ChatChannelTabs {
     private final List<MessageGroup> groups = new ArrayList<MessageGroup>();
     private final List<RenderRow> rows = new ArrayList<RenderRow>();
     private final Map<Integer, Long> arrivalMillis = new HashMap<Integer, Long>();
-    /** Last high-id counter update/text per original group; lets the counter reset this group's fade and arrival easing. */
-    private final Map<Integer, Integer> compactCounterUpdates = new HashMap<Integer, Integer>();
-    private final Map<Integer, String> compactCounterText = new HashMap<Integer, String>();
+    /** Last cache update for each group; replacing a compact group refreshes its fade without sharing ids. */
+    private final Map<Integer, Integer> groupUpdateCounters = new HashMap<Integer, Integer>();
+    /** Original pre-counter component by unique group id, retained for click/hover/copy and recipient extraction. */
+    private final Map<Integer, IChatComponent> groupOriginals = new HashMap<Integer, IChatComponent>();
     private final ChatCompactMessages compactMessages = new ChatCompactMessages();
+    private final ChatVisibilityAudit.History visibilityHistory = new ChatVisibilityAudit.History();
     private final Set<String> unreadTabs = new HashSet<String>();
     private final GuiLayoutToolkit.Scroll scroll = new GuiLayoutToolkit.Scroll();
     private final ChatTabLayout.Layout tabLayout = new ChatTabLayout.Layout();
@@ -125,6 +128,9 @@ public final class ChatChannelTabs {
     private long lastFrameNs;
     private String toast = "";
     private long toastUntil;
+    /** Latest cache metrics used to report closed/open visibility reasons from /velor chatdebug. */
+    private int lastChatUpdateCounter;
+    private int lastVisibleLineLimit;
 
     public ChatChannelTabs() {
         live = this;
@@ -153,13 +159,14 @@ public final class ChatChannelTabs {
     }
 
     /**
-     * Incoming text stays in Minecraft's own cache. Compact messages cancels only repeated eligible arrivals and
-     * asks GuiNewChat to replace one fixed high-id gray counter line; the first original component remains intact.
+     * Incoming text stays in Minecraft's own cache. Eligible messages are written with a fresh group id so wrapped
+     * groups and rapid same-tick arrivals remain distinct; only a verified newest duplicate replaces its own group.
      */
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
         if (!ownsDefaultChat() || event == null || event.type == 2 || event.message == null) return;
-        compactIncoming(event);
+        CompactOutcome outcome = compactIncoming(event);
+        visibilityHistory.record(outcome.groupId, cleanComponent(event.message), outcome.count);
         if (!ChatQolSettings.tabsEnabled) return;
         String clean = cleanComponent(event.message);
         boolean played = false;
@@ -176,31 +183,50 @@ public final class ChatChannelTabs {
         }
     }
 
-    /** Keeps the original message for copy/recipient extraction and uses only the counter as the replacement line. */
-    private void compactIncoming(ClientChatReceivedEvent event) {
+    /**
+     * Keeps the original component for copy/recipient extraction and replaces only a verified newest duplicate. A
+     * group id is allocated for every compactable run, never reused as a global counter id, so deleteChatLine cannot
+     * erase an older unrelated message group.
+     */
+    private CompactOutcome compactIncoming(ClientChatReceivedEvent event) {
         if (!ChatQolSettings.compactMessages) {
             compactMessages.reset();
-            compactCounterUpdates.clear();
-            compactCounterText.clear();
-            return;
+            return CompactOutcome.unhandled();
         }
-        ChatCompactMessages.Result result = compactMessages.accept(event.message.getFormattedText());
-        if (!result.compacted) return;
         Minecraft mc = Minecraft.getMinecraft();
         GuiNewChat chat = mc == null || mc.ingameGUI == null ? null : mc.ingameGUI.getChatGUI();
         if (chat == null) {
             // Do not cancel the packet if vanilla's cache is unavailable; a failed compact path must fail open.
             compactMessages.reset();
-            return;
+            return CompactOutcome.unhandled();
+        }
+        boolean previousIsLast = compactMessages.hasActiveMessage()
+                && isLastCompactGroup(chat, compactMessages.activeGroupId());
+        ChatCompactMessages.Result result = compactMessages.accept(event.message.getFormattedText(), previousIsLast);
+        if (!result.hasGroup()) {
+            // Blank and separator lines remain vanilla lines and reset the consecutive-message run.
+            return CompactOutcome.unhandled();
         }
         try {
-            chat.printChatMessageWithOptionalDeletion(
-                    new ChatComponentText(ChatCompactMessages.counterFormattedText(result.count)),
-                    ChatCompactMessages.COUNTER_LINE_ID);
+            IChatComponent original = event.message.createCopy();
+            IChatComponent rendered = original;
+            if (result.compacted) {
+                IChatComponent saved = groupOriginals.get(result.groupId);
+                rendered = (saved == null ? original : saved.createCopy());
+                rendered.appendSibling(new ChatComponentText(ChatCompactMessages.counterFormattedText(result.count)));
+                // Be explicit before reprinting: the unique id identifies only this group, never an older one.
+                chat.deleteChatLine(result.groupId);
+            } else {
+                groupOriginals.put(result.groupId, original.createCopy());
+            }
+            chat.printChatMessageWithOptionalDeletion(rendered, result.groupId);
             event.setCanceled(true);
+            return new CompactOutcome(result.groupId, result.count, result.compacted);
         } catch (RuntimeException | LinkageError ignored) {
             // Keep the real server message rather than risk hiding text on an unexpected launcher bridge failure.
+            if (!result.compacted) groupOriginals.remove(result.groupId);
             compactMessages.reset();
+            return CompactOutcome.unhandled();
         }
     }
 
@@ -335,8 +361,8 @@ public final class ChatChannelTabs {
             copyMenu.hide();
             unreadTabs.clear();
             compactMessages.reset();
-            compactCounterUpdates.clear();
-            compactCounterText.clear();
+            groupOriginals.clear();
+            groupUpdateCounters.clear();
         }
     }
 
@@ -384,7 +410,51 @@ public final class ChatChannelTabs {
                 + Math.round(tabFrameW) + " h=" + Math.round(tabFrameH) + ", tabs=" + ChatQolSettings.tabs().size() + "."));
         sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fMouse group=" + describeGroup(hoveredGroup)
                 + ", menu state=" + copyMenu.describeStored() + "."));
-        sender.addChatMessage(new ChatComponentText("§7Chat debug outlines " + (debug ? "enabled" : "disabled") + "."));
+        sender.addChatMessage(new ChatComponentText("§7Chat debug outlines " + (debug ? "enabled" : "disabled")
+                + "; last " + visibilityHistory.entries().size() + " logical messages (newest first):"));
+        if (visibilityHistory.entries().isEmpty()) {
+            sender.addChatMessage(new ChatComponentText("§7  none received since this client session started."));
+        }
+        for (ChatVisibilityAudit.Entry entry : visibilityHistory.entries()) {
+            ChatVisibilityAudit.Decision closed = visibilityDecision(entry, false);
+            ChatVisibilityAudit.Decision open = visibilityDecision(entry, true);
+            sender.addChatMessage(new ChatComponentText("§7  #" + entry.groupId + " x" + entry.count + " ["
+                    + debugClip(entry.clean) + "] §fclosed=" + closed.describe() + "§f; open=" + open.describe()));
+        }
+    }
+
+    /** Produces the exact closed/open reason used by /velor chatdebug without changing renderer state. */
+    private ChatVisibilityAudit.Decision visibilityDecision(ChatVisibilityAudit.Entry entry, boolean chatOpen) {
+        MessageGroup target = groupForDebug(entry);
+        if (target == null) {
+            return ChatVisibilityAudit.decide(chatOpen, false, false, 0, ChatQolSettings.fadeSeconds, 0,
+                    Math.max(1, lastVisibleLineLimit));
+        }
+        ChatTabs.Tab selected = chatOpen ? activeTab() : ChatQolSettings.tab(ChatTabs.ALL);
+        boolean matchesActive = selected != null && selected.matches(target.clean);
+        int linesBefore = 0;
+        for (MessageGroup group : groups) {
+            if (group == target) break;
+            if (!chatOpen || (selected != null && selected.matches(group.clean))) linesBefore += group.renderLineCount();
+        }
+        int age = Math.max(0, lastChatUpdateCounter - target.updateCounter);
+        return ChatVisibilityAudit.decide(chatOpen, true, matchesActive, age, ChatQolSettings.fadeSeconds,
+                linesBefore, Math.max(1, lastVisibleLineLimit));
+    }
+
+    private MessageGroup groupForDebug(ChatVisibilityAudit.Entry entry) {
+        for (MessageGroup group : groups) {
+            if (entry.groupId != ChatCompactMessages.NO_GROUP_ID && group.id == entry.groupId) return group;
+        }
+        for (MessageGroup group : groups) {
+            if (entry.groupId == ChatCompactMessages.NO_GROUP_ID && entry.clean.equals(group.clean)) return group;
+        }
+        return null;
+    }
+
+    private static String debugClip(String text) {
+        String value = text == null ? "" : text.replace('\n', ' ').replace('\r', ' ');
+        return value.length() > 42 ? value.substring(0, 39) + "..." : value;
     }
 
     private static String describeGroup(MessageGroup group) {
@@ -415,7 +485,9 @@ public final class ChatChannelTabs {
         float viewportH = Math.max(lineH, visibleLines * lineH);
         float viewportTop = Math.max(2f, messageBottom - viewportH);
 
-        rebuildGroups(vanilla);
+        lastChatUpdateCounter = mc.ingameGUI.getUpdateCounter();
+        lastVisibleLineLimit = visibleLines;
+        rebuildGroups(vanilla, System.currentTimeMillis());
         layoutRows(viewportTop, messageBottom, width, lineH, visibleLines, scale, chatOpen);
         float dt = frameDelta();
         scroll.update(dt, AppleSettings.smoothScrolling);
@@ -472,47 +544,43 @@ public final class ChatChannelTabs {
     }
 
     /**
-     * Reads the vanilla complete/drawn cache but never writes it. Compact counters are deliberately folded into the
-     * original group, so tab matching, hover, arrival animation, copy text, and /msg recipient extraction all keep
-     * using the untouched original component rather than the gray count suffix.
+     * Rebuilds logical messages from vanilla's cache. Compact groups use their unique chat-line ids as the identity;
+     * ordinary id-zero lines retain their update-counter fallback. This avoids merging independent packets received in
+     * the same tick while retaining the real update counter solely for fade age.
      */
-    private void rebuildGroups(GuiNewChat chat) {
+    private void rebuildGroups(GuiNewChat chat, long now) {
         groups.clear();
         rows.clear();
         try {
             List<ChatLine> complete = chatLines(chat);
-            Map<Integer, IChatComponent> originals = new HashMap<Integer, IChatComponent>();
-            for (ChatLine line : complete) {
-                if (line != null && line.getChatComponent() != null) {
-                    originals.put(line.getUpdatedCounter(), line.getChatComponent());
-                }
-            }
             List<ChatLine> drawn = drawnLines(chat);
-            List<CompactCounter> counters = new ArrayList<CompactCounter>();
+            Map<Integer, IChatComponent> originals = new HashMap<Integer, IChatComponent>();
+            Set<Integer> presentGroupIds = new HashSet<Integer>();
+            for (ChatLine line : complete) {
+                if (line == null || line.getChatComponent() == null) continue;
+                int groupId = groupKey(line);
+                presentGroupIds.add(groupId);
+                IChatComponent saved = groupOriginals.get(groupId);
+                originals.put(groupId, saved == null ? line.getChatComponent() : saved);
+            }
+
             MessageGroup current = null;
-            Set<Integer> stillPresent = new HashSet<Integer>();
-            long now = System.currentTimeMillis();
             for (ChatLine line : drawn) {
                 if (line == null || line.getChatComponent() == null) continue;
-                if (isCompactCounterLine(line)) {
-                    counters.add(new CompactCounter(line.getChatComponent(), line.getUpdatedCounter()));
-                    continue;
-                }
-                int counter = line.getUpdatedCounter();
-                if (current == null || current.id != counter) {
-                    IChatComponent original = originals.get(counter);
-                    current = new MessageGroup(counter, original == null ? line.getChatComponent() : original,
-                            original != null);
+                int groupId = groupKey(line);
+                presentGroupIds.add(groupId);
+                if (current == null || current.id != groupId) {
+                    IChatComponent original = originals.get(groupId);
+                    if (original == null) original = line.getChatComponent();
+                    current = new MessageGroup(groupId, line.getUpdatedCounter(), original, cleanComponent(original));
                     groups.add(current);
-                    stillPresent.add(counter);
-                    if (!arrivalMillis.containsKey(counter)) arrivalMillis.put(counter, now);
+                    refreshGroupArrival(groupId, line.getUpdatedCounter(), now);
                 }
                 current.addLine(line.getChatComponent());
             }
-            attachCompactCounters(counters, stillPresent, now);
-            arrivalMillis.keySet().retainAll(stillPresent);
-            compactCounterUpdates.keySet().retainAll(stillPresent);
-            compactCounterText.keySet().retainAll(stillPresent);
+            arrivalMillis.keySet().retainAll(presentGroupIds);
+            groupUpdateCounters.keySet().retainAll(presentGroupIds);
+            groupOriginals.keySet().retainAll(presentGroupIds);
         } catch (IllegalAccessException | RuntimeException | LinkageError ignored) {
             groups.clear();
             rows.clear();
@@ -523,38 +591,40 @@ public final class ChatChannelTabs {
         }
     }
 
-    /** Associates the fixed high-id counter with the still-present original message; a mismatch stays visible safely. */
-    private void attachCompactCounters(List<CompactCounter> counters, Set<Integer> stillPresent, long now) {
-        for (CompactCounter counter : counters) {
-            MessageGroup target = null;
-            if (ChatQolSettings.compactMessages && compactMessages.hasActiveMessage()) {
-                String originalFormatted = compactMessages.activeFormatted();
-                for (MessageGroup group : groups) {
-                    if (originalFormatted.equals(group.formatted)) {
-                        target = group;
-                        break;
-                    }
-                }
-            }
-            if (target != null) {
-                target.setCompactCounter(counter.formatted, counter.updateCounter, now);
-                continue;
-            }
-            // A launcher/history mismatch must not hide the counter. It is a visual fallback only; normal compact
-            // paths always attach to the real original group above.
-            MessageGroup fallback = new MessageGroup(counter.updateCounter, counter.component, true);
-            fallback.addLine(counter.component);
-            groups.add(fallback);
-            stillPresent.add(fallback.id);
-            if (!arrivalMillis.containsKey(fallback.id)) arrivalMillis.put(fallback.id, now);
+    /** A compact duplicate is safe to replace only when its group is the most recently inserted cache group. */
+    private boolean isLastCompactGroup(GuiNewChat chat, int groupId) {
+        if (groupId == ChatCompactMessages.NO_GROUP_ID) return false;
+        try {
+            List<ChatLine> complete = chatLines(chat);
+            if (complete.isEmpty() || groupKey(complete.get(0)) != groupId) return false;
+            List<ChatLine> drawn = drawnLines(chat);
+            return !drawn.isEmpty() && groupKey(drawn.get(0)) == groupId;
+        } catch (IllegalAccessException | RuntimeException | LinkageError ignored) {
+            return false;
         }
+    }
+
+    /** Prefer the unique compact id. Vanilla's zero id is not a group identity, so its line keeps a local fallback. */
+    private static int groupKey(ChatLine line) {
+        if (line == null) return 0;
+        int id = line.getChatLineID();
+        return id == 0 ? line.getUpdatedCounter() : id;
+    }
+
+    private void refreshGroupArrival(int groupId, int updateCounter, long now) {
+        Integer previous = groupUpdateCounters.get(groupId);
+        if (previous == null || previous.intValue() != updateCounter) {
+            arrivalMillis.put(groupId, now);
+        }
+        groupUpdateCounters.put(groupId, updateCounter);
     }
 
     /** Lays out only the selected tab's already-received message groups; All's matcher is always true. */
     private void layoutRows(float viewportTop, float messageBottom, float width, float lineH, int visibleLines,
                             float textScale, boolean chatOpen) {
         rows.clear();
-        ChatTabs.Tab selected = activeTab();
+        // A closed HUD chat is never a tab view: every cached group is evaluated through All.
+        ChatTabs.Tab selected = chatOpen ? activeTab() : ChatQolSettings.tab(ChatTabs.ALL);
         if (selected == null) return;
         List<MessageGroup> visible = new ArrayList<MessageGroup>();
         for (MessageGroup group : groups) {
@@ -564,6 +634,8 @@ public final class ChatChannelTabs {
         int totalLines = 0;
         for (MessageGroup group : visible) totalLines += group.renderLineCount();
         float viewportH = Math.max(lineH, visibleLines * lineH);
+        // A stale open-chat scroll must not carry into the closed HUD and hide newest messages off-screen.
+        if (!chatOpen) scroll.reset();
         scroll.setMaximum(Math.max(0f, totalLines * lineH - viewportH));
         float yOffset = scroll.value();
         int lineIndex = 0;
@@ -572,16 +644,6 @@ public final class ChatChannelTabs {
         int update = mc == null || mc.ingameGUI == null ? 0 : mc.ingameGUI.getUpdateCounter();
         for (MessageGroup group : visible) {
             group.updateAnimation(now, update, chatOpen);
-            if (group.hasCompactCounter()) {
-                float y = messageBottom + yOffset - (lineIndex + 1) * lineH;
-                // A null component keeps counter clicks attached to the original group/menu payload, never to its
-                // decorative suffix. The configured RGB is only for Sky VeLor rendering; vanilla's cache is gray.
-                RenderRow counter = new RenderRow(group, null, group.compactCounterFormatted, 2f, y, width, lineH,
-                        textScale, ChatQolSettings.compactCounterColor);
-                rows.add(counter);
-                group.include(counter);
-                lineIndex++;
-            }
             for (IChatComponent component : group.lines) {
                 float y = messageBottom + yOffset - (lineIndex + 1) * lineH;
                 RenderRow row = new RenderRow(group, component, component.getFormattedText(), 2f, y, width, lineH,
@@ -809,11 +871,6 @@ public final class ChatChannelTabs {
         return false;
     }
 
-    /** Identifies only the reserved fixed high-id counter line; every normal server ChatLine remains untouched. */
-    private static boolean isCompactCounterLine(ChatLine line) {
-        return line != null && line.getChatLineID() == ChatCompactMessages.COUNTER_LINE_ID;
-    }
-
     @SuppressWarnings("unchecked")
     private static List<ChatLine> chatLines(GuiNewChat chat) throws IllegalAccessException {
         return (List<ChatLine>) CHAT_LINES.get(chat);
@@ -969,78 +1026,59 @@ public final class ChatChannelTabs {
                 GlobalFontManager.Area.CHAT);
     }
 
+    /** Result of the fail-open incoming replacement path, retained for bounded debug history. */
+    private static final class CompactOutcome {
+        final int groupId;
+        final int count;
+        final boolean compacted;
+
+        CompactOutcome(int groupId, int count, boolean compacted) {
+            this.groupId = groupId;
+            this.count = Math.max(1, count);
+            this.compacted = compacted;
+        }
+
+        static CompactOutcome unhandled() {
+            return new CompactOutcome(ChatCompactMessages.NO_GROUP_ID, 1, false);
+        }
+    }
+
+    /** One logical chat group. The rendered lines may include a gray counter suffix, while original remains untouched. */
     private final class MessageGroup {
         final int id;
+        final int updateCounter;
         final IChatComponent original;
-        final boolean completeOriginal;
         String clean;
         String formatted;
         final List<IChatComponent> lines = new ArrayList<IChatComponent>();
         final ChatRenderGeometry.Rect bounds = new ChatRenderGeometry.Rect();
-        String compactCounterFormatted;
-        int compactCounterUpdate = -1;
         float alpha = 1f;
         float slide;
 
-        MessageGroup(int id, IChatComponent original, boolean completeOriginal) {
+        MessageGroup(int id, int updateCounter, IChatComponent original, String clean) {
             this.id = id;
+            this.updateCounter = updateCounter;
             this.original = original;
-            this.completeOriginal = completeOriginal;
-            this.clean = cleanComponent(original);
+            this.clean = clean == null ? "" : clean;
             this.formatted = original == null ? "" : original.getFormattedText();
         }
 
-        /** Fallback bridge data may only expose wrapped rows, so rebuild a complete clean payload rather than copying
-         * whichever row the pointer happened to be over. The normal path keeps Minecraft's original component text. */
         void addLine(IChatComponent line) {
-            lines.add(line);
-            if (completeOriginal || line == null) return;
-            String nextClean = cleanComponent(line);
-            String nextFormatted = line.getFormattedText();
-            if (lines.size() == 1) {
-                clean = nextClean;
-                formatted = nextFormatted == null ? "" : nextFormatted;
-            } else {
-                clean += nextClean;
-                formatted += nextFormatted == null ? "" : nextFormatted;
-            }
-        }
-
-        void setCompactCounter(String formattedCounter, int updateCounter, long now) {
-            Integer previousUpdate = compactCounterUpdates.get(id);
-            String nextFormatted = formattedCounter == null ? "" : formattedCounter;
-            String previousFormatted = compactCounterText.get(id);
-            // MessageGroup instances are rebuilt each frame, so cross-frame freshness lives in the small id maps.
-            // A fresh update counter or changed xN text resets fade/bottom animation once, rather than restarting it
-            // forever while the same counter is merely rendered again. Text also covers two packets handled in one tick.
-            boolean changed = previousUpdate == null || previousUpdate.intValue() != updateCounter
-                    || !nextFormatted.equals(previousFormatted);
-            compactCounterFormatted = nextFormatted;
-            compactCounterUpdate = updateCounter;
-            if (changed) {
-                compactCounterUpdates.put(id, updateCounter);
-                compactCounterText.put(id, nextFormatted);
-                arrivalMillis.put(id, now);
-            }
-        }
-
-        boolean hasCompactCounter() {
-            return compactCounterFormatted != null && compactCounterFormatted.length() > 0;
+            if (line != null) lines.add(line);
         }
 
         int renderLineCount() {
-            return lines.size() + (hasCompactCounter() ? 1 : 0);
+            return lines.size();
         }
 
         void resetBounds() { bounds.set(0f, 0f, 0f, 0f, 0f); }
         void include(RenderRow row) { ChatRenderGeometry.include(bounds, row.x, row.y, row.w, row.h); }
 
-        void updateAnimation(long now, int updateCounter, boolean chatOpen) {
+        void updateAnimation(long now, int currentUpdateCounter, boolean chatOpen) {
             alpha = 1f;
             slide = 0f;
             if (!chatOpen && ChatQolSettings.fadeSeconds > 0) {
-                int freshness = compactCounterUpdate >= 0 ? compactCounterUpdate : id;
-                float age = Math.max(0f, (updateCounter - freshness) / 20f);
+                float age = Math.max(0f, (currentUpdateCounter - updateCounter) / 20f);
                 float duration = ChatQolSettings.fadeSeconds;
                 if (age >= duration) alpha = 0f;
                 else if (age > duration * .70f) alpha *= Math.max(0f, (duration - age) / (duration * .30f));
@@ -1082,16 +1120,5 @@ public final class ChatChannelTabs {
         }
     }
 
-    /** One fixed-high-id counter from vanilla's cache, held until it can be attached to its original group. */
-    private static final class CompactCounter {
-        final IChatComponent component;
-        final String formatted;
-        final int updateCounter;
 
-        CompactCounter(IChatComponent component, int updateCounter) {
-            this.component = component;
-            this.formatted = component == null ? "" : component.getFormattedText();
-            this.updateCounter = updateCounter;
-        }
-    }
 }
