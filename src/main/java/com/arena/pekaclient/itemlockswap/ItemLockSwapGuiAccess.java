@@ -95,9 +95,9 @@ final class ItemLockSwapGuiAccess {
                     if (value instanceof GuiTextField && ((GuiTextField) value).isFocused()) return true;
                     // A few modded inventory screens keep search fields in a list rather than a named field.
                     if (value instanceof List) {
-                        List<?> fields = (List<?>) value;
-                        for (int k = 0; k < fields.size(); k++) {
-                            Object candidate = fields.get(k);
+                        List<?> textFields = (List<?>) value;
+                        for (int k = 0; k < textFields.size(); k++) {
+                            Object candidate = textFields.get(k);
                             if (candidate instanceof GuiTextField && ((GuiTextField) candidate).isFocused()) return true;
                         }
                     }
