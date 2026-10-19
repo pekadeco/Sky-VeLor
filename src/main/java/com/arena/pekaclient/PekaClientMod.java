@@ -26,6 +26,7 @@ import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapKeybind;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapOverlay;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
 import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.Theme;
@@ -120,6 +121,7 @@ public class PekaClientMod {
     private final TerminalSolver terminalSolver = new TerminalSolver();
     private final FishingStats fishingStats = new FishingStats();
     private final SlayerTracker slayerTracker = new SlayerTracker();
+    private final ItemLockSwapOverlay itemLockSwapOverlay = new ItemLockSwapOverlay();
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
@@ -155,6 +157,7 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(terminalSolver);
         MinecraftForge.EVENT_BUS.register(fishingStats);
         MinecraftForge.EVENT_BUS.register(slayerTracker);
+        MinecraftForge.EVENT_BUS.register(itemLockSwapOverlay);
     }
 
     /**

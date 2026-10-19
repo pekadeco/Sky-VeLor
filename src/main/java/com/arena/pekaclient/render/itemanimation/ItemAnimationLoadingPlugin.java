@@ -1,5 +1,7 @@
 package com.arena.pekaclient.render.itemanimation;
 
+import com.arena.pekaclient.itemlockswap.ItemLockSwapHookStatus;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapTransformer;
 import com.arena.pekaclient.render.blockparticles.BlockParticleHookStatus;
 import com.arena.pekaclient.render.blockparticles.BlockParticleTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
@@ -7,14 +9,14 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import java.util.Map;
 
 /**
- * Forge 1.8.9 coremod entry point for two narrow visual hooks: ItemRenderer's balanced first-person callbacks and
- * EffectRenderer's block-digging particle predicate. Neither hook replaces a renderer or touches gameplay state.
+ * Forge 1.8.9 coremod entry point for narrow Item Animation/particle visual hooks plus the fail-closed Item Lock /
+ * Swap packet guards. None replaces a vanilla renderer, container, inventory, or network handler.
  */
 @IFMLLoadingPlugin.Name("Sky VeLor Visual Hooks")
 @IFMLLoadingPlugin.MCVersion("1.8.9")
 @IFMLLoadingPlugin.SortingIndex(1001)
 @IFMLLoadingPlugin.TransformerExclusions({"com.arena.pekaclient.render.itemanimation",
-        "com.arena.pekaclient.render.blockparticles"})
+        "com.arena.pekaclient.render.blockparticles", "com.arena.pekaclient.itemlockswap"})
 public final class ItemAnimationLoadingPlugin implements IFMLLoadingPlugin {
 
     @Override
@@ -23,7 +25,9 @@ public final class ItemAnimationLoadingPlugin implements IFMLLoadingPlugin {
         // early ItemRenderer/EffectRenderer load before Forge installs exclusions and transformers.
         ItemAnimationHookStatus.noteCoremodRegistered();
         BlockParticleHookStatus.noteCoremodRegistered();
-        return new String[]{ItemAnimationTransformer.class.getName(), BlockParticleTransformer.class.getName()};
+        ItemLockSwapHookStatus.noteCoremodRegistered();
+        return new String[]{ItemAnimationTransformer.class.getName(), BlockParticleTransformer.class.getName(),
+                ItemLockSwapTransformer.class.getName()};
     }
 
     @Override
