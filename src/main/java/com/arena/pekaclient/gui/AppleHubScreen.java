@@ -1,5 +1,6 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.PekaClientMod;
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
@@ -12,12 +13,16 @@ import com.arena.pekaclient.slayer.SlayerType;
 import com.arena.pekaclient.feature.MiningTracker;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapKeybind;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapUiModel;
 import com.arena.pekaclient.render.Anim;
 import com.arena.pekaclient.render.Icons;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
+import com.arena.pekaclient.widget.AppleKeybindButton;
 import com.arena.pekaclient.widget.AppleSegmented;
 import com.arena.pekaclient.widget.AppleSlider;
 import com.arena.pekaclient.widget.AppleToggle;
@@ -133,6 +138,8 @@ public class AppleHubScreen extends AppleScreen {
     private boolean gestureActive;
     private boolean sliderEngaged;
     private Widget active;
+    /** The only capture control in this screen; keyboard input remains unavailable to search while it listens. */
+    private AppleKeybindButton itemLockSwapKeyButton;
 
     // Layout (recomputed every frame, in GUI-scaled pixels). The shared clamp keeps the hub reachable at any scale.
     private final GuiLayoutToolkit.Rect hubPanel = new GuiLayoutToolkit.Rect();
@@ -182,13 +189,14 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     /**
-     * One Quality of Life page with expandable Gameplay, Chat QoL and Commands groups. Commands and chat are not
-     * separate surfaces: their existing controls stay here with their original setting owners and command routes.
+     * One Quality of Life page with expandable Gameplay, Item Lock and Item Swap, Chat QoL and Commands groups.
+     * The item feature uses ordinary shared rows so it remains scroll-safe at every GUI scale.
      */
     private List<Row> qualityOfLifePage() {
         List<Row> rows = new ArrayList<Row>();
         List<QualityOfLifeUiModel.Entry> toggles = QualityOfLifeUiModel.buildToggleModel();
         List<String> sections = QualityOfLifeUiModel.buildSectionTitles();
+        List<ItemLockSwapUiModel.Entry> itemControls = ItemLockSwapUiModel.buildControlModel();
         rows.add(Row.section(QualityOfLifeUiModel.TAB_LABEL));
         rows.add(Row.header(sections.get(0)));
         rows.add(Row.item(toggles.get(0).getLabel(), toggles.get(0).getDescription(),
@@ -198,9 +206,46 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.noBlockParticles,
                         value -> AppleSettings.noBlockParticles = value)));
 
+        rows.add(Row.header(sections.get(1)));
+        rows.add(Row.item(itemControls.get(0).getLabel(),
+                "Tap the key to lock a player-inventory position; hold it to create or remove a pair",
+                new AppleToggle(() -> ItemLockSwapSettings.enabled, value -> ItemLockSwapSettings.enabled = value)));
+        itemLockSwapKeyButton = new AppleKeybindButton(126f, 26f,
+                () -> PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode());
+        rows.add(Row.item(itemControls.get(1).getLabel(),
+                "Default L. Click this button, then press a key; key conflicts are reported in chat",
+                itemLockSwapKeyButton));
+        rows.add(Row.item(itemControls.get(2).getLabel(), "Time between manual pair swaps (0.5 to 5.0 seconds)",
+                new AppleSlider(ItemLockSwapSettings.MIN_COOLDOWN_TENTHS, ItemLockSwapSettings.MAX_COOLDOWN_TENTHS,
+                        1, "", 126f, () -> ItemLockSwapSettings.cooldownTenths,
+                        value -> ItemLockSwapSettings.cooldownTenths = value)
+                        .valueLabel(ItemLockSwapSettings::cooldownLabel)));
+        rows.add(Row.item(itemControls.get(3).getLabel(), "Padlock and numbered pair badges in player inventory slots",
+                new AppleToggle(() -> ItemLockSwapSettings.showLockIcons,
+                        value -> ItemLockSwapSettings.showLockIcons = value)));
+        rows.add(Row.item(itemControls.get(4).getLabel(), "Keep indicators visible in the in-game hotbar",
+                new AppleToggle(() -> ItemLockSwapSettings.showIconsOnHotbar,
+                        value -> ItemLockSwapSettings.showIconsOnHotbar = value)));
+        rows.add(Row.item(itemControls.get(5).getLabel(), "Chat feedback when an item action is blocked or a pair changes",
+                new AppleToggle(() -> ItemLockSwapSettings.showBlockedMessage,
+                        value -> ItemLockSwapSettings.showBlockedMessage = value)));
+        rows.add(Row.item(itemControls.get(6).getLabel(), "Badge tint",
+                new AppleDropdown(ItemLockSwapSettings.ICON_COLOR_NAMES, ItemLockSwapSettings.ICON_COLORS,
+                        126f, 24f, () -> ItemLockSwapSettings.iconColor,
+                        value -> ItemLockSwapSettings.iconColor = value)));
+        rows.add(Row.item(itemControls.get(7).getLabel(), "Badge transparency",
+                new AppleSlider(ItemLockSwapSettings.MIN_ICON_OPACITY, ItemLockSwapSettings.MAX_ICON_OPACITY,
+                        5, "", 126f, () -> ItemLockSwapSettings.iconOpacity,
+                        value -> ItemLockSwapSettings.iconOpacity = value)
+                        .valueLabel(ItemLockSwapSettings::iconOpacityLabel)));
+        rows.add(Row.item(itemControls.get(8).getLabel(), "Removes every saved position lock; empty positions are included",
+                new AppleButton("Clear locks", 104f, 26f, false, ItemLockSwapSettings::clearLocks)));
+        rows.add(Row.item(itemControls.get(9).getLabel(), "Removes every saved item-swap pair",
+                new AppleButton("Clear pairs", 104f, 26f, false, ItemLockSwapSettings::clearPairs)));
+
         // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/tab setting
         // lives in Chat Editor, preventing duplicate controls across normal GUI pages.
-        rows.add(Row.header(sections.get(1)));
+        rows.add(Row.header(sections.get(2)));
         rows.add(Row.item(ChatUiModel.label("chat-qol-master"),
                 "Master switch. Off keeps Minecraft chat exactly unchanged",
                 new AppleToggle(() -> ChatQolSettings.enabled, value -> {
@@ -224,7 +269,7 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleButton("Open", 84f, 26f, true,
                         () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
 
-        rows.add(Row.header(sections.get(2)));
+        rows.add(Row.header(sections.get(3)));
         rows.add(Row.item("/sv", "Opens this hub from chat",
                 new AppleToggle(() -> AppleSettings.svCommand, v -> AppleSettings.svCommand = v)));
         rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
@@ -1308,6 +1353,22 @@ public class AppleHubScreen extends AppleScreen {
 
     @Override
     protected void keyTyped(char c, int code) throws IOException {
+        if (itemLockSwapKeyButton != null && itemLockSwapKeyButton.isListening()) {
+            if (code == Keyboard.KEY_ESCAPE) {
+                itemLockSwapKeyButton.cancelCapture();
+                return;
+            }
+            if (ItemLockSwapKeybind.canBind(code)) {
+                String conflict = PekaClientMod.rebindItemLockSwapKey(code);
+                itemLockSwapKeyButton.finishCapture();
+                if (conflict != null && Minecraft.getMinecraft().thePlayer != null) {
+                    String key = Keyboard.getKeyName(code);
+                    Minecraft.getMinecraft().thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
+                            "\u00a7e[Sky VeLor] \u00a7f" + key + " is also used by " + conflict));
+                }
+            }
+            return;
+        }
         if (collapsed && code != Keyboard.KEY_ESCAPE) {
             return;
         }
@@ -1404,6 +1465,7 @@ public class AppleHubScreen extends AppleScreen {
     private void resetTransient() {
         openDropdown = null;
         active = null;
+        if (itemLockSwapKeyButton != null) itemLockSwapKeyButton.cancelCapture();
         gestureActive = false;
         sliderEngaged = false;
         search.setFocused(false);

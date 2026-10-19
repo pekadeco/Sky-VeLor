@@ -1,5 +1,10 @@
 # Changelog
 
+## Beta-0.10.8.6.2.1v — 2026-10-20
+
+- Added client-side Item Lock and Item Swap: persistent player-inventory position locks, up to eight pairs, L-key capture, configurable cooldown/badges, and the Quality of Life dropdown. Enforcement, overlays, commands, and release verification are completed in the following implementation stages.
+- Updated display version to `Beta-0.10.8.6.2.1v`; generated Forge `mcmod.info`/build metadata resolve numeric version `0.10.8.6.2.1`.
+
 ## Beta-0.10.8.6.2v — 2026-10-19
 
 - Added a bounded 500-entry local incoming-message history (rich component, clean text, compact count, timestamp). Tab views now filter and rewrap that history instead of vanilla's short fading cache; compact updates refresh their original entry, and the history clears only on disconnect.

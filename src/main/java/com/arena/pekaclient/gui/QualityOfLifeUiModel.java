@@ -1,5 +1,7 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.itemlockswap.ItemLockSwapUiModel;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -49,8 +51,9 @@ public final class QualityOfLifeUiModel {
         ));
     }
 
-    /** Ordered collapsible groups; Commands and Chat QoL are intentionally not top-level tabs. */
+    /** Ordered collapsible groups; feature controls remain on this tab rather than becoming top-level tabs. */
     public static List<String> buildSectionTitles() {
-        return Collections.unmodifiableList(Arrays.asList("Gameplay", "Chat QoL", "Commands"));
+        return Collections.unmodifiableList(Arrays.asList("Gameplay", ItemLockSwapUiModel.SECTION_TITLE,
+                "Chat QoL", "Commands"));
     }
 }

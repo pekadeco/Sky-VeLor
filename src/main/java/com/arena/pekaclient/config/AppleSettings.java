@@ -2,6 +2,7 @@ package com.arena.pekaclient.config;
 
 import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.hud.HudPlacement;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
 import net.minecraft.client.Minecraft;
 import java.io.File;
 import java.util.Properties;
@@ -237,6 +238,8 @@ public final class AppleSettings {
         loadParticleSettings(p);
 
         loadItemAnimationSettings(p);
+        // Own category keeps new gameplay state isolated from the legacy shared settings surface.
+        ItemLockSwapSettings.load(p);
 
         leapMenu = readBool(p, "leapMenu", leapMenu);
         mobHighlights = readBool(p, "mobHighlights", mobHighlights);
@@ -469,6 +472,7 @@ public final class AppleSettings {
         
         // Item Animation. Save only the current supported category; old and obsolete keys are deliberately retired.
         saveItemAnimationSettings(p);
+        ItemLockSwapSettings.save(p);
 
         p.setProperty("leapMenu", Boolean.toString(leapMenu));
         p.setProperty("mobHighlights", Boolean.toString(mobHighlights));

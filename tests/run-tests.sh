@@ -36,6 +36,8 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassCacheTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.ConfigFilesTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.AppleSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.ChatQolSettingsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.ThemeTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.DollConfigTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassTests

@@ -25,6 +25,8 @@ import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
 import com.arena.pekaclient.hud.HudManager;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapKeybind;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
 import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
@@ -105,6 +107,10 @@ public class PekaClientMod {
     public static final KeyBinding CHAT_EDITOR_KEY =
             new KeyBinding("key.pekaclient.chatEditor", Keyboard.KEY_NONE, "key.categories.pekaclient");
 
+    /** Default L: tap in a player inventory to lock, or hold while selecting a pair. */
+    public static final KeyBinding ITEM_LOCK_SWAP_KEY =
+            new KeyBinding("key.pekaclient.itemLockSwap", Keyboard.KEY_L, "key.categories.pekaclient");
+
     private boolean loadingShown;
     /** The world identity already given the explicit Item Animation launcher/hook diagnosis. */
     private Object itemAnimationReportedWorld;
@@ -125,6 +131,12 @@ public class PekaClientMod {
         ClientRegistry.registerKeyBinding(LEAP_KEY);
         ClientRegistry.registerKeyBinding(CHAT_TAB_KEY);
         ClientRegistry.registerKeyBinding(CHAT_EDITOR_KEY);
+        ClientRegistry.registerKeyBinding(ITEM_LOCK_SWAP_KEY);
+        // The Controls screen owns vanilla's options.txt copy; the feature config is authoritative on first load.
+        if (ItemLockSwapKeybind.canBind(ItemLockSwapSettings.keyCode)) {
+            ITEM_LOCK_SWAP_KEY.setKeyCode(ItemLockSwapSettings.keyCode);
+            KeyBinding.resetKeyBindingArrayAndHash();
+        }
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
@@ -143,6 +155,32 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(terminalSolver);
         MinecraftForge.EVENT_BUS.register(fishingStats);
         MinecraftForge.EVENT_BUS.register(slayerTracker);
+    }
+
+    /**
+     * Rebinds the feature capture key and returns a human-readable collision warning, if another control uses it.
+     * A collision is permitted (as Minecraft normally permits it) but is always made explicit in the hub/chat.
+     */
+    public static String rebindItemLockSwapKey(int keyCode) {
+        if (!ItemLockSwapKeybind.canBind(keyCode)) {
+            return null;
+        }
+        String conflict = null;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc != null && mc.gameSettings != null && mc.gameSettings.keyBindings != null) {
+            KeyBinding[] bindings = mc.gameSettings.keyBindings;
+            for (int i = 0; i < bindings.length; i++) {
+                KeyBinding binding = bindings[i];
+                if (binding != null && binding != ITEM_LOCK_SWAP_KEY && binding.getKeyCode() == keyCode) {
+                    conflict = binding.getKeyDescription();
+                    break;
+                }
+            }
+        }
+        ITEM_LOCK_SWAP_KEY.setKeyCode(keyCode);
+        ItemLockSwapSettings.keyCode = keyCode;
+        KeyBinding.resetKeyBindingArrayAndHash();
+        return conflict;
     }
 
     @SubscribeEvent

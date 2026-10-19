@@ -1,5 +1,7 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.itemlockswap.ItemLockSwapUiModel;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,11 +26,17 @@ public final class QualityOfLifeUiModelTests {
         check("General is the first hub tab", AppleHubScreen.PAGE_NAMES.length == 7
                 && "General".equals(AppleHubScreen.PAGE_NAMES[0])
                 && "Quality of Life".equals(AppleHubScreen.PAGE_NAMES[1]));
-        check("Quality of Life keeps Gameplay, Chat QoL and Commands as dropdown groups",
-                QualityOfLifeUiModel.buildSectionTitles().size() == 3
+        check("Quality of Life keeps Gameplay, Item Lock/Swap, Chat QoL and Commands as dropdown groups",
+                QualityOfLifeUiModel.buildSectionTitles().size() == 4
                         && "Gameplay".equals(QualityOfLifeUiModel.buildSectionTitles().get(0))
-                        && "Chat QoL".equals(QualityOfLifeUiModel.buildSectionTitles().get(1))
-                        && "Commands".equals(QualityOfLifeUiModel.buildSectionTitles().get(2)));
+                        && ItemLockSwapUiModel.SECTION_TITLE.equals(QualityOfLifeUiModel.buildSectionTitles().get(1))
+                        && "Chat QoL".equals(QualityOfLifeUiModel.buildSectionTitles().get(2))
+                        && "Commands".equals(QualityOfLifeUiModel.buildSectionTitles().get(3)));
+        List<ItemLockSwapUiModel.Entry> itemLockSwap = ItemLockSwapUiModel.buildControlModel();
+        check("Item Lock/Swap dropdown owns ten non-duplicated shared-row controls", itemLockSwap.size() == 10
+                && uniqueItemLockSwapIds(itemLockSwap)
+                && "item-lock-swap-master".equals(itemLockSwap.get(0).getId())
+                && "item-lock-swap-clear-pairs".equals(itemLockSwap.get(9).getId()));
 
         check("Mod Settings retains exactly the scroll controls", mod.size() == 2
                 && "scroll-speed".equals(mod.get(0).getId())
@@ -49,6 +57,14 @@ public final class QualityOfLifeUiModelTests {
     private static boolean uniqueQualityIds(List<QualityOfLifeUiModel.Entry> entries) {
         Set<String> ids = new HashSet<String>();
         for (QualityOfLifeUiModel.Entry entry : entries) {
+            if (!ids.add(entry.getId())) return false;
+        }
+        return true;
+    }
+
+    private static boolean uniqueItemLockSwapIds(List<ItemLockSwapUiModel.Entry> entries) {
+        Set<String> ids = new HashSet<String>();
+        for (ItemLockSwapUiModel.Entry entry : entries) {
             if (!ids.add(entry.getId())) return false;
         }
         return true;
