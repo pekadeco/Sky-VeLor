@@ -4,6 +4,7 @@ import com.arena.pekaclient.chat.CapturedChatMenu;
 import com.arena.pekaclient.chat.ChatContextMenu;
 import com.arena.pekaclient.chat.ChatInputInsertion;
 import com.arena.pekaclient.chat.ChatMenuState;
+import com.arena.pekaclient.gui.GuiLayoutToolkit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,13 +151,33 @@ public final class ChatInteractionModelTests {
 
     private static void oneWheelApplication() {
         float delta = ChatInteractionModel.wheelLines(120, false, 1f);
-        float once = ChatInteractionModel.boundedScroll(0f, delta, 20f);
         float fine = ChatInteractionModel.wheelLines(120, true, 1f);
         float fast = ChatInteractionModel.wheelLines(120, false, 4f);
-        check("one normal wheel event maps to vanilla seven lines exactly once", delta == 7f && once == 7f);
+        check("one normal wheel event maps to vanilla seven lines exactly once", delta == 7f
+                && ChatInteractionModel.boundedScroll(0f, delta, 20f) == 7f);
         check("shift is fine scroll", fine == 1f);
         check("target speed is bounded at four times", fast == 28f
                 && ChatInteractionModel.boundedScroll(18f, fast, 20f) == 20f);
+
+        GuiLayoutToolkit.Scroll chat = new GuiLayoutToolkit.Scroll();
+        chat.setMaximum(100f);
+        chat.wheel(ChatInteractionModel.chatWheelNotches(120), false, 1f, delta);
+        check("chat plus 120 moves toward older positive offset", chat.target() == 7f);
+        chat.wheel(ChatInteractionModel.chatWheelNotches(-120), false, 1f, delta);
+        check("chat minus 120 moves back toward newer zero offset", chat.target() == 0f);
+        chat.wheel(ChatInteractionModel.chatWheelNotches(120), false, 1f, fine);
+        check("chat shift uses fine one-line speed", chat.target() == 1f);
+        chat.wheel(ChatInteractionModel.chatWheelNotches(120), false, 1f, fast);
+        check("chat custom speed uses the same positive-up direction", chat.target() == 29f);
+        chat.setImmediate(98f);
+        chat.wheel(ChatInteractionModel.chatWheelNotches(120), false, 1f, fast);
+        check("chat wheel clamps at older endpoint", chat.target() == 100f);
+        chat.setImmediate(2f);
+        chat.wheel(ChatInteractionModel.chatWheelNotches(-120), false, 1f, fast);
+        check("chat wheel clamps at newer endpoint", chat.target() == 0f);
+        chat.wheel(ChatInteractionModel.chatWheelNotches(120), false, 1f, delta);
+        chat.update(.03f, true);
+        check("chat smooth scrolling eases toward the one wheel target", chat.value() > 0f && chat.value() < chat.target());
     }
 
     private static void check(String name, boolean ok) {

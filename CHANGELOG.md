@@ -1,5 +1,13 @@
 # Changelog
 
+## Beta-0.10.8.6.2v — 2026-10-19
+
+- Added a bounded 500-entry local incoming-message history (rich component, clean text, compact count, timestamp). Tab views now filter and rewrap that history instead of vanilla's short fading cache; compact updates refresh their original entry, and the history clears only on disconnect.
+- Fixed closed Default Chat to preserve the remembered selected All/Party/Reply/custom filter, retain other-tab unread state, and fit its background only to rows currently visible for that selection.
+- Corrected chat-only wheel direction: `+120` moves toward older rows and `-120` toward newer rows, with default/custom speed, Shift fine scrolling, smoothing, and endpoint clamping isolated from hotbar scrolling.
+- Routed every open context-menu mouse event through one captured-state handler. Either button executes an item only on matching mouse-up; outside/tab clicks close and consume, while native links and `[Reply]` left actions remain intact.
+- Updated display version to `Beta-0.10.8.6.2v`; generated Forge `mcmod.info`/build metadata resolve numeric version `0.10.8.6.2`.
+
 ## Beta-0.10.8.6.1.1v — 2026-10-19
 
 - Fixed closed Default Chat visibility: closed HUD chat now evaluates **All**, clears stale open-tab scrolling, preserves vanilla fit/line-limit diagnostics, and `/velor chatdebug` reports the newest 15 logical messages with closed/open visible-or-hidden reasons.

@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.1.1v] [--mcmod-version 0.10.8.6.1.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.2v] [--mcmod-version 0.10.8.6.2]
 """
 
 import argparse
@@ -78,6 +78,8 @@ REQUIRED_CLASSES = [
     'chat/ChatPlayerName',
     'chat/ChatRenderGeometry',
     'chat/ChatCompactMessages',
+    'chat/ChatMessageHistory',
+    'chat/ChatMenuInputRouter',
     'chat/ChatVisibilityAudit',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
@@ -111,7 +113,7 @@ FORBIDDEN_CLASSES = [
     'gui/DungeonHudScreen',
     'hud/ClickInOrderHud',
     'command/TerminalCommand',
-    # Beta-0.10.8.6.1.1 retains the one-default-chat implementation and no split-chat classes.
+    # Beta-0.10.8.6.2 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -241,8 +243,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.1.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.1.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.2v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.2')
     args = ap.parse_args()
 
     path = args.jar
@@ -294,6 +296,8 @@ def main():
         found = m.group(1) if m else None
         print('  mcmod.info version : %s' % found)
         r.check(found is not None, 'mcmod.info carries a version')
+        if args.version:
+            r.check(args.version in info, 'mcmod.info description carries the display release', args.version)
         expected_mcmod = args.mcmod_version or args.version
         if expected_mcmod:
             r.check(found == expected_mcmod, 'mcmod.info version matches the numeric mod metadata release',
@@ -414,7 +418,7 @@ def main():
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
     # --- Chat QoL ownership and one-default-chat implementation proof --------
-    # Beta-0.10.8.6.1.1 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
+    # Beta-0.10.8.6.2 deliberately has no alternate windows/classifier/routing bridge. The Hub exposes only feature
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
@@ -446,6 +450,16 @@ def main():
     geometry_raw = raw_of('chat/ChatRenderGeometry')
     settings_raw_chat = raw_of('config/ChatQolSettings')
     chat_runtime_raw = tabs_raw + copy_menu_raw
+    history_raw = raw_of('chat/ChatMessageHistory')
+    menu_router_raw = raw_of('chat/ChatMenuInputRouter')
+    visibility_reason_raw = raw_of('chat/ChatVisibilityAudit$Reason')
+    tabs_members = members_of('feature/ChatChannelTabs')
+    r.check(b'ChatMessageHistory' in tabs_raw and b'GuiUtilRenderComponents' in tabs_raw
+                and b'newestFirst' in tabs_members and b'originalForCompactGroup' in tabs_members
+                and b'ChatMenuInputRouter' in copy_menu_raw and b'DISMISS' in menu_router_raw
+                and all(name in tabs_members for name in ('chatWheelNotches', 'wheelLines'))
+                and b'CLOSED_ACTIVE_TAB' in visibility_reason_raw and len(history_raw) > 0,
+            'Chat QoL packages bounded rich-message history, selected closed filtering, chat-only wheel direction, and one menu router')
     r.check(all(value in menu_constants for value in ('Copy to clipboard', 'Copy to chat box', 'Message player'))
                 and all(not value.startswith('Message player' + ':') for value in player_constants)
                 and 'extract' in menu_members and b'ChatMenuState' in copy_menu_raw

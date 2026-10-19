@@ -6,6 +6,8 @@ import com.arena.pekaclient.chat.ChatCompactMessages;
 import com.arena.pekaclient.chat.ChatContextMenu;
 import com.arena.pekaclient.chat.ChatInputInsertion;
 import com.arena.pekaclient.chat.ChatMenuPolicy;
+import com.arena.pekaclient.chat.ChatMenuInputRouter;
+import com.arena.pekaclient.chat.ChatMessageHistory;
 import com.arena.pekaclient.chat.ChatMenuState;
 import com.arena.pekaclient.chat.ChatPlayerName;
 import com.arena.pekaclient.chat.ChatRenderGeometry;
@@ -24,9 +26,9 @@ import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.GuiNewChat;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.GuiUtilRenderComponents;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.command.ICommandSender;
-import net.minecraft.event.ClickEvent;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
@@ -34,6 +36,7 @@ import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -41,19 +44,18 @@ import org.lwjgl.input.Mouse;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * The one real-game Chat QoL implementation.
  *
  * When the master switch is on and all guarded bridges resolve, this class cancels exactly Minecraft's Default Chat
- * overlay and redraws that same vanilla cache once with the configured background, animation, filter tabs, grouped
- * hover/menu handling, and eased scrolling. Normal received messages stay in Minecraft's cache; the opt-in Compact
- * Messages path only replaces a consecutive duplicate with its own fixed-high-id count line. If the master is off or
+ * overlay and redraws its own bounded logical-message history with the configured background, animation, filter tabs,
+ * grouped hover/menu handling, and eased scrolling. Incoming components are retained independently of vanilla's short
+ * fading draw cache; the opt-in Compact Messages path only replaces a consecutive duplicate with its own count line.
+ * If the master is off or
  * a mapping cannot be resolved, no overlay is cancelled and vanilla Minecraft owns chat unchanged.
  */
 public final class ChatChannelTabs {
@@ -97,11 +99,8 @@ public final class ChatChannelTabs {
 
     private final List<MessageGroup> groups = new ArrayList<MessageGroup>();
     private final List<RenderRow> rows = new ArrayList<RenderRow>();
-    private final Map<Integer, Long> arrivalMillis = new HashMap<Integer, Long>();
-    /** Last cache update for each group; replacing a compact group refreshes its fade without sharing ids. */
-    private final Map<Integer, Integer> groupUpdateCounters = new HashMap<Integer, Integer>();
-    /** Original pre-counter component by unique group id, retained for click/hover/copy and recipient extraction. */
-    private final Map<Integer, IChatComponent> groupOriginals = new HashMap<Integer, IChatComponent>();
+    /** Own logical incoming-message ring: filtered/wrapped independently of vanilla's 100-line fading cache. */
+    private final ChatMessageHistory messageHistory = new ChatMessageHistory();
     private final ChatCompactMessages compactMessages = new ChatCompactMessages();
     private final ChatVisibilityAudit.History visibilityHistory = new ChatVisibilityAudit.History();
     private final Set<String> unreadTabs = new HashSet<String>();
@@ -128,9 +127,13 @@ public final class ChatChannelTabs {
     private long lastFrameNs;
     private String toast = "";
     private long toastUntil;
-    /** Latest cache metrics used to report closed/open visibility reasons from /velor chatdebug. */
-    private int lastChatUpdateCounter;
+    /** Latest layout metrics used to report closed/open visibility reasons from /velor chatdebug. */
     private int lastVisibleLineLimit;
+    private boolean historyLayoutDirty = true;
+    private int historyLayoutWidth = -1;
+    private boolean historyLayoutOpen;
+    private String historyLayoutTab = "";
+    private long historyLayoutRevision = -1L;
 
     public ChatChannelTabs() {
         live = this;
@@ -159,16 +162,19 @@ public final class ChatChannelTabs {
     }
 
     /**
-     * Incoming text stays in Minecraft's own cache. Eligible messages are written with a fresh group id so wrapped
-     * groups and rapid same-tick arrivals remain distinct; only a verified newest duplicate replaces its own group.
+     * Every incoming component is retained in the local logical history. Eligible compact messages are additionally
+     * written with a fresh vanilla group id so only a verified newest duplicate replaces its own cache line.
      */
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
         if (!ownsDefaultChat() || event == null || event.type == 2 || event.message == null) return;
         CompactOutcome outcome = compactIncoming(event);
-        visibilityHistory.record(outcome.groupId, cleanComponent(event.message), outcome.count);
-        if (!ChatQolSettings.tabsEnabled) return;
         String clean = cleanComponent(event.message);
+        // Store every incoming component once before any tab filter. Compact replacements refresh this same logical entry.
+        messageHistory.record(outcome.groupId, event.message, clean, outcome.count, System.currentTimeMillis());
+        historyLayoutDirty = true;
+        visibilityHistory.record(outcome.groupId, clean, outcome.count);
+        if (!ChatQolSettings.tabsEnabled) return;
         boolean played = false;
         for (ChatTabs.Tab tab : ChatQolSettings.tabs()) {
             if (tab == null || !tab.enabled() || ChatTabs.ALL.equals(tab.id()) || !tab.matches(clean)) continue;
@@ -211,20 +217,17 @@ public final class ChatChannelTabs {
             IChatComponent original = event.message.createCopy();
             IChatComponent rendered = original;
             if (result.compacted) {
-                IChatComponent saved = groupOriginals.get(result.groupId);
-                rendered = (saved == null ? original : saved.createCopy());
+                IChatComponent saved = messageHistory.originalForCompactGroup(result.groupId);
+                rendered = saved == null ? original : saved;
                 rendered.appendSibling(new ChatComponentText(ChatCompactMessages.counterFormattedText(result.count)));
                 // Be explicit before reprinting: the unique id identifies only this group, never an older one.
                 chat.deleteChatLine(result.groupId);
-            } else {
-                groupOriginals.put(result.groupId, original.createCopy());
             }
             chat.printChatMessageWithOptionalDeletion(rendered, result.groupId);
             event.setCanceled(true);
             return new CompactOutcome(result.groupId, result.count, result.compacted);
         } catch (RuntimeException | LinkageError ignored) {
             // Keep the real server message rather than risk hiding text on an unexpected launcher bridge failure.
-            if (!result.compacted) groupOriginals.remove(result.groupId);
             compactMessages.reset();
             return CompactOutcome.unhandled();
         }
@@ -292,21 +295,24 @@ public final class ChatChannelTabs {
         Minecraft mc = Minecraft.getMinecraft();
         int mx = scaledMouseX(chat, mc);
         int my = scaledMouseY(chat, mc);
-        int wheel = Mouse.getEventDWheel();
-        if (wheel != 0) {
-            boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
-            scroll.wheel(wheel / 120f, fine, AppleSettings.guiScrollMultiplier(), lineHeight());
+        int button = Mouse.getEventButton();
+        boolean down = button >= 0 && Mouse.getEventButtonState();
+        // The menu owns every event before wheel/tab/message routing. Its outside close also consumes this click.
+        if (copyMenu.route(chat, mx, my, button, down)) {
             event.setCanceled(true);
             return;
         }
-
-        int button = Mouse.getEventButton();
-        if (button < 0) return;
-        boolean down = Mouse.getEventButtonState();
-        if (copyMenu.visible()) {
-            handleMenuMouse(chat, mx, my, button, down, event);
+        int wheel = Mouse.getEventDWheel();
+        if (wheel != 0) {
+            boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+            // Chat uses positive offset for older rows; do not invert GuiLayoutToolkit for its other consumers.
+            float step = Math.abs(ChatInteractionModel.wheelLines(wheel, fine, AppleSettings.guiScrollMultiplier()))
+                    * lineHeight();
+            scroll.wheel(ChatInteractionModel.chatWheelNotches(wheel), false, 1f, step);
+            event.setCanceled(true);
             return;
         }
+        if (button < 0) return;
         if (button == 0 && down && selectTabAt(mx, my)) {
             event.setCanceled(true);
             return;
@@ -337,12 +343,30 @@ public final class ChatChannelTabs {
         boolean clickable = component != null && component.getChatStyle() != null
                 && component.getChatStyle().getChatClickEvent() != null;
         if (clickable) {
+            // Link and [Reply] components keep vanilla's native action; only non-clickable left clicks open a menu.
             invokeComponentClick(chat, component);
             event.setCanceled(true);
         } else if (ChatMenuPolicy.opens(ChatQolSettings.menuOpenMode, 0, false)) {
             pendingLeftGroup = group;
             event.setCanceled(true);
         }
+    }
+
+    /** Own retained messages intentionally survive chat close/tab changes and are cleared only on a server disconnect. */
+    @SubscribeEvent
+    public void onDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        messageHistory.clear();
+        visibilityHistory.clear();
+        groups.clear();
+        rows.clear();
+        unreadTabs.clear();
+        compactMessages.reset();
+        scroll.reset();
+        copyMenu.hide();
+        pendingLeftGroup = null;
+        hoveredGroup = null;
+        hover.clear();
+        historyLayoutDirty = true;
     }
 
     @SubscribeEvent
@@ -361,8 +385,6 @@ public final class ChatChannelTabs {
             copyMenu.hide();
             unreadTabs.clear();
             compactMessages.reset();
-            groupOriginals.clear();
-            groupUpdateCounters.clear();
         }
     }
 
@@ -426,25 +448,28 @@ public final class ChatChannelTabs {
     /** Produces the exact closed/open reason used by /velor chatdebug without changing renderer state. */
     private ChatVisibilityAudit.Decision visibilityDecision(ChatVisibilityAudit.Entry entry, boolean chatOpen) {
         MessageGroup target = groupForDebug(entry);
+        ChatTabs.Tab selected = activeTab();
         if (target == null) {
-            return ChatVisibilityAudit.decide(chatOpen, false, false, 0, ChatQolSettings.fadeSeconds, 0,
+            // The retained debug entry can be absent only because the current tab filtered it during the last rebuild.
+            boolean matchesSelected = selected != null && selected.matches(entry.clean);
+            return ChatVisibilityAudit.decide(chatOpen, true, matchesSelected, 0, ChatQolSettings.fadeSeconds, 0,
                     Math.max(1, lastVisibleLineLimit));
         }
-        ChatTabs.Tab selected = chatOpen ? activeTab() : ChatQolSettings.tab(ChatTabs.ALL);
         boolean matchesActive = selected != null && selected.matches(target.clean);
         int linesBefore = 0;
         for (MessageGroup group : groups) {
             if (group == target) break;
-            if (!chatOpen || (selected != null && selected.matches(group.clean))) linesBefore += group.renderLineCount();
+            if (selected != null && selected.matches(group.clean)) linesBefore += group.renderLineCount();
         }
-        int age = Math.max(0, lastChatUpdateCounter - target.updateCounter);
+        int age = (int) Math.min(Integer.MAX_VALUE, Math.max(0L,
+                (System.currentTimeMillis() - target.timestamp) / 50L));
         return ChatVisibilityAudit.decide(chatOpen, true, matchesActive, age, ChatQolSettings.fadeSeconds,
                 linesBefore, Math.max(1, lastVisibleLineLimit));
     }
 
     private MessageGroup groupForDebug(ChatVisibilityAudit.Entry entry) {
         for (MessageGroup group : groups) {
-            if (entry.groupId != ChatCompactMessages.NO_GROUP_ID && group.id == entry.groupId) return group;
+            if (entry.groupId != ChatCompactMessages.NO_GROUP_ID && group.compactGroupId == entry.groupId) return group;
         }
         for (MessageGroup group : groups) {
             if (entry.groupId == ChatCompactMessages.NO_GROUP_ID && entry.clean.equals(group.clean)) return group;
@@ -485,9 +510,9 @@ public final class ChatChannelTabs {
         float viewportH = Math.max(lineH, visibleLines * lineH);
         float viewportTop = Math.max(2f, messageBottom - viewportH);
 
-        lastChatUpdateCounter = mc.ingameGUI.getUpdateCounter();
         lastVisibleLineLimit = visibleLines;
-        rebuildGroups(vanilla, System.currentTimeMillis());
+        // Rewrap from retained logical components whenever its open/closed width or selected-tab layout becomes stale.
+        rebuildGroups(mc.fontRendererObj, Math.max(1, vanilla.getChatWidth()), chatOpen);
         layoutRows(viewportTop, messageBottom, width, lineH, visibleLines, scale, chatOpen);
         float dt = frameDelta();
         scroll.update(dt, AppleSettings.smoothScrolling);
@@ -544,44 +569,40 @@ public final class ChatChannelTabs {
     }
 
     /**
-     * Rebuilds logical messages from vanilla's cache. Compact groups use their unique chat-line ids as the identity;
-     * ordinary id-zero lines retain their update-counter fallback. This avoids merging independent packets received in
-     * the same tick while retaining the real update counter solely for fade age.
+     * Rewraps matching retained logical components from the local history. This deliberately never reads vanilla's short
+     * chatLines/drawnChatLines caches, which evict older or faded messages before a user can switch to their tab.
      */
-    private void rebuildGroups(GuiNewChat chat, long now) {
+    private void rebuildGroups(FontRenderer font, int wrapWidth, boolean chatOpen) {
+        ChatTabs.Tab selected = activeTab();
+        String selectedId = selected == null ? "" : selected.id();
+        long revision = messageHistory.revision();
+        if (!historyLayoutDirty && historyLayoutWidth == wrapWidth && historyLayoutOpen == chatOpen
+                && historyLayoutRevision == revision && historyLayoutTab.equals(selectedId)) return;
         groups.clear();
         rows.clear();
         try {
-            List<ChatLine> complete = chatLines(chat);
-            List<ChatLine> drawn = drawnLines(chat);
-            Map<Integer, IChatComponent> originals = new HashMap<Integer, IChatComponent>();
-            Set<Integer> presentGroupIds = new HashSet<Integer>();
-            for (ChatLine line : complete) {
-                if (line == null || line.getChatComponent() == null) continue;
-                int groupId = groupKey(line);
-                presentGroupIds.add(groupId);
-                IChatComponent saved = groupOriginals.get(groupId);
-                originals.put(groupId, saved == null ? line.getChatComponent() : saved);
-            }
-
-            MessageGroup current = null;
-            for (ChatLine line : drawn) {
-                if (line == null || line.getChatComponent() == null) continue;
-                int groupId = groupKey(line);
-                presentGroupIds.add(groupId);
-                if (current == null || current.id != groupId) {
-                    IChatComponent original = originals.get(groupId);
-                    if (original == null) original = line.getChatComponent();
-                    current = new MessageGroup(groupId, line.getUpdatedCounter(), original, cleanComponent(original));
-                    groups.add(current);
-                    refreshGroupArrival(groupId, line.getUpdatedCounter(), now);
+            for (ChatMessageHistory.Entry entry : messageHistory.newestFirst()) {
+                // The tab view is reconstructed directly from matching retained messages, never from vanilla draw rows.
+                if (selected == null || !selected.matches(entry.clean())) continue;
+                IChatComponent original = entry.originalCopy();
+                if (original == null) continue;
+                IChatComponent rendered = original.createCopy();
+                if (entry.compactCount() > 1) {
+                    rendered.appendSibling(new ChatComponentText(ChatCompactMessages.counterFormattedText(entry.compactCount())));
                 }
-                current.addLine(line.getChatComponent());
+                MessageGroup group = new MessageGroup(entry.id(), entry.compactGroupId(), entry.timestamp(), original,
+                        entry.clean(), entry.formatted());
+                List<IChatComponent> wrapped = GuiUtilRenderComponents.splitText(rendered, wrapWidth, font, false, false);
+                if (wrapped.isEmpty()) group.addLine(rendered);
+                else for (IChatComponent line : wrapped) group.addLine(line);
+                groups.add(group);
             }
-            arrivalMillis.keySet().retainAll(presentGroupIds);
-            groupUpdateCounters.keySet().retainAll(presentGroupIds);
-            groupOriginals.keySet().retainAll(presentGroupIds);
-        } catch (IllegalAccessException | RuntimeException | LinkageError ignored) {
+            historyLayoutDirty = false;
+            historyLayoutWidth = wrapWidth;
+            historyLayoutOpen = chatOpen;
+            historyLayoutTab = selectedId;
+            historyLayoutRevision = revision;
+        } catch (RuntimeException | LinkageError ignored) {
             groups.clear();
             rows.clear();
             // We cannot uncancel the already-entered overlay event, but every following frame returns to vanilla
@@ -611,20 +632,13 @@ public final class ChatChannelTabs {
         return id == 0 ? line.getUpdatedCounter() : id;
     }
 
-    private void refreshGroupArrival(int groupId, int updateCounter, long now) {
-        Integer previous = groupUpdateCounters.get(groupId);
-        if (previous == null || previous.intValue() != updateCounter) {
-            arrivalMillis.put(groupId, now);
-        }
-        groupUpdateCounters.put(groupId, updateCounter);
-    }
 
     /** Lays out only the selected tab's already-received message groups; All's matcher is always true. */
     private void layoutRows(float viewportTop, float messageBottom, float width, float lineH, int visibleLines,
                             float textScale, boolean chatOpen) {
         rows.clear();
-        // A closed HUD chat is never a tab view: every cached group is evaluated through All.
-        ChatTabs.Tab selected = chatOpen ? activeTab() : ChatQolSettings.tab(ChatTabs.ALL);
+        // Closed HUD chat preserves the remembered selected tab; All/custom filters behave exactly as they do open.
+        ChatTabs.Tab selected = activeTab();
         if (selected == null) return;
         List<MessageGroup> visible = new ArrayList<MessageGroup>();
         for (MessageGroup group : groups) {
@@ -640,10 +654,8 @@ public final class ChatChannelTabs {
         float yOffset = scroll.value();
         int lineIndex = 0;
         long now = System.currentTimeMillis();
-        Minecraft mc = Minecraft.getMinecraft();
-        int update = mc == null || mc.ingameGUI == null ? 0 : mc.ingameGUI.getUpdateCounter();
         for (MessageGroup group : visible) {
-            group.updateAnimation(now, update, chatOpen);
+            group.updateAnimation(now, chatOpen);
             for (IChatComponent component : group.lines) {
                 float y = messageBottom + yOffset - (lineIndex + 1) * lineH;
                 RenderRow row = new RenderRow(group, component, component.getFormattedText(), 2f, y, width, lineH,
@@ -743,6 +755,7 @@ public final class ChatChannelTabs {
         ChatQolSettings.setSelectedTab(id);
         unreadTabs.remove(ChatQolSettings.selectedTabId());
         scroll.reset();
+        historyLayoutDirty = true;
     }
 
     private void prefixOutgoing(GuiChat chat) {
@@ -754,25 +767,6 @@ public final class ChatChannelTabs {
         if (!next.equals(original)) input.setText(next);
     }
 
-    private void handleMenuMouse(GuiChat chat, int mouseX, int mouseY, int button, boolean down,
-                                 GuiScreenEvent.MouseInputEvent.Pre event) {
-        boolean inside = copyMenu.contains(mouseX, mouseY);
-        if (button == 0) {
-            if (down) {
-                if (inside) {
-                    copyMenu.press(mouseX, mouseY);
-                    event.setCanceled(true);
-                } else {
-                    copyMenu.hide();
-                }
-            } else if (inside || copyMenu.armed()) {
-                copyMenu.release(mouseX, mouseY, chat);
-                event.setCanceled(true);
-            }
-        } else if (button == 1 && down) {
-            copyMenu.hide();
-        }
-    }
 
     private MessageGroup groupAt(int mouseX, int mouseY) {
         RenderRow row = rowAt(mouseX, mouseY);
@@ -922,40 +916,46 @@ public final class ChatChannelTabs {
     private final class CopyMenu {
         private final ChatInteractionModel.Menu geometry = new ChatInteractionModel.Menu();
         private final CapturedChatMenu captured = new CapturedChatMenu();
+        private final ChatMenuInputRouter inputRouter = new ChatMenuInputRouter();
 
         boolean visible() { return geometry.visible; }
-        boolean armed() {
-            ChatMenuState state = captured.state();
-            return state != null && state.armed();
-        }
-        boolean contains(int x, int y) { return geometry.rowAt(x, y) >= 0; }
 
         /** Both left-release and right-down flows enter here, so they create the same one immutable MenuState. */
         void show(MessageGroup group, int mouseX, int mouseY, int screenW, int screenH) {
             if (group == null) return;
+            inputRouter.reset();
             captured.open(Integer.toString(group.id), group.clean, group.formatted);
             ChatMenuState state = captured.state();
             if (state == null) return;
             geometry.show(mouseX, mouseY, screenW, screenH, state.optionCount());
         }
 
+        /** Returns true whenever the open menu (or its just-dismissed outside click) consumed this input event. */
+        boolean route(GuiChat chat, int mouseX, int mouseY, int button, boolean down) {
+            ChatMenuState state = captured.state();
+            int routed = inputRouter.route(geometry.visible, button, down, geometry.rowAt(mouseX, mouseY), state);
+            if (routed == ChatMenuInputRouter.PASS) return false;
+            if (routed == ChatMenuInputRouter.DISMISS) {
+                // Keep the router's one-release guard so the click that dismissed a menu cannot activate a tab/message.
+                geometry.hide();
+                captured.clear();
+                return true;
+            }
+            if (routed >= 0 && state != null) {
+                execute(routed, state, chat);
+                hide();
+            }
+            return true;
+        }
+
         void hide() {
             geometry.hide();
             captured.clear();
+            inputRouter.reset();
         }
 
-        void press(int x, int y) {
-            ChatMenuState state = captured.state();
-            if (state == null || !state.press(geometry.rowAt(x, y))) hide();
-        }
-
-        void release(int x, int y, GuiChat chat) {
-            ChatMenuState state = captured.state();
-            int action = state == null ? -1 : state.release(geometry.rowAt(x, y));
-            if (action < 0 || state == null) {
-                hide();
-                return;
-            }
+        /** Executes only an action returned by the shared press/release router. */
+        private void execute(int action, ChatMenuState state, GuiChat chat) {
             if (action == ChatContextMenu.COPY_TO_CLIPBOARD) {
                 ChatClipboard.Result result = ChatClipboard.copy(state.clean);
                 toast(result.success ? "Copied to clipboard" : "Could not copy to clipboard");
@@ -984,8 +984,7 @@ public final class ChatChannelTabs {
                     }
                 }
             }
-            // State remains available through the whole action and is discarded only after it has completed.
-            hide();
+            // State remains available through the whole action; route() closes it only after this method returns.
         }
 
         void draw(int mouseX, int mouseY, float dt) {
@@ -1043,24 +1042,27 @@ public final class ChatChannelTabs {
         }
     }
 
-    /** One logical chat group. The rendered lines may include a gray counter suffix, while original remains untouched. */
+    /** One logical retained message. The rendered lines may add a counter suffix while its captured original stays intact. */
     private final class MessageGroup {
         final int id;
-        final int updateCounter;
+        final int compactGroupId;
+        final long timestamp;
         final IChatComponent original;
-        String clean;
-        String formatted;
+        final String clean;
+        final String formatted;
         final List<IChatComponent> lines = new ArrayList<IChatComponent>();
         final ChatRenderGeometry.Rect bounds = new ChatRenderGeometry.Rect();
         float alpha = 1f;
         float slide;
 
-        MessageGroup(int id, int updateCounter, IChatComponent original, String clean) {
+        MessageGroup(int id, int compactGroupId, long timestamp, IChatComponent original, String clean,
+                     String formatted) {
             this.id = id;
-            this.updateCounter = updateCounter;
+            this.compactGroupId = compactGroupId;
+            this.timestamp = Math.max(0L, timestamp);
             this.original = original;
             this.clean = clean == null ? "" : clean;
-            this.formatted = original == null ? "" : original.getFormattedText();
+            this.formatted = formatted == null ? "" : formatted;
         }
 
         void addLine(IChatComponent line) {
@@ -1074,19 +1076,19 @@ public final class ChatChannelTabs {
         void resetBounds() { bounds.set(0f, 0f, 0f, 0f, 0f); }
         void include(RenderRow row) { ChatRenderGeometry.include(bounds, row.x, row.y, row.w, row.h); }
 
-        void updateAnimation(long now, int currentUpdateCounter, boolean chatOpen) {
+        void updateAnimation(long now, boolean chatOpen) {
             alpha = 1f;
             slide = 0f;
+            long ageMillis = Math.max(0L, now - timestamp);
             if (!chatOpen && ChatQolSettings.fadeSeconds > 0) {
-                float age = Math.max(0f, (currentUpdateCounter - updateCounter) / 20f);
+                float age = ageMillis / 1000f;
                 float duration = ChatQolSettings.fadeSeconds;
                 if (age >= duration) alpha = 0f;
                 else if (age > duration * .70f) alpha *= Math.max(0f, (duration - age) / (duration * .30f));
             }
             if (ChatQolSettings.smoothMessages && ChatQolSettings.messageAnimationMillis > 0) {
-                Long first = arrivalMillis.get(id);
-                float progress = first == null ? 1f : Math.min(1f, Math.max(0f,
-                        (now - first.longValue()) / (float) ChatQolSettings.messageAnimationMillis));
+                float progress = Math.min(1f, Math.max(0f,
+                        ageMillis / (float) ChatQolSettings.messageAnimationMillis));
                 float eased = 1f - (1f - progress) * (1f - progress);
                 // A first-frame floor means arrival is never delayed, while the short fade/slide still feels smooth.
                 alpha *= .18f + .82f * eased;

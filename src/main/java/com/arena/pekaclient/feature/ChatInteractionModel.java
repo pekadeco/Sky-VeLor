@@ -113,6 +113,14 @@ public final class ChatInteractionModel {
     }
 
     /**
+     * GuiLayoutToolkit's generic coordinates predate chat: its positive notch moves toward newer content. Chat's
+     * positive offset represents older lines, so only this caller intentionally negates the LWJGL wheel direction.
+     */
+    public static float chatWheelNotches(int wheel) {
+        return wheel == 0 ? 0f : wheel > 0 ? -1f : 1f;
+    }
+
+    /**
      * Context-menu geometry. Open/close is deliberately immediate; only the individual row hover remains eased.
      * The caller supplies whether the stored message exposed the third, recipient-specific action.
      */

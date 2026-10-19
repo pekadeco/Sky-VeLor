@@ -5,8 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Minecraft-free visibility and diagnostic policy for the replacement Default Chat renderer. Closed chat always
- * evaluates All; an active tab may filter only open chat. The bounded history backs /velor chatdebug.
+ * Minecraft-free visibility and diagnostic policy for the replacement Default Chat renderer. Closed and open chat
+ * both honor the remembered selected tab; the bounded debug history backs /velor chatdebug.
  */
 public final class ChatVisibilityAudit {
 
@@ -16,7 +16,8 @@ public final class ChatVisibilityAudit {
     }
 
     public enum Reason {
-        CLOSED_ALL("visible/closed-all"),
+        CLOSED_ACTIVE_TAB("visible/closed-active-tab"),
+        CLOSED_TAB_FILTER("hidden/closed-tab-filter"),
         OPEN_ACTIVE_TAB("visible/open-active-tab"),
         OPEN_TAB_FILTER("hidden/open-tab-filter"),
         FADE_EXPIRED("hidden/closed-fade-expired"),
@@ -83,6 +84,10 @@ public final class ChatVisibilityAudit {
         public List<Entry> entries() {
             return Collections.unmodifiableList(entries);
         }
+
+        public void clear() {
+            entries.clear();
+        }
     }
 
     /**
@@ -95,15 +100,15 @@ public final class ChatVisibilityAudit {
         if (!inCache) {
             return new Decision(false, Reason.CACHE_MISSING);
         }
+        if (!matchesActiveTab) {
+            return new Decision(false, chatOpen ? Reason.OPEN_TAB_FILTER : Reason.CLOSED_TAB_FILTER);
+        }
         if (!chatOpen && fadeSeconds > 0 && ageTicks >= fadeSeconds * 20) {
             return new Decision(false, Reason.FADE_EXPIRED);
-        }
-        if (chatOpen && !matchesActiveTab) {
-            return new Decision(false, Reason.OPEN_TAB_FILTER);
         }
         if (visibleLines <= 0 || linesBefore >= visibleLines) {
             return new Decision(false, Reason.LINE_LIMIT);
         }
-        return new Decision(true, chatOpen ? Reason.OPEN_ACTIVE_TAB : Reason.CLOSED_ALL);
+        return new Decision(true, chatOpen ? Reason.OPEN_ACTIVE_TAB : Reason.CLOSED_ACTIVE_TAB);
     }
 }

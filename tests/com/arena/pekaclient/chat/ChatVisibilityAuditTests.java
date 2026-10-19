@@ -9,8 +9,8 @@ public final class ChatVisibilityAuditTests {
     private static int failed;
 
     public static void main(String[] args) {
-        thirtyMixedMessagesRemainVisibleWhileClosedBeforeFade();
-        openOnlyTabFilteringAndClosedFadeHaveDistinctReasons();
+        closedFilteringMatchesOpenFiltering();
+        fadeAndLineCapacityHaveDistinctReasons();
         boundedHistoryKeepsLogicalCompactGroups();
 
         System.out.println();
@@ -18,26 +18,28 @@ public final class ChatVisibilityAuditTests {
         if (failed > 0) System.exit(1);
     }
 
-    /** Required 30-message regression: active-tab mismatch cannot hide any closed non-compacted message before fade. */
-    private static void thirtyMixedMessagesRemainVisibleWhileClosedBeforeFade() {
+    /** Required closed-HUD contract: remembered Party/custom selection hides only nonmatching rows, never history. */
+    private static void closedFilteringMatchesOpenFiltering() {
         final int fadeSeconds = 10;
         for (int index = 0; index < 30; index++) {
-            // The boolean deliberately alternates as if Party/Reply/custom tabs would reject half the messages.
-            boolean wouldMatchOpenTab = index % 2 == 0;
-            ChatVisibilityAudit.Decision decision = ChatVisibilityAudit.decide(false, true, wouldMatchOpenTab,
-                    fadeSeconds * 20 - 1, fadeSeconds, index, 30);
-            check("closed mixed message " + index + " remains visible before fade", decision.visible
-                    && decision.reason == ChatVisibilityAudit.Reason.CLOSED_ALL);
+            boolean matchesSelected = index % 2 == 0;
+            ChatVisibilityAudit.Decision closed = ChatVisibilityAudit.decide(false, true, matchesSelected,
+                    fadeSeconds * 20 - 1, fadeSeconds, index / 2, 30);
+            ChatVisibilityAudit.Decision open = ChatVisibilityAudit.decide(true, true, matchesSelected,
+                    0, fadeSeconds, index / 2, 30);
+            check("closed selection matches open filter for mixed message " + index,
+                    closed.visible == matchesSelected && open.visible == matchesSelected
+                            && closed.reason == (matchesSelected ? ChatVisibilityAudit.Reason.CLOSED_ACTIVE_TAB
+                            : ChatVisibilityAudit.Reason.CLOSED_TAB_FILTER)
+                            && open.reason == (matchesSelected ? ChatVisibilityAudit.Reason.OPEN_ACTIVE_TAB
+                            : ChatVisibilityAudit.Reason.OPEN_TAB_FILTER));
         }
     }
 
-    private static void openOnlyTabFilteringAndClosedFadeHaveDistinctReasons() {
-        ChatVisibilityAudit.Decision openFiltered = ChatVisibilityAudit.decide(true, true, false, 0, 10, 0, 30);
-        ChatVisibilityAudit.Decision closedExpired = ChatVisibilityAudit.decide(false, true, false, 200, 10, 0, 30);
+    private static void fadeAndLineCapacityHaveDistinctReasons() {
+        ChatVisibilityAudit.Decision closedExpired = ChatVisibilityAudit.decide(false, true, true, 200, 10, 0, 30);
         ChatVisibilityAudit.Decision lineLimited = ChatVisibilityAudit.decide(false, true, true, 0, 10, 30, 30);
-        check("active tab filters only open chat", !openFiltered.visible
-                && openFiltered.reason == ChatVisibilityAudit.Reason.OPEN_TAB_FILTER);
-        check("closed chat fades only at fade time", !closedExpired.visible
+        check("closed matching message fades only at fade time", !closedExpired.visible
                 && closedExpired.reason == ChatVisibilityAudit.Reason.FADE_EXPIRED);
         check("line capacity is reported separately", !lineLimited.visible
                 && lineLimited.reason == ChatVisibilityAudit.Reason.LINE_LIMIT);
@@ -54,6 +56,8 @@ public final class ChatVisibilityAuditTests {
         check("debug history retains exactly the newest fifteen messages", entries.size() == ChatVisibilityAudit.HISTORY_LIMIT);
         check("debug history is newest first", "message 19".equals(entries.get(0).clean)
                 && "message 5".equals(entries.get(entries.size() - 1).clean));
+        history.clear();
+        check("debug history has explicit disconnect-clear support", history.entries().isEmpty());
     }
 
     private static void check(String name, boolean ok) {
