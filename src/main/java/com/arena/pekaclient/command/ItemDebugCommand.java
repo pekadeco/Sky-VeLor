@@ -3,6 +3,8 @@ package com.arena.pekaclient.command;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.ItemAnimation;
 import com.arena.pekaclient.gui.GuiDebugOverlay;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapController;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapHookStatus;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHooks;
 import net.minecraft.command.CommandBase;
@@ -28,7 +30,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/velor itemanimation|ia|itemdebug|chateditor|chatdebug|layoutdebug";
+        return "/velor itemanimation|ia|itemdebug|lockdebug|selftest|chateditor|chatdebug|layoutdebug";
     }
 
     @Override
@@ -38,6 +40,15 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
+        if (args.length == 1 && "lockdebug".equalsIgnoreCase(args[0])) {
+            say(sender, "Item Lock / Swap: " + ItemLockSwapController.debugStatus());
+            return;
+        }
+        if (args.length == 1 && "selftest".equalsIgnoreCase(args[0])) {
+            say(sender, "Item Lock / Swap hook: " + (ItemLockSwapHookStatus.isActive() ? "ACTIVE" : "FAILED")
+                    + " (" + ItemLockSwapHookStatus.getReason() + ").");
+            return;
+        }
         if (args.length == 1 && ("itemanimation".equalsIgnoreCase(args[0])
                 || "ia".equalsIgnoreCase(args[0]))) {
             // The next client tick opens the direct target after Minecraft has closed the chat screen.
@@ -57,7 +68,7 @@ public final class ItemDebugCommand extends CommandBase {
             return;
         }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
+            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor lockdebug, /velor selftest, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
             return;
         }
 

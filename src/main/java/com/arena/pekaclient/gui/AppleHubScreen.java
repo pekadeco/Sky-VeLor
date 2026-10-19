@@ -275,6 +275,8 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
         rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
+        rows.add(Row.item("/velor lockdebug", "Shows Item Lock and Item Swap settings, locks, pairs and hook state", null));
+        rows.add(Row.item("/velor selftest", "Shows Item Lock and Item Swap core-hook status", null));
         return rows;
     }
 

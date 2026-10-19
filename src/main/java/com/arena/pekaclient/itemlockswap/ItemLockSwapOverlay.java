@@ -22,11 +22,13 @@ public final class ItemLockSwapOverlay {
     /** guiLeft/guiTop are protected, and their SRG/notch names must not be guessed at a call site every frame. */
     private static final Field GUI_LEFT = findGuiField("guiLeft", "field_147003_i", "i");
     private static final Field GUI_TOP = findGuiField("guiTop", "field_147009_r", "r");
+    /** Only non-negative while the L-held pair gesture awaits its second player-inventory slot. */
+    private static volatile int selectedSlot = -1;
 
     @SubscribeEvent
     public void onGuiDrawPost(GuiScreenEvent.DrawScreenEvent.Post event) {
-        if (event == null || !ItemLockSwapSettings.enabled || !ItemLockSwapSettings.showLockIcons
-                || !(event.gui instanceof GuiContainer)) {
+        if (event == null || !ItemLockSwapSettings.enabled || !(event.gui instanceof GuiContainer)
+                || (!ItemLockSwapSettings.showLockIcons && selectedSlot < 0)) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
@@ -45,10 +47,14 @@ public final class ItemLockSwapOverlay {
             Slot slot = slots.get(i);
             if (slot == null || slot.inventory != player.inventory) continue;
             int index = ItemLockSwapSlotMapper.fromPlayerInventorySlot(true, slot.getSlotIndex());
-            if (index < 0 || (!ItemLockSwapSettings.showIconsOnHotbar && ItemLockSwapSlotMapper.isHotbar(index))) {
-                continue;
+            if (index < 0) continue;
+            float slotX = left + slot.xDisplayPosition;
+            float slotY = top + slot.yDisplayPosition;
+            if (index == selectedSlot) drawSelection(slotX, slotY);
+            if (ItemLockSwapSettings.showLockIcons
+                    && (ItemLockSwapSettings.showIconsOnHotbar || !ItemLockSwapSlotMapper.isHotbar(index))) {
+                drawBadge(slotX, slotY, index);
             }
-            drawBadge(left + slot.xDisplayPosition, top + slot.yDisplayPosition, index);
         }
         UIRender.endFrame();
     }
@@ -70,6 +76,15 @@ public final class ItemLockSwapOverlay {
             drawBadge(left + 3 + index * 20, top + 3, index);
         }
         UIRender.endFrame();
+    }
+
+    static void setSelectedSlot(int index) {
+        selectedSlot = ItemLockSwapSlotMapper.isPlayerInventoryIndex(index) ? index : -1;
+    }
+
+    private static void drawSelection(float slotX, float slotY) {
+        // Yellow outline is intentionally independent of the configurable badge tint, matching the instruction cue.
+        UIRender.roundRectRing(slotX - 1f, slotY - 1f, 18f, 18f, 2f, 1.4f, 0xFFFFD60A);
     }
 
     /** Draws no badge at all for normal positions; this makes the hotbar path bounded and allocation-free. */
