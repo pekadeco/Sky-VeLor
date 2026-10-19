@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.6.2.1.1v
+# Sky VeLor — Beta-0.10.8.6.2.1v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -12,6 +12,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Dungeon map with room/puzzle templates, party labels, plus mob highlights, Floor VII overlays and dragon alerts.
 - Fishing and Slayer trackers, plus quick notes and client commands.
 - Item Animation: live first-person X/Y/Z position, size and equip-animation controls, exact-value entry, clamped persistence and reset actions.
+- Item Lock and Item Swap: persistent player-inventory position locks, safe paired-slot swaps, configurable badges and cooldown, plus packet-before-send protection for GUI clicks and Q/Ctrl+Q drops.
 - Opt-in Default Chat QoL: rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 
 ## Requirements
@@ -56,7 +57,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.6.2.1.1v.jar --version Beta-0.10.8.6.2.1.1v --mcmod-version 0.10.8.6.2.1
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.6.2.1v.jar --version Beta-0.10.8.6.2.1v --mcmod-version 0.10.8.6.2.1
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -67,8 +68,27 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.6.2.1.1v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.6.2.1v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
+
+## Item Lock and Item Swap
+
+Open **Quality of Life → Item Lock and Item Swap**. The feature is on by default and uses **L** by default (the
+key can be rebound there or in Controls). In a player-inventory slot, tap the key for under 300 ms without clicking
+a slot to lock or unlock that *position*; locks persist for hotbar `0–8`, main inventory `9–35`, boots `36`, leggings
+`37`, chestplate `38`, and helmet `39`, including empty positions.
+
+Hold the key and click two unlocked player-inventory slots to create one of up to eight pairs. The first selection
+has a yellow outline and is cancelled when the key is released; holding the key while clicking either endpoint of an
+existing pair removes that pair. Left- or right-clicking a paired slot with an empty cursor swaps it with its partner
+through the normal client controller after both destinations have been checked, including armor placement. The
+cooldown defaults to 2 seconds; an invalid armor placement reports **Cannot swap: item does not fit**.
+
+Locks and pairs block normal window-click modes, number-key sources/destinations, drag/collect routes, and selected
+hotbar Q/Ctrl+Q drops before packets are sent. The configurable top-right padlock and numbered pair badges are
+shape-rendered, can be tinted/translucent, and can remain visible on the hotbar. `/velor lockdebug` reports live
+state; `/velor selftest` reports the fail-closed hook status. If the window-click hook is unavailable, selection and
+manual swaps intentionally do nothing rather than implying protection.
 
 ## Item Animation — Renderer
 

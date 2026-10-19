@@ -88,14 +88,21 @@ final class ItemLockSwapGuiAccess {
             Field[] fields = type.getDeclaredFields();
             for (int i = 0; i < fields.length; i++) {
                 Field field = fields[i];
-                if (Modifier.isStatic(field.getModifiers()) || !GuiTextField.class.isAssignableFrom(field.getType())) {
-                    continue;
-                }
+                if (Modifier.isStatic(field.getModifiers())) continue;
                 try {
                     field.setAccessible(true);
                     Object value = field.get(screen);
                     if (value instanceof GuiTextField && ((GuiTextField) value).isFocused()) return true;
+                    // A few modded inventory screens keep search fields in a list rather than a named field.
+                    if (value instanceof List) {
+                        List<?> fields = (List<?>) value;
+                        for (int k = 0; k < fields.size(); k++) {
+                            Object candidate = fields.get(k);
+                            if (candidate instanceof GuiTextField && ((GuiTextField) candidate).isFocused()) return true;
+                        }
+                    }
                 } catch (IllegalAccessException | RuntimeException ignored) {
+                    // Reflection uncertainty must disable selection rather than risk consuming a focused text field.
                     return true;
                 }
             }

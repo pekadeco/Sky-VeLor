@@ -37,6 +37,8 @@ public final class QualityOfLifeUiModelTests {
                 && uniqueItemLockSwapIds(itemLockSwap)
                 && "item-lock-swap-master".equals(itemLockSwap.get(0).getId())
                 && "item-lock-swap-clear-pairs".equals(itemLockSwap.get(9).getId()));
+        check("Item Lock/Swap shared rows never overlap at the compact 40px row height",
+                hasNonOverlappingSharedRows(itemLockSwap));
 
         check("Mod Settings retains exactly the scroll controls", mod.size() == 2
                 && "scroll-speed".equals(mod.get(0).getId())
@@ -58,6 +60,18 @@ public final class QualityOfLifeUiModelTests {
         Set<String> ids = new HashSet<String>();
         for (QualityOfLifeUiModel.Entry entry : entries) {
             if (!ids.add(entry.getId())) return false;
+        }
+        return true;
+    }
+
+    /** Uses AppleHubScreen's actual vertical flow helper, not a second test-only layout calculation. */
+    private static boolean hasNonOverlappingSharedRows(List<ItemLockSwapUiModel.Entry> entries) {
+        float top = 0f;
+        float previousBottom = -1f;
+        for (ItemLockSwapUiModel.Entry ignored : entries) {
+            if (top < previousBottom) return false;
+            previousBottom = top + 40f; // Row.item() production height.
+            top = AppleHubScreen.nextRowTop(top, 40f);
         }
         return true;
     }

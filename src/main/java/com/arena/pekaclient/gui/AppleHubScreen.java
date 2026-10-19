@@ -950,8 +950,13 @@ public class AppleHubScreen extends AppleScreen {
                 c.x = cx0 + cw - 12f - c.w;
                 c.y = y + (r.height - c.h) * 0.5f;
             }
-            y += r.height + ROW_GAP;
+            y = nextRowTop(y, r.height);
         }
+    }
+
+    /** Shared row-flow invariant used by the real layout path and headless dropdown overlap regression tests. */
+    static float nextRowTop(float rowTop, float rowHeight) {
+        return rowTop + Math.max(0f, rowHeight) + ROW_GAP;
     }
 
     // ------------------------------------------------------------------ drawing

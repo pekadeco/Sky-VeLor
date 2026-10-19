@@ -2,7 +2,8 @@
 
 ## Beta-0.10.8.6.2.1v — 2026-10-20
 
-- Added client-side Item Lock and Item Swap: persistent player-inventory position locks, up to eight pairs, L-key capture, configurable cooldown/badges, and the Quality of Life dropdown. Enforcement, overlays, commands, and release verification are completed in the following implementation stages.
+- Added client-side Item Lock and Item Swap: persistent 0–39 player-inventory position locks, up to eight pairs, default-L tap/hold selection, manual paired-slot swaps with armor-fit and cooldown protection, configurable shape badges, and the Quality of Life dropdown.
+- Added fail-closed `PlayerControllerMP.windowClick` plus `EntityPlayerSP.dropOneItem` guards for click modes 0–6 and Q/Ctrl+Q, a bounded internal-swap bypass, `/velor lockdebug`/`/velor selftest` diagnostics, mapping/config/UI/policy/transformer tests, and release-jar audit proof.
 - Updated display version to `Beta-0.10.8.6.2.1v`; generated Forge `mcmod.info`/build metadata resolve numeric version `0.10.8.6.2.1`.
 
 ## Beta-0.10.8.6.2v — 2026-10-19

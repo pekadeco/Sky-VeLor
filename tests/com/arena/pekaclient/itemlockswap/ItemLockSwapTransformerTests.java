@@ -30,12 +30,19 @@ public final class ItemLockSwapTransformerTests {
                 controllerClass("func_78753_a", CLICK_DESC));
         check("SRG windowClick transforms", hooks(srgController, "shouldBlockWindowClick",
                 "(IIIILjava/lang/Object;)Z") == 1);
+        byte[] notchController = transformer.transform("bda", "bda",
+                controllerClass("a", "(IIIILyz;)Ladd;"));
+        check("notch windowClick descriptor transforms", hooks(notchController, "shouldBlockWindowClick",
+                "(IIIILjava/lang/Object;)Z") == 1);
 
         byte[] player = playerClass("dropOneItem", DROP_DESC);
         byte[] protectedPlayer = transformer.transform("net.minecraft.client.entity.EntityPlayerSP",
                 "net.minecraft.client.entity.EntityPlayerSP", player);
         check("MCP dropOneItem transforms", protectedPlayer != player);
         check("drop hook receives Q/Ctrl-Q flag", hooks(protectedPlayer, "shouldBlockHotbarDrop",
+                "(Ljava/lang/Object;Z)Z") == 1);
+        byte[] notchPlayer = transformer.transform("bew", "bew", playerClass("a", "(Z)Lwv;"));
+        check("notch dropOneItem descriptor transforms", hooks(notchPlayer, "shouldBlockHotbarDrop",
                 "(Ljava/lang/Object;Z)Z") == 1);
         check("both hook diagnostics are active", ItemLockSwapHookStatus.isActive());
 

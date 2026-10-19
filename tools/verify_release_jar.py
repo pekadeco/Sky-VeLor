@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.2.1.1v] [--mcmod-version 0.10.8.6.2.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.2.1v] [--mcmod-version 0.10.8.6.2.1]
 """
 
 import argparse
@@ -99,6 +99,22 @@ REQUIRED_CLASSES = [
     'render/blockparticles/BlockParticleHookStatus',
     'render/blockparticles/BlockParticleHooks',
     'render/blockparticles/BlockParticleTransformer',
+    'itemlockswap/ItemLockSwapSettings',
+    'itemlockswap/ItemLockSwapSlotMapper',
+    'itemlockswap/ItemLockSwapKeybind',
+    'itemlockswap/ItemLockSwapUiModel',
+    'itemlockswap/ItemLockSwapInputState',
+    'itemlockswap/ItemLockSwapClickPolicy',
+    'itemlockswap/ItemLockSwapDropPolicy',
+    'itemlockswap/ItemLockSwapSwapPolicy',
+    'itemlockswap/ItemLockSwapGuiAccess',
+    'itemlockswap/ItemLockSwapOverlay',
+    'itemlockswap/ItemLockSwapProtection',
+    'itemlockswap/ItemLockSwapHooks',
+    'itemlockswap/ItemLockSwapHookStatus',
+    'itemlockswap/ItemLockSwapTransformer',
+    'itemlockswap/ItemLockSwapController',
+    'widget/AppleKeybindButton',
 ]
 
 # Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
@@ -243,7 +259,7 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.2.1.1v')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.2.1v')
     ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.2.1')
     args = ap.parse_args()
 
@@ -579,6 +595,44 @@ def main():
             'No block particles hook routes the runtime object through the default-on block-digging policy')
     r.check(b'BlockParticleTransformer' in loading_raw,
             'Item Animation loading plugin registers the narrow No block particles transformer')
+
+    # Item Lock / Item Swap is real production inventory protection, not a GUI-only setting: require the complete
+    # persisted position model, packet/drop transformer bridge, controller, shape overlay, and plugin registration.
+    lock_settings_constants = constants_of('itemlockswap/ItemLockSwapSettings')
+    lock_transformer_constants = constants_of('itemlockswap/ItemLockSwapTransformer')
+    lock_transformer_raw = raw_of('itemlockswap/ItemLockSwapTransformer')
+    lock_hooks_raw = raw_of('itemlockswap/ItemLockSwapHooks')
+    lock_controller_raw = raw_of('itemlockswap/ItemLockSwapController')
+    lock_overlay_raw = raw_of('itemlockswap/ItemLockSwapOverlay')
+    lock_ui_raw = raw_of('itemlockswap/ItemLockSwapUiModel')
+    lock_key_resource = zf.read('assets/pekaclient/lang/en_US.lang') if 'assets/pekaclient/lang/en_US.lang' in names else b''
+    r.check(all(value in lock_settings_constants for value in
+                ('itemLockSwap.', 'itemLockSwap.locks', 'itemLockSwap.pairs', 'itemLockSwap.cooldownTenths',
+                 'itemLockSwap.showIconsOnHotbar', 'itemLockSwap.key')),
+            'Item Lock/Swap packages persistent 40-position locks, pairs, cooldown, hotbar icon and key settings')
+    r.check(all(value in lock_transformer_constants for value in
+                ('net.minecraft.client.multiplayer.PlayerControllerMP', 'bda', 'windowClick', 'func_78753_a',
+                 'net.minecraft.client.entity.EntityPlayerSP', 'bew', 'dropOneItem', 'func_71040_bB'))
+                and b'shouldBlockWindowClick' in raw_of('itemlockswap/ItemLockSwapTransformer$WindowClickVisitor')
+                and b'shouldBlockHotbarDrop' in raw_of('itemlockswap/ItemLockSwapTransformer$DropVisitor'),
+            'Item Lock/Swap transformer carries explicit MCP/SRG/notch window-click and Q/Ctrl+Q targets')
+    r.check(b'ItemLockSwapHooks' in lock_transformer_raw and b'ItemLockSwapHookStatus' in lock_transformer_raw
+                and b'ItemLockSwapProtection' in lock_hooks_raw and b'ItemLockSwapController' in lock_hooks_raw,
+            'Item Lock/Swap core bridge injects hook predicates and production blocked-action feedback')
+    r.check(b'ItemLockSwapClickPolicy' in raw_of('itemlockswap/ItemLockSwapProtection')
+                and b'ItemLockSwapDropPolicy' in raw_of('itemlockswap/ItemLockSwapProtection')
+                and b'ItemLockSwapSwapPolicy' in lock_controller_raw
+                and b'beginInternalSwap' in lock_controller_raw and b'Cannot swap: item does not fit' in lock_controller_raw,
+            'Item Lock/Swap production path covers click modes, selected-hotbar drops, internal pair bypass and armor-fit feedback')
+    r.check(all(value in lock_ui_raw for value in
+                (b'Item Lock and Item Swap', b'item-lock-swap-master', b'item-lock-swap-clear-locks',
+                 b'item-lock-swap-clear-pairs'))
+                and b'ItemLockSwapOverlay' in client_raw and b'ItemLockSwapController' in client_raw
+                and b'key.pekaclient.itemLockSwap' in client_raw and b'key.pekaclient.itemLockSwap' in lock_key_resource
+                and b'lockdebug' in raw_of('command/ItemDebugCommand'),
+            'Item Lock/Swap ships the Quality of Life dropdown, L keybind, overlay/controller registration and diagnostics')
+    r.check(b'ItemLockSwapTransformer' in loading_raw and b'com.arena.pekaclient.itemlockswap' in loading_raw,
+            'loading plugin registers and excludes the Item Lock/Swap transformer package')
     fishing_constants = constants_of('fishing/FishingStats')
     r.check(all(name in fishing_constants for name in ('commonCreatureCount', 'legendaryCreatureCount')),
             'FishingStats packages separate Common Creature and preserved Legendary/Mythic totals')
@@ -624,7 +678,9 @@ def main():
     # Coremod setup classes must not link a Minecraft client/world class before LaunchClassLoader installs them.
     for cls in ('render/itemanimation/ItemAnimationLoadingPlugin',
                 'render/itemanimation/ItemAnimationTransformer',
-                'render/itemanimation/ItemAnimationHookStatus'):
+                'render/itemanimation/ItemAnimationHookStatus',
+                'itemlockswap/ItemLockSwapTransformer',
+                'itemlockswap/ItemLockSwapHookStatus'):
         class_path = MOD_PACKAGE + cls + '.class'
         if class_path in names:
             raw = zf.read(class_path)
