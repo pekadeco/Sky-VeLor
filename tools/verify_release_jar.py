@@ -455,7 +455,7 @@ def main():
     visibility_reason_raw = raw_of('chat/ChatVisibilityAudit$Reason')
     tabs_members = members_of('feature/ChatChannelTabs')
     r.check(b'ChatMessageHistory' in tabs_raw and b'GuiUtilRenderComponents' in tabs_raw
-                and b'newestFirst' in tabs_members and b'originalForCompactGroup' in tabs_members
+                and 'newestFirst' in tabs_members and 'originalForCompactGroup' in tabs_members
                 and b'ChatMenuInputRouter' in copy_menu_raw and b'DISMISS' in menu_router_raw
                 and all(name in tabs_members for name in ('chatWheelNotches', 'wheelLines'))
                 and b'CLOSED_ACTIVE_TAB' in visibility_reason_raw and len(history_raw) > 0,
