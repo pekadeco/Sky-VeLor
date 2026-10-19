@@ -76,6 +76,7 @@ public final class ItemAnimationReachabilityTests {
         check("HUD dropdown has no Item Animation background transparency duplicate",
                 !contains(itemAnimationDropdown, "background-transparency")
                         && !hasLabel(itemAnimationDropdown, "Background transparency"));
+        verifyNoForbiddenItemAnimationTerms(hudTab, itemAnimationDropdown, editorTargets);
 
         verifyNoCustomizationDuplicates();
         verifyFriendFeatureGuiOwnership();
@@ -86,6 +87,35 @@ public final class ItemAnimationReachabilityTests {
         if (failed > 0) {
             System.exit(1);
         }
+    }
+
+    /**
+     * Covers the HUD-tab dropdown, editor target route, and every expandable Item Animation panel state. No label or
+     * control id may reintroduce generic HUD background/transparency/opacity controls into this renderer-only route.
+     */
+    private static void verifyNoForbiddenItemAnimationTerms(List<ItemAnimationUiModel.Entry> hudTab,
+                                                             List<ItemAnimationUiModel.Entry> dropdown,
+                                                             List<ItemAnimationUiModel.Entry> targets) {
+        check("HUD-tab Item Animation routes contain no background/opacity/transparency terms",
+                noForbiddenTerms(hudTab) && noForbiddenTerms(dropdown) && noForbiddenTerms(targets));
+        for (int mask = 0; mask < 8; mask++) {
+            ItemAnimationUiModel.PanelState state = new ItemAnimationUiModel.PanelState();
+            if ((mask & 1) != 0) state.togglePosition();
+            if ((mask & 2) != 0) state.toggleAnimation();
+            if ((mask & 4) != 0) state.toggleOptions();
+            check("Item Animation panel expansion " + mask + " contains no background/opacity/transparency terms",
+                    noForbiddenTerms(ItemAnimationUiModel.buildPanelControlModel(state)));
+        }
+    }
+
+    private static boolean noForbiddenTerms(List<ItemAnimationUiModel.Entry> entries) {
+        for (ItemAnimationUiModel.Entry entry : entries) {
+            String text = (entry.getId() + " " + entry.getLabel()).toLowerCase(java.util.Locale.ROOT);
+            if (text.contains("transparency") || text.contains("opacity") || text.contains("background")) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** The Hub may expose visibility, but every visual customization has exactly one owner: the HUD editor. */

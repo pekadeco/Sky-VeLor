@@ -45,9 +45,9 @@ import java.util.Set;
  * The Sky VeLor hub: a macOS-style window with window buttons, a sidebar (or tab bar on narrow
  * screens), a search field and scrollable grouped cards.
  *
- * Tabs, in order: Quality of Life, General, HUD, Farming, Dungeon, Slayer, Fishing. Quality of Life owns only
- * the two gameplay toggles that belong there; General preserves the overview, appearance, chat, performance and
- * About controls. HUD holds visibility switches and routes every visual customization to the HUD editor. Farming
+ * Tabs, in order: General, Quality of Life, HUD, Farming, Dungeon, Slayer, Fishing. General is the first overview
+ * page; Quality of Life owns gameplay plus the collapsible Commands and Chat QoL groups. HUD holds visibility
+ * switches and routes every visual customization to the HUD editor. Farming
  * holds Mining BPS. Dungeon holds the Spirit Leap teammate selector. Slayer and Fishing have no modules yet, so
  * they show an empty state rather than placeholder modules.
  *
@@ -68,10 +68,10 @@ public class AppleHubScreen extends AppleScreen {
     /** Narrowest tab width at which the tab name is drawn. Below this, only the icon is drawn. */
     private static final float TAB_TEXT_MIN = 52f;
 
-    static final String[] PAGE_NAMES = {QualityOfLifeUiModel.TAB_LABEL, "General", "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
+    static final String[] PAGE_NAMES = {"General", QualityOfLifeUiModel.TAB_LABEL, "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
     private static final String[] PAGE_SUBS = {
-            "Gameplay hotbar and block-particle preferences",
-            "Overview, appearance, chat, performance and camera",
+            "Overview, appearance, performance and camera",
+            "Gameplay, commands and Default Chat QoL",
             "Show, place and style the on-screen elements",
             "Mining BPS and its settings",
             "Spirit Leap, mob highlights and Floor VII (M7) overlays",
@@ -84,7 +84,7 @@ public class AppleHubScreen extends AppleScreen {
             HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER};
     private static final int HUD_MINING = 2; // index into HUD_OVERVIEW
     private static final int[] PAGE_ICONS = {
-            Icons.BOLT, Icons.GEAR, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
+            Icons.GEAR, Icons.BOLT, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
     };
     private static final int PAGE_HUD = 2;
     /** HUD tab categories: 0 is the element list, 1 is Dungeon (Floor VII overlay and terminals). */
@@ -172,8 +172,8 @@ public class AppleHubScreen extends AppleScreen {
 
     private void buildPages() {
         pages.clear();
-        pages.add(qualityOfLifePage());
         pages.add(generalPage());
+        pages.add(qualityOfLifePage());
         pages.add(hudPage());
         pages.add(farmingPage());
         pages.add(dungeonPage());
@@ -181,21 +181,59 @@ public class AppleHubScreen extends AppleScreen {
         pages.add(fishingPage());
     }
 
-    /** Dedicated top-level tab: exactly the two gameplay toggles from {@link QualityOfLifeUiModel}. */
+    /**
+     * One Quality of Life page with expandable Gameplay, Chat QoL and Commands groups. Commands and chat are not
+     * separate surfaces: their existing controls stay here with their original setting owners and command routes.
+     */
     private List<Row> qualityOfLifePage() {
         List<Row> rows = new ArrayList<Row>();
         List<QualityOfLifeUiModel.Entry> toggles = QualityOfLifeUiModel.buildToggleModel();
+        List<String> sections = QualityOfLifeUiModel.buildSectionTitles();
         rows.add(Row.section(QualityOfLifeUiModel.TAB_LABEL));
+        rows.add(Row.header(sections.get(0)));
         rows.add(Row.item(toggles.get(0).getLabel(), toggles.get(0).getDescription(),
                 new AppleToggle(() -> AppleSettings.disableHotbarScrolling,
                         value -> AppleSettings.disableHotbarScrolling = value)));
         rows.add(Row.item(toggles.get(1).getLabel(), toggles.get(1).getDescription(),
                 new AppleToggle(() -> AppleSettings.noBlockParticles,
                         value -> AppleSettings.noBlockParticles = value)));
+
+        // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/tab setting
+        // lives in Chat Editor, preventing duplicate controls across normal GUI pages.
+        rows.add(Row.header(sections.get(1)));
+        rows.add(Row.item(ChatUiModel.label("chat-qol-master"),
+                "Master switch. Off keeps Minecraft chat exactly unchanged",
+                new AppleToggle(() -> ChatQolSettings.enabled, value -> {
+                    ChatQolSettings.enabled = value;
+                    if (!value) ChatChannelTabs.disableAndRestoreAll();
+                })));
+        rows.add(Row.item(ChatUiModel.label("chat-tabs"),
+                "Show attached All, Party, Reply, and custom filters on the one Default Chat",
+                new AppleToggle(() -> ChatQolSettings.tabsEnabled, value -> {
+                    ChatQolSettings.tabsEnabled = value;
+                    if (!value) ChatChannelTabs.disableAndRestoreAll();
+                })));
+        rows.add(Row.item(ChatUiModel.label("smooth-messages"),
+                "Fade and short-slide new messages in the default chat",
+                new AppleToggle(() -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
+        rows.add(Row.item(ChatUiModel.label("hover-highlight"),
+                "Highlight an entire wrapped default-chat message group",
+                new AppleToggle(() -> ChatQolSettings.hoverHighlight, value -> ChatQolSettings.hoverHighlight = value)));
+        rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
+                "Background, messages, tabs, menu, and highlight options",
+                new AppleButton("Open", 84f, 26f, true,
+                        () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
+
+        rows.add(Row.header(sections.get(2)));
+        rows.add(Row.item("/sv", "Opens this hub from chat",
+                new AppleToggle(() -> AppleSettings.svCommand, v -> AppleSettings.svCommand = v)));
+        rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
+                new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
+        rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
         return rows;
     }
 
-    /** The former mixed QoL overview, retained as General so the dedicated tab stays limited to two toggles. */
+    /** General remains the first, non-feature overview page. */
     private List<Row> generalPage() {
         List<Row> rows = new ArrayList<Row>();
 
@@ -241,39 +279,6 @@ public class AppleHubScreen extends AppleScreen {
                             AppleSettings.glassOpacity = v;
                             Theme.refresh();
                         }), () -> AppleSettings.glassOpacityOn)));
-
-        rows.add(Row.header("Commands"));
-        rows.add(Row.item("/sv", "Opens this hub from chat",
-                new AppleToggle(() -> AppleSettings.svCommand, v -> AppleSettings.svCommand = v)));
-        rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
-                new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
-        rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
-
-        // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/tab setting
-        // lives in Chat Editor, preventing duplicate controls across normal GUI pages.
-        rows.add(Row.header("Chat QoL"));
-        rows.add(Row.item(ChatUiModel.label("chat-qol-master"),
-                "Master switch. Off keeps Minecraft chat exactly unchanged",
-                new AppleToggle(() -> ChatQolSettings.enabled, value -> {
-                    ChatQolSettings.enabled = value;
-                    if (!value) ChatChannelTabs.disableAndRestoreAll();
-                })));
-        rows.add(Row.item(ChatUiModel.label("chat-tabs"),
-                "Show attached All, Party, Reply, and custom filters on the one Default Chat",
-                new AppleToggle(() -> ChatQolSettings.tabsEnabled, value -> {
-                    ChatQolSettings.tabsEnabled = value;
-                    if (!value) ChatChannelTabs.disableAndRestoreAll();
-                })));
-        rows.add(Row.item(ChatUiModel.label("smooth-messages"),
-                "Fade and short-slide new messages in the default chat",
-                new AppleToggle(() -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
-        rows.add(Row.item(ChatUiModel.label("hover-highlight"),
-                "Highlight an entire wrapped default-chat message group",
-                new AppleToggle(() -> ChatQolSettings.hoverHighlight, value -> ChatQolSettings.hoverHighlight = value)));
-        rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
-                "Background, messages, tabs, menu, and highlight options",
-                new AppleButton("Open", 84f, 26f, true,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
 
         // Scroll controls stay in their focused screen rather than being duplicated in the feature tabs.
         rows.add(Row.header("Mod settings"));

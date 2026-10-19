@@ -21,6 +21,14 @@ public final class QualityOfLifeUiModelTests {
                 && "disable-hotbar-scrolling".equals(quality.get(0).getId())
                 && "no-block-particles".equals(quality.get(1).getId()));
         check("Quality of Life toggles are not duplicated", uniqueQualityIds(quality));
+        check("General is the first hub tab", AppleHubScreen.PAGE_NAMES.length == 7
+                && "General".equals(AppleHubScreen.PAGE_NAMES[0])
+                && "Quality of Life".equals(AppleHubScreen.PAGE_NAMES[1]));
+        check("Quality of Life keeps Gameplay, Chat QoL and Commands as dropdown groups",
+                QualityOfLifeUiModel.buildSectionTitles().size() == 3
+                        && "Gameplay".equals(QualityOfLifeUiModel.buildSectionTitles().get(0))
+                        && "Chat QoL".equals(QualityOfLifeUiModel.buildSectionTitles().get(1))
+                        && "Commands".equals(QualityOfLifeUiModel.buildSectionTitles().get(2)));
 
         check("Mod Settings retains exactly the scroll controls", mod.size() == 2
                 && "scroll-speed".equals(mod.get(0).getId())

@@ -530,6 +530,8 @@ public final class HudEditorScreen extends AppleScreen {
             return;
         }
         if (target == EditorTarget.ITEM_ANIMATION) {
+            // Return before HudSettingsBuilder.build(): common(HudElement) owns generic Use opacity/Opacity/Background
+            // controls for real HUD elements only, never the first-person renderer-only Item Animation target.
             buildItemAnimationEntries();
             return;
         }

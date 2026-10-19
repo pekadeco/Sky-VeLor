@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.1v] [--mcmod-version 0.10.8.6.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.1.1v] [--mcmod-version 0.10.8.6.1.1]
 """
 
 import argparse
@@ -78,6 +78,7 @@ REQUIRED_CLASSES = [
     'chat/ChatPlayerName',
     'chat/ChatRenderGeometry',
     'chat/ChatCompactMessages',
+    'chat/ChatVisibilityAudit',
     'gui/FishingUiModel',
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
@@ -110,7 +111,7 @@ FORBIDDEN_CLASSES = [
     'gui/DungeonHudScreen',
     'hud/ClickInOrderHud',
     'command/TerminalCommand',
-    # Beta-0.10.8.6.1 retains the one-default-chat implementation and no split-chat classes.
+    # Beta-0.10.8.6.1.1 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -240,8 +241,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.1.1v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.1.1')
     args = ap.parse_args()
 
     path = args.jar
@@ -388,10 +389,12 @@ def main():
                  'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth swing', 'Smoothness',
                  'Swing blur unavailable (no safe translucent ghosts)', 'Preview Swing', 'Reset to Defaults')),
             'ItemAnimationUiModel packages the required compact HUD/editor labels and controls')
+    forbidden_item_animation_terms = ('transparency', 'opacity', 'background')
     r.check('Open Item Animation Settings' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
-                and 'Background transparency' not in ui_constants and 'Background opacity' not in ui_constants
-                and 'Swing blur' not in ui_constants and 'Blur intensity' not in ui_constants,
-            'ItemAnimationUiModel excludes removed launchers/transparency and ships no unsafe blur or intensity control')
+                and 'Swing blur' not in ui_constants and 'Blur intensity' not in ui_constants
+                and not any(term in value.lower() for value in ui_constants
+                            for term in forbidden_item_animation_terms),
+            'ItemAnimationUiModel excludes every background/opacity/transparency label and unsafe blur controls')
     model_ref = b'com/arena/pekaclient/gui/ItemAnimationUiModel'
     audit_ref = b'com/arena/pekaclient/gui/GuiSettingsAuditModel'
     layout_ref = b'com/arena/pekaclient/gui/HudEditorLayout'
@@ -411,7 +414,7 @@ def main():
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
     # --- Chat QoL ownership and one-default-chat implementation proof --------
-    # Beta-0.10.8.6.1 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
+    # Beta-0.10.8.6.1.1 deliberately has no alternate windows/classifier/router. The Hub exposes only feature
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
@@ -479,17 +482,22 @@ def main():
             'one Default Chat runtime carries no split-window classifier/router bridge')
 
     # Compact Messages is default-on in the one cache/renderer: exact formatted-text matching decides the
-    # duplicate at event time, then a fixed-id gray line is grouped with (not substituted for) the original.
+    # duplicate at event time, then only the immediately newest unique group is deleted and reprinted with a gray
+    # suffix. This deliberately rejects the old global fixed-counter id that could erase unrelated chat rows.
     compact_raw = raw_of('chat/ChatCompactMessages')
     compact_constants = constants_of('chat/ChatCompactMessages')
+    visibility_raw = raw_of('chat/ChatVisibilityAudit')
     r.check(b'ChatCompactMessages' in tabs_raw
+                and b'ChatVisibilityAudit' in tabs_raw and len(visibility_raw) > 0
                 and (b'printChatMessageWithOptionalDeletion' in tabs_raw or b'func_146234_a' in tabs_raw)
+                and (b'deleteChatLine' in tabs_raw or b'func_146242_c' in tabs_raw)
                 and b'Compact messages' in chat_editor_raw and b'Compact counter colour' in chat_editor_raw
                 and b'chat.qol.messages.compact' in settings_raw_chat
                 and b'chat.qol.messages.compactCounterColor' in settings_raw_chat
-                and b'COUNTER_LINE_ID' in compact_raw
+                and b'GROUP_ID_BASE' in compact_raw and b'NO_GROUP_ID' in compact_raw
+                and b'COUNTER_LINE_ID' not in compact_raw
                 and any('(x' in value for value in compact_constants),
-            'Compact Messages packages a default-on exact-message tracker, fixed cache replacement, and editor colour')
+            'Compact Messages packages exact unique-group replacement, closed/open visibility audit, and editor colour')
     font_raw = raw_of('render/GlobalFontManager')
     r.check(all(value in font_raw for value in
                 (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'rounded-nunito.ttf',
@@ -533,8 +541,10 @@ def main():
     r.check(b'com/arena/pekaclient/gui/QualityOfLifeUiModel' in hub_raw
                 and b'Disable hotbar scrolling' not in mod_settings_raw
                 and b'No block particles' not in mod_settings_raw
-                and b'Item Animation' not in quality_ui_raw and b'Chat QoL' not in quality_ui_raw,
-            'the dedicated Quality of Life model has no duplicate feature masters or Mod Settings copies')
+                and all(value in quality_ui_constants for value in
+                        ('Gameplay', 'Chat QoL', 'Commands'))
+                and b'Item Animation' not in quality_ui_raw,
+            'Quality of Life owns gameplay plus collapsible Chat QoL/Commands without Item Animation duplication')
 
     # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
     # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.

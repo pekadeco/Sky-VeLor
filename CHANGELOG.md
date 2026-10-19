@@ -1,5 +1,13 @@
 # Changelog
 
+## Beta-0.10.8.6.1.1v — 2026-10-19
+
+- Fixed closed Default Chat visibility: closed HUD chat now evaluates **All**, clears stale open-tab scrolling, preserves vanilla fit/line-limit diagnostics, and `/velor chatdebug` reports the newest 15 logical messages with closed/open visible-or-hidden reasons.
+- Reworked **Compact messages** to replace only immediate formatted duplicates with fresh high per-group ids, preserve original rich copy/click/hover/`/msg` data, append a gray `(xN)` suffix after wrapped text, and refresh fade on replacement.
+- Put **General** first. **Quality of Life** now contains expandable Gameplay, **Chat QoL**, and **Commands** groups; Chat QoL master/toggles/editor route and every command setting remain available.
+- Kept Item Animation renderer-only: no background/transparency/opacity control is exposed through its HUD editor or HUD dropdown; retired configuration keys remain load-compatible.
+- Updated display version to `Beta-0.10.8.6.1.1v` and numeric Forge `mcmod.info`/build metadata version to `0.10.8.6.1.1`.
+
 ## Beta-0.10.8.6.1v — 2026-10-19
 
 - Made Chat QoL **Compact messages** and **No block particles** default on. Schema v2 migrates older configurations once, then preserves either user choice on later restarts.

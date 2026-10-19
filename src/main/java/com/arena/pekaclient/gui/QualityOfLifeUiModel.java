@@ -5,8 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Minecraft-free ownership contract for the dedicated Quality of Life hub tab.
- * Keep this list limited to gameplay quality-of-life toggles so those controls cannot be duplicated elsewhere.
+ * Minecraft-free ownership contract for the Quality of Life hub tab. Gameplay controls, Commands and Chat QoL are
+ * separate collapsible groups on this one page; their detailed settings remain owned by their existing routes.
  */
 public final class QualityOfLifeUiModel {
 
@@ -39,7 +39,7 @@ public final class QualityOfLifeUiModel {
         }
     }
 
-    /** Exactly the two gameplay toggles owned by the Quality of Life tab. */
+    /** The two gameplay toggles in the Quality of Life page's Gameplay group. */
     public static List<Entry> buildToggleModel() {
         return Collections.unmodifiableList(Arrays.asList(
                 new Entry("disable-hotbar-scrolling", "Disable hotbar scrolling",
@@ -47,5 +47,10 @@ public final class QualityOfLifeUiModel {
                 new Entry("no-block-particles", "No block particles",
                         "Hide only vanilla block digging and crack particles")
         ));
+    }
+
+    /** Ordered collapsible groups; Commands and Chat QoL are intentionally not top-level tabs. */
+    public static List<String> buildSectionTitles() {
+        return Collections.unmodifiableList(Arrays.asList("Gameplay", "Chat QoL", "Commands"));
     }
 }

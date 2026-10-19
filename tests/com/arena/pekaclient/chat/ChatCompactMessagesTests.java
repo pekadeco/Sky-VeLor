@@ -16,7 +16,7 @@ public final class ChatCompactMessagesTests {
         fiveConsecutiveFormattedMessagesCompactIntoOneGroup();
         formattingSeparatorsAndInterruptedRunsBreakCompaction();
         uniqueHighGroupsAndGraySuffixContract();
-        copiedClickableHoverableOriginalSurvivesSuffix();
+        copiedClickableHoverableWrappedOriginalSurvivesSuffix();
 
         System.out.println();
         System.out.println("compact messages: passed " + passed + ", failed " + failed);
@@ -68,12 +68,14 @@ public final class ChatCompactMessagesTests {
                 && "§7 (x2)".equals(ChatCompactMessages.counterFormattedText(1)));
     }
 
-    /** Mirrors the runtime replacement: clone the original rich component, then append the counter sibling. */
-    private static void copiedClickableHoverableOriginalSurvivesSuffix() {
+    /** Mirrors the runtime replacement: clone a rich multi-part (wrapped-style) original, then append the counter. */
+    private static void copiedClickableHoverableWrappedOriginalSurvivesSuffix() {
         ChatComponentText original = new ChatComponentText("From Alex: hello");
         original.setChatStyle(new ChatStyle()
                 .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/msg Alex "))
                 .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Alex"))));
+        // A multi-part original models formatted text that vanilla later splits across wrapped draw rows.
+        original.appendSibling(new ChatComponentText(" this is the final wrapped part"));
         IChatComponent rendered = original.createCopy();
         rendered.appendSibling(new ChatComponentText(ChatCompactMessages.counterFormattedText(5)));
         ClickEvent click = rendered.getChatStyle().getChatClickEvent();
@@ -81,12 +83,13 @@ public final class ChatCompactMessagesTests {
         check("click command survives rich component copy", click != null && "/msg Alex ".equals(click.getValue()));
         check("hover text survives rich component copy", hover != null && hover.getValue() != null
                 && "Alex".equals(hover.getValue().getUnformattedTextForChat()));
-        IChatComponent suffix = rendered.getSiblings().isEmpty() ? null : rendered.getSiblings().get(0);
+        IChatComponent suffix = rendered.getSiblings().isEmpty() ? null
+                : rendered.getSiblings().get(rendered.getSiblings().size() - 1);
         String suffixFormatted = suffix == null ? "" : suffix.getFormattedText();
         String suffixRaw = suffix == null ? "" : suffix.getUnformattedTextForChat();
         // Minecraft may prefix an inherited reset code when formatting a sibling; verify the actual gray suffix rather
         // than assuming that its serialized prefix is byte-for-byte identical to the standalone legacy string.
-        check("gray suffix is appended after original component", rendered.getSiblings().size() == 1
+        check("gray suffix follows the final wrapped original part", rendered.getSiblings().size() == 2
                 && (suffixFormatted.contains("§7") || suffixRaw.contains("§7"))
                 && (suffixFormatted.endsWith("(x5)") || suffixRaw.endsWith("(x5)")));
     }
