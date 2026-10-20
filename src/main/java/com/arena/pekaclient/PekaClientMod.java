@@ -109,7 +109,7 @@ public class PekaClientMod {
     public static final KeyBinding CHAT_EDITOR_KEY =
             new KeyBinding("key.pekaclient.chatEditor", Keyboard.KEY_NONE, "key.categories.pekaclient");
 
-    /** Default L: hold over A, move to B, and release; releasing over A toggles that position lock. */
+    /** Default L: release over B to create/remove A↔B; release over an unpaired A to toggle its lock, or a paired A to remove its pair. */
     public static final KeyBinding ITEM_LOCK_SWAP_KEY =
             new KeyBinding("key.pekaclient.itemLockSwap", Keyboard.KEY_L, "key.categories.pekaclient");
 

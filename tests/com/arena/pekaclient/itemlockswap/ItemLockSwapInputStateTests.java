@@ -39,11 +39,14 @@ public final class ItemLockSwapInputStateTests {
         reset();
         MockGuiDrawHandler handler = new MockGuiDrawHandler();
         handler.frame(true, 4, 4, 100L);
-        check("long same-slot release locks without 300ms timer", handler.frame(false, 4, 4, 2100L)
+        check("unpaired L tap locks", handler.frame(false, 4, 4, 110L)
                 == ItemLockSwapGesturePolicy.Decision.LOCKED && ItemLockSwapSettings.isLocked(0));
-        handler.frame(true, 4, 4, 2200L);
-        check("next same-slot release unlocks", handler.frame(false, 4, 4, 2220L)
+        handler.frame(true, 4, 4, 200L);
+        check("locked L tap unlocks", handler.frame(false, 4, 4, 210L)
                 == ItemLockSwapGesturePolicy.Decision.UNLOCKED && !ItemLockSwapSettings.isLocked(0));
+        handler.frame(true, 4, 4, 300L);
+        check("long same-slot release still locks without a timer", handler.frame(false, 4, 4, 2300L)
+                == ItemLockSwapGesturePolicy.Decision.LOCKED && ItemLockSwapSettings.isLocked(0));
     }
 
     private static void cancellationAndRepeatedKeyDownAreSafe() {
@@ -67,31 +70,48 @@ public final class ItemLockSwapInputStateTests {
         check("fixture pair creates", ItemLockSwapSettings.addPair(0, 1) == ItemLockSwapSettings.PairResult.ADDED);
         MockGuiDrawHandler handler = new MockGuiDrawHandler();
         handler.frame(true, 4, 4, 10L);
-        check("paired start dropped on partner removes pair", handler.frame(false, 24, 4, 20L)
-                == ItemLockSwapGesturePolicy.Decision.PAIR_REMOVED && !ItemLockSwapSettings.isPaired(0));
+        check("tap on first paired endpoint removes both endpoints", handler.frame(false, 4, 4, 20L)
+                == ItemLockSwapGesturePolicy.Decision.PAIR_REMOVED && !ItemLockSwapSettings.isPaired(0)
+                && !ItemLockSwapSettings.isPaired(1));
+        Properties saved = new Properties();
+        ItemLockSwapSettings.save(saved);
+        ItemLockSwapSettings.load(saved);
+        check("tap removal persists without a stale pair", ItemLockSwapSettings.pairCount() == 0
+                && ItemLockSwapSettings.partnerOf(0) < 0 && ItemLockSwapSettings.partnerOf(1) < 0);
 
         check("fixture pair re-creates", ItemLockSwapSettings.addPair(0, 1) == ItemLockSwapSettings.PairResult.ADDED);
-        handler.frame(true, 4, 4, 30L);
-        check("paired start dropped on another slot refuses", handler.frame(false, 44, 4, 40L)
-                == ItemLockSwapGesturePolicy.Decision.REFUSED_ALREADY_PAIRED
-                && ItemLockSwapSettings.partnerOf(0) == 1);
+        handler = new MockGuiDrawHandler();
+        handler.frame(true, 24, 4, 30L);
+        check("tap on partner paired endpoint removes pair", handler.frame(false, 24, 4, 40L)
+                == ItemLockSwapGesturePolicy.Decision.PAIR_REMOVED && ItemLockSwapSettings.pairCount() == 0);
+
+        check("fixture pair re-creates for drag removal", ItemLockSwapSettings.addPair(0, 1)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        handler = new MockGuiDrawHandler();
         handler.frame(true, 4, 4, 50L);
-        check("paired same-slot release refuses duplicate pair", handler.frame(false, 4, 4, 60L)
+        check("paired start dragged onto partner still removes pair", handler.frame(false, 24, 4, 60L)
+                == ItemLockSwapGesturePolicy.Decision.PAIR_REMOVED && !ItemLockSwapSettings.isPaired(0));
+
+        check("fixture pair re-creates for refusal", ItemLockSwapSettings.addPair(0, 1)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        handler = new MockGuiDrawHandler();
+        handler.frame(true, 4, 4, 70L);
+        check("paired start dropped on another slot refuses", handler.frame(false, 44, 4, 80L)
                 == ItemLockSwapGesturePolicy.Decision.REFUSED_ALREADY_PAIRED
                 && ItemLockSwapSettings.partnerOf(0) == 1);
 
         reset();
         ItemLockSwapSettings.toggleLock(1);
         handler = new MockGuiDrawHandler();
-        handler.frame(true, 4, 4, 70L);
-        check("locked target refuses", handler.frame(false, 24, 4, 80L)
+        handler.frame(true, 4, 4, 90L);
+        check("locked target refuses", handler.frame(false, 24, 4, 100L)
                 == ItemLockSwapGesturePolicy.Decision.REFUSED_LOCKED && !ItemLockSwapSettings.isPaired(0));
 
         reset();
         ItemLockSwapSettings.addPair(1, 2);
         handler = new MockGuiDrawHandler();
-        handler.frame(true, 4, 4, 90L);
-        check("already paired target refuses", handler.frame(false, 24, 4, 100L)
+        handler.frame(true, 4, 4, 110L);
+        check("already paired target refuses", handler.frame(false, 24, 4, 120L)
                 == ItemLockSwapGesturePolicy.Decision.REFUSED_ALREADY_PAIRED && !ItemLockSwapSettings.isPaired(0));
     }
 

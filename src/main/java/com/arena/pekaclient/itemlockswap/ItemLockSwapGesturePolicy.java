@@ -13,7 +13,7 @@ public final class ItemLockSwapGesturePolicy {
         LOCKED("released on start slot: position locked"),
         UNLOCKED("released on start slot: position unlocked"),
         PAIR_CREATED("released on valid target: pair created"),
-        PAIR_REMOVED("released on paired partner: pair removed"),
+        PAIR_REMOVED("released on paired endpoint: pair removed"),
         CANCELED("released over empty space: canceled"),
         REFUSED_LOCKED("released on locked position: refused"),
         REFUSED_ALREADY_PAIRED("Slot is already paired"),
@@ -32,8 +32,8 @@ public final class ItemLockSwapGesturePolicy {
     }
 
     /**
-     * Applies one completed L-key drag release. Pair membership takes priority for an existing pair: only releasing
-     * over its partner removes it; every other player slot, including the start slot, is refused without mutation.
+     * Applies one completed L-key drag release. Pair membership takes priority for an existing pair: a tap back onto
+     * either endpoint, or a drag onto its partner, removes that pair. Other targets remain unchanged and refuse.
      */
     public static Decision release(int startSlot, int releaseSlot) {
         if (!ItemLockSwapSettings.validSlot(startSlot)) return Decision.REFUSED_INVALID;
@@ -41,7 +41,8 @@ public final class ItemLockSwapGesturePolicy {
 
         int partner = ItemLockSwapSettings.partnerOf(startSlot);
         if (partner >= 0) {
-            if (releaseSlot == partner && ItemLockSwapSettings.removePairContaining(startSlot)) {
+            if ((releaseSlot == startSlot || releaseSlot == partner)
+                    && ItemLockSwapSettings.removePairContaining(startSlot)) {
                 return Decision.PAIR_REMOVED;
             }
             return Decision.REFUSED_ALREADY_PAIRED;

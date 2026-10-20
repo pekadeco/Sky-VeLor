@@ -1,6 +1,7 @@
 package com.arena.pekaclient.itemlockswap;
 
 import com.arena.pekaclient.PekaClientMod;
+import com.arena.pekaclient.config.AppleSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -127,6 +128,14 @@ public final class ItemLockSwapController {
         }
         ItemLockSwapGesturePolicy.Decision decision = ItemLockSwapGesturePolicy.release(startSlot, releaseSlot);
         lastDecision = decision.reason();
+        // Gesture changes happen outside a settings screen, so write the same configuration atomically right away.
+        // The overlay reads this state on its next frame, which removes pair lines and endpoint badges immediately.
+        if (decision == ItemLockSwapGesturePolicy.Decision.LOCKED
+                || decision == ItemLockSwapGesturePolicy.Decision.UNLOCKED
+                || decision == ItemLockSwapGesturePolicy.Decision.PAIR_CREATED
+                || decision == ItemLockSwapGesturePolicy.Decision.PAIR_REMOVED) {
+            AppleSettings.save();
+        }
         switch (decision) {
             case LOCKED:
                 message("Item position locked");
@@ -138,7 +147,7 @@ public final class ItemLockSwapController {
                 message("Item Swap pair " + ItemLockSwapSettings.pairNumber(releaseSlot) + " created");
                 break;
             case PAIR_REMOVED:
-                message("Item Swap pair removed");
+                message("Swap removed");
                 break;
             case REFUSED_LOCKED:
                 message("Cannot pair: item position is locked");
