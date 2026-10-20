@@ -94,6 +94,9 @@ public final class ChatChannelTabs {
         BRIDGE_READY = chatLines != null && drawnLines != null && input != null && click != null;
     }
 
+    /** /velor chatdebug intentionally stays concise while showing enough arrivals to diagnose chronology. */
+    static final int CHAT_DEBUG_HISTORY_LIMIT = 10;
+
     private static ChatChannelTabs live;
     private static boolean bridgeNoticeShown;
 
@@ -102,7 +105,6 @@ public final class ChatChannelTabs {
     /** Own logical incoming-message ring: filtered/wrapped independently of vanilla's 100-line fading cache. */
     private final ChatMessageHistory messageHistory = new ChatMessageHistory();
     private final ChatCompactMessages compactMessages = new ChatCompactMessages();
-    private final ChatVisibilityAudit.History visibilityHistory = new ChatVisibilityAudit.History();
     private final Set<String> unreadTabs = new HashSet<String>();
     private final GuiLayoutToolkit.Scroll scroll = new GuiLayoutToolkit.Scroll();
     private final ChatTabLayout.Layout tabLayout = new ChatTabLayout.Layout();
@@ -162,18 +164,19 @@ public final class ChatChannelTabs {
     }
 
     /**
-     * Every incoming component is retained in the local logical history. Eligible compact messages are additionally
-     * written with a fresh vanilla group id so only a verified newest duplicate replaces its own cache line.
+     * Every server packet component is retained once in the local logical history. Eligible compact messages are
+     * additionally written with a fresh vanilla group id so only a verified newest duplicate replaces its cache line.
+     * The compact redraw below is a local GuiNewChat call, not another ClientChatReceivedEvent, so it cannot create a
+     * local/server echo entry; the high group id instead refreshes the original logical arrival exactly once.
      */
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
         if (!ownsDefaultChat() || event == null || event.type == 2 || event.message == null) return;
         CompactOutcome outcome = compactIncoming(event);
         String clean = cleanComponent(event.message);
-        // Store every incoming component once before any tab filter. Compact replacements refresh this same logical entry.
+        // Store each packet before any tab filter. A compact replacement keeps its immutable arrival sequence/position.
         messageHistory.record(outcome.groupId, event.message, clean, outcome.count, System.currentTimeMillis());
         historyLayoutDirty = true;
-        visibilityHistory.record(outcome.groupId, clean, outcome.count);
         if (!ChatQolSettings.tabsEnabled) return;
         boolean played = false;
         for (ChatTabs.Tab tab : ChatQolSettings.tabs()) {
@@ -356,7 +359,6 @@ public final class ChatChannelTabs {
     @SubscribeEvent
     public void onDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         messageHistory.clear();
-        visibilityHistory.clear();
         groups.clear();
         rows.clear();
         unreadTabs.clear();
@@ -432,32 +434,42 @@ public final class ChatChannelTabs {
                 + Math.round(tabFrameW) + " h=" + Math.round(tabFrameH) + ", tabs=" + ChatQolSettings.tabs().size() + "."));
         sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fMouse group=" + describeGroup(hoveredGroup)
                 + ", menu state=" + copyMenu.describeStored() + "."));
+        List<ChatMessageHistory.Entry> newest = messageHistory.newestArrivalFirst();
+        int reported = Math.min(CHAT_DEBUG_HISTORY_LIMIT, newest.size());
+        ChatTabs.Tab selected = activeTab();
+        String selectedId = selected == null ? "none" : selected.id();
         sender.addChatMessage(new ChatComponentText("§7Chat debug outlines " + (debug ? "enabled" : "disabled")
-                + "; last " + visibilityHistory.entries().size() + " logical messages (newest first):"));
-        if (visibilityHistory.entries().isEmpty()) {
+                + "; last " + reported + " logical server arrivals (newest sequence first; tab=" + selectedId
+                + ", displayOrder=top-to-bottom):"));
+        if (reported == 0) {
             sender.addChatMessage(new ChatComponentText("§7  none received since this client session started."));
         }
-        for (ChatVisibilityAudit.Entry entry : visibilityHistory.entries()) {
+        for (int i = 0; i < reported; i++) {
+            ChatMessageHistory.Entry entry = newest.get(i);
             ChatVisibilityAudit.Decision closed = visibilityDecision(entry, false);
             ChatVisibilityAudit.Decision open = visibilityDecision(entry, true);
-            sender.addChatMessage(new ChatComponentText("§7  #" + entry.groupId + " x" + entry.count + " ["
-                    + debugClip(entry.clean) + "] §fclosed=" + closed.describe() + "§f; open=" + open.describe()));
+            sender.addChatMessage(new ChatComponentText("§7  seq=" + entry.sequence() + " tab=" + selectedId
+                    + " displayOrder=" + displayOrder(entry, selected) + " matches=" + matchingTabs(entry.clean())
+                    + " x" + entry.compactCount() + " [" + debugClip(entry.clean()) + "] §fclosed="
+                    + closed.describe() + "§f; open=" + open.describe()));
         }
     }
 
     /** Produces the exact closed/open reason used by /velor chatdebug without changing renderer state. */
-    private ChatVisibilityAudit.Decision visibilityDecision(ChatVisibilityAudit.Entry entry, boolean chatOpen) {
+    private ChatVisibilityAudit.Decision visibilityDecision(ChatMessageHistory.Entry entry, boolean chatOpen) {
         MessageGroup target = groupForDebug(entry);
         ChatTabs.Tab selected = activeTab();
         if (target == null) {
-            // The retained debug entry can be absent only because the current tab filtered it during the last rebuild.
-            boolean matchesSelected = selected != null && selected.matches(entry.clean);
+            // The retained entry can be absent only because the current tab filtered it during the last rebuild.
+            boolean matchesSelected = selected != null && selected.matches(entry.clean());
             return ChatVisibilityAudit.decide(chatOpen, true, matchesSelected, 0, ChatQolSettings.fadeSeconds, 0,
                     Math.max(1, lastVisibleLineLimit));
         }
         boolean matchesActive = selected != null && selected.matches(target.clean);
+        // groups are kept in top-to-bottom sequence order, so later groups are the rows closer to the chat bottom.
         int linesBefore = 0;
-        for (MessageGroup group : groups) {
+        for (int i = groups.size() - 1; i >= 0; i--) {
+            MessageGroup group = groups.get(i);
             if (group == target) break;
             if (selected != null && selected.matches(group.clean)) linesBefore += group.renderLineCount();
         }
@@ -467,14 +479,37 @@ public final class ChatChannelTabs {
                 linesBefore, Math.max(1, lastVisibleLineLimit));
     }
 
-    private MessageGroup groupForDebug(ChatVisibilityAudit.Entry entry) {
+    /** Sequence, unlike a compact id or message text, is unique even for same-millisecond/local echo-looking lines. */
+    private MessageGroup groupForDebug(ChatMessageHistory.Entry entry) {
+        if (entry == null) return null;
         for (MessageGroup group : groups) {
-            if (entry.groupId != ChatCompactMessages.NO_GROUP_ID && group.compactGroupId == entry.groupId) return group;
-        }
-        for (MessageGroup group : groups) {
-            if (entry.groupId == ChatCompactMessages.NO_GROUP_ID && entry.clean.equals(group.clean)) return group;
+            if (group.sequence == entry.sequence()) return group;
         }
         return null;
+    }
+
+    /** One-based visual position in the selected tab's oldest-to-newest, top-to-bottom sequence view. */
+    private String displayOrder(ChatMessageHistory.Entry target, ChatTabs.Tab selected) {
+        if (target == null || selected == null || !selected.matches(target.clean())) return "filtered";
+        int position = 0;
+        int total = 0;
+        for (ChatMessageHistory.Entry entry : messageHistory.arrivalOrder()) {
+            if (!selected.matches(entry.clean())) continue;
+            total++;
+            if (entry.sequence() == target.sequence()) position = total;
+        }
+        return position == 0 ? "not-retained" : position + "/" + total + " top-to-bottom";
+    }
+
+    /** Lists every enabled tab that can show the entry; filters remain additive and All is always explicit. */
+    private static String matchingTabs(String clean) {
+        StringBuilder matches = new StringBuilder();
+        for (ChatTabs.Tab tab : ChatQolSettings.tabs()) {
+            if (tab == null || !tab.enabled() || !tab.matches(clean)) continue;
+            if (matches.length() > 0) matches.append(',');
+            matches.append(tab.id());
+        }
+        return matches.length() == 0 ? "none" : matches.toString();
     }
 
     private static String debugClip(String text) {
@@ -569,8 +604,10 @@ public final class ChatChannelTabs {
     }
 
     /**
-     * Rewraps matching retained logical components from the local history. This deliberately never reads vanilla's short
-     * chatLines/drawnChatLines caches, which evict older or faded messages before a user can switch to their tab.
+     * Rewraps matching retained logical components in immutable arrival-sequence order. This deliberately never reads
+     * vanilla's short chatLines/drawnChatLines caches, which evict older or faded messages before a user can switch to
+     * their tab. The ascending sequence is the renderer's top-to-bottom chronology for All, filtered tabs, and closed
+     * chat alike; wall-clock timestamps are used only for fade animation.
      */
     private void rebuildGroups(FontRenderer font, int wrapWidth, boolean chatOpen) {
         ChatTabs.Tab selected = activeTab();
@@ -581,7 +618,7 @@ public final class ChatChannelTabs {
         groups.clear();
         rows.clear();
         try {
-            for (ChatMessageHistory.Entry entry : messageHistory.newestFirst()) {
+            for (ChatMessageHistory.Entry entry : messageHistory.arrivalOrder()) {
                 // The tab view is reconstructed directly from matching retained messages, never from vanilla draw rows.
                 if (selected == null || !selected.matches(entry.clean())) continue;
                 IChatComponent original = entry.originalCopy();
@@ -590,8 +627,8 @@ public final class ChatChannelTabs {
                 if (entry.compactCount() > 1) {
                     rendered.appendSibling(new ChatComponentText(ChatCompactMessages.counterFormattedText(entry.compactCount())));
                 }
-                MessageGroup group = new MessageGroup(entry.id(), entry.compactGroupId(), entry.timestamp(), original,
-                        entry.clean(), entry.formatted());
+                MessageGroup group = new MessageGroup(entry.id(), entry.sequence(), entry.compactGroupId(),
+                        entry.timestamp(), original, entry.clean(), entry.formatted());
                 List<IChatComponent> wrapped = GuiUtilRenderComponents.splitText(rendered, wrapWidth, font, false, false);
                 if (wrapped.isEmpty()) group.addLine(rendered);
                 else for (IChatComponent line : wrapped) group.addLine(line);
@@ -633,7 +670,10 @@ public final class ChatChannelTabs {
     }
 
 
-    /** Lays out only the selected tab's already-received message groups; All's matcher is always true. */
+    /**
+     * Lays out selected-tab groups in ascending arrival sequence. The first sequence is placed at the top and the
+     * latest at the chat bottom, so A then B always displays A above B even when both arrivals share a millisecond.
+     */
     private void layoutRows(float viewportTop, float messageBottom, float width, float lineH, int visibleLines,
                             float textScale, boolean chatOpen) {
         rows.clear();
@@ -657,7 +697,9 @@ public final class ChatChannelTabs {
         for (MessageGroup group : visible) {
             group.updateAnimation(now, chatOpen);
             for (IChatComponent component : group.lines) {
-                float y = messageBottom + yOffset - (lineIndex + 1) * lineH;
+                // Groups/lines are top-to-bottom here. Count down from the chat bottom so the newest final line stays
+                // adjacent to input and wrapped text retains its own natural top-to-bottom order.
+                float y = messageBottom + yOffset - (totalLines - lineIndex) * lineH;
                 RenderRow row = new RenderRow(group, component, component.getFormattedText(), 2f, y, width, lineH,
                         textScale, 0xFFFFFF);
                 rows.add(row);
@@ -1045,6 +1087,8 @@ public final class ChatChannelTabs {
     /** One logical retained message. The rendered lines may add a counter suffix while its captured original stays intact. */
     private final class MessageGroup {
         final int id;
+        /** Immutable logical arrival sequence; this is the only ordering identity used by the renderer/debugger. */
+        final long sequence;
         final int compactGroupId;
         final long timestamp;
         final IChatComponent original;
@@ -1055,9 +1099,10 @@ public final class ChatChannelTabs {
         float alpha = 1f;
         float slide;
 
-        MessageGroup(int id, int compactGroupId, long timestamp, IChatComponent original, String clean,
+        MessageGroup(int id, long sequence, int compactGroupId, long timestamp, IChatComponent original, String clean,
                      String formatted) {
             this.id = id;
+            this.sequence = sequence;
             this.compactGroupId = compactGroupId;
             this.timestamp = Math.max(0L, timestamp);
             this.original = original;
