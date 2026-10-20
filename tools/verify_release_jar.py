@@ -607,6 +607,7 @@ def main():
     lock_controller_raw = raw_of('itemlockswap/ItemLockSwapController')
     lock_input_raw = raw_of('itemlockswap/ItemLockSwapInputState')
     lock_gesture_raw = raw_of('itemlockswap/ItemLockSwapGesturePolicy')
+    lock_gesture_decision_raw = raw_of('itemlockswap/ItemLockSwapGesturePolicy$Decision')
     lock_geometry_raw = raw_of('itemlockswap/ItemLockSwapLineGeometry')
     lock_overlay_raw = raw_of('itemlockswap/ItemLockSwapOverlay')
     lock_ui_raw = raw_of('itemlockswap/ItemLockSwapUiModel')
@@ -634,7 +635,7 @@ def main():
                 and b'onGuiDrawPost' in lock_controller_raw and b'ItemLockSwapInputState' in lock_controller_raw
                 and b'ItemLockSwapGesturePolicy' in lock_controller_raw and b'onClientTick' not in lock_controller_raw
                 and all(value in lock_input_raw for value in (b'HELD', b'STARTED', b'RELEASED', b'poll'))
-                and b'Slot is already paired' in lock_gesture_raw,
+                and b'Slot is already paired' in lock_gesture_decision_raw,
             'Item Lock/Swap polls the physical key in DrawScreen Post and uses one HELD drag/release state machine')
     r.check(b'drawContainerForeground' in lock_overlay_raw and b'drawRoundLine' in lock_overlay_raw
                 and b'ItemLockSwapLineGeometry' in lock_overlay_raw and b'ItemLockSwapGesturePolicy' in lock_overlay_raw
