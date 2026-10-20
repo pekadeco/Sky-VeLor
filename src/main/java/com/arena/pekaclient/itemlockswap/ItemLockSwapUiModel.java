@@ -22,6 +22,10 @@ public final class ItemLockSwapUiModel {
         entries.add(new Entry("item-lock-swap-messages", "Show blocked-action messages", true));
         entries.add(new Entry("item-lock-swap-icon-color", "Icon color", false));
         entries.add(new Entry("item-lock-swap-icon-opacity", "Icon opacity", false));
+        entries.add(new Entry("item-lock-swap-lines", "Swap lines", false));
+        entries.add(new Entry("item-lock-swap-line-color", "Swap line color", false));
+        entries.add(new Entry("item-lock-swap-line-opacity", "Swap line opacity", false));
+        entries.add(new Entry("item-lock-swap-line-width", "Swap line width", false));
         entries.add(new Entry("item-lock-swap-clear-locks", "Clear all locks", false));
         entries.add(new Entry("item-lock-swap-clear-pairs", "Clear all pairs", false));
         return Collections.unmodifiableList(entries);

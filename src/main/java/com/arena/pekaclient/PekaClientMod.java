@@ -109,7 +109,7 @@ public class PekaClientMod {
     public static final KeyBinding CHAT_EDITOR_KEY =
             new KeyBinding("key.pekaclient.chatEditor", Keyboard.KEY_NONE, "key.categories.pekaclient");
 
-    /** Default L: tap in a player inventory to lock, or hold while selecting a pair. */
+    /** Default L: hold over A, move to B, and release; releasing over A toggles that position lock. */
     public static final KeyBinding ITEM_LOCK_SWAP_KEY =
             new KeyBinding("key.pekaclient.itemLockSwap", Keyboard.KEY_L, "key.categories.pekaclient");
 

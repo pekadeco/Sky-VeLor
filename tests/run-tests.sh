@@ -40,6 +40,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapProtectionPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapInputStateTests
+java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapLineGeometryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSwapPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapTransformerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.ThemeTests

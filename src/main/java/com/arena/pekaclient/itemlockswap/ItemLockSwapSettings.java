@@ -17,8 +17,17 @@ public final class ItemLockSwapSettings {
     public static final int MAX_COOLDOWN_TENTHS = 50;
     public static final int MIN_ICON_OPACITY = 20;
     public static final int MAX_ICON_OPACITY = 100;
+    public static final int SWAP_LINES_ALWAYS = 0;
+    public static final int SWAP_LINES_ON_HOVER = 1;
+    public static final int SWAP_LINES_OFF = 2;
+    public static final int MIN_LINE_OPACITY = 20;
+    public static final int MAX_LINE_OPACITY = 100;
+    public static final int MIN_LINE_WIDTH = 1;
+    public static final int MAX_LINE_WIDTH = 4;
+    public static final int DEFAULT_LINE_WIDTH = 2;
 
     public static final String[] ICON_COLOR_NAMES = {"Gold", "Blue", "Purple", "Green", "Orange", "Teal"};
+    public static final String[] SWAP_LINE_MODE_NAMES = {"Always", "On hover", "Off"};
     public static final int[] ICON_COLORS = {
             0xFFFFC857, 0xFF0A84FF, 0xFFBF5AF2, 0xFF30D158, 0xFFFF9F0A, 0xFF64D2FF
     };
@@ -30,12 +39,18 @@ public final class ItemLockSwapSettings {
     public static int cooldownTenths = DEFAULT_COOLDOWN_TENTHS;
     public static int iconColor = 0;
     public static int iconOpacity = 100;
+    /** Persistent pair-center lines are visible by default; old configs simply receive this fresh-install default. */
+    public static int swapLineMode = SWAP_LINES_ALWAYS;
+    public static int swapLineColor = 0;
+    public static int swapLineOpacity = 100;
+    public static int swapLineWidth = DEFAULT_LINE_WIDTH;
     public static int keyCode = DEFAULT_KEY_CODE;
 
     private static final boolean[] LOCKED = new boolean[SLOT_COUNT];
     /** Prebuilt labels keep slider rendering allocation-free. */
     private static final String[] COOLDOWN_LABELS = makeCooldownLabels();
     private static final String[] OPACITY_LABELS = makeOpacityLabels();
+    private static final String[] LINE_WIDTH_LABELS = makeLineWidthLabels();
     private static final int[] PAIR_A = new int[MAX_PAIRS];
     private static final int[] PAIR_B = new int[MAX_PAIRS];
 
@@ -106,6 +121,16 @@ public final class ItemLockSwapSettings {
         return count;
     }
 
+    /** Bounded visual iteration access; returns -1 for an empty/nonexistent pair slot. */
+    static int pairFirstAt(int pairIndex) {
+        return pairIndex >= 0 && pairIndex < MAX_PAIRS ? PAIR_A[pairIndex] : -1;
+    }
+
+    /** Bounded visual iteration access; returns -1 for an empty/nonexistent pair slot. */
+    static int pairSecondAt(int pairIndex) {
+        return pairIndex >= 0 && pairIndex < MAX_PAIRS ? PAIR_B[pairIndex] : -1;
+    }
+
     /** Creates a pair only when both valid positions are currently unlocked and unused. */
     public static PairResult addPair(int first, int second) {
         if (!validSlot(first) || !validSlot(second) || first == second) return PairResult.INVALID;
@@ -155,6 +180,23 @@ public final class ItemLockSwapSettings {
         return clamp(iconOpacity, MIN_ICON_OPACITY, MAX_ICON_OPACITY) / 100f;
     }
 
+    public static int effectiveSwapLineColor() {
+        return ICON_COLORS[clamp(swapLineColor, 0, ICON_COLORS.length - 1)];
+    }
+
+    public static float swapLineAlpha() {
+        return clamp(swapLineOpacity, MIN_LINE_OPACITY, MAX_LINE_OPACITY) / 100f;
+    }
+
+    public static float swapLineWidth() {
+        return clamp(swapLineWidth, MIN_LINE_WIDTH, MAX_LINE_WIDTH);
+    }
+
+    public static boolean showPersistentSwapLines(int hoveredSlot) {
+        int mode = clamp(swapLineMode, SWAP_LINES_ALWAYS, SWAP_LINES_OFF);
+        return mode == SWAP_LINES_ALWAYS || (mode == SWAP_LINES_ON_HOVER && isPaired(hoveredSlot));
+    }
+
     public static String cooldownLabel(int tenths) {
         return COOLDOWN_LABELS[clamp(tenths, MIN_COOLDOWN_TENTHS, MAX_COOLDOWN_TENTHS)
                 - MIN_COOLDOWN_TENTHS];
@@ -162,6 +204,14 @@ public final class ItemLockSwapSettings {
 
     public static String iconOpacityLabel(int opacity) {
         return OPACITY_LABELS[clamp(opacity, MIN_ICON_OPACITY, MAX_ICON_OPACITY) - MIN_ICON_OPACITY];
+    }
+
+    public static String swapLineOpacityLabel(int opacity) {
+        return OPACITY_LABELS[clamp(opacity, MIN_LINE_OPACITY, MAX_LINE_OPACITY) - MIN_LINE_OPACITY];
+    }
+
+    public static String swapLineWidthLabel(int width) {
+        return LINE_WIDTH_LABELS[clamp(width, MIN_LINE_WIDTH, MAX_LINE_WIDTH) - MIN_LINE_WIDTH];
     }
 
     /** Loads absent legacy keys as fresh-install defaults and ignores malformed slot/pair lists safely. */
@@ -175,6 +225,12 @@ public final class ItemLockSwapSettings {
                 MIN_COOLDOWN_TENTHS, MAX_COOLDOWN_TENTHS);
         iconColor = integer(p, PREFIX + "iconColor", 0, 0, ICON_COLORS.length - 1);
         iconOpacity = integer(p, PREFIX + "iconOpacity", 100, MIN_ICON_OPACITY, MAX_ICON_OPACITY);
+        // These keys are intentionally optional so every pre-.6.3 config preserves its locks/pairs and gains defaults.
+        swapLineMode = integer(p, PREFIX + "swapLineMode", SWAP_LINES_ALWAYS,
+                SWAP_LINES_ALWAYS, SWAP_LINES_OFF);
+        swapLineColor = integer(p, PREFIX + "swapLineColor", 0, 0, ICON_COLORS.length - 1);
+        swapLineOpacity = integer(p, PREFIX + "swapLineOpacity", 100, MIN_LINE_OPACITY, MAX_LINE_OPACITY);
+        swapLineWidth = integer(p, PREFIX + "swapLineWidth", DEFAULT_LINE_WIDTH, MIN_LINE_WIDTH, MAX_LINE_WIDTH);
         keyCode = integer(p, PREFIX + "key", DEFAULT_KEY_CODE, 0, 255);
         clearLocks();
         clearPairs();
@@ -187,6 +243,10 @@ public final class ItemLockSwapSettings {
         cooldownTenths = clamp(cooldownTenths, MIN_COOLDOWN_TENTHS, MAX_COOLDOWN_TENTHS);
         iconColor = clamp(iconColor, 0, ICON_COLORS.length - 1);
         iconOpacity = clamp(iconOpacity, MIN_ICON_OPACITY, MAX_ICON_OPACITY);
+        swapLineMode = clamp(swapLineMode, SWAP_LINES_ALWAYS, SWAP_LINES_OFF);
+        swapLineColor = clamp(swapLineColor, 0, ICON_COLORS.length - 1);
+        swapLineOpacity = clamp(swapLineOpacity, MIN_LINE_OPACITY, MAX_LINE_OPACITY);
+        swapLineWidth = clamp(swapLineWidth, MIN_LINE_WIDTH, MAX_LINE_WIDTH);
         keyCode = clamp(keyCode, 0, 255);
         p.setProperty(PREFIX + "enabled", Boolean.toString(enabled));
         p.setProperty(PREFIX + "showLockIcons", Boolean.toString(showLockIcons));
@@ -195,6 +255,10 @@ public final class ItemLockSwapSettings {
         p.setProperty(PREFIX + "cooldownTenths", Integer.toString(cooldownTenths));
         p.setProperty(PREFIX + "iconColor", Integer.toString(iconColor));
         p.setProperty(PREFIX + "iconOpacity", Integer.toString(iconOpacity));
+        p.setProperty(PREFIX + "swapLineMode", Integer.toString(swapLineMode));
+        p.setProperty(PREFIX + "swapLineColor", Integer.toString(swapLineColor));
+        p.setProperty(PREFIX + "swapLineOpacity", Integer.toString(swapLineOpacity));
+        p.setProperty(PREFIX + "swapLineWidth", Integer.toString(swapLineWidth));
         p.setProperty(PREFIX + "key", Integer.toString(keyCode));
         p.setProperty(PREFIX + "locks", serializeLocks());
         p.setProperty(PREFIX + "pairs", serializePairs());
@@ -260,6 +324,14 @@ public final class ItemLockSwapSettings {
         String[] labels = new String[MAX_ICON_OPACITY - MIN_ICON_OPACITY + 1];
         for (int value = MIN_ICON_OPACITY; value <= MAX_ICON_OPACITY; value++) {
             labels[value - MIN_ICON_OPACITY] = Integer.toString(value) + "%";
+        }
+        return labels;
+    }
+
+    private static String[] makeLineWidthLabels() {
+        String[] labels = new String[MAX_LINE_WIDTH - MIN_LINE_WIDTH + 1];
+        for (int value = MIN_LINE_WIDTH; value <= MAX_LINE_WIDTH; value++) {
+            labels[value - MIN_LINE_WIDTH] = Integer.toString(value) + " px";
         }
         return labels;
     }

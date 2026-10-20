@@ -7,55 +7,46 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.Slot;
-import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.client.event.GuiContainerEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
-import java.lang.reflect.Field;
-import java.util.List;
-
-/** Shape-rendered, texture-free lock and pair indicators for live player inventory slots and the hotbar. */
+/**
+ * Shape-rendered, texture-free lock/pair indicators and drag lines for live player inventory slots and the hotbar.
+ * GuiContainerEvent.DrawForeground runs above item stacks but before dragged stacks and tooltips.
+ */
 public final class ItemLockSwapOverlay {
 
     private static final String[] PAIR_TEXT = {"1", "2", "3", "4", "5", "6", "7", "8"};
-    /** guiLeft/guiTop are protected, and their SRG/notch names must not be guessed at a call site every frame. */
-    private static final Field GUI_LEFT = findGuiField("guiLeft", "field_147003_i", "i");
-    private static final Field GUI_TOP = findGuiField("guiTop", "field_147009_r", "r");
-    /** Only non-negative while the L-held pair gesture awaits its second player-inventory slot. */
-    private static volatile int selectedSlot = -1;
+    private static final String DRAG_HINT = "Release L on another slot to create Item Swap";
+    private static final int VALID_TARGET = 0xFF30D158;
+    private static final int INVALID_TARGET = 0xFFFF453A;
+    private static final int HINT_BACKGROUND = 0xD9000000;
 
     @SubscribeEvent
-    public void onGuiDrawPost(GuiScreenEvent.DrawScreenEvent.Post event) {
-        if (event == null || !ItemLockSwapSettings.enabled || !(event.gui instanceof GuiContainer)
-                || (!ItemLockSwapSettings.showLockIcons && selectedSlot < 0)) {
-            return;
-        }
+    public void onGuiDrawForeground(GuiContainerEvent.DrawForeground event) {
+        if (event == null || !ItemLockSwapSettings.enabled) return;
+        GuiContainer gui = event.getGuiContainer();
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayerSP player = mc == null ? null : mc.thePlayer;
-        GuiContainer gui = (GuiContainer) event.gui;
-        if (player == null || gui.inventorySlots == null) return;
-        int left = reflectedInt(GUI_LEFT, gui);
-        int top = reflectedInt(GUI_TOP, gui);
+        if (gui == null || player == null || gui.inventorySlots == null) return;
+        int left = ItemLockSwapGuiAccess.guiLeft(gui);
+        int top = ItemLockSwapGuiAccess.guiTop(gui);
         if (left == Integer.MIN_VALUE || top == Integer.MIN_VALUE) return; // Reflection mismatch: draw nothing.
 
+        int mouseX = ItemLockSwapGuiAccess.currentMouseX(gui, mc);
+        int mouseY = ItemLockSwapGuiAccess.currentMouseY(gui, mc);
+        int hovered = ItemLockSwapGuiAccess.hoveredPlayerSlot(gui, player, mouseX, mouseY);
+        boolean held = ItemLockSwapController.isGestureHeld();
+        boolean persistent = ItemLockSwapSettings.showPersistentSwapLines(hovered);
+        if (!held && !persistent && !ItemLockSwapSettings.showLockIcons) return;
+
         Container container = gui.inventorySlots;
-        List<Slot> slots = container.inventorySlots;
-        if (slots == null) return;
         UIRender.beginFrame();
-        for (int i = 0; i < slots.size(); i++) {
-            Slot slot = slots.get(i);
-            if (slot == null || slot.inventory != player.inventory) continue;
-            int index = ItemLockSwapSlotMapper.fromPlayerInventorySlot(true, slot.getSlotIndex());
-            if (index < 0) continue;
-            float slotX = left + slot.xDisplayPosition;
-            float slotY = top + slot.yDisplayPosition;
-            if (index == selectedSlot) drawSelection(slotX, slotY);
-            if (ItemLockSwapSettings.showLockIcons
-                    && (ItemLockSwapSettings.showIconsOnHotbar || !ItemLockSwapSlotMapper.isHotbar(index))) {
-                drawBadge(slotX, slotY, index);
-            }
-        }
+        // Pair lines intentionally precede badges and the live line, keeping number markers readable.
+        if (persistent) drawPersistentPairLines(container, player, left, top, hovered);
+        if (held) drawLiveGesture(container, player, left, top, mouseX, mouseY, hovered);
+        if (ItemLockSwapSettings.showLockIcons) drawBadges(container, player, left, top);
         UIRender.endFrame();
     }
 
@@ -78,13 +69,94 @@ public final class ItemLockSwapOverlay {
         UIRender.endFrame();
     }
 
-    static void setSelectedSlot(int index) {
-        selectedSlot = ItemLockSwapSlotMapper.isPlayerInventoryIndex(index) ? index : -1;
+    private static void drawPersistentPairLines(Container container, EntityPlayerSP player, int left, int top,
+                                                int hovered) {
+        int color = UIRender.withAlpha(ItemLockSwapSettings.effectiveSwapLineColor(), ItemLockSwapSettings.swapLineAlpha());
+        float width = ItemLockSwapSettings.swapLineWidth();
+        // Eight is a fixed hard limit, so this remains bounded without any per-frame collection/allocation.
+        for (int i = 0; i < ItemLockSwapSettings.MAX_PAIRS; i++) {
+            int firstIndex = ItemLockSwapSettings.pairFirstAt(i);
+            int secondIndex = ItemLockSwapSettings.pairSecondAt(i);
+            if (firstIndex < 0 || secondIndex < 0) continue;
+            if (ItemLockSwapSettings.swapLineMode == ItemLockSwapSettings.SWAP_LINES_ON_HOVER
+                    && hovered != firstIndex && hovered != secondIndex) {
+                continue;
+            }
+            Slot first = ItemLockSwapGuiAccess.findPlayerSlot(container, player, firstIndex);
+            Slot second = ItemLockSwapGuiAccess.findPlayerSlot(container, player, secondIndex);
+            if (first == null || second == null) continue;
+            drawRoundLine(slotCenterX(left, first), slotCenterY(top, first),
+                    slotCenterX(left, second), slotCenterY(top, second), width, color);
+        }
     }
 
-    private static void drawSelection(float slotX, float slotY) {
-        // Yellow outline is intentionally independent of the configurable badge tint, matching the instruction cue.
-        UIRender.roundRectRing(slotX - 1f, slotY - 1f, 18f, 18f, 2f, 1.4f, 0xFFFFD60A);
+    private static void drawLiveGesture(Container container, EntityPlayerSP player, int left, int top,
+                                        int mouseX, int mouseY, int hovered) {
+        int startIndex = ItemLockSwapController.gestureStartSlot();
+        Slot start = ItemLockSwapGuiAccess.findPlayerSlot(container, player, startIndex);
+        if (start == null) return;
+        boolean valid = ItemLockSwapGesturePolicy.isValidPairTarget(startIndex, hovered);
+        int lineColor = UIRender.withAlpha(valid ? VALID_TARGET : INVALID_TARGET, 0.9f);
+        float startX = slotCenterX(left, start);
+        float startY = slotCenterY(top, start);
+        drawRoundLine(startX, startY, ItemLockSwapLineGeometry.cursorX(mouseX),
+                ItemLockSwapLineGeometry.cursorY(mouseY), ItemLockSwapSettings.swapLineWidth(), lineColor);
+
+        if (hovered >= 0) {
+            Slot target = ItemLockSwapGuiAccess.findPlayerSlot(container, player, hovered);
+            if (target != null) {
+                float targetX = left + target.xDisplayPosition;
+                float targetY = top + target.yDisplayPosition;
+                UIRender.roundRectRing(targetX - 1f, targetY - 1f, 18f, 18f, 3f, 2f,
+                        valid ? VALID_TARGET : INVALID_TARGET);
+            }
+        }
+        if (ItemLockSwapController.showGestureHint(System.currentTimeMillis())) {
+            drawHint(mcFont(), left, top);
+        }
+    }
+
+    private static void drawBadges(Container container, EntityPlayerSP player, int left, int top) {
+        if (container.inventorySlots == null) return;
+        for (int i = 0; i < container.inventorySlots.size(); i++) {
+            Slot slot = container.inventorySlots.get(i);
+            if (slot == null || slot.inventory != player.inventory) continue;
+            int index = ItemLockSwapSlotMapper.fromPlayerInventorySlot(true, slot.getSlotIndex());
+            if (index < 0 || (!ItemLockSwapSettings.showIconsOnHotbar && ItemLockSwapSlotMapper.isHotbar(index))) {
+                continue;
+            }
+            drawBadge(left + slot.xDisplayPosition, top + slot.yDisplayPosition, index);
+        }
+    }
+
+    private static void drawHint(net.minecraft.client.gui.FontRenderer font, int left, int top) {
+        if (font == null) return;
+        float x = left;
+        float y = Math.max(2f, top - 14f);
+        float width = font.getStringWidth(DRAG_HINT);
+        UIRender.roundRect(x - 3f, y - 2f, width + 6f, 12f, 3f, HINT_BACKGROUND, HINT_BACKGROUND, 0f);
+        UIRender.text(font, DRAG_HINT, x, y, 0xFFFFFFFF, 1f, true);
+    }
+
+    private static net.minecraft.client.gui.FontRenderer mcFont() {
+        Minecraft mc = Minecraft.getMinecraft();
+        return mc == null ? null : mc.fontRendererObj;
+    }
+
+    private static float slotCenterX(int left, Slot slot) {
+        return ItemLockSwapLineGeometry.slotCenterX(left, slot.xDisplayPosition);
+    }
+
+    private static float slotCenterY(int top, Slot slot) {
+        return ItemLockSwapLineGeometry.slotCenterY(top, slot.yDisplayPosition);
+    }
+
+    /** Rounded 1-4px line caps avoid the square-ended default primitive at every GUI scale. */
+    private static void drawRoundLine(float x1, float y1, float x2, float y2, float width, int color) {
+        UIRender.line(x1, y1, x2, y2, width, color);
+        float radius = Math.max(.5f, width * .5f);
+        UIRender.circle(x1, y1, radius, color);
+        UIRender.circle(x2, y2, radius, color);
     }
 
     /** Draws no badge at all for normal positions; this makes the hotbar path bounded and allocation-free. */
@@ -104,25 +176,6 @@ public final class ItemLockSwapOverlay {
             UIRender.circle(x + 3f, y + 4f, 4.6f, color);
             UIRender.text(Minecraft.getMinecraft().fontRendererObj, PAIR_TEXT[pair - 1], x + 1.1f, y + .1f,
                     0xFFFFFFFF, .72f, true);
-        }
-    }
-
-    private static Field findGuiField(String mcp, String srg, String notch) {
-        try {
-            Field field = ReflectionHelper.findField(GuiContainer.class, mcp, srg, notch);
-            field.setAccessible(true);
-            return field;
-        } catch (RuntimeException | LinkageError ignored) {
-            return null;
-        }
-    }
-
-    private static int reflectedInt(Field field, GuiContainer gui) {
-        if (field == null || gui == null) return Integer.MIN_VALUE;
-        try {
-            return field.getInt(gui);
-        } catch (IllegalAccessException | RuntimeException ignored) {
-            return Integer.MIN_VALUE;
         }
     }
 }

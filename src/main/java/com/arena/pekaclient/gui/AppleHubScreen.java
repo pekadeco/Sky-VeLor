@@ -208,7 +208,7 @@ public class AppleHubScreen extends AppleScreen {
 
         rows.add(Row.header(sections.get(1)));
         rows.add(Row.item(itemControls.get(0).getLabel(),
-                "Tap the key to lock a player-inventory position; hold it to create or remove a pair",
+                "Hold the key over A, move to B, then release it; release over A toggles that position lock",
                 new AppleToggle(() -> ItemLockSwapSettings.enabled, value -> ItemLockSwapSettings.enabled = value)));
         itemLockSwapKeyButton = new AppleKeybindButton(126f, 26f,
                 () -> PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode());
@@ -238,9 +238,27 @@ public class AppleHubScreen extends AppleScreen {
                         5, "", 126f, () -> ItemLockSwapSettings.iconOpacity,
                         value -> ItemLockSwapSettings.iconOpacity = value)
                         .valueLabel(ItemLockSwapSettings::iconOpacityLabel)));
-        rows.add(Row.item(itemControls.get(8).getLabel(), "Removes every saved position lock; empty positions are included",
+        rows.add(Row.item(itemControls.get(8).getLabel(), "Persistent pair-center lines: always visible, only for the hovered pair, or hidden",
+                new AppleDropdown(ItemLockSwapSettings.SWAP_LINE_MODE_NAMES, null,
+                        126f, 24f, () -> ItemLockSwapSettings.swapLineMode,
+                        value -> ItemLockSwapSettings.swapLineMode = value)));
+        rows.add(Row.item(itemControls.get(9).getLabel(), "Tint for persistent pair-center lines",
+                new AppleDropdown(ItemLockSwapSettings.ICON_COLOR_NAMES, ItemLockSwapSettings.ICON_COLORS,
+                        126f, 24f, () -> ItemLockSwapSettings.swapLineColor,
+                        value -> ItemLockSwapSettings.swapLineColor = value)));
+        rows.add(Row.item(itemControls.get(10).getLabel(), "Persistent pair-line transparency",
+                new AppleSlider(ItemLockSwapSettings.MIN_LINE_OPACITY, ItemLockSwapSettings.MAX_LINE_OPACITY,
+                        5, "", 126f, () -> ItemLockSwapSettings.swapLineOpacity,
+                        value -> ItemLockSwapSettings.swapLineOpacity = value)
+                        .valueLabel(ItemLockSwapSettings::swapLineOpacityLabel)));
+        rows.add(Row.item(itemControls.get(11).getLabel(), "Rounded persistent pair-line thickness",
+                new AppleSlider(ItemLockSwapSettings.MIN_LINE_WIDTH, ItemLockSwapSettings.MAX_LINE_WIDTH,
+                        1, "", 126f, () -> ItemLockSwapSettings.swapLineWidth,
+                        value -> ItemLockSwapSettings.swapLineWidth = value)
+                        .valueLabel(ItemLockSwapSettings::swapLineWidthLabel)));
+        rows.add(Row.item(itemControls.get(12).getLabel(), "Removes every saved position lock; empty positions are included",
                 new AppleButton("Clear locks", 104f, 26f, false, ItemLockSwapSettings::clearLocks)));
-        rows.add(Row.item(itemControls.get(9).getLabel(), "Removes every saved item-swap pair",
+        rows.add(Row.item(itemControls.get(13).getLabel(), "Removes every saved item-swap pair",
                 new AppleButton("Clear pairs", 104f, 26f, false, ItemLockSwapSettings::clearPairs)));
 
         // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/tab setting
@@ -275,7 +293,7 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
         rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
-        rows.add(Row.item("/velor lockdebug", "Shows Item Lock and Item Swap settings, locks, pairs and hook state", null));
+        rows.add(Row.item("/velor lockdebug", "Shows Item Lock/Swap settings, drag key/state/slots, last release decision and hook state", null));
         rows.add(Row.item("/velor selftest", "Shows Item Lock and Item Swap core-hook status", null));
         return rows;
     }

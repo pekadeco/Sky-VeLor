@@ -33,10 +33,14 @@ public final class QualityOfLifeUiModelTests {
                         && "Chat QoL".equals(QualityOfLifeUiModel.buildSectionTitles().get(2))
                         && "Commands".equals(QualityOfLifeUiModel.buildSectionTitles().get(3)));
         List<ItemLockSwapUiModel.Entry> itemLockSwap = ItemLockSwapUiModel.buildControlModel();
-        check("Item Lock/Swap dropdown owns ten non-duplicated shared-row controls", itemLockSwap.size() == 10
+        check("Item Lock/Swap dropdown owns fourteen non-duplicated shared-row controls", itemLockSwap.size() == 14
                 && uniqueItemLockSwapIds(itemLockSwap)
                 && "item-lock-swap-master".equals(itemLockSwap.get(0).getId())
-                && "item-lock-swap-clear-pairs".equals(itemLockSwap.get(9).getId()));
+                && "item-lock-swap-lines".equals(itemLockSwap.get(8).getId())
+                && "item-lock-swap-line-color".equals(itemLockSwap.get(9).getId())
+                && "item-lock-swap-line-opacity".equals(itemLockSwap.get(10).getId())
+                && "item-lock-swap-line-width".equals(itemLockSwap.get(11).getId())
+                && "item-lock-swap-clear-pairs".equals(itemLockSwap.get(13).getId()));
         check("Item Lock/Swap shared rows never overlap at the compact 40px row height",
                 hasNonOverlappingSharedRows(itemLockSwap));
 

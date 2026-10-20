@@ -43,10 +43,18 @@ final class ItemLockSwapGuiAccess {
                 : gui.height - Mouse.getY() * gui.height / Math.max(1, mc.displayHeight) - 1;
     }
 
+    static int guiLeft(GuiContainer gui) {
+        return reflectedInt(GUI_LEFT, gui);
+    }
+
+    static int guiTop(GuiContainer gui) {
+        return reflectedInt(GUI_TOP, gui);
+    }
+
     static int hoveredPlayerSlot(GuiContainer gui, EntityPlayer player, int mouseX, int mouseY) {
         if (gui == null || player == null || gui.inventorySlots == null) return -1;
-        int left = reflectedInt(GUI_LEFT, gui);
-        int top = reflectedInt(GUI_TOP, gui);
+        int left = guiLeft(gui);
+        int top = guiTop(gui);
         if (left == Integer.MIN_VALUE || top == Integer.MIN_VALUE || gui.inventorySlots.inventorySlots == null) return -1;
         List<Slot> slots = gui.inventorySlots.inventorySlots;
         // Iterate backward just like Minecraft's own slot hit-testing: overlapping modded slots honour visual z-order.

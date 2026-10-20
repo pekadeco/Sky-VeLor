@@ -24,6 +24,10 @@ public final class ItemLockSwapSettingsTests {
         check("2 second cooldown defaults", ItemLockSwapSettings.cooldownMillis() == 2000);
         check("lock icons and hotbar icons default on", ItemLockSwapSettings.showLockIcons
                 && ItemLockSwapSettings.showIconsOnHotbar);
+        check("swap lines default always, gold, opaque and 2px", ItemLockSwapSettings.swapLineMode
+                == ItemLockSwapSettings.SWAP_LINES_ALWAYS && ItemLockSwapSettings.swapLineColor == 0
+                && ItemLockSwapSettings.swapLineOpacity == 100
+                && ItemLockSwapSettings.swapLineWidth == ItemLockSwapSettings.DEFAULT_LINE_WIDTH);
         check("empty positions start unlocked", !ItemLockSwapSettings.isLocked(0) && !ItemLockSwapSettings.isLocked(39));
     }
 
@@ -62,6 +66,10 @@ public final class ItemLockSwapSettingsTests {
         ItemLockSwapSettings.cooldownTenths = 35;
         ItemLockSwapSettings.iconColor = 4;
         ItemLockSwapSettings.iconOpacity = 65;
+        ItemLockSwapSettings.swapLineMode = ItemLockSwapSettings.SWAP_LINES_ON_HOVER;
+        ItemLockSwapSettings.swapLineColor = 2;
+        ItemLockSwapSettings.swapLineOpacity = 55;
+        ItemLockSwapSettings.swapLineWidth = 3;
         ItemLockSwapSettings.toggleLock(8);
         ItemLockSwapSettings.toggleLock(36);
         ItemLockSwapSettings.addPair(9, 39);
@@ -70,7 +78,9 @@ public final class ItemLockSwapSettingsTests {
         ItemLockSwapSettings.load(p);
         check("settings round trip", !ItemLockSwapSettings.enabled && ItemLockSwapSettings.keyCode == 21
                 && ItemLockSwapSettings.cooldownMillis() == 3500 && ItemLockSwapSettings.iconColor == 4
-                && ItemLockSwapSettings.iconOpacity == 65);
+                && ItemLockSwapSettings.iconOpacity == 65 && ItemLockSwapSettings.swapLineMode
+                == ItemLockSwapSettings.SWAP_LINES_ON_HOVER && ItemLockSwapSettings.swapLineColor == 2
+                && ItemLockSwapSettings.swapLineOpacity == 55 && ItemLockSwapSettings.swapLineWidth == 3);
         check("locks round trip", ItemLockSwapSettings.isLocked(8) && ItemLockSwapSettings.isLocked(36));
         check("pair round trip", ItemLockSwapSettings.partnerOf(9) == 39 && ItemLockSwapSettings.pairCount() == 1);
 
@@ -81,9 +91,14 @@ public final class ItemLockSwapSettingsTests {
         ItemLockSwapSettings.load(malformed);
         check("bad slot data fails closed", ItemLockSwapSettings.isLocked(0) && ItemLockSwapSettings.isLocked(35)
                 && !ItemLockSwapSettings.isLocked(39));
-        check("valid pairs survive malformed neighbours", ItemLockSwapSettings.pairCount() == 1
-                && ItemLockSwapSettings.partnerOf(8) == 39);
+        check("legacy pairs survive without new line keys", ItemLockSwapSettings.pairCount() == 1
+                && ItemLockSwapSettings.partnerOf(8) == 39 && ItemLockSwapSettings.swapLineMode
+                == ItemLockSwapSettings.SWAP_LINES_ALWAYS && ItemLockSwapSettings.swapLineWidth == 2);
         check("ranges clamp", ItemLockSwapSettings.cooldownMillis() == 5000);
+        check("line visibility modes honor hover and off", ItemLockSwapSettings.showPersistentSwapLines(8)
+                && !ItemLockSwapSettings.showPersistentSwapLines(0));
+        ItemLockSwapSettings.swapLineMode = ItemLockSwapSettings.SWAP_LINES_OFF;
+        check("off mode suppresses every persistent line", !ItemLockSwapSettings.showPersistentSwapLines(8));
     }
 
     private static void keybindPolicy() {
