@@ -95,6 +95,7 @@ public final class ItemLockSwapSettingsTests {
                 && ItemLockSwapSettings.partnerOf(8) == 39 && ItemLockSwapSettings.swapLineMode
                 == ItemLockSwapSettings.SWAP_LINES_ALWAYS && ItemLockSwapSettings.swapLineWidth == 2);
         check("ranges clamp", ItemLockSwapSettings.cooldownMillis() == 5000);
+        ItemLockSwapSettings.swapLineMode = ItemLockSwapSettings.SWAP_LINES_ON_HOVER;
         check("line visibility modes honor hover and off", ItemLockSwapSettings.showPersistentSwapLines(8)
                 && !ItemLockSwapSettings.showPersistentSwapLines(0));
         ItemLockSwapSettings.swapLineMode = ItemLockSwapSettings.SWAP_LINES_OFF;
