@@ -1,5 +1,13 @@
 # Changelog
 
+## Beta-0.10.8.6.3.1v — 2026-10-20
+
+- Fixed paired Item Swap endpoint taps: pressing and releasing the default **L** on either endpoint now removes and persists that pair instead of locking the slot, removes its badges/line on the next overlay frame, and reports **Swap removed**. Existing A→partner drag removal and all other drag decisions are unchanged.
+- Fixed Default Chat `/msg` chronology with an immutable monotonically increasing arrival sequence. All, Party, Reply/custom, and closed-chat rebuilds now use sequence order rather than wall-clock timestamps, so A then B renders A above B even for same-millisecond arrivals; compact counter refreshes retain the original line position and do not add an echo entry.
+- Extended `/velor chatdebug` to report the last 10 logical server arrivals with each sequence number, active tab, matching tabs, and top-to-bottom display order.
+- Added endpoint-tap/persistence and same-millisecond/compact-position chronology regressions; updated the release verifier to audit the paired-tap feedback/persistence and sequence-order chat paths.
+- Updated display version to `Beta-0.10.8.6.3.1v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.6.3.1`.
+
 ## Beta-0.10.8.6.3v — 2026-10-20
 
 - Fixed Item Swap pairing by replacing the unreliable key-up/click selection flow with one physical-key poll in `GuiScreenEvent.DrawScreenEvent.Post`: press L over A, move to B, and release L to create A↔B without any mouse click.
