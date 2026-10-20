@@ -2,19 +2,11 @@
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and first-person held-item customization.
 
-## Features
+## Installation
 
-- Settings hub and movable HUD editor with dark and light themes.
-- Smooth, frame-rate-independent UI motion: soft hover and press feedback, animated toggles and sliders, a sliding segmented selector, a gently appearing dropdown, and responsive search-field focus.
-- Rounded animated buttons in the main/pause menu and Quick Note screen, with distinct primary, secondary and destructive styles.
-- Spirit Leap teammate picker, class labels, player heads and isolated preview.
-- A 1-14 Click in order terminal: a panel with fourteen numbered buttons in two rows of seven that takes
-  over the Floor VII / M7 Click in order chest, with the number to click now in green, the one after it in
-  yellow, a mistake counter, a timer, restart on `R`, close on `Esc` and a transparency toggle. `/terminal`
-  opens the same panel for practice.
-- Dungeon mob highlights, Floor VII overlays and dragon alerts.
-- Fishing and Slayer trackers, plus quick notes and client commands.
-- First-person held-item customization: item scale and equip-animation tempo sliders (50-200%), each with its own switch and a reset action.
+1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.7v.jar` in the Minecraft `mods` folder.
+3. Launch the Forge profile.
 
 ## Requirements
 
@@ -71,57 +63,6 @@ temporary and should not be included in source ZIPs.
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
 2. Put `SkyVeLor-1.8.9-Beta-0.10.7v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
-
-## First-person held item
-
-Both settings live under **First-person held item** in the settings hub, next to the appearance
-controls. Each has a switch (off means exactly 100%, i.e. untouched vanilla) and a 50-200% slider in
-10% steps. Values are read every frame, so a change is visible immediately, and
-`AppleHubScreen.onGuiClosed()` saves them to `skyvelor.properties`. Loaded values are clamped to the
-slider range, so a hand-edited or corrupt file cannot produce an unusable setting. **Reset held item**
-puts both back to 100%.
-
-- **Item scale** wraps the first-person draw call in a uniform scale. Swords, tools, blocks, bows,
-  maps and the bare arm all scale together, because in 1.8.9 they share one call
-  (`ItemRenderer.renderItemInFirstPerson`). At 100% no matrix operation is issued at all, so the
-  default appearance is the vanilla one exactly. The water, fire and pumpkin overlay screens are a
-  separate call and are deliberately not scaled, and other players and third person are unaffected.
-- **Animation speed** changes the tempo of the equip transition: the slide out and back in when you
-  change the held item, and the settle when you pick one up. It rescales the per-tick step of the
-  vanilla interpolation and clamps it so the value cannot pass its target, so the motion stays smooth
-  and monotonic with no jump or jitter.
-
-Deliberately **not** affected by animation speed, because they are gameplay state rather than
-renderer state:
-
-- the arm swing, which comes from the player entity's swing progress;
-- bow draw, eating and drinking, which are driven by the item-use counter;
-- attack cooldowns, block breaking and anything else a server can observe.
-
-Both settings are client-side and visual only. No potion effect is applied and there is no Haste
-option; nothing about combat or movement mechanics changes.
-
-Implementation note: Minecraft 1.8.9 keeps two references to the first-person renderer.
-`EntityRenderer` captures one in its own `final` field during construction and every render and update
-call goes through that field, while `Minecraft.itemRenderer` is only where the instance is created.
-`FirstPersonItemSetup` installs the custom renderer into the `EntityRenderer` field that is actually
-read, and points `Minecraft`'s field at the same instance so both agree. It locates those fields by
-declared type rather than by name, because the release jar is reobfuscated to SRG names and a
-development name such as `itemRenderer` does not exist at runtime.
-
-## Compatibility and testing limits
-
-The project targets desktop Java 8. Android/Pojav compatibility is a goal but is not verified; the renderer swap uses `java.lang.reflect` to clear a `final` modifier, which is a Java 8 technique and is not guaranteed on a newer runtime.
-
-Automated tests cover logic, settings and configuration. They do not launch Minecraft, so they cannot prove what the held item looks like on screen. The release jar is verified structurally with `tools/verify_release_jar.py`, which confirms the artifact is the mod and not a ForgeGradle intermediate, that it carries the right version metadata, and that it was really reobfuscated to SRG names. Rendering and gameplay still need a human pass in Minecraft 1.8.9 with Forge before a release is published.
-
-## Terminal GUI fix in Beta-0.10.6.5v
-
-The fourteen numbered buttons were not drawn when the Click in order chest could not be read, so the panel
-appeared empty in game while the `/terminal` preview was fine. The buttons are now always drawn and always
-clickable, and the number of each item is read from its name, its lore or a stained glass pane's stack
-size. The root cause, the change and the full verification (including the offline GUI test rig in
-`tools/terminal-verify` and the release build report) are in `VERIFICATION.md`.
 
 ## License and credits
 
