@@ -12,13 +12,12 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 /**
- * Owns L gestures, pair selection, manual paired-slot swaps, cooldown feedback and diagnostics. Normal protection
- * remains in the core hook so every vanilla click route is stopped before it can emit a packet.
+ * Owns the polled L-key drag gesture, manual paired-slot swaps, cooldown feedback and diagnostics. Normal
+ * protection remains in the core hook so every vanilla click route is stopped before it can emit a packet.
  */
 public final class ItemLockSwapController {
 
@@ -26,173 +25,137 @@ public final class ItemLockSwapController {
     private static ItemLockSwapController live;
 
     private final ItemLockSwapInputState input = new ItemLockSwapInputState();
-    private int selectedSlot = -1;
     private long lastSwapAt;
     private long lastMessageAt;
+    /** Updated only on a transition/release, never once per render frame. */
+    private String lastDecision = "none";
 
     public ItemLockSwapController() {
         live = this;
     }
 
+    /**
+     * Key events are used only to keep a rebound inventory key out of vanilla while the screen owns it. Release
+     * detection intentionally happens below by polling {@link Keyboard#isKeyDown(int)} in DrawScreenEvent.Post;
+     * several 1.8.9 GUI bridges do not reliably post key-up callbacks to GuiScreenEvent.KeyboardInputEvent.
+     */
     @SubscribeEvent
     public void onKeyboard(GuiScreenEvent.KeyboardInputEvent.Pre event) {
-        if (event == null || !isFeatureKey()) return;
-        GuiScreen screen = event.gui;
-        if (!ItemLockSwapSettings.enabled || !(screen instanceof GuiContainer)
-                || ItemLockSwapGuiAccess.hasFocusedTextField(screen)) {
-            cancelSelection();
+        if (event == null || !isFeatureKeyEvent() || !ItemLockSwapSettings.enabled
+                || !(event.gui instanceof GuiContainer) || ItemLockSwapGuiAccess.hasFocusedTextField(event.gui)) {
             return;
         }
-        if (Keyboard.getEventKeyState()) {
-            input.press(System.currentTimeMillis());
-            // Repeated key-down events must not leak a conflicting rebind into vanilla inventory handling.
-            event.setCanceled(true);
-            return;
-        }
-        if (!input.isDown()) return;
-        releaseGesture(screen);
         event.setCanceled(true);
     }
 
     /**
-     * Some 1.8.9 GUI bridges post only keyboard-down callbacks. Polling the physical key only while a gesture is
-     * armed gives tap release the same semantics on those launchers without allocating in the render path.
+     * The physical key is sampled after every GUI draw. This is the sole press/release state-machine path: an
+     * IDLE -> HELD transition records the slot under L-down, and a HELD -> IDLE transition decides the release.
      */
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !input.isDown()) return;
-        int key = PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode();
-        if (key <= 0 || !Keyboard.isCreated() || Keyboard.isKeyDown(key)) return;
-        Minecraft mc = Minecraft.getMinecraft();
-        GuiScreen screen = mc == null ? null : mc.currentScreen;
-        if (!(screen instanceof GuiContainer) || ItemLockSwapGuiAccess.hasFocusedTextField(screen)) {
-            cancelSelection();
+    public void onGuiDrawPost(GuiScreenEvent.DrawScreenEvent.Post event) {
+        if (event == null || !(event.gui instanceof GuiContainer)) {
+            cancelForScreenChange();
             return;
         }
-        releaseGesture(screen);
-    }
-
-    private void releaseGesture(GuiScreen screen) {
+        GuiContainer gui = (GuiContainer) event.gui;
+        boolean keyDown = isBoundKeyDown();
+        if (!ItemLockSwapSettings.enabled || ItemLockSwapGuiAccess.hasFocusedTextField(gui)) {
+            // Keep the physical edge consumed while a search/chat field owns the keyboard; fail closed on reflection.
+            input.ignore(keyDown);
+            return;
+        }
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayerSP player = mc == null ? null : mc.thePlayer;
-        int hovered = player == null ? -1 : ItemLockSwapGuiAccess.hoveredPlayerSlot((GuiContainer) screen, player,
-                ItemLockSwapGuiAccess.mouseX(screen, mc), ItemLockSwapGuiAccess.mouseY(screen, mc));
-        boolean tap = input.releaseIsTap(System.currentTimeMillis());
-        if (tap && hovered >= 0) toggleHoveredLock(hovered);
-        // A release always abandons only an unfinished first-pick; completed pairs are already persisted.
-        setSelectedSlot(-1);
+        if (player == null) {
+            input.ignore(keyDown);
+            return;
+        }
+        int hover = ItemLockSwapGuiAccess.hoveredPlayerSlot(gui, player,
+                ItemLockSwapGuiAccess.currentMouseX(gui, mc), ItemLockSwapGuiAccess.currentMouseY(gui, mc));
+        int transition = input.poll(keyDown, hover, System.currentTimeMillis());
+        if (transition == ItemLockSwapInputState.STARTED) {
+            lastDecision = "key down over slot " + input.startSlot();
+        } else if (transition == ItemLockSwapInputState.RELEASED) {
+            releaseGesture(input.releasedStartSlot(), input.releasedSlot());
+        }
     }
 
+    /**
+     * Paired slots still manually swap through normal clicks. While the L gesture is held, every pressed container
+     * mouse button is swallowed before GuiContainer can start a drag, pickup, quick-move, or paint operation.
+     */
     @SubscribeEvent
     public void onMouse(GuiScreenEvent.MouseInputEvent.Pre event) {
         if (event == null || !(event.gui instanceof GuiContainer) || !ItemLockSwapSettings.enabled) return;
-        int button = Mouse.getEventButton();
-        if ((button != 0 && button != 1) || !Mouse.getEventButtonState()) return;
         GuiContainer gui = (GuiContainer) event.gui;
         if (ItemLockSwapGuiAccess.hasFocusedTextField(gui)) {
-            cancelSelection();
+            input.ignore(isBoundKeyDown());
             return;
         }
+        if (!Mouse.getEventButtonState()) return;
+        if (input.isHeld() || isBoundKeyDown()) {
+            event.setCanceled(true);
+            return;
+        }
+        int button = Mouse.getEventButton();
+        if (button != 0 && button != 1) return;
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayerSP player = mc == null ? null : mc.thePlayer;
         if (player == null) return;
-        int mouseX = ItemLockSwapGuiAccess.mouseX(gui, mc);
-        int mouseY = ItemLockSwapGuiAccess.mouseY(gui, mc);
-        int slot = ItemLockSwapGuiAccess.hoveredPlayerSlot(gui, player, mouseX, mouseY);
-        if (input.isDown()) {
-            if (slot < 0) {
-                // Clicking a chest/crafting/mod slot is still a slot click, so it cannot turn a short L press into a lock.
-                if (ItemLockSwapGuiAccess.hasContainerSlotAt(gui, mouseX, mouseY)) input.markSlotClick();
-                return;
-            }
-            input.markSlotClick();
-            event.setCanceled(true);
-            selectForPair(slot);
-            return;
-        }
-        if (slot < 0) return;
-        if (ItemLockSwapSettings.isPaired(slot)) {
+        int slot = ItemLockSwapGuiAccess.hoveredPlayerSlot(gui, player,
+                ItemLockSwapGuiAccess.mouseX(gui, mc), ItemLockSwapGuiAccess.mouseY(gui, mc));
+        if (slot >= 0 && ItemLockSwapSettings.isPaired(slot)) {
             event.setCanceled(true);
             swapWithPartner(gui, player, slot);
         }
     }
 
-    /** Avoids a stuck held key/outline if a user opens chat, changes GUI, dies, or closes inventory before release. */
+    /** Avoids a stuck held outline if a user opens chat, changes GUI, dies, or closes inventory before release. */
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent event) {
-        // A screen transition never carries an unfinished selection into another container, even when both are GUI containers.
-        cancelSelection();
+        if (input.isHeld()) lastDecision = "GUI changed: gesture canceled";
+        // A key held through the transition must be released before it can begin another drag in the next container.
+        input.ignore(isBoundKeyDown());
     }
 
-    private static boolean isFeatureKey() {
-        int key = Keyboard.getEventKey();
-        return key > 0 && key == PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode();
-    }
-
-    private void toggleHoveredLock(int slot) {
+    private void releaseGesture(int startSlot, int releaseSlot) {
         if (!ItemLockSwapHookStatus.isWindowClickActive()) {
-            message("Item Lock is unavailable: window-click hook is inactive");
+            lastDecision = "window-click hook inactive: gesture refused";
+            message("Item Lock and Item Swap are unavailable: window-click hook is inactive");
             return;
         }
-        ItemLockSwapSettings.LockResult result = ItemLockSwapSettings.toggleLock(slot);
-        switch (result) {
+        ItemLockSwapGesturePolicy.Decision decision = ItemLockSwapGesturePolicy.release(startSlot, releaseSlot);
+        lastDecision = decision.reason();
+        switch (decision) {
             case LOCKED:
                 message("Item position locked");
                 break;
             case UNLOCKED:
                 message("Item position unlocked");
                 break;
-            case PAIRED:
-                message("Cannot lock: position belongs to an Item Swap pair");
+            case PAIR_CREATED:
+                message("Item Swap pair " + ItemLockSwapSettings.pairNumber(releaseSlot) + " created");
                 break;
-            default:
+            case PAIR_REMOVED:
+                message("Item Swap pair removed");
                 break;
-        }
-    }
-
-    private void selectForPair(int slot) {
-        if (!ItemLockSwapHookStatus.isWindowClickActive()) {
-            message("Item Swap is unavailable: window-click hook is inactive");
-            setSelectedSlot(-1);
-            return;
-        }
-        if (ItemLockSwapSettings.isPaired(slot)) {
-            ItemLockSwapSettings.removePairContaining(slot);
-            setSelectedSlot(-1);
-            message("Item Swap pair removed");
-            return;
-        }
-        if (ItemLockSwapSettings.isLocked(slot)) {
-            message("Cannot pair: item position is locked");
-            return;
-        }
-        if (selectedSlot < 0) {
-            setSelectedSlot(slot);
-            message("Click the second slot");
-            return;
-        }
-        if (slot == selectedSlot) {
-            setSelectedSlot(-1);
-            message("Select two different slots");
-            return;
-        }
-        ItemLockSwapSettings.PairResult result = ItemLockSwapSettings.addPair(selectedSlot, slot);
-        setSelectedSlot(-1);
-        switch (result) {
-            case ADDED:
-                message("Item Swap pair " + ItemLockSwapSettings.pairNumber(slot) + " created");
-                break;
-            case LOCKED:
+            case REFUSED_LOCKED:
                 message("Cannot pair: item position is locked");
                 break;
-            case ALREADY_PAIRED:
-                message("Cannot pair: position already belongs to a pair");
+            case REFUSED_ALREADY_PAIRED:
+                // This exact concise reason is also displayed for a paired start dropped onto a non-partner.
+                message("Slot is already paired");
                 break;
-            case FULL:
+            case REFUSED_FULL:
                 message("Cannot pair: maximum of 8 pairs reached");
                 break;
-            default:
+            case REFUSED_INVALID:
                 message("Cannot pair: select two different player inventory slots");
+                break;
+            case CANCELED:
+            default:
+                // Empty-space release deliberately leaves locks and pairs unchanged and remains quiet.
                 break;
         }
     }
@@ -258,14 +221,36 @@ public final class ItemLockSwapController {
         }
     }
 
-    private void setSelectedSlot(int slot) {
-        selectedSlot = slot;
-        ItemLockSwapOverlay.setSelectedSlot(slot);
+    private static boolean isFeatureKeyEvent() {
+        int key = Keyboard.getEventKey();
+        return key > 0 && key == PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode();
     }
 
-    private void cancelSelection() {
+    private static boolean isBoundKeyDown() {
+        int key = PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode();
+        return key > 0 && Keyboard.isCreated() && Keyboard.isKeyDown(key);
+    }
+
+    private void cancelForScreenChange() {
+        if (input.isHeld()) lastDecision = "GUI closed: gesture canceled";
         input.cancel();
-        setSelectedSlot(-1);
+    }
+
+    /** Package-visible foreground snapshot; no object is allocated while the overlay reads it each frame. */
+    static boolean isGestureHeld() {
+        return live != null && live.input.isHeld();
+    }
+
+    static int gestureStartSlot() {
+        return live == null ? -1 : live.input.startSlot();
+    }
+
+    static int gestureHoveredSlot() {
+        return live == null ? -1 : live.input.hoveredSlot();
+    }
+
+    static boolean showGestureHint(long now) {
+        return live != null && live.input.hasHeldFor(now, 150L);
     }
 
     /** Called by injected hooks only when an actual protected action is cancelled before packet construction. */
@@ -278,9 +263,16 @@ public final class ItemLockSwapController {
         ItemLockSwapController controller = live;
         long remaining = controller == null ? 0L : ItemLockSwapSwapPolicy.remainingMillis(System.currentTimeMillis(),
                 controller.lastSwapAt, ItemLockSwapSettings.cooldownMillis());
+        String state = controller == null ? "IDLE" : controller.input.stateName();
+        boolean keyDown = controller != null && controller.input.isPhysicalDown();
+        int start = controller == null ? -1 : controller.input.startSlot();
+        int hover = controller == null ? -1 : controller.input.hoveredSlot();
+        String decision = controller == null ? "controller unavailable" : controller.lastDecision;
         return "enabled=" + ItemLockSwapSettings.enabled + ", locks=" + lockCount() + ", pairs="
-                + ItemLockSwapSettings.pairCount() + ", key=" + ItemLockSwapSettings.keyCode + ", cooldown="
-                + ItemLockSwapSettings.cooldownMillis() + "ms, remaining=" + remaining + "ms, windowClick="
+                + ItemLockSwapSettings.pairCount() + ", key=" + ItemLockSwapSettings.keyCode + ", keyDown="
+                + keyDown + ", state=" + state + ", startSlot=" + start + ", hoverSlot=" + hover
+                + ", lastDecision=" + decision + ", cooldown=" + ItemLockSwapSettings.cooldownMillis()
+                + "ms, remaining=" + remaining + "ms, windowClick="
                 + (ItemLockSwapHookStatus.isWindowClickActive() ? "ACTIVE" : "FAILED") + ", drop="
                 + (ItemLockSwapHookStatus.isDropActive() ? "ACTIVE" : "FAILED") + ".";
     }

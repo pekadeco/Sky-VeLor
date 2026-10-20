@@ -32,6 +32,17 @@ final class ItemLockSwapGuiAccess {
                 : gui.height - Mouse.getEventY() * gui.height / Math.max(1, mc.displayHeight) - 1;
     }
 
+    /** Current pointer position for per-frame polling; Mouse event coordinates can be stale on a key release. */
+    static int currentMouseX(GuiScreen gui, Minecraft mc) {
+        return gui == null || mc == null ? -1 : Mouse.getX() * gui.width / Math.max(1, mc.displayWidth);
+    }
+
+    /** Current pointer position for per-frame polling; use with {@link #currentMouseX(GuiScreen, Minecraft)}. */
+    static int currentMouseY(GuiScreen gui, Minecraft mc) {
+        return gui == null || mc == null ? -1
+                : gui.height - Mouse.getY() * gui.height / Math.max(1, mc.displayHeight) - 1;
+    }
+
     static int hoveredPlayerSlot(GuiContainer gui, EntityPlayer player, int mouseX, int mouseY) {
         if (gui == null || player == null || gui.inventorySlots == null) return -1;
         int left = reflectedInt(GUI_LEFT, gui);
