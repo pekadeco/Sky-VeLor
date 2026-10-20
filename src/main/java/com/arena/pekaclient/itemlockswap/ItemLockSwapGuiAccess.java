@@ -12,13 +12,18 @@ import org.lwjgl.input.Mouse;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Mapping-safe access to a GuiContainer's coordinates and strictly local InventoryPlayer slots. */
 final class ItemLockSwapGuiAccess {
 
     private static final Field GUI_LEFT = findGuiField("guiLeft", "field_147003_i", "i");
     private static final Field GUI_TOP = findGuiField("guiTop", "field_147009_r", "r");
+    /** Concrete screen class -> all instance fields once; DrawScreen polling must not allocate reflection arrays per frame. */
+    private static final Map<Class<?>, Field[]> TEXT_FIELD_CACHE = new HashMap<Class<?>, Field[]>();
 
     private ItemLockSwapGuiAccess() {
     }
@@ -103,30 +108,51 @@ final class ItemLockSwapGuiAccess {
      */
     static boolean hasFocusedTextField(GuiScreen screen) {
         if (screen == null) return true;
-        for (Class<?> type = screen.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
-            Field[] fields = type.getDeclaredFields();
-            for (int i = 0; i < fields.length; i++) {
-                Field field = fields[i];
-                if (Modifier.isStatic(field.getModifiers())) continue;
-                try {
-                    field.setAccessible(true);
-                    Object value = field.get(screen);
-                    if (value instanceof GuiTextField && ((GuiTextField) value).isFocused()) return true;
-                    // A few modded inventory screens keep search fields in a list rather than a named field.
-                    if (value instanceof List) {
-                        List<?> textFields = (List<?>) value;
-                        for (int k = 0; k < textFields.size(); k++) {
-                            Object candidate = textFields.get(k);
-                            if (candidate instanceof GuiTextField && ((GuiTextField) candidate).isFocused()) return true;
-                        }
+        Field[] fields = focusedTextFields(screen.getClass());
+        if (fields == null) return true; // Security/reflection uncertainty must disable selection.
+        for (int i = 0; i < fields.length; i++) {
+            try {
+                Object value = fields[i].get(screen);
+                if (value instanceof GuiTextField && ((GuiTextField) value).isFocused()) return true;
+                // A few modded inventory screens keep search fields in a list rather than a named field.
+                if (value instanceof List) {
+                    List<?> textFields = (List<?>) value;
+                    for (int k = 0; k < textFields.size(); k++) {
+                        Object candidate = textFields.get(k);
+                        if (candidate instanceof GuiTextField && ((GuiTextField) candidate).isFocused()) return true;
                     }
-                } catch (IllegalAccessException | RuntimeException ignored) {
-                    // Reflection uncertainty must disable selection rather than risk consuming a focused text field.
-                    return true;
                 }
+            } catch (IllegalAccessException | RuntimeException ignored) {
+                // Reflection uncertainty must disable selection rather than risk consuming a focused text field.
+                return true;
             }
         }
         return false;
+    }
+
+    /** Caches the complete field walk once per concrete GUI class; null means fail closed. */
+    private static Field[] focusedTextFields(Class<?> screenClass) {
+        synchronized (TEXT_FIELD_CACHE) {
+            if (TEXT_FIELD_CACHE.containsKey(screenClass)) return TEXT_FIELD_CACHE.get(screenClass);
+            try {
+                ArrayList<Field> all = new ArrayList<Field>();
+                for (Class<?> type = screenClass; type != null && type != Object.class; type = type.getSuperclass()) {
+                    Field[] declared = type.getDeclaredFields();
+                    for (int i = 0; i < declared.length; i++) {
+                        Field field = declared[i];
+                        if (Modifier.isStatic(field.getModifiers())) continue;
+                        field.setAccessible(true);
+                        all.add(field);
+                    }
+                }
+                Field[] result = all.toArray(new Field[all.size()]);
+                TEXT_FIELD_CACHE.put(screenClass, result);
+                return result;
+            } catch (RuntimeException ignored) {
+                TEXT_FIELD_CACHE.put(screenClass, null);
+                return null;
+            }
+        }
     }
 
     private static Field findGuiField(String mcp, String srg, String notch) {

@@ -16,6 +16,7 @@ public final class ItemLockSwapInputStateTests {
         sameSlotTogglesRegardlessOfHoldLength();
         cancellationAndRepeatedKeyDownAreSafe();
         pairedAndLockedReleaseRules();
+        validatesLiveTargetHighlightRules();
         supportsHotbarArmorAndPairLimit();
         closeFocusAndClickSwallowRules();
         System.out.println("item lock/swap input state: passed " + passed + ", failed " + failed);
@@ -92,6 +93,20 @@ public final class ItemLockSwapInputStateTests {
         handler.frame(true, 4, 4, 90L);
         check("already paired target refuses", handler.frame(false, 24, 4, 100L)
                 == ItemLockSwapGesturePolicy.Decision.REFUSED_ALREADY_PAIRED && !ItemLockSwapSettings.isPaired(0));
+    }
+
+    private static void validatesLiveTargetHighlightRules() {
+        reset();
+        check("new unlocked target is green-valid", ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
+        check("same slot is red-invalid", !ItemLockSwapGesturePolicy.isValidPairTarget(0, 0));
+        ItemLockSwapSettings.toggleLock(1);
+        check("locked target is red-invalid", !ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
+        ItemLockSwapSettings.toggleLock(1);
+        ItemLockSwapSettings.addPair(1, 2);
+        check("already paired target is red-invalid", !ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
+        ItemLockSwapSettings.clearPairs();
+        ItemLockSwapSettings.addPair(0, 1);
+        check("paired partner is a valid green removal target", ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
     }
 
     private static void supportsHotbarArmorAndPairLimit() {

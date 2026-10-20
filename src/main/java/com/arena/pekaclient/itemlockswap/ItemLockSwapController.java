@@ -274,7 +274,9 @@ public final class ItemLockSwapController {
                 + ", lastDecision=" + decision + ", cooldown=" + ItemLockSwapSettings.cooldownMillis()
                 + "ms, remaining=" + remaining + "ms, windowClick="
                 + (ItemLockSwapHookStatus.isWindowClickActive() ? "ACTIVE" : "FAILED") + ", drop="
-                + (ItemLockSwapHookStatus.isDropActive() ? "ACTIVE" : "FAILED") + ".";
+                + (ItemLockSwapHookStatus.isDropActive() ? "ACTIVE" : "FAILED") + ", foreground="
+                + (ItemLockSwapHookStatus.isForegroundActive() ? "ACTIVE" : "UNAVAILABLE") + " ("
+                + ItemLockSwapHookStatus.getForegroundReason() + ").";
     }
 
     private static int lockCount() {

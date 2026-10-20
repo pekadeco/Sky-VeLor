@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.6.2.1v
+# Sky VeLor — Beta-0.10.8.6.3v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -57,7 +57,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.6.2.1v.jar --version Beta-0.10.8.6.2.1v --mcmod-version 0.10.8.6.2.1
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.6.3v.jar --version Beta-0.10.8.6.3v --mcmod-version 0.10.8.6.3
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -68,27 +68,32 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.6.2.1v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.6.3v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap
 
 Open **Quality of Life → Item Lock and Item Swap**. The feature is on by default and uses **L** by default (the
-key can be rebound there or in Controls). In a player-inventory slot, tap the key for under 300 ms without clicking
-a slot to lock or unlock that *position*; locks persist for hotbar `0–8`, main inventory `9–35`, boots `36`, leggings
-`37`, chestplate `38`, and helmet `39`, including empty positions.
+key can be rebound there or in Controls). Hover a player-inventory position **A**, press and hold the key, move the
+pointer to **B**, then release the key — no mouse click is part of pairing. Releasing over A toggles that position lock
+at any hold duration; releasing over empty space cancels unchanged. Locks persist for hotbar `0–8`, main inventory
+`9–35`, boots `36`, leggings `37`, chestplate `38`, and helmet `39`, including empty positions.
 
-Hold the key and click two unlocked player-inventory slots to create one of up to eight pairs. The first selection
-has a yellow outline and is cancelled when the key is released; holding the key while clicking either endpoint of an
-existing pair removes that pair. Left- or right-clicking a paired slot with an empty cursor swaps it with its partner
-through the normal client controller after both destinations have been checked, including armor placement. The
-cooldown defaults to 2 seconds; an invalid armor placement reports **Cannot swap: item does not fit**.
+Release A over a different unlocked, unpaired player position to create one of up to eight pairs. Releasing a paired
+A over its partner removes that pair; releasing it over any other player slot refuses with **Slot is already paired**.
+Locked targets, already-paired targets, duplicate endpoints, and a ninth pair are refused without mutation. While the
+key is held, container mouse clicks are swallowed, a 150 ms hint appears, and a live A-to-cursor line plus green/red
+target ring make the decision visible. Left- or right-clicking a paired slot with an empty cursor still swaps it with
+its partner through the normal client controller after both destinations have been checked, including armor placement.
+The cooldown defaults to 2 seconds; an invalid armor placement reports **Cannot swap: item does not fit**.
 
 Locks and pairs block normal window-click modes, number-key sources/destinations, drag/collect routes, and selected
 hotbar Q/Ctrl+Q drops before packets are sent. The configurable top-right padlock and numbered pair badges are
-shape-rendered, can be tinted/translucent, and can remain visible on the hotbar. `/velor lockdebug` reports live
-state; `/velor selftest` reports the fail-closed hook status. If the window-click hook is unavailable, selection and
-manual swaps intentionally do nothing rather than implying protection.
+shape-rendered, can be tinted/translucent, and can remain visible on the hotbar. Persistent rounded pair-center lines
+can be set to **Always**, **On hover**, or **Off** (default: Always), with independent tint, opacity, and 1–4 px width.
+`/velor lockdebug` reports the live key, drag state/start/hover slots, and last decision; `/velor selftest` reports the
+fail-closed hook status. If the window-click hook is unavailable, selection and manual swaps intentionally do nothing
+rather than implying protection.
 
 ## Item Animation — Renderer
 

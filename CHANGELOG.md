@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta-0.10.8.6.3v — 2026-10-20
+
+- Fixed Item Swap pairing by replacing the unreliable key-up/click selection flow with one physical-key poll in `GuiScreenEvent.DrawScreenEvent.Post`: press L over A, move to B, and release L to create A↔B without any mouse click.
+- Releasing over A now toggles its lock at any hold length; empty-space release cancels; paired A→partner removes the pair; paired A→other, locked/already-paired targets, duplicate endpoints, and a ninth pair refuse without mutating saved pairs.
+- Added a held-150 ms instruction, live rounded start-to-cursor line, valid/invalid target ring, and persistent rounded pair-center lines drawn above items but below tooltips at every GUI scale.
+- Added **Swap lines** (Always/On hover/Off), line tint, opacity, and 1–4 px width controls. Existing `itemLockSwap.pairs` data and old configs load unchanged, with Always/2 px line defaults.
+- Extended `/velor lockdebug` with physical key state, drag state/start/hover slots, and the last release decision. Added mock-grid/mock-keyboard polling, release, pair/lock/cancel/repeat/close/click-swallow, armor/hotbar/max-pair, config, and line-endpoint regressions.
+- Updated display version to `Beta-0.10.8.6.3v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.6.3`.
+
 ## Beta-0.10.8.6.2.1v — 2026-10-20
 
 - Added client-side Item Lock and Item Swap: persistent 0–39 player-inventory position locks, up to eight pairs, default-L tap/hold selection, manual paired-slot swaps with armor-fit and cooldown protection, configurable shape badges, and the Quality of Life dropdown.

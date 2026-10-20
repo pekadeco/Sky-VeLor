@@ -10,7 +10,8 @@ import java.util.Map;
 
 /**
  * Forge 1.8.9 coremod entry point for narrow Item Animation/particle visual hooks plus the fail-closed Item Lock /
- * Swap packet guards. None replaces a vanilla renderer, container, inventory, or network handler.
+ * Swap packet guards plus its one GuiContainer foreground draw callback. None replaces a vanilla renderer,
+ * container, inventory, or network handler.
  */
 @IFMLLoadingPlugin.Name("Sky VeLor Visual Hooks")
 @IFMLLoadingPlugin.MCVersion("1.8.9")

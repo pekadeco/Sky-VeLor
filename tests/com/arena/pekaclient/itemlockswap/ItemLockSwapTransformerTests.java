@@ -12,6 +12,9 @@ public final class ItemLockSwapTransformerTests {
     private static final String CLICK_DESC =
             "(IIIILnet/minecraft/entity/player/EntityPlayer;)Lnet/minecraft/item/ItemStack;";
     private static final String DROP_DESC = "(Z)Lnet/minecraft/entity/item/EntityItem;";
+    private static final String DRAW_SCREEN_DESC = "(IIF)V";
+    private static final String DRAW_FOREGROUND_DESC = "(II)V";
+    private static final String OVERLAY_DESC = "(Ljava/lang/Object;II)V";
     private static int passed;
     private static int failed;
 
@@ -44,7 +47,17 @@ public final class ItemLockSwapTransformerTests {
         byte[] notchPlayer = transformer.transform("bew", "bew", playerClass("a", "(Z)Lwv;"));
         check("notch dropOneItem descriptor transforms", hooks(notchPlayer, "shouldBlockHotbarDrop",
                 "(Ljava/lang/Object;Z)Z") == 1);
-        check("both hook diagnostics are active", ItemLockSwapHookStatus.isActive());
+
+        byte[] gui = guiContainerClass("net/minecraft/client/gui/inventory/GuiContainer", "drawScreen",
+                "drawGuiContainerForegroundLayer");
+        byte[] protectedGui = transformer.transform("net.minecraft.client.gui.inventory.GuiContainer",
+                "net.minecraft.client.gui.inventory.GuiContainer", gui);
+        check("MCP GuiContainer foreground transforms", protectedGui != gui);
+        check("foreground hook is placed after slot foreground call", overlayFollowsForeground(protectedGui));
+        byte[] notchGui = transformer.transform("ayl", "ayl", guiContainerClass("ayl", "a", "b"));
+        check("notch GuiContainer foreground transforms", overlayFollowsForeground(notchGui));
+        check("both protection diagnostics are active", ItemLockSwapHookStatus.isActive());
+        check("foreground diagnostic is active", ItemLockSwapHookStatus.isForegroundActive());
 
         System.out.println("item lock/swap transformer: passed " + passed + ", failed " + failed);
         if (failed > 0) throw new AssertionError("item lock/swap transformer failures: " + failed);
@@ -80,6 +93,29 @@ public final class ItemLockSwapTransformerTests {
         return writer.toByteArray();
     }
 
+    private static byte[] guiContainerClass(String owner, String drawScreenName, String foregroundName) {
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        writer.visit(Opcodes.V1_6, Opcodes.ACC_PUBLIC, owner, null, "java/lang/Object", null);
+        constructor(writer);
+        MethodVisitor foreground = writer.visitMethod(Opcodes.ACC_PROTECTED, foregroundName, DRAW_FOREGROUND_DESC,
+                null, null);
+        foreground.visitCode();
+        foreground.visitInsn(Opcodes.RETURN);
+        foreground.visitMaxs(0, 0);
+        foreground.visitEnd();
+        MethodVisitor screen = writer.visitMethod(Opcodes.ACC_PUBLIC, drawScreenName, DRAW_SCREEN_DESC, null, null);
+        screen.visitCode();
+        screen.visitVarInsn(Opcodes.ALOAD, 0);
+        screen.visitInsn(Opcodes.ICONST_0);
+        screen.visitInsn(Opcodes.ICONST_0);
+        screen.visitMethodInsn(Opcodes.INVOKEVIRTUAL, owner, foregroundName, DRAW_FOREGROUND_DESC, false);
+        screen.visitInsn(Opcodes.RETURN);
+        screen.visitMaxs(0, 0);
+        screen.visitEnd();
+        writer.visitEnd();
+        return writer.toByteArray();
+    }
+
     private static void constructor(ClassWriter writer) {
         MethodVisitor constructor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
         constructor.visitCode();
@@ -109,6 +145,42 @@ public final class ItemLockSwapTransformerTests {
             }
         }, 0);
         return count[0];
+    }
+
+    private static boolean overlayFollowsForeground(byte[] bytes) {
+        final int[] count = {0};
+        new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM5) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature,
+                                             String[] exceptions) {
+                if (!DRAW_SCREEN_DESC.equals(descriptor)) return null;
+                return new MethodVisitor(Opcodes.ASM5) {
+                    private boolean justDrewForeground;
+
+                    @Override
+                    public void visitMethodInsn(int opcode, String owner, String method, String desc, boolean itf) {
+                        if (opcode == Opcodes.INVOKEVIRTUAL && DRAW_FOREGROUND_DESC.equals(desc)
+                                && ("drawGuiContainerForegroundLayer".equals(method) || "b".equals(method))) {
+                            justDrewForeground = true;
+                            return;
+                        }
+                        if (opcode == Opcodes.INVOKESTATIC
+                                && "com/arena/pekaclient/itemlockswap/ItemLockSwapOverlay".equals(owner)
+                                && "drawContainerForeground".equals(method) && OVERLAY_DESC.equals(desc)
+                                && justDrewForeground) {
+                            count[0]++;
+                        }
+                        justDrewForeground = false;
+                    }
+
+                    @Override
+                    public void visitVarInsn(int opcode, int var) {
+                        // The injected ALOAD/ILOAD instructions are expected between the two calls.
+                    }
+                };
+            }
+        }, 0);
+        return count[0] == 1;
     }
 
     private static void check(String name, boolean ok) {
