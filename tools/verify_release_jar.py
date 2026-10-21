@@ -433,9 +433,10 @@ def main():
                 and b'Enable Dungeon ESP' in hub_raw and b'Force Render All Mobs in Room' in hub_raw
                 and b'Wither Door Color' in hub_raw,
             'AppleHubScreen routes every Dungeon ESP control through its one shared Dungeons page')
+    # ReobfJar remaps Minecraft class names, so inspect durable Sky VeLor fields/strings rather than MCP class names.
     r.check(all(value in esp_controller_raw for value in
-                (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'EntityEnderman', b'IMob',
-                 b'EntityBat', b'SkullOwner', b'espDump'))
+                (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
+                 b'forceRenderAllMobs', b'includeBats', b'includeInvisibleMobs', b'SkullOwner', b'espDump'))
                 and b'RenderWorldLastEvent' in esp_controller_raw and b'espdebug' in esp_command_raw
                 and b'espdump' in esp_command_raw,
             'DungeonEspController packages timer cache, hostile filtering, Enderman-head support, and espdump telemetry')
