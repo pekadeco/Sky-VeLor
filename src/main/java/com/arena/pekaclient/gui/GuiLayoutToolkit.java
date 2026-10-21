@@ -30,9 +30,15 @@ public final class GuiLayoutToolkit {
 
     /** Guarantees a label column (ellipsis-ready) and a non-overlapping right control even on a tiny GUI. */
     public static void splitRow(Rect row, float pad, float gap, float wantedControlW, float controlH, Rect label, Rect control) {
-        float p = Math.max(0f, pad), innerX = row.x + p, innerW = Math.max(1f, row.w - p * 2f);
-        float g = Math.max(3f, gap);
-        float controlW = Math.min(Math.max(1f, wantedControlW), Math.max(1f, innerW - g - Math.min(42f, innerW * .42f)));
+        // Never manufacture width outside a tiny row: at extreme GUI scales padding and the inter-column gap shrink
+        // before either text or the control can overlap or draw beyond the card.
+        float p = Math.min(Math.max(0f, pad), Math.max(0f, row.w) * .5f);
+        float innerX = row.x + p;
+        float innerW = Math.max(0f, row.w - p * 2f);
+        float minimumLabel = Math.min(42f, innerW * .42f);
+        float g = Math.min(Math.max(0f, gap), Math.max(0f, innerW - minimumLabel));
+        float controlRoom = Math.max(0f, innerW - g - minimumLabel);
+        float controlW = Math.min(Math.max(0f, wantedControlW), controlRoom);
         float ch = Math.min(Math.max(1f, controlH), Math.max(1f, row.h));
         label.set(innerX, row.y, Math.max(0f, innerW - controlW - g), row.h);
         control.set(innerX + innerW - controlW, row.y + (row.h - ch) * .5f, controlW, ch);

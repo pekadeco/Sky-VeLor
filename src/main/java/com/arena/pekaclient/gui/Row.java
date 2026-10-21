@@ -33,6 +33,9 @@ final class Row {
     final Painter painter;
     final float height;
     float y;
+    /** Measured text column assigned by AppleHubScreen's shared responsive row split. */
+    float labelX;
+    float labelWidth;
 
     /** For ITEM and CUSTOM rows: the HEADER title this row belongs to, or null. */
     String group;

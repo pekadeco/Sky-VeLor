@@ -144,6 +144,10 @@ public class AppleHubScreen extends AppleScreen {
 
     // Layout (recomputed every frame, in GUI-scaled pixels). The shared clamp keeps the hub reachable at any scale.
     private final GuiLayoutToolkit.Rect hubPanel = new GuiLayoutToolkit.Rect();
+    /** Reused row geometry avoids overlapping label/control columns on narrow GUI scales. */
+    private final GuiLayoutToolkit.Rect rowLayoutRect = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect rowLabelRect = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect rowControlRect = new GuiLayoutToolkit.Rect();
     private float wx, wy, ww, wh;
     private float cx0, cw, headY;
     private float vx, vy, vw, vh;
@@ -172,8 +176,7 @@ public class AppleHubScreen extends AppleScreen {
             navHover[i] = new Anim(0f);
         }
         expanded.add("Spirit Leap");
-        expanded.add(DungeonEspUiModel.SECTION_TITLE);
-        expanded.add(DungeonEspUiModel.STARRED_TITLE);
+        expanded.add(DungeonEspUiModel.MOB_ESP_TITLE);
         buildPages();
     }
 
@@ -530,60 +533,68 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleButton("Open in HUD Editor", 142f, 26f, false,
                         () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)))));
 
-        // One Dungeon ESP surface replaces the former Mob highlights toggle. Each header is an existing shared
-        // collapsible Row, so settings never overlay adjacent controls at small GUI scales.
-        rows.add(Row.header(DungeonEspUiModel.SECTION_TITLE));
+        // Every Dungeon ESP control lives under one of these four collapsible headers. The standard Row flow
+        // and GuiLayoutToolkit-backed model keep cards and controls in separate vertical space at all GUI scales.
+        rows.add(Row.header(DungeonEspUiModel.MOB_ESP_TITLE));
         rows.add(Row.item("Enable Dungeon ESP",
-                "Tracks only starred mobs and cached closed doors while inside a dungeon",
+                "Master switch for cached dungeon mob and door ESP",
                 new AppleToggle(() -> DungeonEspSettings.enabled, v -> DungeonEspSettings.enabled = v)));
+        addDungeonEspStyleRows(rows, DungeonEspSettings.starred, "Starred Mob", "starred dungeon mobs");
+        addDungeonEspStyleRows(rows, DungeonEspSettings.miniboss, "Miniboss", "dungeon minibosses");
+        addDungeonEspStyleRows(rows, DungeonEspSettings.special, "Special Starred Mob", "special starred enemies");
+        addDungeonEspStyleRows(rows, DungeonEspSettings.enderman, "Enderman", "real and head-marker Endermen");
+        addDungeonEspStyleRows(rows, DungeonEspSettings.skeletor, "Skeletor", "starred Skeletors");
+        rows.add(Row.item("Force Render All Mobs in Room",
+                "Off by default. Adds eligible hostile room mobs during cached scans",
+                new AppleToggle(() -> DungeonEspSettings.forceRenderAllMobs,
+                        v -> DungeonEspSettings.forceRenderAllMobs = v)));
+        addDungeonEspStyleRows(rows, DungeonEspSettings.otherMobs, "Other Mobs", "eligible non-starred hostile mobs");
+        rows.add(Row.item("Include Bats", "Include bats only when force rendering room mobs",
+                new AppleToggle(() -> DungeonEspSettings.includeBats, v -> DungeonEspSettings.includeBats = v)));
+        rows.add(Row.item("Include Invisible Mobs", "Include invisible hostiles only when force rendering room mobs",
+                new AppleToggle(() -> DungeonEspSettings.includeInvisibleMobs,
+                        v -> DungeonEspSettings.includeInvisibleMobs = v)));
 
-        rows.add(Row.header(DungeonEspUiModel.STARRED_TITLE));
-        addDungeonEspStyleRows(rows, DungeonEspSettings.starred, "starred dungeon mobs");
-        rows.add(Row.header(DungeonEspUiModel.MINIBOSS_TITLE));
-        addDungeonEspStyleRows(rows, DungeonEspSettings.miniboss, "dungeon minibosses");
-        rows.add(Row.header(DungeonEspUiModel.SPECIAL_TITLE));
-        addDungeonEspStyleRows(rows, DungeonEspSettings.special, "named special starred enemies");
-
-        rows.add(Row.header(DungeonEspUiModel.GLOBAL_TITLE));
-        rows.add(Row.item("Maximum distance", "Only armor stands and mobs inside this range are scanned",
-                new AppleSlider(DungeonEspSettings.MIN_DISTANCE, DungeonEspSettings.MAX_DISTANCE, 1, " blocks", 150f,
-                        () -> DungeonEspSettings.maxDistance, v -> DungeonEspSettings.maxDistance = v)));
-        rows.add(Row.item("Update interval", "Entity scan period. Lower is faster to react; default is five ticks",
-                new AppleSlider(DungeonEspSettings.MIN_INTERVAL_TICKS, DungeonEspSettings.MAX_INTERVAL_TICKS, 1, " ticks", 150f,
-                        () -> DungeonEspSettings.updateIntervalTicks, v -> DungeonEspSettings.updateIntervalTicks = v)));
-        rows.add(Row.item("Hide zero-health mobs", "Drops cached boxes as soon as a scanned living target has no health",
-                new AppleToggle(() -> DungeonEspSettings.hideZeroHealth, v -> DungeonEspSettings.hideZeroHealth = v)));
-        rows.add(Row.item("Tracers", "Draw a thin world-space line from the player to each visible tracked mob",
-                new AppleToggle(() -> DungeonEspSettings.tracers, v -> DungeonEspSettings.tracers = v)));
-        rows.add(Row.item("Distance text", "Show rounded block distance above tracked mob hitboxes",
-                new AppleToggle(() -> DungeonEspSettings.distanceText, v -> DungeonEspSettings.distanceText = v)));
-        rows.add(Row.item("Maximum boxes", "Caps displayed mob hitboxes without dropping the tracker cache",
-                new AppleSlider(DungeonEspSettings.MIN_BOXES, DungeonEspSettings.MAX_BOXES, 1, "", 150f,
-                        () -> DungeonEspSettings.maxBoxes, v -> DungeonEspSettings.maxBoxes = v)));
-
-        rows.add(Row.header(DungeonEspUiModel.DOORS_TITLE));
-        rows.add(Row.item("Show cached doors", "Scan nearby closed 3x4x3 wither and blood doors once per second",
+        rows.add(Row.header(DungeonEspUiModel.DOOR_ESP_TITLE));
+        rows.add(Row.item("Show Closed Doors", "Scan cached closed wither and blood doors once per second",
                 new AppleToggle(() -> DungeonEspSettings.doorsEnabled, v -> DungeonEspSettings.doorsEnabled = v)));
-        rows.add(Row.item("Door scope", "Render only the nearest closed door or every cached closed door",
+        rows.add(Row.item("Door Scope", "Render the nearest closed door or every cached closed door",
                 new AppleDropdown(DungeonEspSettings.DOOR_SCOPE_NAMES, null, 150f, 24f,
                         () -> DungeonEspSettings.doorScope, v -> DungeonEspSettings.doorScope = v)));
-        rows.add(Row.item("Only with a Wither Key", "Hide cached doors until a Wither Key is in your inventory",
+        rows.add(Row.item("Only With a Wither Key", "Hide cached doors until a Wither Key is in your inventory",
                 new AppleToggle(() -> DungeonEspSettings.doorOnlyWhenKey, v -> DungeonEspSettings.doorOnlyWhenKey = v)));
-        rows.add(Row.item("Blood doors", "Include cached red-clay blood doors", new AppleToggle(
-                () -> DungeonEspSettings.showBloodDoors, v -> DungeonEspSettings.showBloodDoors = v)));
-        rows.add(Row.item("Blood door color", "Palette color for red-clay blood door boxes",
+        rows.add(Row.item("Blood Doors", "Include cached red-clay blood doors",
+                new AppleToggle(() -> DungeonEspSettings.showBloodDoors, v -> DungeonEspSettings.showBloodDoors = v)));
+        rows.add(Row.item("Blood Door Color", "Choose the cached blood-door box color",
                 espColorDropdown(() -> DungeonEspSettings.colorIndex(DungeonEspSettings.bloodDoorColor),
                         v -> DungeonEspSettings.bloodDoorColor = DungeonEspSettings.colorForIndex(v))));
         addDungeonDoorStyleRows(rows);
-        rows.add(Row.item("Door distance text", "Show rounded block distance above cached closed doors",
+        rows.add(Row.item("Door Distance Text", "Show rounded block distance above cached closed doors",
                 new AppleToggle(() -> DungeonEspSettings.doorDistanceText, v -> DungeonEspSettings.doorDistanceText = v)));
 
+        rows.add(Row.header(DungeonEspUiModel.PERFORMANCE_TITLE));
+        rows.add(Row.item("Maximum ESP Distance", "Scan only entities and doors inside this block range",
+                new AppleSlider(DungeonEspSettings.MIN_DISTANCE, DungeonEspSettings.MAX_DISTANCE, 1, " blocks", 150f,
+                        () -> DungeonEspSettings.maxDistance, v -> DungeonEspSettings.maxDistance = v)));
+        rows.add(Row.item("Update Interval", "Cached entity scan period; lower values react faster",
+                new AppleSlider(DungeonEspSettings.MIN_INTERVAL_TICKS, DungeonEspSettings.MAX_INTERVAL_TICKS, 1, " ticks", 150f,
+                        () -> DungeonEspSettings.updateIntervalTicks, v -> DungeonEspSettings.updateIntervalTicks = v)));
+        rows.add(Row.item("Hide Zero-Health Mobs", "Drop a cached living target when its scanned health is zero",
+                new AppleToggle(() -> DungeonEspSettings.hideZeroHealth, v -> DungeonEspSettings.hideZeroHealth = v)));
+        rows.add(Row.item("Tracers", "Draw a world-space line from you to each tracked mob",
+                new AppleToggle(() -> DungeonEspSettings.tracers, v -> DungeonEspSettings.tracers = v)));
+        rows.add(Row.item("Distance Text", "Show rounded block distance above tracked mob hitboxes",
+                new AppleToggle(() -> DungeonEspSettings.distanceText, v -> DungeonEspSettings.distanceText = v)));
+        rows.add(Row.item("Maximum Boxes", "Cap displayed mob hitboxes without dropping the tracker cache",
+                new AppleSlider(DungeonEspSettings.MIN_BOXES, DungeonEspSettings.MAX_BOXES, 1, "", 150f,
+                        () -> DungeonEspSettings.maxBoxes, v -> DungeonEspSettings.maxBoxes = v)));
+
         rows.add(Row.header(DungeonEspUiModel.PRESETS_TITLE));
-        rows.add(Row.item("Default preset", "High-visibility cyan/gold/purple ESP with modest fills",
+        rows.add(Row.item("Default Preset", "Restore high-visibility default colors, fills, and scan settings",
                 new AppleButton("Apply Default", 122f, 26f, false, DungeonEspSettings::applyDefaultPreset)));
-        rows.add(Row.item("Subtle preset", "Depth-tested outlines only, with lower opacity and no fills",
+        rows.add(Row.item("Subtle Preset", "Use depth-tested outlines with lower opacity and no fills",
                 new AppleButton("Apply Subtle", 122f, 26f, false, DungeonEspSettings::applySubtlePreset)));
-        rows.add(Row.item("Reset Dungeon ESP", "Restore the documented Default preset and every ESP setting",
+        rows.add(Row.item("Reset Dungeon ESP", "Restore every Dungeon ESP control to the Default preset",
                 new AppleButton("Reset", 96f, 26f, false, DungeonEspSettings::resetDefaults)));
 
         rows.add(Row.header("Floor VII (M7) overlay"));
@@ -619,48 +630,48 @@ public class AppleHubScreen extends AppleScreen {
         return rows;
     }
 
-    /** Shared controls for every tracked-mob category. The Color dropdown is the shared palette picker. */
+    /** Shared controls for every tracked-mob category. Each label stays explicit when the Mob ESP group is searched. */
     private static void addDungeonEspStyleRows(List<Row> rows, final DungeonEspSettings.Style style,
-                                               String targetDescription) {
-        rows.add(Row.item("Show category", "Render " + targetDescription,
+                                               String labelPrefix, String targetDescription) {
+        rows.add(Row.item(labelPrefix + " ESP", "Render " + targetDescription,
                 new AppleToggle(() -> style.enabled, v -> style.enabled = v)));
-        rows.add(Row.item("Color", "Choose the category color from the ESP palette",
+        rows.add(Row.item(labelPrefix + " Color", "Choose the " + labelPrefix.toLowerCase(Locale.ROOT) + " ESP color",
                 espColorDropdown(() -> DungeonEspSettings.colorIndex(style.color),
                         v -> style.color = DungeonEspSettings.colorForIndex(v))));
-        rows.add(Row.item("Render mode", "Outline, filled hitbox, or both",
+        rows.add(Row.item(labelPrefix + " Render Mode", "Draw an outline, filled hitbox, or both",
                 new AppleDropdown(DungeonEspSettings.MODE_NAMES, null, 150f, 24f,
                         () -> style.mode, v -> style.mode = v)));
-        rows.add(Row.item("Through walls", "Keep this category visible behind dungeon blocks",
+        rows.add(Row.item(labelPrefix + " Through Walls", "Keep this category visible behind dungeon blocks",
                 new AppleToggle(() -> style.throughWalls, v -> style.throughWalls = v)));
-        rows.add(Row.item("Outline width", "World-space outline thickness",
+        rows.add(Row.item(labelPrefix + " Outline Width", "Set world-space outline thickness",
                 new AppleSlider(DungeonEspSettings.MIN_WIDTH, DungeonEspSettings.MAX_WIDTH, 1, " px", 150f,
                         () -> style.outlineWidth, v -> style.outlineWidth = v)));
-        rows.add(Row.item("Outline opacity", "Opacity for category edges",
+        rows.add(Row.item(labelPrefix + " Outline Opacity", "Set opacity for hitbox edges",
                 new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
                         () -> style.outlineOpacity, v -> style.outlineOpacity = v)));
-        rows.add(Row.item("Fill opacity", "Opacity for category hitbox faces",
+        rows.add(Row.item(labelPrefix + " Fill Opacity", "Set opacity for hitbox faces",
                 new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
                         () -> style.fillOpacity, v -> style.fillOpacity = v)));
     }
 
-    /** Door-specific style fields intentionally share the same palette and visual semantics as starred mob boxes. */
+    /** Door-specific style fields intentionally share the same palette and visual semantics as mob boxes. */
     private static void addDungeonDoorStyleRows(List<Row> rows) {
         final DungeonEspSettings.Style style = DungeonEspSettings.doors;
-        rows.add(Row.item("Door color", "Palette color for closed wither door boxes",
+        rows.add(Row.item("Wither Door Color", "Choose the cached wither-door box color",
                 espColorDropdown(() -> DungeonEspSettings.colorIndex(style.color),
                         v -> style.color = DungeonEspSettings.colorForIndex(v))));
-        rows.add(Row.item("Door render mode", "Outline, filled door prism, or both",
+        rows.add(Row.item("Door Render Mode", "Draw an outline, filled door prism, or both",
                 new AppleDropdown(DungeonEspSettings.MODE_NAMES, null, 150f, 24f,
                         () -> style.mode, v -> style.mode = v)));
-        rows.add(Row.item("Doors through walls", "Keep cached closed door boxes visible behind blocks",
+        rows.add(Row.item("Doors Through Walls", "Keep cached closed door boxes visible behind blocks",
                 new AppleToggle(() -> style.throughWalls, v -> style.throughWalls = v)));
-        rows.add(Row.item("Door outline width", "World-space closed-door outline thickness",
+        rows.add(Row.item("Door Outline Width", "Set closed-door outline thickness",
                 new AppleSlider(DungeonEspSettings.MIN_WIDTH, DungeonEspSettings.MAX_WIDTH, 1, " px", 150f,
                         () -> style.outlineWidth, v -> style.outlineWidth = v)));
-        rows.add(Row.item("Door outline opacity", "Opacity for closed-door edges",
+        rows.add(Row.item("Door Outline Opacity", "Set opacity for closed-door edges",
                 new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
                         () -> style.outlineOpacity, v -> style.outlineOpacity = v)));
-        rows.add(Row.item("Door fill opacity", "Opacity for closed-door prism faces",
+        rows.add(Row.item("Door Fill Opacity", "Set opacity for closed-door prism faces",
                 new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
                         () -> style.fillOpacity, v -> style.fillOpacity = v)));
     }
@@ -1069,9 +1080,18 @@ public class AppleHubScreen extends AppleScreen {
             }
             r.y = y;
             Widget c = r.control;
+            rowLayoutRect.set(cx0, y, cw, r.height);
             if (c != null) {
-                c.x = cx0 + cw - 12f - c.w;
-                c.y = y + (r.height - c.h) * 0.5f;
+                GuiLayoutToolkit.splitRow(rowLayoutRect, 12f, 12f, c.preferredWidth(), c.h,
+                        rowLabelRect, rowControlRect);
+                r.labelX = rowLabelRect.x;
+                r.labelWidth = rowLabelRect.w;
+                c.x = rowControlRect.x;
+                c.y = rowControlRect.y;
+                c.w = rowControlRect.w;
+            } else {
+                r.labelX = rowLayoutRect.x + 12f;
+                r.labelWidth = Math.max(1f, rowLayoutRect.w - 24f);
             }
             y = nextRowTop(y, r.height);
         }
@@ -1244,10 +1264,16 @@ public class AppleHubScreen extends AppleScreen {
             UIRender.triangle(cx - 2f, cy - 4f, cx - 2f, cy + 4f, cx + 3f, cy, ink);
         }
         float ty = y + (h - 9f) * 0.5f + 1f;
-        UIRender.text(fr, r.label, x + 26f, ty, Theme.textPrimary, 1.05f, false);
         String count = r.children + (r.children == 1 ? " setting" : " settings");
         float cwid = fr.getStringWidth(count) * 0.9f;
-        UIRender.text(fr, count, x + w - 12f - cwid, ty, Theme.textTertiary, 0.9f, false);
+        float titleW = Math.max(0f, w - 26f - 12f - cwid - 8f);
+        // At tiny GUI widths the title is more useful than a clipped count; never let the two text runs collide.
+        boolean showCount = titleW >= Math.min(40f, fr.getStringWidth(r.label));
+        if (!showCount) titleW = Math.max(0f, w - 26f - 12f);
+        UIRender.text(fr, fit(fr, r.label, titleW), x + 26f, ty, Theme.textPrimary, 1.05f, false);
+        if (showCount) {
+            UIRender.text(fr, count, x + w - 12f - cwid, ty, Theme.textTertiary, 0.9f, false);
+        }
     }
 
     private void drawItem(FontRenderer fr, Row r, int mx, int my) {
@@ -1257,13 +1283,14 @@ public class AppleHubScreen extends AppleScreen {
         float h = r.height;
         UIRender.roundRectBorder(x, y, w, h, cardRadius(), Theme.card, Theme.card, Theme.border);
 
-        float maxW = w - 24f - (r.control != null ? r.control.w + 12f : 0f);
+        float labelX = r.labelX > 0f ? r.labelX : x + 12f;
+        float maxW = r.labelWidth > 0f ? r.labelWidth : Math.max(1f, w - 24f);
         String label = fit(fr, r.label, maxW);
         if (r.desc != null) {
-            UIRender.text(fr, label, x + 12f, y + 7f, Theme.textPrimary, 1f, false);
-            UIRender.text(fr, fit(fr, r.desc, maxW), x + 12f, y + 21f, Theme.textSecondary, 1f, false);
+            UIRender.text(fr, label, labelX, y + 7f, Theme.textPrimary, 1f, false);
+            UIRender.text(fr, fit(fr, r.desc, maxW), labelX, y + 21f, Theme.textSecondary, 1f, false);
         } else if (!label.isEmpty()) {
-            UIRender.text(fr, label, x + 12f, y + (h - 9f) * 0.5f + 1f, Theme.textPrimary, 1f, false);
+            UIRender.text(fr, label, labelX, y + (h - 9f) * 0.5f + 1f, Theme.textPrimary, 1f, false);
         }
         if (r.control != null) {
             r.control.draw(mx, my);

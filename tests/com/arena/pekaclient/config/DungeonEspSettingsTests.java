@@ -22,6 +22,13 @@ public final class DungeonEspSettingsTests {
         check("distance and box defaults", DungeonEspSettings.maxDistance == 60 && DungeonEspSettings.maxBoxes == 64);
         check("starred miniboss special categories on", DungeonEspSettings.starred.enabled
                 && DungeonEspSettings.miniboss.enabled && DungeonEspSettings.special.enabled);
+        check("new mob categories default safely", DungeonEspSettings.enderman.enabled
+                && DungeonEspSettings.skeletor.enabled && DungeonEspSettings.otherMobs.enabled
+                && !DungeonEspSettings.forceRenderAllMobs && !DungeonEspSettings.includeBats
+                && !DungeonEspSettings.includeInvisibleMobs);
+        check("Skeletor begins with starred style", DungeonEspSettings.skeletor.color == DungeonEspSettings.starred.color
+                && DungeonEspSettings.skeletor.mode == DungeonEspSettings.starred.mode
+                && DungeonEspSettings.skeletor.outlineWidth == DungeonEspSettings.starred.outlineWidth);
         check("door cache defaults on", DungeonEspSettings.doorsEnabled
                 && DungeonEspSettings.doorScope == DungeonEspSettings.DOORS_NEAREST);
     }
@@ -42,6 +49,12 @@ public final class DungeonEspSettingsTests {
         DungeonEspSettings.starred.color = 0xA6E22E;
         DungeonEspSettings.starred.mode = DungeonEspSettings.MODE_FILLED;
         DungeonEspSettings.miniboss.throughWalls = false;
+        DungeonEspSettings.enderman.color = 0xFF9F0A;
+        DungeonEspSettings.skeletor.outlineWidth = 5;
+        DungeonEspSettings.otherMobs.throughWalls = false;
+        DungeonEspSettings.forceRenderAllMobs = true;
+        DungeonEspSettings.includeBats = true;
+        DungeonEspSettings.includeInvisibleMobs = true;
         DungeonEspSettings.doors.fillOpacity = 37;
         DungeonEspSettings.doorScope = DungeonEspSettings.DOORS_ALL;
         Properties saved = new Properties();
@@ -49,7 +62,10 @@ public final class DungeonEspSettingsTests {
         DungeonEspSettings.load(saved);
         check("styles round trip", DungeonEspSettings.maxDistance == 133 && DungeonEspSettings.updateIntervalTicks == 7
                 && DungeonEspSettings.starred.color == 0xA6E22E && DungeonEspSettings.starred.mode == DungeonEspSettings.MODE_FILLED
-                && !DungeonEspSettings.miniboss.throughWalls && DungeonEspSettings.doors.fillOpacity == 37
+                && !DungeonEspSettings.miniboss.throughWalls && DungeonEspSettings.enderman.color == 0xFF9F0A
+                && DungeonEspSettings.skeletor.outlineWidth == 5 && !DungeonEspSettings.otherMobs.throughWalls
+                && DungeonEspSettings.forceRenderAllMobs && DungeonEspSettings.includeBats
+                && DungeonEspSettings.includeInvisibleMobs && DungeonEspSettings.doors.fillOpacity == 37
                 && DungeonEspSettings.doorScope == DungeonEspSettings.DOORS_ALL);
         saved.setProperty("dungeonEsp.maxDistance", "9999");
         saved.setProperty("dungeonEsp.updateIntervalTicks", "0");

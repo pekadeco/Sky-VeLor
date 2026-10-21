@@ -49,6 +49,16 @@ public final class DungeonEspSettings {
     public static final Style miniboss = new Style(true, 0xFFD166, MODE_BOTH, true, 3, 100, 24);
     /** Named special starred enemies get a separate, quieter violet category rather than being folded into normal mobs. */
     public static final Style special = new Style(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
+    /** Endermen, including the Dungeon-specific head-marker representation, have an independent visual style. */
+    public static final Style enderman = new Style(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
+    /** Skeletor intentionally begins with the ordinary starred-mob visual contract. */
+    public static final Style skeletor = new Style(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
+    /** Optional room-wide hostile coverage, deliberately inert until its separate force switch is enabled. */
+    public static final Style otherMobs = new Style(true, 0x30D158, MODE_BOTH, true, 2, 85, 14);
+    /** Off by default: candidates are discovered only on the normal cached tracker scan. */
+    public static boolean forceRenderAllMobs = false;
+    public static boolean includeBats = false;
+    public static boolean includeInvisibleMobs = false;
 
     public static int maxDistance = DEFAULT_DISTANCE;
     public static int updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
@@ -108,6 +118,12 @@ public final class DungeonEspSettings {
         starred.reset(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
         miniboss.reset(true, 0xFFD166, MODE_BOTH, true, 3, 100, 24);
         special.reset(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
+        enderman.reset(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
+        skeletor.reset(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
+        otherMobs.reset(true, 0x30D158, MODE_BOTH, true, 2, 85, 14);
+        forceRenderAllMobs = false;
+        includeBats = false;
+        includeInvisibleMobs = false;
         maxDistance = DEFAULT_DISTANCE;
         updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
         hideZeroHealth = true;
@@ -129,6 +145,12 @@ public final class DungeonEspSettings {
         starred.reset(true, 0x32D7FF, MODE_OUTLINE, false, 1, 72, 0);
         miniboss.reset(true, 0xFFD166, MODE_OUTLINE, false, 2, 84, 0);
         special.reset(true, 0xBF5AF2, MODE_OUTLINE, false, 1, 72, 0);
+        enderman.reset(true, 0xBF5AF2, MODE_OUTLINE, false, 1, 72, 0);
+        skeletor.reset(true, 0x32D7FF, MODE_OUTLINE, false, 1, 72, 0);
+        otherMobs.reset(true, 0x30D158, MODE_OUTLINE, false, 1, 70, 0);
+        forceRenderAllMobs = false;
+        includeBats = false;
+        includeInvisibleMobs = false;
         maxDistance = 48;
         updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
         hideZeroHealth = true;
@@ -159,6 +181,12 @@ public final class DungeonEspSettings {
         loadStyle(source, "starred", starred);
         loadStyle(source, "miniboss", miniboss);
         loadStyle(source, "special", special);
+        loadStyle(source, "enderman", enderman);
+        loadStyle(source, "skeletor", skeletor);
+        loadStyle(source, "otherMobs", otherMobs);
+        forceRenderAllMobs = readBool(source, PREFIX + "forceRenderAllMobs", forceRenderAllMobs);
+        includeBats = readBool(source, PREFIX + "includeBats", includeBats);
+        includeInvisibleMobs = readBool(source, PREFIX + "includeInvisibleMobs", includeInvisibleMobs);
         maxDistance = readInt(source, PREFIX + "maxDistance", maxDistance, MIN_DISTANCE, MAX_DISTANCE);
         updateIntervalTicks = readInt(source, PREFIX + "updateIntervalTicks", updateIntervalTicks,
                 MIN_INTERVAL_TICKS, MAX_INTERVAL_TICKS);
@@ -186,6 +214,12 @@ public final class DungeonEspSettings {
         saveStyle(p, "starred", starred);
         saveStyle(p, "miniboss", miniboss);
         saveStyle(p, "special", special);
+        saveStyle(p, "enderman", enderman);
+        saveStyle(p, "skeletor", skeletor);
+        saveStyle(p, "otherMobs", otherMobs);
+        p.setProperty(PREFIX + "forceRenderAllMobs", Boolean.toString(forceRenderAllMobs));
+        p.setProperty(PREFIX + "includeBats", Boolean.toString(includeBats));
+        p.setProperty(PREFIX + "includeInvisibleMobs", Boolean.toString(includeInvisibleMobs));
         p.setProperty(PREFIX + "maxDistance", Integer.toString(maxDistance));
         p.setProperty(PREFIX + "updateIntervalTicks", Integer.toString(updateIntervalTicks));
         p.setProperty(PREFIX + "hideZeroHealth", Boolean.toString(hideZeroHealth));
@@ -212,6 +246,9 @@ public final class DungeonEspSettings {
         normalizeStyle(starred);
         normalizeStyle(miniboss);
         normalizeStyle(special);
+        normalizeStyle(enderman);
+        normalizeStyle(skeletor);
+        normalizeStyle(otherMobs);
         normalizeStyle(doors);
     }
 

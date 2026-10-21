@@ -12,6 +12,8 @@ public abstract class Widget {
     public float y;
     public float w;
     public float h;
+    /** Requested layout width. Containers may shrink w at narrow GUI scales without losing this restore point. */
+    private final float preferredWidth;
 
     protected boolean hovered;
     protected boolean pressed;
@@ -26,8 +28,14 @@ public abstract class Widget {
     protected int lastMouseY;
 
     protected Widget(float width, float height) {
-        this.w = Math.max(0f, width);
+        this.preferredWidth = Math.max(0f, width);
+        this.w = preferredWidth;
         this.h = Math.max(0f, height);
+    }
+
+    /** The normal width requested by this widget before a responsive container shrinks it. */
+    public final float preferredWidth() {
+        return preferredWidth;
     }
 
     public final boolean contains(float px, float py) {
