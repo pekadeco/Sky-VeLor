@@ -427,9 +427,8 @@ def main():
     r.check(all(value in esp_hub_constants for value in
                 ('Dungeon ESP', 'Starred Mobs', 'Minibosses', 'Global', 'Wither & Blood Doors', 'Presets')),
             'DungeonEspUiModel packages all collapsible Dungeon ESP groups')
-    r.check(all(value in hub_raw for value in
-                (b'com/arena/pekaclient/config/DungeonEspSettings',
-                 b'com/arena/pekaclient/gui/DungeonEspUiModel', b'Enable Dungeon ESP')),
+    r.check(b'com/arena/pekaclient/config/DungeonEspSettings' in hub_raw
+                and b'Enable Dungeon ESP' in hub_raw and b'Wither & Blood Doors' in hub_raw,
             'AppleHubScreen routes the Dungeon tab through the new shared Dungeon ESP controls')
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch'))
