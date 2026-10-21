@@ -36,6 +36,10 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassCacheTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.ConfigFilesTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.AppleSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.config.ChatQolSettingsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.config.DungeonEspSettingsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests
+java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.WitherDoorCacheTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.DungeonEspUiModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapProtectionPolicyTests

@@ -145,8 +145,6 @@ public final class AppleSettings {
     
     /** Dungeon tab: replace the server's Spirit Leap menu with the teammate selector. On by default. */
     public static boolean leapMenu = true;
-    /** Dungeon tab: outline dungeon mobs (named mobs with a level tag). On by default. Overlay only. */
-    public static boolean mobHighlights = true;
 
     // Live dungeon-map overlay imported from the newest SkyVeLor source. Position uses the established HUD
     // anchors but deliberately remains unclamped, so an editor reset can always recover a map moved off-screen.
@@ -242,7 +240,8 @@ public final class AppleSettings {
         ItemLockSwapSettings.load(p);
 
         leapMenu = readBool(p, "leapMenu", leapMenu);
-        mobHighlights = readBool(p, "mobHighlights", mobHighlights);
+        // Dungeon ESP owns its isolated prefixed schema and consumes the retired mobHighlights toggle once.
+        DungeonEspSettings.load(p);
         dungeonMap = readBool(p, "dungeonMap", dungeonMap);
         dungeonMapRotate = readBool(p, "dungeonMapRotate", dungeonMapRotate);
         dungeonMapShowPlayerNames = readBool(p, "dungeonMapShowPlayerNames", dungeonMapShowPlayerNames);
@@ -475,7 +474,7 @@ public final class AppleSettings {
         ItemLockSwapSettings.save(p);
 
         p.setProperty("leapMenu", Boolean.toString(leapMenu));
-        p.setProperty("mobHighlights", Boolean.toString(mobHighlights));
+        DungeonEspSettings.save(p);
         p.setProperty("dungeonMap", Boolean.toString(dungeonMap));
         p.setProperty("dungeonMapRotate", Boolean.toString(dungeonMapRotate));
         p.setProperty("dungeonMapShowPlayerNames", Boolean.toString(dungeonMapShowPlayerNames));
