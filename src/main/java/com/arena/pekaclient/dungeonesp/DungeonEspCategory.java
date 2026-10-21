@@ -1,9 +1,10 @@
 package com.arena.pekaclient.dungeonesp;
 
-/** Render categories derived only from a dungeon armor-stand tag, never from ordinary level tags. */
+/** Render categories derived from a dungeon tag/body association or an unambiguous dungeon head marker. */
 public enum DungeonEspCategory {
     NONE,
     STARRED,
     MINIBOSS,
-    SPECIAL
+    SPECIAL,
+    ENDERMAN
 }

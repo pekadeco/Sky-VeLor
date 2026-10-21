@@ -96,6 +96,7 @@ REQUIRED_CLASSES = [
     'dungeonesp/DungeonEspController',
     'dungeonesp/DungeonEspTracker',
     'dungeonesp/DungeonEspMatcher',
+    'dungeonesp/DungeonEspMatchReason',
     'dungeonesp/WitherDoorCache',
     'dungeonesp/DungeonEspRenderBatch',
     'render/GlobalFontManager',
@@ -425,17 +426,22 @@ def main():
                  'All closed doors', 'Cyan', 'Gold', 'Purple')),
             'DungeonEspSettings packages the persisted modes, door scope and color palette')
     r.check(all(value in esp_hub_constants for value in
-                ('Dungeon ESP', 'Starred Mobs', 'Minibosses', 'Global', 'Wither & Blood Doors', 'Presets')),
-            'DungeonEspUiModel packages all collapsible Dungeon ESP groups')
+                ('Mob ESP', 'Door ESP', 'Performance', 'Presets', 'Force Render All Mobs in Room', 'Enderman',
+                 'Skeletor', 'Other Mobs')),
+            'DungeonEspUiModel packages the four collapsed Dungeon ESP groups and all new category controls')
     r.check(b'com/arena/pekaclient/config/DungeonEspSettings' in hub_raw
-                and b'Enable Dungeon ESP' in hub_raw and b'Wither & Blood Doors' in hub_raw,
-            'AppleHubScreen routes the Dungeon tab through the new shared Dungeon ESP controls')
+                and b'Enable Dungeon ESP' in hub_raw and b'Force Render All Mobs in Room' in hub_raw
+                and b'Wither Door Color' in hub_raw,
+            'AppleHubScreen routes every Dungeon ESP control through its one shared Dungeons page')
     r.check(all(value in esp_controller_raw for value in
-                (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch'))
-                and b'RenderWorldLastEvent' in esp_controller_raw and b'espdebug' in esp_command_raw,
-            'DungeonEspController packages tick cache, door cache, render batch and espdebug telemetry')
-    r.check(b'MAX_CANDIDATES' in esp_tracker_raw and b'IdentityHashMap' not in esp_tracker_raw,
-            'DungeonEspTracker packages fixed candidate storage without per-frame identity sets')
+                (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'EntityEnderman',
+                 b'SkullOwner', b'espDump'))
+                and b'RenderWorldLastEvent' in esp_controller_raw and b'espdebug' in esp_command_raw
+                and b'espdump' in esp_command_raw,
+            'DungeonEspController packages timer cache, Enderman-head support, and espdebug/espdump telemetry')
+    r.check(b'MAX_CANDIDATES' in esp_tracker_raw and b'IdentityHashMap' not in esp_tracker_raw
+                and b'SPLIT_TAG' in esp_tracker_raw and b'ENDERMAN_HEAD' in esp_tracker_raw,
+            'DungeonEspTracker packages fixed storage, split-tag association, and no per-frame identity sets')
 
     # --- Item Animation GUI reachability and ownership proof -----------------
     # A standalone Item Animation class is not enough: both real GUI entry points must reference the pure models,

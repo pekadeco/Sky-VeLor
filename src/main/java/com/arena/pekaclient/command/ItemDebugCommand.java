@@ -31,7 +31,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/velor itemanimation|ia|itemdebug|lockdebug|espdebug|selftest|chateditor|chatdebug|layoutdebug";
+        return "/velor itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|selftest|chateditor|chatdebug|layoutdebug";
     }
 
     @Override
@@ -47,6 +47,11 @@ public final class ItemDebugCommand extends CommandBase {
         }
         if (args.length == 1 && "espdebug".equalsIgnoreCase(args[0])) {
             say(sender, DungeonEspController.debugStatus());
+            return;
+        }
+        if (args.length == 1 && "espdump".equalsIgnoreCase(args[0])) {
+            String[] dump = DungeonEspController.espDump();
+            for (int i = 0; i < dump.length; i++) say(sender, dump[i]);
             return;
         }
         if (args.length == 1 && "selftest".equalsIgnoreCase(args[0])) {
@@ -73,7 +78,7 @@ public final class ItemDebugCommand extends CommandBase {
             return;
         }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor lockdebug, /velor espdebug, /velor selftest, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
+            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor lockdebug, /velor espdebug, /velor espdump, /velor selftest, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
             return;
         }
 

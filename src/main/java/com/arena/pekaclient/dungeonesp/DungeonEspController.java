@@ -11,17 +11,26 @@ import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityArmorStand;
+import net.minecraft.entity.monster.EntityEnderman;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Forge bridge for the clean-room Dungeon ESP implementation. Entity association happens only in END client ticks;
@@ -31,6 +40,8 @@ import java.util.List;
 public final class DungeonEspController {
 
     private static final int DOOR_SCAN_INTERVAL_TICKS = 20;
+    private static final int ESP_DUMP_LIMIT = 64;
+    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     private static DungeonEspController activeInstance;
 
     private final DungeonEspTracker tracker = new DungeonEspTracker();
@@ -129,6 +140,62 @@ public final class DungeonEspController {
                 + ", dropped=" + controller.tracker.droppedCandidates();
     }
 
+    /**
+     * Command-only nearby-entity diagnostic. It intentionally walks the live list once when requested, never from
+     * RenderWorldLast, and logs the same bounded lines it returns for chat.
+     */
+    public static String[] espDump() {
+        DungeonEspController controller = activeInstance;
+        if (controller == null) return new String[] {"ESP dump: controller not initialized"};
+        return controller.buildEspDump();
+    }
+
+    private String[] buildEspDump() {
+        Minecraft minecraft = Minecraft.getMinecraft();
+        World world = minecraft == null ? null : minecraft.theWorld;
+        EntityPlayerSP player = minecraft == null ? null : minecraft.thePlayer;
+        if (world == null || player == null || world.loadedEntityList == null) {
+            return new String[] {"ESP dump: no client world/player"};
+        }
+        List<String> lines = new ArrayList<String>();
+        double range = Math.max(12D, DungeonEspSettings.maxDistance);
+        double rangeSq = range * range;
+        lines.add("ESP dump: range=" + (int) range + "m, loaded=" + world.loadedEntityList.size()
+                + ", tracked=" + tracker.trackedCount());
+        int nearby = 0;
+        for (int i = 0; i < world.loadedEntityList.size(); i++) {
+            Entity entity = world.loadedEntityList.get(i);
+            if (entity == null || distanceSq(entity.posX, entity.posY, entity.posZ,
+                    player.posX, player.posY, player.posZ) > rangeSq) continue;
+            nearby++;
+            if (lines.size() > ESP_DUMP_LIMIT) continue;
+            boolean armorStand = entity instanceof EntityArmorStand;
+            String name = armorStand ? entity.getCustomNameTag() : entity.getName();
+            String texture = armorStand ? skullTexture((EntityArmorStand) entity) : null;
+            DungeonEspCategory tagCategory = armorStand ? DungeonEspMatcher.categoryForTag(name) : DungeonEspCategory.NONE;
+            boolean star = armorStand && DungeonEspMatcher.hasStar(name);
+            boolean knownHead = DungeonEspMatcher.isKnownEndermanHeadTexture(texture);
+            boolean namedHead = texture != null && DungeonEspMatcher.isEndermanMarkerName(name);
+            float health = entity instanceof EntityLivingBase ? ((EntityLivingBase) entity).getHealth() : Float.NaN;
+            AxisAlignedBB box = entity.getEntityBoundingBox();
+            DungeonEspCategory selected = tracker.categoryFor(entity.getEntityId());
+            DungeonEspMatchReason reason = tracker.matchReasonFor(entity.getEntityId());
+            lines.add("#" + entity.getEntityId() + " " + entity.getClass().getSimpleName()
+                    + " name=" + brief(name)
+                    + " tag=" + tagCategory + "/star=" + star
+                    + " headTexture=" + (knownHead ? "known-enderman" : (namedHead ? "named-skull" : textureState(texture)))
+                    + " health=" + healthText(health)
+                    + " geometry=" + (reason == DungeonEspMatchReason.ENDERMAN_HEAD
+                            ? "fixed-1.1x2.7/" + boxText(box) : boxText(box))
+                    + " espMatch=" + selected + "/" + reason.text());
+        }
+        if (nearby == 0) lines.add("No nearby entities inside the ESP range.");
+        if (nearby > ESP_DUMP_LIMIT) lines.add("Dump limited to " + ESP_DUMP_LIMIT + " of " + nearby + " nearby entities.");
+        String[] output = lines.toArray(new String[lines.size()]);
+        for (int i = 0; i < output.length; i++) LOG.info("[Dungeon ESP dump] {}", output[i]);
+        return output;
+    }
+
     private void collectDoors(EntityPlayerSP player) {
         if (!DungeonEspSettings.doorsEnabled || !DungeonEspSettings.doors.enabled || doorCache.size() == 0) return;
         if (DungeonEspSettings.doorOnlyWhenKey && !hasWitherKey(player)) return;
@@ -180,6 +247,50 @@ public final class DungeonEspController {
         return nanos <= 0L ? 0L : nanos / 1000L;
     }
 
+    private static String skullTexture(EntityArmorStand stand) {
+        if (stand == null) return null;
+        ItemStack head = stand.getEquipmentInSlot(4);
+        if (head == null || head.getTagCompound() == null) return null;
+        NBTTagCompound root = head.getTagCompound();
+        if (!root.hasKey("SkullOwner", 10)) return null;
+        NBTTagCompound owner = root.getCompoundTag("SkullOwner");
+        if (!owner.hasKey("Properties", 10)) return null;
+        NBTTagCompound properties = owner.getCompoundTag("Properties");
+        if (!properties.hasKey("textures", 9)) return null;
+        NBTTagList textures = properties.getTagList("textures", 10);
+        if (textures == null || textures.tagCount() <= 0) return null;
+        NBTTagCompound first = textures.getCompoundTagAt(0);
+        return first.hasKey("Value", 8) ? first.getString("Value") : null;
+    }
+
+    private static String brief(String value) {
+        if (value == null || value.length() == 0) return "-";
+        String compact = value.replace('§', '&');
+        return compact.length() <= 38 ? compact : compact.substring(0, 35) + "...";
+    }
+
+    private static String textureState(String value) {
+        if (value == null || value.length() == 0) return "none";
+        return "other:" + (value.length() <= 18 ? value : value.substring(0, 18) + "...");
+    }
+
+    private static String healthText(float health) {
+        return Float.isNaN(health) ? "n/a" : String.format(Locale.ROOT, "%.1f", health);
+    }
+
+    private static String boxText(AxisAlignedBB box) {
+        if (box == null) return "none";
+        return String.format(Locale.ROOT, "%.1f,%.1f,%.1f..%.1f,%.1f,%.1f",
+                box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+    }
+
+    private static double distanceSq(double x, double y, double z, double otherX, double otherY, double otherZ) {
+        double dx = x - otherX;
+        double dy = y - otherY;
+        double dz = z - otherZ;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
     /** Thin adapter that fills the tracker scratch object in-place and never creates a per-entity snapshot. */
     private static final class MinecraftEntitySource implements DungeonEspTracker.EntitySource {
         private List<Entity> entities;
@@ -208,11 +319,14 @@ public final class DungeonEspController {
             if (entity instanceof EntityArmorStand) {
                 into.armorStand = true;
                 into.name = entity.getCustomNameTag();
+                into.headTexture = skullTexture((EntityArmorStand) entity);
+                into.endermanHead = DungeonEspMatcher.isKnownEndermanHeadTexture(into.headTexture);
                 return;
             }
             if (entity instanceof EntityLivingBase) {
                 into.living = true;
                 into.player = entity instanceof EntityPlayer;
+                into.enderman = entity instanceof EntityEnderman;
                 into.health = ((EntityLivingBase) entity).getHealth();
             }
         }

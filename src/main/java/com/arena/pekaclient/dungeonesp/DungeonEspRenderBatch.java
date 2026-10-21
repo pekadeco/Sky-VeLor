@@ -104,20 +104,37 @@ public final class DungeonEspRenderBatch {
             }
             DungeonEspSettings.Style style = styleFor(tracked.category);
             if (style == null || !style.enabled) continue;
-            AxisAlignedBB bounds = entity.getEntityBoundingBox();
-            if (bounds == null) continue;
             double ix = interpolate(entity.lastTickPosX, entity.posX, partialTicks);
             double iy = interpolate(entity.lastTickPosY, entity.posY, partialTicks);
             double iz = interpolate(entity.lastTickPosZ, entity.posZ, partialTicks);
-            double offsetX = ix - entity.posX;
-            double offsetY = iy - entity.posY;
-            double offsetZ = iz - entity.posZ;
-            double minX = bounds.minX + offsetX;
-            double minY = bounds.minY + offsetY;
-            double minZ = bounds.minZ + offsetZ;
-            double maxX = bounds.maxX + offsetX;
-            double maxY = bounds.maxY + offsetY;
-            double maxZ = bounds.maxZ + offsetZ;
+            double minX;
+            double minY;
+            double minZ;
+            double maxX;
+            double maxY;
+            double maxZ;
+            if (tracked.fixedArmorStandBox) {
+                // A player-head marker's vanilla armor-stand hitbox is tiny and misleading. Keep its stable,
+                // body-sized box centered on the marker rather than pretending the stand itself is the mob body.
+                minX = ix - 0.55D;
+                maxX = ix + 0.55D;
+                minY = iy - 0.15D;
+                maxY = minY + 2.70D;
+                minZ = iz - 0.55D;
+                maxZ = iz + 0.55D;
+            } else {
+                AxisAlignedBB bounds = entity.getEntityBoundingBox();
+                if (bounds == null) continue;
+                double offsetX = ix - entity.posX;
+                double offsetY = iy - entity.posY;
+                double offsetZ = iz - entity.posZ;
+                minX = bounds.minX + offsetX;
+                minY = bounds.minY + offsetY;
+                minZ = bounds.minZ + offsetZ;
+                maxX = bounds.maxX + offsetX;
+                maxY = bounds.maxY + offsetY;
+                maxZ = bounds.maxZ + offsetZ;
+            }
             if (!frustum.isBoxInFrustum(minX, minY, minZ, maxX, maxY, maxZ)) continue;
             double centerX = (minX + maxX) * 0.5D;
             double centerY = (minY + maxY) * 0.5D;
@@ -309,6 +326,7 @@ public final class DungeonEspRenderBatch {
         if (category == DungeonEspCategory.STARRED) return DungeonEspSettings.starred;
         if (category == DungeonEspCategory.MINIBOSS) return DungeonEspSettings.miniboss;
         if (category == DungeonEspCategory.SPECIAL) return DungeonEspSettings.special;
+        if (category == DungeonEspCategory.ENDERMAN) return DungeonEspSettings.enderman;
         return null;
     }
 
