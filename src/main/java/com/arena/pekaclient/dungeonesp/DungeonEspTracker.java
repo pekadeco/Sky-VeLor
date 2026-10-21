@@ -37,6 +37,12 @@ public final class DungeonEspTracker {
         public boolean enderman;
         /** True for an armor stand carrying the recognized Dungeon Enderman-head marker. */
         public boolean endermanHead;
+        /** Force-render classification supplied by the Minecraft adapter; normal tag matching remains separate. */
+        public boolean hostile;
+        public boolean bat;
+        public boolean invisible;
+        public boolean npc;
+        public boolean pet;
         /** Raw player-head texture property retained only for command diagnostics. */
         public String headTexture;
         public String name;
@@ -54,6 +60,11 @@ public final class DungeonEspTracker {
             dead = false;
             enderman = false;
             endermanHead = false;
+            hostile = false;
+            bat = false;
+            invisible = false;
+            npc = false;
+            pet = false;
             headTexture = null;
             name = null;
             reference = null;
@@ -108,6 +119,11 @@ public final class DungeonEspTracker {
         boolean dead;
         boolean enderman;
         boolean directEndermanMarker;
+        boolean hostile;
+        boolean bat;
+        boolean invisible;
+        boolean npc;
+        boolean pet;
         boolean matched;
         Object reference;
 
@@ -121,6 +137,11 @@ public final class DungeonEspTracker {
             dead = entity.dead;
             enderman = entity.enderman;
             directEndermanMarker = directMarker;
+            hostile = entity.hostile;
+            bat = entity.bat;
+            invisible = entity.invisible;
+            npc = entity.npc;
+            pet = entity.pet;
             matched = false;
             reference = entity.reference;
         }
@@ -167,14 +188,20 @@ public final class DungeonEspTracker {
         for (int i = 0; i < values.length; i++) values[i] = new TrackedMob();
     }
 
-    /**
-     * Scans one loaded-entity snapshot. A normal target must be a non-player, non-armor-stand living body near a
-     * relevant armor-stand tag; each body is consumed at most once. An unambiguous Enderman-head armor stand is a
-     * direct marker target and deliberately receives a fixed render box. Existing entries are evicted if their body,
-     * marker, or tag relation is absent on the next configured scan.
-     */
+    /** Compatibility entry point for ordinary starred ESP scans with force-rendering disabled. */
     public void scan(EntitySource source, double playerX, double playerY, double playerZ,
                      double maxDistance, boolean hideZeroHealth) {
+        scan(source, playerX, playerY, playerZ, maxDistance, hideZeroHealth, false, false, false);
+    }
+
+    /**
+     * Timer-only scan including the optional all-hostile room fallback. When no room boundary is available from the
+     * dungeon map, that fallback is deliberately bounded by the configured horizontal distance and the same vertical
+     * range instead of wandering through loaded rooms.
+     */
+    public void scan(EntitySource source, double playerX, double playerY, double playerZ,
+                     double maxDistance, boolean hideZeroHealth, boolean forceRenderAllMobs,
+                     boolean includeBats, boolean includeInvisibleMobs) {
         candidateCount = 0;
         tagCount = 0;
         droppedCandidates = 0;
@@ -201,7 +228,7 @@ public final class DungeonEspTracker {
                 if (DungeonEspMatcher.isTagCandidate(scratch.name)) addTag(scratch);
                 continue;
             }
-            if (!scratch.living || scratch.player || scratch.dead
+            if (!scratch.living || scratch.player || scratch.dead || scratch.npc || scratch.pet
                     || (hideZeroHealth && !Float.isNaN(scratch.health) && scratch.health <= 0F)) {
                 continue;
             }
@@ -226,6 +253,9 @@ public final class DungeonEspTracker {
             if (candidate.directEndermanMarker) {
                 upsert(candidate.id, DungeonEspCategory.ENDERMAN, DungeonEspMatchReason.ENDERMAN_HEAD, candidate);
             }
+        }
+        if (forceRenderAllMobs) {
+            addForcedRoomMobs(playerX, playerY, playerZ, maxDistance, includeBats, includeInvisibleMobs);
         }
         removeUnseen();
     }
@@ -358,6 +388,22 @@ public final class DungeonEspTracker {
             }
         }
         return best;
+    }
+
+    /** Adds only unpaired, eligible hostile candidates; tagged/miniboss records are already marked matched. */
+    private void addForcedRoomMobs(double playerX, double playerY, double playerZ, double maxDistance,
+                                   boolean includeBats, boolean includeInvisibleMobs) {
+        double maxHorizontalSq = maxDistance * maxDistance;
+        for (int i = 0; i < candidateCount; i++) {
+            Candidate candidate = candidates[i];
+            if (candidate.matched || candidate.directEndermanMarker || candidate.npc || candidate.pet) continue;
+            if (!candidate.hostile && !(includeBats && candidate.bat)) continue;
+            if (!includeInvisibleMobs && candidate.invisible) continue;
+            double dx = candidate.x - playerX;
+            double dz = candidate.z - playerZ;
+            if (dx * dx + dz * dz > maxHorizontalSq || Math.abs(candidate.y - playerY) > maxDistance) continue;
+            upsert(candidate.id, DungeonEspCategory.OTHER, DungeonEspMatchReason.FORCE_ROOM_MOB, candidate);
+        }
     }
 
     private void upsert(int entityId, DungeonEspCategory category, DungeonEspMatchReason reason, Candidate candidate) {

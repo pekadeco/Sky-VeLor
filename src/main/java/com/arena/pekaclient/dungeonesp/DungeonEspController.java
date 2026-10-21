@@ -12,6 +12,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.monster.EntityEnderman;
+import net.minecraft.entity.monster.IMob;
+import net.minecraft.entity.passive.EntityBat;
+import net.minecraft.entity.passive.EntityTameable;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.EnumDyeColor;
@@ -88,7 +91,9 @@ public final class DungeonEspController {
             entitySource.setWorld(world);
             long started = System.nanoTime();
             tracker.scan(entitySource, player.posX, player.posY, player.posZ,
-                    DungeonEspSettings.maxDistance, DungeonEspSettings.hideZeroHealth);
+                    DungeonEspSettings.maxDistance, DungeonEspSettings.hideZeroHealth,
+                    DungeonEspSettings.forceRenderAllMobs, DungeonEspSettings.includeBats,
+                    DungeonEspSettings.includeInvisibleMobs);
             scanNanosThisTick += System.nanoTime() - started;
             scanned = true;
         }
@@ -176,6 +181,11 @@ public final class DungeonEspController {
             boolean star = armorStand && DungeonEspMatcher.hasStar(name);
             boolean knownHead = DungeonEspMatcher.isKnownEndermanHeadTexture(texture);
             boolean namedHead = texture != null && DungeonEspMatcher.isEndermanMarkerName(name);
+            boolean hostile = entity instanceof IMob;
+            boolean bat = entity instanceof EntityBat;
+            boolean invisible = entity.isInvisible();
+            boolean npc = isNpcName(entity.getCustomNameTag());
+            boolean pet = entity instanceof EntityTameable && ((EntityTameable) entity).isTamed();
             float health = entity instanceof EntityLivingBase ? ((EntityLivingBase) entity).getHealth() : Float.NaN;
             AxisAlignedBB box = entity.getEntityBoundingBox();
             DungeonEspCategory selected = tracker.categoryFor(entity.getEntityId());
@@ -185,6 +195,8 @@ public final class DungeonEspController {
                     + " tag=" + tagCategory + "/star=" + star
                     + " headTexture=" + (knownHead ? "known-enderman" : (namedHead ? "named-skull" : textureState(texture)))
                     + " health=" + healthText(health)
+                    + " force=" + (hostile ? "hostile" : (bat ? "bat" : "non-hostile"))
+                    + (invisible ? "/invisible" : "") + (npc ? "/npc" : "") + (pet ? "/pet" : "")
                     + " geometry=" + (reason == DungeonEspMatchReason.ENDERMAN_HEAD
                             ? "fixed-1.1x2.7/" + boxText(box) : boxText(box))
                     + " espMatch=" + selected + "/" + reason.text());
@@ -274,6 +286,10 @@ public final class DungeonEspController {
         return "other:" + (value.length() <= 18 ? value : value.substring(0, 18) + "...");
     }
 
+    private static boolean isNpcName(String name) {
+        return DungeonEspMatcher.containsToken(name, "[npc]") || DungeonEspMatcher.containsToken(name, " npc ");
+    }
+
     private static String healthText(float health) {
         return Float.isNaN(health) ? "n/a" : String.format(Locale.ROOT, "%.1f", health);
     }
@@ -327,6 +343,12 @@ public final class DungeonEspController {
                 into.living = true;
                 into.player = entity instanceof EntityPlayer;
                 into.enderman = entity instanceof EntityEnderman;
+                into.hostile = entity instanceof IMob;
+                into.bat = entity instanceof EntityBat;
+                into.invisible = entity.isInvisible();
+                into.name = entity.getCustomNameTag();
+                into.npc = isNpcName(into.name);
+                into.pet = entity instanceof EntityTameable && ((EntityTameable) entity).isTamed();
                 into.health = ((EntityLivingBase) entity).getHealth();
             }
         }

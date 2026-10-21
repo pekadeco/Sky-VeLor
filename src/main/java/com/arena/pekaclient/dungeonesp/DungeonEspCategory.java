@@ -7,5 +7,6 @@ public enum DungeonEspCategory {
     MINIBOSS,
     SPECIAL,
     ENDERMAN,
-    SKELETOR
+    SKELETOR,
+    OTHER
 }

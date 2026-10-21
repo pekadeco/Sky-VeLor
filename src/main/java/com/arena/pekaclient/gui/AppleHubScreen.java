@@ -545,7 +545,7 @@ public class AppleHubScreen extends AppleScreen {
         addDungeonEspStyleRows(rows, DungeonEspSettings.enderman, "Enderman", "real and head-marker Endermen");
         addDungeonEspStyleRows(rows, DungeonEspSettings.skeletor, "Skeletor", "starred Skeletors");
         rows.add(Row.item("Force Render All Mobs in Room",
-                "Off by default. Adds eligible hostile room mobs during cached scans",
+                "Off by default. Caches eligible hostiles in the room or ESP range",
                 new AppleToggle(() -> DungeonEspSettings.forceRenderAllMobs,
                         v -> DungeonEspSettings.forceRenderAllMobs = v)));
         addDungeonEspStyleRows(rows, DungeonEspSettings.otherMobs, "Other Mobs", "eligible non-starred hostile mobs");
