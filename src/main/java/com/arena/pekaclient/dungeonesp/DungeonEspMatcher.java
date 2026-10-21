@@ -36,6 +36,9 @@ public final class DungeonEspMatcher {
                 || containsToken(name, "king midas")) {
             return DungeonEspCategory.MINIBOSS;
         }
+        if (containsToken(name, "skeletor")) {
+            return DungeonEspCategory.SKELETOR;
+        }
         if (containsToken(name, "withermancer") || containsToken(name, "skeleton master")
                 || containsToken(name, "zombie commander") || containsToken(name, "crypt dreadlord")
                 || containsToken(name, "crypt souleater") || containsToken(name, "fels")

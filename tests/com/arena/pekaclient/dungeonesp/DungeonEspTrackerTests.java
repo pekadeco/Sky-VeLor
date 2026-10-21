@@ -13,6 +13,7 @@ public final class DungeonEspTrackerTests {
         classificationAcceptsStarsNotLevels();
         delayedTagAndBodyAssociateOnNextScan();
         tallAndSplitTagsAssociateOnce();
+        skeletorGetsDedicatedCategoryAcrossSplitTags();
         nearestUnmatchedBodiesAndDeathsAreHandled();
         realAndHeadEndermenAreHandled();
         mockFiveHundredEntitySteadyStateReusesStorage();
@@ -30,6 +31,8 @@ public final class DungeonEspTrackerTests {
                 DungeonEspMatcher.categoryForTag("\u00a7cShadow Assassin \u00a7a12M\u2764") == DungeonEspCategory.MINIBOSS);
         check("Crypt Souleater gets special starred category",
                 DungeonEspMatcher.categoryForTag("\u00a76\u272f \u00a7cCrypt Souleater") == DungeonEspCategory.SPECIAL);
+        check("Skeletor gets its own starred category",
+                DungeonEspMatcher.categoryForTag("\u00a76\u272f \u00a7cSkeletor") == DungeonEspCategory.SKELETOR);
         check("known Enderman skull data is recognized", DungeonEspMatcher.isKnownEndermanHeadTexture(
                 "e3RleHR1cmVzOntTS0lOOnt1cmw6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2E1OWJiMGE3YTMyOTY1YjNkOTBkOGVhZmE4OTlkMTgzNWY0MjQ1MDllYWRkNGU2YjcwOWFkYTUwYjljZiJ9fX0="));
     }
@@ -60,6 +63,19 @@ public final class DungeonEspTrackerTests {
         check("tall split tag body is selected", record != null && record.reference == body
                 && record.category == DungeonEspCategory.SPECIAL);
         check("split stands consume body once", tracker.trackedCount() == 1
+                && record.matchReason == DungeonEspMatchReason.SPLIT_TAG);
+    }
+
+    private static void skeletorGetsDedicatedCategoryAcrossSplitTags() {
+        DungeonEspTracker tracker = new DungeonEspTracker();
+        MockSource world = new MockSource(3);
+        world.setTag(0, 30, 12D, 66.8D, 12D, "\u272e [Lv100]");
+        world.setTag(1, 31, 12.1D, 66.2D, 12D, "\u00a7cSkeletor");
+        world.setLiving(2, 32, 12.05D, 64D, 12D, 1.8D, 100F, new Object());
+        tracker.scan(world, 0D, 64D, 0D, 60D, true);
+        DungeonEspTracker.TrackedMob record = find(tracker, 32);
+        check("split Skeletor tags select one body with dedicated category", record != null
+                && record.category == DungeonEspCategory.SKELETOR
                 && record.matchReason == DungeonEspMatchReason.SPLIT_TAG);
     }
 

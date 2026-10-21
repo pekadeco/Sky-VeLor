@@ -440,8 +440,9 @@ def main():
                 and b'espdump' in esp_command_raw,
             'DungeonEspController packages timer cache, Enderman-head support, and espdebug/espdump telemetry')
     r.check(b'MAX_CANDIDATES' in esp_tracker_raw and b'IdentityHashMap' not in esp_tracker_raw
-                and b'SPLIT_TAG' in esp_tracker_raw and b'ENDERMAN_HEAD' in esp_tracker_raw,
-            'DungeonEspTracker packages fixed storage, split-tag association, and no per-frame identity sets')
+                and b'SPLIT_TAG' in esp_tracker_raw and b'ENDERMAN_HEAD' in esp_tracker_raw
+                and b'SKELETOR' in esp_tracker_raw,
+            'DungeonEspTracker packages fixed storage, split-tag association, Skeletor, and no per-frame identity sets')
 
     # --- Item Animation GUI reachability and ownership proof -----------------
     # A standalone Item Animation class is not enough: both real GUI entry points must reference the pure models,

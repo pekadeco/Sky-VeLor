@@ -327,6 +327,7 @@ public final class DungeonEspRenderBatch {
         if (category == DungeonEspCategory.MINIBOSS) return DungeonEspSettings.miniboss;
         if (category == DungeonEspCategory.SPECIAL) return DungeonEspSettings.special;
         if (category == DungeonEspCategory.ENDERMAN) return DungeonEspSettings.enderman;
+        if (category == DungeonEspCategory.SKELETOR) return DungeonEspSettings.skeletor;
         return null;
     }
 

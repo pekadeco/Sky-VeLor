@@ -418,6 +418,7 @@ public final class DungeonEspTracker {
 
     private static DungeonEspCategory strongerCategory(DungeonEspCategory first, DungeonEspCategory second) {
         if (first == DungeonEspCategory.MINIBOSS || second == DungeonEspCategory.MINIBOSS) return DungeonEspCategory.MINIBOSS;
+        if (first == DungeonEspCategory.SKELETOR || second == DungeonEspCategory.SKELETOR) return DungeonEspCategory.SKELETOR;
         if (first == DungeonEspCategory.SPECIAL || second == DungeonEspCategory.SPECIAL) return DungeonEspCategory.SPECIAL;
         return first != DungeonEspCategory.NONE ? first : second;
     }

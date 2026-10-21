@@ -50,6 +50,8 @@ public final class DungeonEspSettingsTests {
         DungeonEspSettings.starred.mode = DungeonEspSettings.MODE_FILLED;
         DungeonEspSettings.miniboss.throughWalls = false;
         DungeonEspSettings.enderman.color = 0xFF9F0A;
+        DungeonEspSettings.skeletor.color = 0xFF7EB6;
+        DungeonEspSettings.skeletor.mode = DungeonEspSettings.MODE_OUTLINE;
         DungeonEspSettings.skeletor.outlineWidth = 5;
         DungeonEspSettings.otherMobs.throughWalls = false;
         DungeonEspSettings.forceRenderAllMobs = true;
@@ -59,10 +61,15 @@ public final class DungeonEspSettingsTests {
         DungeonEspSettings.doorScope = DungeonEspSettings.DOORS_ALL;
         Properties saved = new Properties();
         DungeonEspSettings.save(saved);
+        check("Skeletor has its own persisted style keys", saved.containsKey("dungeonEsp.skeletor.enabled")
+                && saved.containsKey("dungeonEsp.skeletor.color") && saved.containsKey("dungeonEsp.skeletor.mode")
+                && saved.containsKey("dungeonEsp.skeletor.outlineWidth"));
         DungeonEspSettings.load(saved);
         check("styles round trip", DungeonEspSettings.maxDistance == 133 && DungeonEspSettings.updateIntervalTicks == 7
                 && DungeonEspSettings.starred.color == 0xA6E22E && DungeonEspSettings.starred.mode == DungeonEspSettings.MODE_FILLED
                 && !DungeonEspSettings.miniboss.throughWalls && DungeonEspSettings.enderman.color == 0xFF9F0A
+                && DungeonEspSettings.skeletor.color == 0xFF7EB6
+                && DungeonEspSettings.skeletor.mode == DungeonEspSettings.MODE_OUTLINE
                 && DungeonEspSettings.skeletor.outlineWidth == 5 && !DungeonEspSettings.otherMobs.throughWalls
                 && DungeonEspSettings.forceRenderAllMobs && DungeonEspSettings.includeBats
                 && DungeonEspSettings.includeInvisibleMobs && DungeonEspSettings.doors.fillOpacity == 37
