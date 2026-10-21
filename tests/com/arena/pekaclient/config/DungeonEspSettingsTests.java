@@ -12,6 +12,7 @@ public final class DungeonEspSettingsTests {
         legacyMobToggleMigrates();
         saveLoadRoundTripAndBounds();
         presetsRemainDocumented();
+        doorColorDefaultsMigrateOnlyFormerValues();
         done();
     }
 
@@ -94,6 +95,33 @@ public final class DungeonEspSettingsTests {
                 && DungeonEspSettings.starred.throughWalls && DungeonEspSettings.starred.fillOpacity > 0);
         check("palette lookup is bounded", DungeonEspSettings.colorForIndex(-2) == DungeonEspSettings.COLORS[0]
                 && DungeonEspSettings.colorForIndex(999) == DungeonEspSettings.COLORS[DungeonEspSettings.COLORS.length - 1]);
+    }
+
+    private static void doorColorDefaultsMigrateOnlyFormerValues() {
+        DungeonEspSettings.load(new Properties());
+        check("new door defaults are red and dark red", DungeonEspSettings.doors.color == DungeonEspSettings.DEFAULT_WITHER_DOOR_COLOR
+                && DungeonEspSettings.bloodDoorColor == DungeonEspSettings.DEFAULT_BLOOD_DOOR_COLOR);
+        check("dark red is selectable", DungeonEspSettings.colorForIndex(DungeonEspSettings.colorIndex(
+                DungeonEspSettings.DEFAULT_BLOOD_DOOR_COLOR)) == DungeonEspSettings.DEFAULT_BLOOD_DOOR_COLOR);
+
+        Properties oldDefaults = new Properties();
+        oldDefaults.setProperty("dungeonEsp.doors.style.color", Integer.toString(DungeonEspSettings.FORMER_WITHER_DOOR_COLOR));
+        oldDefaults.setProperty("dungeonEsp.doors.bloodColor", Integer.toString(DungeonEspSettings.FORMER_BLOOD_DOOR_COLOR));
+        DungeonEspSettings.load(oldDefaults);
+        check("former stored defaults migrate", DungeonEspSettings.doors.color == DungeonEspSettings.DEFAULT_WITHER_DOOR_COLOR
+                && DungeonEspSettings.bloodDoorColor == DungeonEspSettings.DEFAULT_BLOOD_DOOR_COLOR);
+        DungeonEspSettings.save(oldDefaults);
+        check("migration persists new values", Integer.toString(DungeonEspSettings.DEFAULT_WITHER_DOOR_COLOR)
+                .equals(oldDefaults.getProperty("dungeonEsp.doors.style.color"))
+                && Integer.toString(DungeonEspSettings.DEFAULT_BLOOD_DOOR_COLOR)
+                .equals(oldDefaults.getProperty("dungeonEsp.doors.bloodColor")));
+
+        Properties custom = new Properties();
+        custom.setProperty("dungeonEsp.doors.style.color", Integer.toString(0x0A84FF));
+        custom.setProperty("dungeonEsp.doors.bloodColor", Integer.toString(0xBF5AF2));
+        DungeonEspSettings.load(custom);
+        check("custom door colors remain untouched", DungeonEspSettings.doors.color == 0x0A84FF
+                && DungeonEspSettings.bloodDoorColor == 0xBF5AF2);
     }
 
     private static void check(String name, boolean ok) { if (ok) passed++; else { failed++; System.out.println("FAIL " + name); } }

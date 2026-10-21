@@ -34,13 +34,19 @@ public final class DungeonEspSettings {
     public static final int MIN_OPACITY = 0;
     public static final int MAX_OPACITY = 100;
 
+    /** Previous defaults remain explicit so only matching stored values are migrated, never arbitrary custom colors. */
+    public static final int FORMER_WITHER_DOOR_COLOR = 0x32D7FF;
+    public static final int FORMER_BLOOD_DOOR_COLOR = 0xFF453A;
+    public static final int DEFAULT_WITHER_DOOR_COLOR = 0xFF453A;
+    public static final int DEFAULT_BLOOD_DOOR_COLOR = 0x8B1E1E;
+
     /** Palette shown by the Dungeon ESP color dropdowns. RGB is deliberate; opacity has its own slider. */
     public static final String[] COLOR_NAMES = {
-            "Cyan", "Gold", "Purple", "Green", "Orange", "Red", "Pink", "White", "Blue", "Lime"
+            "Cyan", "Gold", "Purple", "Green", "Orange", "Red", "Dark Red", "Pink", "White", "Blue", "Lime"
     };
     public static final int[] COLORS = {
             0x32D7FF, 0xFFD166, 0xBF5AF2, 0x30D158, 0xFF9F0A,
-            0xFF453A, 0xFF7EB6, 0xF2F2F7, 0x0A84FF, 0xA6E22E
+            0xFF453A, 0x8B1E1E, 0xFF7EB6, 0xF2F2F7, 0x0A84FF, 0xA6E22E
     };
 
     /** Master switch; star and door cache work both stop immediately when it is false. */
@@ -71,8 +77,8 @@ public final class DungeonEspSettings {
     public static int doorScope = DOORS_NEAREST;
     public static boolean doorOnlyWhenKey = false;
     public static boolean showBloodDoors = true;
-    public static int bloodDoorColor = 0xFF453A;
-    public static final Style doors = new Style(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 16);
+    public static int bloodDoorColor = DEFAULT_BLOOD_DOOR_COLOR;
+    public static final Style doors = new Style(true, DEFAULT_WITHER_DOOR_COLOR, MODE_BOTH, true, 2, 95, 16);
     public static boolean doorDistanceText = false;
 
     private DungeonEspSettings() {
@@ -134,8 +140,8 @@ public final class DungeonEspSettings {
         doorScope = DOORS_NEAREST;
         doorOnlyWhenKey = false;
         showBloodDoors = true;
-        bloodDoorColor = 0xFF453A;
-        doors.reset(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 16);
+        bloodDoorColor = DEFAULT_BLOOD_DOOR_COLOR;
+        doors.reset(true, DEFAULT_WITHER_DOOR_COLOR, MODE_BOTH, true, 2, 95, 16);
         doorDistanceText = false;
     }
 
@@ -161,8 +167,8 @@ public final class DungeonEspSettings {
         doorScope = DOORS_NEAREST;
         doorOnlyWhenKey = false;
         showBloodDoors = true;
-        bloodDoorColor = 0xFF453A;
-        doors.reset(true, 0x32D7FF, MODE_OUTLINE, false, 1, 72, 0);
+        bloodDoorColor = DEFAULT_BLOOD_DOOR_COLOR;
+        doors.reset(true, DEFAULT_WITHER_DOOR_COLOR, MODE_OUTLINE, false, 1, 72, 0);
         doorDistanceText = false;
     }
 
@@ -202,6 +208,7 @@ public final class DungeonEspSettings {
         bloodDoorColor = readColor(source, PREFIX + "doors.bloodColor", bloodDoorColor);
         loadStyle(source, "doors.style", doors);
         doorDistanceText = readBool(source, PREFIX + "doors.distanceText", doorDistanceText);
+        migrateFormerDoorDefaults(source);
         normalize();
     }
 
@@ -242,14 +249,14 @@ public final class DungeonEspSettings {
         updateIntervalTicks = clamp(updateIntervalTicks, MIN_INTERVAL_TICKS, MAX_INTERVAL_TICKS);
         maxBoxes = clamp(maxBoxes, MIN_BOXES, MAX_BOXES);
         doorScope = clamp(doorScope, DOORS_NEAREST, DOORS_ALL);
-        bloodDoorColor = sanitizeColor(bloodDoorColor, 0xFF453A);
-        normalizeStyle(starred);
-        normalizeStyle(miniboss);
-        normalizeStyle(special);
-        normalizeStyle(enderman);
-        normalizeStyle(skeletor);
-        normalizeStyle(otherMobs);
-        normalizeStyle(doors);
+        bloodDoorColor = sanitizeColor(bloodDoorColor, DEFAULT_BLOOD_DOOR_COLOR);
+        normalizeStyle(starred, 0x32D7FF);
+        normalizeStyle(miniboss, 0xFFD166);
+        normalizeStyle(special, 0xBF5AF2);
+        normalizeStyle(enderman, 0xBF5AF2);
+        normalizeStyle(skeletor, 0x32D7FF);
+        normalizeStyle(otherMobs, 0x30D158);
+        normalizeStyle(doors, DEFAULT_WITHER_DOOR_COLOR);
     }
 
     public static int colorIndex(int color) {
@@ -264,8 +271,27 @@ public final class DungeonEspSettings {
         return COLORS[clamp(index, 0, COLORS.length - 1)];
     }
 
-    private static void normalizeStyle(Style style) {
-        style.color = sanitizeColor(style.color, 0x32D7FF);
+    /** Converts only explicit former defaults; absent and hand-picked values retain their respective meaning. */
+    private static void migrateFormerDoorDefaults(Properties source) {
+        if (storedColorEquals(source, PREFIX + "doors.style.color", FORMER_WITHER_DOOR_COLOR)) {
+            doors.color = DEFAULT_WITHER_DOOR_COLOR;
+        }
+        if (storedColorEquals(source, PREFIX + "doors.bloodColor", FORMER_BLOOD_DOOR_COLOR)) {
+            bloodDoorColor = DEFAULT_BLOOD_DOOR_COLOR;
+        }
+    }
+
+    private static boolean storedColorEquals(Properties source, String key, int expected) {
+        if (source == null || !source.containsKey(key)) return false;
+        try {
+            return Integer.parseInt(source.getProperty(key).trim()) == expected;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+    }
+
+    private static void normalizeStyle(Style style, int defaultColor) {
+        style.color = sanitizeColor(style.color, defaultColor);
         style.mode = clamp(style.mode, MODE_OUTLINE, MODE_BOTH);
         style.outlineWidth = clamp(style.outlineWidth, MIN_WIDTH, MAX_WIDTH);
         style.outlineOpacity = clamp(style.outlineOpacity, MIN_OPACITY, MAX_OPACITY);
