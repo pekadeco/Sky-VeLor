@@ -2,6 +2,7 @@ package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.ItemAnimation;
+import com.arena.pekaclient.dungeonesp.DungeonEspController;
 import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapController;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapHookStatus;
@@ -30,7 +31,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/velor itemanimation|ia|itemdebug|lockdebug|selftest|chateditor|chatdebug|layoutdebug";
+        return "/velor itemanimation|ia|itemdebug|lockdebug|espdebug|selftest|chateditor|chatdebug|layoutdebug";
     }
 
     @Override
@@ -42,6 +43,10 @@ public final class ItemDebugCommand extends CommandBase {
     public void processCommand(ICommandSender sender, String[] args) {
         if (args.length == 1 && "lockdebug".equalsIgnoreCase(args[0])) {
             say(sender, "Item Lock / Swap: " + ItemLockSwapController.debugStatus());
+            return;
+        }
+        if (args.length == 1 && "espdebug".equalsIgnoreCase(args[0])) {
+            say(sender, DungeonEspController.debugStatus());
             return;
         }
         if (args.length == 1 && "selftest".equalsIgnoreCase(args[0])) {
@@ -68,7 +73,7 @@ public final class ItemDebugCommand extends CommandBase {
             return;
         }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor lockdebug, /velor selftest, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
+            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor lockdebug, /velor espdebug, /velor selftest, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
             return;
         }
 

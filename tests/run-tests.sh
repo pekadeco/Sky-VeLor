@@ -64,7 +64,6 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatQolLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.notes.QuickNoteLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.QualityOfLifeUiModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ItemAnimationReachabilityTests
-java -cp "$OUT:$CP" com.arena.pekaclient.feature.MobMarkersTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPaletteTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPreviewDataTests

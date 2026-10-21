@@ -1,5 +1,15 @@
 # Changelog
 
+## Beta-0.10.8.6.4v — 2026-10-21
+
+- Replaced the old per-frame **Mob highlights** renderer with one cached Dungeon ESP: it recognizes yellow-star (`✮`/`✯`) armor-stand tags, associates the loaded living body below each tag on configurable client ticks (default 5), draws the body’s interpolated real hitbox, and removes dead, zero-health, despawned, or unpaired targets. Plain `[Lv]` tags are no longer highlighted.
+- Added independently implemented starred, miniboss, and special-starred categories with color-palette selection, outline/filled/both mode, per-category through-wall behavior, edge width, outline/fill opacity, global range, tracer, distance text, and max-box controls. The Dungeon tab now has shared-layout collapsible **Dungeon ESP**, category, Global, Doors, and Presets groups with Default/Subtle/reset profiles.
+- Added cached closed wither/blood-door ESP for the observed 3×4×3 coal/red-stained-clay prism behavior. Door discovery is timer-driven, cache entries are invalidated when opened, and UI controls cover nearest/all, key-only, blood visibility/color, rendering, and distance text.
+- Added `/velor espdebug` live dungeon state, tracked/rendered counts, scan/render timings, scan interval, door-cache size, and bounded-cache drops.
+- Added mock-500 entity storage-reuse/allocation regression coverage, tag/body delay/death/classification tests, sample door-layout/invalidation tests, persisted Dungeon ESP migration/bounds/preset tests, and shared GUI-scale overlap coverage.
+- Source research was clean-room only: NotEnoughFakepixel is LGPL-3.0 while Sky VeLor is MIT, so no NEF source or notices were copied. The superseded `MobHighlight`/`MobMarkers` implementation was removed.
+- Updated display version to `Beta-0.10.8.6.4v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.6.4`.
+
 ## Beta-0.10.8.6.3.1v — 2026-10-20
 
 - Fixed paired Item Swap endpoint taps: pressing and releasing the default **L** on either endpoint now removes and persists that pair instead of locking the slot, removes its badges/line on the next overlay frame, and reports **Swap removed**. Existing A→partner drag removal and all other drag decisions are unchanged.

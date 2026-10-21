@@ -36,6 +36,10 @@ call :run com.arena.pekaclient.feature.LeapClassCacheTests || goto fail
 call :run com.arena.pekaclient.config.ConfigFilesTests || goto fail
 call :run com.arena.pekaclient.config.AppleSettingsTests || goto fail
 call :run com.arena.pekaclient.config.ChatQolSettingsTests || goto fail
+call :run com.arena.pekaclient.config.DungeonEspSettingsTests || goto fail
+call :run com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests || goto fail
+call :run com.arena.pekaclient.dungeonesp.WitherDoorCacheTests || goto fail
+call :run com.arena.pekaclient.gui.DungeonEspUiModelTests || goto fail
 call :run com.arena.pekaclient.render.ThemeTests || goto fail
 call :run com.arena.pekaclient.hud.DollConfigTests || goto fail
 call :run com.arena.pekaclient.feature.LeapClassTests || goto fail
@@ -47,7 +51,6 @@ call :run com.arena.pekaclient.feature.ChatTabsTests || goto fail
 call :run com.arena.pekaclient.feature.ChatInteractionModelTests || goto fail
 call :run com.arena.pekaclient.gui.ChatQolLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.ItemAnimationReachabilityTests || goto fail
-call :run com.arena.pekaclient.feature.MobMarkersTests || goto fail
 call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPaletteTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPreviewDataTests || goto fail

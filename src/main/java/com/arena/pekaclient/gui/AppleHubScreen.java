@@ -4,6 +4,7 @@ import com.arena.pekaclient.PekaClientMod;
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
+import com.arena.pekaclient.config.DungeonEspSettings;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.M7Settings;
@@ -79,7 +80,7 @@ public class AppleHubScreen extends AppleScreen {
             "Gameplay, commands and Default Chat QoL",
             "Show, place and style the on-screen elements",
             "Mining BPS and its settings",
-            "Spirit Leap, mob highlights and Floor VII (M7) overlays",
+            "Spirit Leap, Dungeon ESP doors and Floor VII (M7) overlays",
             "Drop tracker, boss timer and prices",
             "Sea-creature counter, Common Creature (CC), Festival best, Sea Creature HP and Lord Jawbus"
     };
@@ -171,7 +172,8 @@ public class AppleHubScreen extends AppleScreen {
             navHover[i] = new Anim(0f);
         }
         expanded.add("Spirit Leap");
-        expanded.add("Mob highlights");
+        expanded.add(DungeonEspUiModel.SECTION_TITLE);
+        expanded.add(DungeonEspUiModel.STARRED_TITLE);
         buildPages();
     }
 
@@ -528,10 +530,61 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleButton("Open in HUD Editor", 142f, 26f, false,
                         () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)))));
 
-        rows.add(Row.header("Mob highlights"));
-        rows.add(Row.item("Outline dungeon mobs",
-                "Outlines named mobs with a level tag or an elite star, inside a dungeon. Overlay only",
-                new AppleToggle(() -> AppleSettings.mobHighlights, v -> AppleSettings.mobHighlights = v)));
+        // One Dungeon ESP surface replaces the former Mob highlights toggle. Each header is an existing shared
+        // collapsible Row, so settings never overlay adjacent controls at small GUI scales.
+        rows.add(Row.header(DungeonEspUiModel.SECTION_TITLE));
+        rows.add(Row.item("Enable Dungeon ESP",
+                "Tracks only starred mobs and cached closed doors while inside a dungeon",
+                new AppleToggle(() -> DungeonEspSettings.enabled, v -> DungeonEspSettings.enabled = v)));
+
+        rows.add(Row.header(DungeonEspUiModel.STARRED_TITLE));
+        addDungeonEspStyleRows(rows, DungeonEspSettings.starred, "starred dungeon mobs");
+        rows.add(Row.header(DungeonEspUiModel.MINIBOSS_TITLE));
+        addDungeonEspStyleRows(rows, DungeonEspSettings.miniboss, "dungeon minibosses");
+        rows.add(Row.header(DungeonEspUiModel.SPECIAL_TITLE));
+        addDungeonEspStyleRows(rows, DungeonEspSettings.special, "named special starred enemies");
+
+        rows.add(Row.header(DungeonEspUiModel.GLOBAL_TITLE));
+        rows.add(Row.item("Maximum distance", "Only armor stands and mobs inside this range are scanned",
+                new AppleSlider(DungeonEspSettings.MIN_DISTANCE, DungeonEspSettings.MAX_DISTANCE, 1, " blocks", 150f,
+                        () -> DungeonEspSettings.maxDistance, v -> DungeonEspSettings.maxDistance = v)));
+        rows.add(Row.item("Update interval", "Entity scan period. Lower is faster to react; default is five ticks",
+                new AppleSlider(DungeonEspSettings.MIN_INTERVAL_TICKS, DungeonEspSettings.MAX_INTERVAL_TICKS, 1, " ticks", 150f,
+                        () -> DungeonEspSettings.updateIntervalTicks, v -> DungeonEspSettings.updateIntervalTicks = v)));
+        rows.add(Row.item("Hide zero-health mobs", "Drops cached boxes as soon as a scanned living target has no health",
+                new AppleToggle(() -> DungeonEspSettings.hideZeroHealth, v -> DungeonEspSettings.hideZeroHealth = v)));
+        rows.add(Row.item("Tracers", "Draw a thin world-space line from the player to each visible tracked mob",
+                new AppleToggle(() -> DungeonEspSettings.tracers, v -> DungeonEspSettings.tracers = v)));
+        rows.add(Row.item("Distance text", "Show rounded block distance above tracked mob hitboxes",
+                new AppleToggle(() -> DungeonEspSettings.distanceText, v -> DungeonEspSettings.distanceText = v)));
+        rows.add(Row.item("Maximum boxes", "Caps displayed mob hitboxes without dropping the tracker cache",
+                new AppleSlider(DungeonEspSettings.MIN_BOXES, DungeonEspSettings.MAX_BOXES, 1, "", 150f,
+                        () -> DungeonEspSettings.maxBoxes, v -> DungeonEspSettings.maxBoxes = v)));
+
+        rows.add(Row.header(DungeonEspUiModel.DOORS_TITLE));
+        rows.add(Row.item("Show cached doors", "Scan nearby closed 3x4x3 wither and blood doors once per second",
+                new AppleToggle(() -> DungeonEspSettings.doorsEnabled, v -> DungeonEspSettings.doorsEnabled = v)));
+        rows.add(Row.item("Door scope", "Render only the nearest closed door or every cached closed door",
+                new AppleDropdown(DungeonEspSettings.DOOR_SCOPE_NAMES, null, 150f, 24f,
+                        () -> DungeonEspSettings.doorScope, v -> DungeonEspSettings.doorScope = v)));
+        rows.add(Row.item("Only with a Wither Key", "Hide cached doors until a Wither Key is in your inventory",
+                new AppleToggle(() -> DungeonEspSettings.doorOnlyWhenKey, v -> DungeonEspSettings.doorOnlyWhenKey = v)));
+        rows.add(Row.item("Blood doors", "Include cached red-clay blood doors", new AppleToggle(
+                () -> DungeonEspSettings.showBloodDoors, v -> DungeonEspSettings.showBloodDoors = v)));
+        rows.add(Row.item("Blood door color", "Palette color for red-clay blood door boxes",
+                espColorDropdown(() -> DungeonEspSettings.colorIndex(DungeonEspSettings.bloodDoorColor),
+                        v -> DungeonEspSettings.bloodDoorColor = DungeonEspSettings.colorForIndex(v))));
+        addDungeonDoorStyleRows(rows);
+        rows.add(Row.item("Door distance text", "Show rounded block distance above cached closed doors",
+                new AppleToggle(() -> DungeonEspSettings.doorDistanceText, v -> DungeonEspSettings.doorDistanceText = v)));
+
+        rows.add(Row.header(DungeonEspUiModel.PRESETS_TITLE));
+        rows.add(Row.item("Default preset", "High-visibility cyan/gold/purple ESP with modest fills",
+                new AppleButton("Apply Default", 122f, 26f, false, DungeonEspSettings::applyDefaultPreset)));
+        rows.add(Row.item("Subtle preset", "Depth-tested outlines only, with lower opacity and no fills",
+                new AppleButton("Apply Subtle", 122f, 26f, false, DungeonEspSettings::applySubtlePreset)));
+        rows.add(Row.item("Reset Dungeon ESP", "Restore the documented Default preset and every ESP setting",
+                new AppleButton("Reset", 96f, 26f, false, DungeonEspSettings::resetDefaults)));
 
         rows.add(Row.header("Floor VII (M7) overlay"));
         rows.add(Row.item("M7 overlay",
@@ -564,6 +617,58 @@ public class AppleHubScreen extends AppleScreen {
                             v -> M7Settings.setDragonHitboxEnabled(d, v))));
         }
         return rows;
+    }
+
+    /** Shared controls for every tracked-mob category. The Color dropdown is the shared palette picker. */
+    private static void addDungeonEspStyleRows(List<Row> rows, final DungeonEspSettings.Style style,
+                                               String targetDescription) {
+        rows.add(Row.item("Show category", "Render " + targetDescription,
+                new AppleToggle(() -> style.enabled, v -> style.enabled = v)));
+        rows.add(Row.item("Color", "Choose the category color from the ESP palette",
+                espColorDropdown(() -> DungeonEspSettings.colorIndex(style.color),
+                        v -> style.color = DungeonEspSettings.colorForIndex(v))));
+        rows.add(Row.item("Render mode", "Outline, filled hitbox, or both",
+                new AppleDropdown(DungeonEspSettings.MODE_NAMES, null, 150f, 24f,
+                        () -> style.mode, v -> style.mode = v)));
+        rows.add(Row.item("Through walls", "Keep this category visible behind dungeon blocks",
+                new AppleToggle(() -> style.throughWalls, v -> style.throughWalls = v)));
+        rows.add(Row.item("Outline width", "World-space outline thickness",
+                new AppleSlider(DungeonEspSettings.MIN_WIDTH, DungeonEspSettings.MAX_WIDTH, 1, " px", 150f,
+                        () -> style.outlineWidth, v -> style.outlineWidth = v)));
+        rows.add(Row.item("Outline opacity", "Opacity for category edges",
+                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
+                        () -> style.outlineOpacity, v -> style.outlineOpacity = v)));
+        rows.add(Row.item("Fill opacity", "Opacity for category hitbox faces",
+                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
+                        () -> style.fillOpacity, v -> style.fillOpacity = v)));
+    }
+
+    /** Door-specific style fields intentionally share the same palette and visual semantics as starred mob boxes. */
+    private static void addDungeonDoorStyleRows(List<Row> rows) {
+        final DungeonEspSettings.Style style = DungeonEspSettings.doors;
+        rows.add(Row.item("Door color", "Palette color for closed wither door boxes",
+                espColorDropdown(() -> DungeonEspSettings.colorIndex(style.color),
+                        v -> style.color = DungeonEspSettings.colorForIndex(v))));
+        rows.add(Row.item("Door render mode", "Outline, filled door prism, or both",
+                new AppleDropdown(DungeonEspSettings.MODE_NAMES, null, 150f, 24f,
+                        () -> style.mode, v -> style.mode = v)));
+        rows.add(Row.item("Doors through walls", "Keep cached closed door boxes visible behind blocks",
+                new AppleToggle(() -> style.throughWalls, v -> style.throughWalls = v)));
+        rows.add(Row.item("Door outline width", "World-space closed-door outline thickness",
+                new AppleSlider(DungeonEspSettings.MIN_WIDTH, DungeonEspSettings.MAX_WIDTH, 1, " px", 150f,
+                        () -> style.outlineWidth, v -> style.outlineWidth = v)));
+        rows.add(Row.item("Door outline opacity", "Opacity for closed-door edges",
+                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
+                        () -> style.outlineOpacity, v -> style.outlineOpacity = v)));
+        rows.add(Row.item("Door fill opacity", "Opacity for closed-door prism faces",
+                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
+                        () -> style.fillOpacity, v -> style.fillOpacity = v)));
+    }
+
+    private static AppleDropdown espColorDropdown(java.util.function.IntSupplier getter,
+                                                   java.util.function.IntConsumer setter) {
+        return new AppleDropdown(DungeonEspSettings.COLOR_NAMES, DungeonEspSettings.COLORS, 150f, 24f,
+                getter, setter);
     }
 
     private List<Row> fishingPage() {

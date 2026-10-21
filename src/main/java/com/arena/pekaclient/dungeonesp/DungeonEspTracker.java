@@ -156,6 +156,7 @@ public final class DungeonEspTracker {
                 continue;
             }
             if (scratch.armorStand) {
+                if (scratch.dead) continue;
                 DungeonEspCategory category = DungeonEspMatcher.categoryForTag(scratch.name);
                 if (category != DungeonEspCategory.NONE && tagCount < tags.length) {
                     tags[tagCount++].set(scratch, category);

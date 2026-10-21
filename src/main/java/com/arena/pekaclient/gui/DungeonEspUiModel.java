@@ -21,7 +21,7 @@ public final class DungeonEspUiModel {
             SECTION_TITLE, STARRED_TITLE, MINIBOSS_TITLE, SPECIAL_TITLE, GLOBAL_TITLE, DOORS_TITLE, PRESETS_TITLE
     };
     /** One master item, then style rows, global rows, door rows and preset actions in visual order. */
-    private static final int[] ROW_COUNTS = {1, 7, 7, 7, 7, 11, 3};
+    private static final int[] ROW_COUNTS = {1, 7, 7, 7, 6, 12, 3};
 
     private DungeonEspUiModel() {
     }

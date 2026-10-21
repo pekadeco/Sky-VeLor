@@ -11,6 +11,7 @@ import com.arena.pekaclient.dungeon.DungeonMapOverlay;
 import com.arena.pekaclient.dungeon.PuzzleRoomDatabase;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.TerminalSolver;
+import com.arena.pekaclient.dungeonesp.DungeonEspController;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.feature.ChatChannelTabs;
@@ -29,7 +30,6 @@ import com.arena.pekaclient.itemlockswap.ItemLockSwapController;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapKeybind;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapOverlay;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
-import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.startup.StartupTasks;
@@ -44,7 +44,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.event.MouseEvent;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -118,6 +117,7 @@ public class PekaClientMod {
     private Object itemAnimationReportedWorld;
     private final M7OverlayRenderer m7Overlay = new M7OverlayRenderer();
     private final DungeonMapOverlay dungeonMapOverlay = new DungeonMapOverlay();
+    private final DungeonEspController dungeonEspController = new DungeonEspController();
     private final DragonKillAlert dragonKill = new DragonKillAlert(m7Overlay);
     private final TerminalSolver terminalSolver = new TerminalSolver();
     private final FishingStats fishingStats = new FishingStats();
@@ -156,6 +156,7 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(new GuiDebugOverlay());
         MinecraftForge.EVENT_BUS.register(m7Overlay);
         MinecraftForge.EVENT_BUS.register(dungeonMapOverlay);
+        MinecraftForge.EVENT_BUS.register(dungeonEspController);
         MinecraftForge.EVENT_BUS.register(terminalSolver);
         MinecraftForge.EVENT_BUS.register(fishingStats);
         MinecraftForge.EVENT_BUS.register(slayerTracker);
@@ -320,12 +321,6 @@ public class PekaClientMod {
             LeapUse.markUsed();
             mc.playerController.sendUseItem(mc.thePlayer, mc.theWorld, held);
         }
-    }
-
-    /** Overlay only: runs after the world is drawn and does not change any entity or block renderer. */
-    @SubscribeEvent
-    public void onWorldLast(RenderWorldLastEvent event) {
-        MobHighlight.draw(event.partialTicks);
     }
 
     @SubscribeEvent

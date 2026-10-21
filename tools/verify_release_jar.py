@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.3.1v] [--mcmod-version 0.10.8.6.3.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.4v] [--mcmod-version 0.10.8.6.4]
 """
 
 import argparse
@@ -45,6 +45,7 @@ REQUIRED_CLASSES = [
     'PekaVersion',
     'config/AppleSettings',
     'config/ChatQolSettings',
+    'config/DungeonEspSettings',
     'feature/ItemAnimation',
     'feature/VisualSwingStateMachine',
     'feature/SwingEasing',
@@ -60,6 +61,7 @@ REQUIRED_CLASSES = [
     'command/ItemDebugCommand',
     'command/SvCommand',
     'gui/AppleHubScreen',
+    'gui/DungeonEspUiModel',
     'gui/QualityOfLifeUiModel',
     'gui/ModSettingsUiModel',
     'gui/ChatUiModel',
@@ -91,6 +93,11 @@ REQUIRED_CLASSES = [
     'dungeon/DungeonMapOverlay',
     'dungeon/PuzzleRoomDatabase',
     'dungeon/PuzzleRoomMatcher',
+    'dungeonesp/DungeonEspController',
+    'dungeonesp/DungeonEspTracker',
+    'dungeonesp/DungeonEspMatcher',
+    'dungeonesp/WitherDoorCache',
+    'dungeonesp/DungeonEspRenderBatch',
     'render/GlobalFontManager',
     'render/itemanimation/ItemAnimationHooks',
     'render/itemanimation/ItemAnimationHookStatus',
@@ -131,7 +138,10 @@ FORBIDDEN_CLASSES = [
     'gui/DungeonHudScreen',
     'hud/ClickInOrderHud',
     'command/TerminalCommand',
-    # Beta-0.10.8.6.3.1 retains the one-default-chat implementation and no split-chat classes.
+    # The per-frame level-tag renderer was replaced by the cached yellow-star Dungeon ESP.
+    'render/MobHighlight',
+    'feature/MobMarkers',
+    # Beta-0.10.8.6.4 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -261,8 +271,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.3.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.3.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.4v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.4')
     args = ap.parse_args()
 
     path = args.jar
@@ -401,6 +411,33 @@ def main():
         path = MOD_PACKAGE + cls + '.class'
         return zf.read(path) if path in names else b''
 
+    # --- Cached Dungeon ESP proof --------------------------------------------
+    # This release must not silently fall back to the retired per-frame MobHighlight path. The packaged controller,
+    # fixed tracker/cache, settings schema and hub groups together prove the new ownership route is present.
+    esp_settings_constants = constants_of('config/DungeonEspSettings')
+    esp_hub_constants = constants_of('gui/DungeonEspUiModel')
+    esp_controller_raw = raw_of('dungeonesp/DungeonEspController')
+    esp_tracker_raw = raw_of('dungeonesp/DungeonEspTracker')
+    esp_command_raw = raw_of('command/ItemDebugCommand')
+    hub_raw = raw_of('gui/AppleHubScreen')
+    r.check(all(value in esp_settings_constants for value in
+                ('dungeonEsp.', 'Outline', 'Filled', 'Outline + Filled', 'Nearest closed door',
+                 'All closed doors', 'Cyan', 'Gold', 'Purple')),
+            'DungeonEspSettings packages the persisted modes, door scope and color palette')
+    r.check(all(value in esp_hub_constants for value in
+                ('Dungeon ESP', 'Starred Mobs', 'Minibosses', 'Global', 'Wither & Blood Doors', 'Presets')),
+            'DungeonEspUiModel packages all collapsible Dungeon ESP groups')
+    r.check(all(value in hub_raw for value in
+                (b'com/arena/pekaclient/config/DungeonEspSettings',
+                 b'com/arena/pekaclient/gui/DungeonEspUiModel', b'Enable Dungeon ESP')),
+            'AppleHubScreen routes the Dungeon tab through the new shared Dungeon ESP controls')
+    r.check(all(value in esp_controller_raw for value in
+                (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch'))
+                and b'RenderWorldLastEvent' in esp_controller_raw and b'espdebug' in esp_command_raw,
+            'DungeonEspController packages tick cache, door cache, render batch and espdebug telemetry')
+    r.check(b'MAX_CANDIDATES' in esp_tracker_raw and b'IdentityHashMap' not in esp_tracker_raw,
+            'DungeonEspTracker packages fixed candidate storage without per-frame identity sets')
+
     # --- Item Animation GUI reachability and ownership proof -----------------
     # A standalone Item Animation class is not enough: both real GUI entry points must reference the pure models,
     # the Hub must use its shared collapsible section, and customization may not be duplicated in a GUI tab.
@@ -436,7 +473,7 @@ def main():
             'HudEditorScreen has no redundant Item Animation settings launcher')
 
     # --- Chat QoL ownership and one-default-chat implementation proof --------
-    # Beta-0.10.8.6.3.1 deliberately has no alternate windows/classifier/routing bridge. The Hub exposes only feature
+    # Beta-0.10.8.6.4 deliberately has no alternate windows/classifier/routing bridge. The Hub exposes only feature
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
