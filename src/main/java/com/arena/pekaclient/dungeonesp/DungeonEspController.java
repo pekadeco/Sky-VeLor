@@ -230,7 +230,7 @@ public final class DungeonEspController {
         @Override
         public DoorBlockKind blockAt(int x, int y, int z) {
             if (world == null) return DoorBlockKind.AIR;
-            IBlockState state = world.getBlockState(position.func_181079_c(x, y, z));
+            IBlockState state = world.getBlockState(position.set(x, y, z));
             Block block = state.getBlock();
             if (block == Blocks.coal_block) return DoorBlockKind.COAL;
             if (block == Blocks.stained_hardened_clay
