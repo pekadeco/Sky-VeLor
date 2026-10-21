@@ -51,6 +51,9 @@ public final class DungeonEspTrackerTests {
         tracker.scan(world, 0D, 64D, 0D, 60D, true);
         DungeonEspTracker.TrackedMob chosen = find(tracker, 102);
         check("closest body beneath tag is selected", chosen != null && chosen.reference == near && tracker.trackedCount() == 1);
+        // Remove the alternative candidate too: a health-zero target must not retain a stale box when no living body
+        // remains beneath the tag (a different living body would correctly take ownership instead).
+        world.setUnused(1);
         world.setLiving(2, 102, 3.05D, 64D, 3.05D, 0.6D, 0F, near);
         tracker.scan(world, 0D, 64D, 0D, 60D, true);
         check("health zero removes immediately on tick scan", tracker.trackedCount() == 0);
