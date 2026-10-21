@@ -1,5 +1,15 @@
 # Changelog
 
+## Beta-0.10.8.6.4.1v — 2026-10-21
+
+- Consolidated every Dungeon ESP control into the **Mob ESP**, **Door ESP**, **Performance**, and **Presets** collapsible groups on the Dungeon page. Every control has a gray one-line explanation; responsive shared row geometry reserves distinct label/control columns at every GUI scale.
+- Fixed starred **Crypt Souleater**, split armor-stand tags, tall-body association, star variants, real Endermen, and the Dungeon Enderman-head marker. Matching consumes the nearest eligible body once, tracks the real body hitbox, and uses a readable fixed box for head-marker armor stands. Added `/velor espdump` nearby-entity/chat-log diagnostics.
+- Added independent **Skeletor** and **Other Mobs** styles, plus off-by-default **Force Render All Mobs in Room** cached coverage. It includes only eligible hostiles by default, keeps bats/invisible mobs opt-in, excludes NPCs/pets/dead/passive entities, and does not duplicate tagged targets.
+- Changed new wither-door boxes to red and blood-door boxes to dark red. Existing stored former defaults migrate once; non-default custom colors remain unchanged.
+- Added headless coverage for split/tall tags, Crypt Souleater, real/head Endermen, Skeletor, force inclusion/exclusion/no-duplicates, color migration/config persistence, and small/large GUI geometry.
+- Enderman-head behavior was implemented clean-room from runtime compatibility data; no NotEnoughFakepixel source or LGPL code was copied, so no NEF notice is included.
+- Updated display version to `Beta-0.10.8.6.4.1v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.6.4.1`.
+
 ## Beta-0.10.8.6.4v — 2026-10-21
 
 - Replaced the old per-frame **Mob highlights** renderer with one cached Dungeon ESP: it recognizes yellow-star (`✮`/`✯`) armor-stand tags, associates the loaded living body below each tag on configurable client ticks (default 5), draws the body’s interpolated real hitbox, and removes dead, zero-health, despawned, or unpaired targets. Plain `[Lv]` tags are no longer highlighted.

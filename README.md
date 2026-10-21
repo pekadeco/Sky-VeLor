@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.6.4v
+# Sky VeLor — Beta-0.10.8.6.4.1v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -57,7 +57,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.6.4v.jar --version Beta-0.10.8.6.4v --mcmod-version 0.10.8.6.4
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.6.4.1v.jar --version Beta-0.10.8.6.4.1v --mcmod-version 0.10.8.6.4.1
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -68,7 +68,7 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.6.4v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.6.4.1v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap
