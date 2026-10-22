@@ -594,6 +594,20 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Open Boss HP Editor", "Position, scale, border and panel style live in the HUD editor",
                 new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_DUNGEON_BOSS_HP))));
 
+        rows.add(Row.header("Terminal assist"));
+        rows.add(Row.item("Terminal visual helpers", assistDescription("Terminal visual helpers"),
+                new AppleToggle(() -> AssistSettings.terminalHints, value -> AssistSettings.terminalHints = value)));
+        rows.add(Row.item("Terminal auto click", assistDescription("Terminal auto click"),
+                new AppleToggle(() -> AssistSettings.terminalAutoClick, value -> AssistSettings.terminalAutoClick = value)));
+        rows.add(Row.item("Hide incorrect terminal choices", assistDescription("Hide incorrect terminal choices"),
+                new AppleToggle(() -> AssistSettings.terminalHideIncorrect,
+                        value -> AssistSettings.terminalHideIncorrect = value)));
+        rows.add(Row.item("Prevent wrong terminal clicks", assistDescription("Prevent wrong terminal clicks"),
+                new AppleToggle(() -> AssistSettings.terminalPreventWrongClicks,
+                        value -> AssistSettings.terminalPreventWrongClicks = value)));
+        rows.add(Row.item("Terminal waypoints", assistDescription("Terminal waypoints"),
+                new AppleToggle(() -> AssistSettings.terminalWaypoints, value -> AssistSettings.terminalWaypoints = value)));
+
         // Every Dungeon ESP control lives under one of these four collapsible headers. The standard Row flow
         // and GuiLayoutToolkit-backed model keep cards and controls in separate vertical space at all GUI scales.
         rows.add(Row.header(DungeonEspUiModel.MOB_ESP_TITLE));

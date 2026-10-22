@@ -4,6 +4,8 @@ import com.arena.pekaclient.assist.ShortcutController;
 import com.arena.pekaclient.assist.guard.ItemGuardController;
 import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonBossTracker;
+import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
+import com.arena.pekaclient.assist.dungeon.DungeonWaypointController;
 import com.arena.pekaclient.assist.movement.AutoSprintController;
 import com.arena.pekaclient.command.ClientActions;
 import com.arena.pekaclient.command.ItemDebugCommand;
@@ -139,6 +141,8 @@ public class PekaClientMod {
     private final ItemLockSwapOverlay itemLockSwapOverlay = new ItemLockSwapOverlay();
     private final ItemLockSwapController itemLockSwapController = new ItemLockSwapController();
     private final DungeonBossTracker dungeonBossTracker = new DungeonBossTracker();
+    private final DungeonTerminalAssistController dungeonTerminalAssistController = new DungeonTerminalAssistController();
+    private final DungeonWaypointController dungeonWaypointController = new DungeonWaypointController();
     private final AutoSprintController autoSprintController = new AutoSprintController();
     private final ShortcutController shortcutController = new ShortcutController();
     private final InventoryAssistController inventoryAssistController = new InventoryAssistController();
@@ -186,6 +190,8 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(itemLockSwapController);
         MinecraftForge.EVENT_BUS.register(HudManager.MINING_ASSIST.controller());
         MinecraftForge.EVENT_BUS.register(dungeonBossTracker);
+        MinecraftForge.EVENT_BUS.register(dungeonTerminalAssistController);
+        MinecraftForge.EVENT_BUS.register(dungeonWaypointController);
         MinecraftForge.EVENT_BUS.register(autoSprintController);
         MinecraftForge.EVENT_BUS.register(shortcutController);
         MinecraftForge.EVENT_BUS.register(inventoryAssistController);

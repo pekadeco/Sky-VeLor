@@ -2,6 +2,7 @@ package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.assist.guard.ItemGuardController;
+import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.visual.VisualAssistHookStatus;
 import com.arena.pekaclient.chat.ChatClipboard;
 import com.arena.pekaclient.feature.ChatChannelTabs;
@@ -78,5 +79,7 @@ public final class SvCommand extends CommandBase {
         mc.thePlayer.addChatMessage(new ChatComponentText("§7no-hurt-camera hook: §f"
                 + VisualAssistHookStatus.hurtCameraStatus()));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7item guard: §f" + ItemGuardController.statusText()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7terminal assist: §f"
+                + DungeonTerminalAssistController.selfTestStatus()));
     }
 }

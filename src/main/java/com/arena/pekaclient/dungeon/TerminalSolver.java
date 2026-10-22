@@ -1,5 +1,6 @@
 package com.arena.pekaclient.dungeon;
 
+import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.feature.DungeonContext;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.inventory.GuiChest;
@@ -44,7 +45,9 @@ public final class TerminalSolver {
 
     @SubscribeEvent
     public void onDrawScreen(GuiScreenEvent.DrawScreenEvent.Post event) {
-        if (event == null || !M7Settings.isTerminalSolverEnabled() || !DungeonContext.inF7OrM7()) {
+        // The established click-in-order helper remains the fallback. The expanded opt-in assist owns all terminal
+        // overlays when enabled, avoiding doubled highlights while preserving this feature's existing setting.
+        if (event == null || AssistSettings.terminalHints || !M7Settings.isTerminalSolverEnabled() || !DungeonContext.inF7OrM7()) {
             return;
         }
         if (!(event.gui instanceof GuiChest)) {
