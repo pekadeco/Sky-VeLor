@@ -236,8 +236,9 @@ public final class AppleSettings {
         loadParticleSettings(p);
 
         loadItemAnimationSettings(p);
-        // Own category keeps new gameplay state isolated from the legacy shared settings surface.
+        // Own categories keep newer gameplay state isolated from the legacy shared settings surface.
         ItemLockSwapSettings.load(p);
+        AssistSettings.load(p);
 
         leapMenu = readBool(p, "leapMenu", leapMenu);
         // Dungeon ESP owns its isolated prefixed schema and consumes the retired mobHighlights toggle once.
@@ -472,6 +473,7 @@ public final class AppleSettings {
         // Item Animation. Save only the current supported category; old and obsolete keys are deliberately retired.
         saveItemAnimationSettings(p);
         ItemLockSwapSettings.save(p);
+        AssistSettings.save(p);
 
         p.setProperty("leapMenu", Boolean.toString(leapMenu));
         DungeonEspSettings.save(p);
