@@ -1,5 +1,6 @@
 package com.arena.pekaclient.render.itemanimation;
 
+import com.arena.pekaclient.assist.visual.VisualAssistTransformer;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapHookStatus;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapTransformer;
 import com.arena.pekaclient.render.blockparticles.BlockParticleHookStatus;
@@ -17,7 +18,8 @@ import java.util.Map;
 @IFMLLoadingPlugin.MCVersion("1.8.9")
 @IFMLLoadingPlugin.SortingIndex(1001)
 @IFMLLoadingPlugin.TransformerExclusions({"com.arena.pekaclient.render.itemanimation",
-        "com.arena.pekaclient.render.blockparticles", "com.arena.pekaclient.itemlockswap"})
+        "com.arena.pekaclient.render.blockparticles", "com.arena.pekaclient.itemlockswap",
+        "com.arena.pekaclient.assist.visual", "com.arena.pekaclient.assist.inventory"})
 public final class ItemAnimationLoadingPlugin implements IFMLLoadingPlugin {
 
     @Override
@@ -28,7 +30,7 @@ public final class ItemAnimationLoadingPlugin implements IFMLLoadingPlugin {
         BlockParticleHookStatus.noteCoremodRegistered();
         ItemLockSwapHookStatus.noteCoremodRegistered();
         return new String[]{ItemAnimationTransformer.class.getName(), BlockParticleTransformer.class.getName(),
-                ItemLockSwapTransformer.class.getName()};
+                ItemLockSwapTransformer.class.getName(), VisualAssistTransformer.class.getName()};
     }
 
     @Override

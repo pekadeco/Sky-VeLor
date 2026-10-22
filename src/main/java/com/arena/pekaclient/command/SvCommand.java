@@ -1,6 +1,8 @@
 package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.assist.guard.ItemGuardController;
+import com.arena.pekaclient.assist.visual.VisualAssistHookStatus;
 import com.arena.pekaclient.chat.ChatClipboard;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.DungeonContext;
@@ -71,5 +73,10 @@ public final class SvCommand extends CommandBase {
         mc.thePlayer.addChatMessage(new ChatComponentText("§7item-lock/swap hook: §f"
                 + (ItemLockSwapHookStatus.isActive() ? "ACTIVE" : "FAILED")
                 + " (" + ItemLockSwapHookStatus.getReason() + ")"));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7inventory tooltip hook: §f"
+                + VisualAssistHookStatus.tooltipStatus()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7no-hurt-camera hook: §f"
+                + VisualAssistHookStatus.hurtCameraStatus()));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7item guard: §f" + ItemGuardController.statusText()));
     }
 }

@@ -2,6 +2,7 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.PekaClientMod;
 import com.arena.pekaclient.PekaVersion;
+import com.arena.pekaclient.assist.guard.ItemGuardController;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
@@ -197,8 +198,8 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     /**
-     * One Quality of Life page with expandable Gameplay, Item Lock and Item Swap, Chat QoL and Commands groups.
-     * The item feature uses ordinary shared rows so it remains scroll-safe at every GUI scale.
+     * One Quality of Life page with gameplay, optional inventory safety/assist rows, Item Lock and Item Swap,
+     * Chat QoL, and commands. The item feature uses ordinary shared rows so it remains scroll-safe at every scale.
      */
     private List<Row> qualityOfLifePage() {
         List<Row> rows = new ArrayList<Row>();
@@ -213,6 +214,45 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item(toggles.get(1).getLabel(), toggles.get(1).getDescription(),
                 new AppleToggle(() -> AppleSettings.noBlockParticles,
                         value -> AppleSettings.noBlockParticles = value)));
+
+        rows.add(Row.header("Inventory assist"));
+        rows.add(Row.item("Inventory search and filter", assistDescription("Inventory search and filter"),
+                new AppleToggle(() -> AssistSettings.inventorySearch, value -> AssistSettings.inventorySearch = value)));
+        rows.add(Row.item("Hide potion effects in inventory", assistDescription("Hide potion effects in inventory"),
+                new AppleToggle(() -> AssistSettings.hidePotionEffects, value -> AssistSettings.hidePotionEffects = value)));
+        rows.add(Row.item("Roman numerals in tooltips", assistDescription("Roman numerals in tooltips"),
+                new AppleToggle(() -> AssistSettings.romanNumerals, value -> AssistSettings.romanNumerals = value)));
+        rows.add(Row.item("Scrollable item tooltips", assistDescription("Scrollable item tooltips"),
+                new AppleToggle(() -> AssistSettings.tooltipScroll, value -> AssistSettings.tooltipScroll = value)));
+        rows.add(Row.item("Item rarity highlight", assistDescription("Item rarity highlight"),
+                new AppleToggle(() -> AssistSettings.rarityHighlight, value -> AssistSettings.rarityHighlight = value)));
+
+        rows.add(Row.header("Visual safety"));
+        rows.add(Row.item("No hurt camera", assistDescription("No hurt camera"),
+                new AppleToggle(() -> AssistSettings.noHurtCamera, value -> AssistSettings.noHurtCamera = value)));
+
+        rows.add(Row.header("Item safety"));
+        rows.add(Row.item("Item Protection", assistDescription("Item Protection"),
+                new AppleToggle(() -> AssistSettings.itemGuard, value -> AssistSettings.itemGuard = value)));
+        rows.add(Row.item("Item Protection notifications", assistDescription("Item Protection notifications"),
+                new AppleToggle(() -> AssistSettings.itemGuardNotifications,
+                        value -> AssistSettings.itemGuardNotifications = value)));
+        rows.add(Row.item("Item Protection status", "Bind Item Protection in Options, Controls, Sky VeLor; protects only selected UUID items locally",
+                new AppleButton("Show status", 104f, 26f, false, () -> {
+                    Minecraft current = Minecraft.getMinecraft();
+                    if (current != null && current.thePlayer != null) {
+                        current.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText("\u00a7b[Sky VeLor] \u00a7fItem Guard: "
+                                + ItemGuardController.statusText()));
+                    }
+                })));
+
+        rows.add(Row.header("Movement and shortcuts"));
+        rows.add(Row.item("Auto sprint", assistDescription("Auto sprint"),
+                new AppleToggle(() -> AssistSettings.autoSprint, value -> AssistSettings.autoSprint = value)));
+        rows.add(Row.item("Wardrobe shortcut", assistDescription("Wardrobe shortcut"),
+                new AppleToggle(() -> AssistSettings.wardrobeShortcut, value -> AssistSettings.wardrobeShortcut = value)));
+        rows.add(Row.item("Pets shortcut", assistDescription("Pets shortcut"),
+                new AppleToggle(() -> AssistSettings.petsShortcut, value -> AssistSettings.petsShortcut = value)));
 
         rows.add(Row.header(sections.get(1)));
         rows.add(Row.item(itemControls.get(0).getLabel(),
@@ -302,7 +342,7 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
         rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
         rows.add(Row.item("/velor lockdebug", "Shows Item Lock/Swap settings, drag key/state/slots, last release decision and hook state", null));
-        rows.add(Row.item("/velor selftest", "Shows Item Lock and Item Swap core-hook status", null));
+        rows.add(Row.item("/velor selftest", "Shows active core-hook, tooltip, camera, and item-guard status", null));
         return rows;
     }
 

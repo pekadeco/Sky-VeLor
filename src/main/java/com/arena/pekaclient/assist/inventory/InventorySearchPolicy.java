@@ -32,9 +32,18 @@ public final class InventorySearchPolicy {
 
     /** Every whitespace-delimited search term must occur in the normalized item text. */
     public static boolean matches(String itemText, String query) {
-        String needle = normalize(query);
+        return matchesNormalized(normalize(itemText), normalize(query));
+    }
+
+    /**
+     * Allocation-light companion for render paths that cache a normalized item string and only recompute the
+     * normalized query when the player changes text. Both arguments must already have passed through
+     * {@link #normalize(String)}; empty queries match every item.
+     */
+    public static boolean matchesNormalized(String normalizedItem, String normalizedQuery) {
+        String needle = normalizedQuery == null ? "" : normalizedQuery;
         if (needle.length() == 0) return true;
-        String haystack = normalize(itemText);
+        String haystack = normalizedItem == null ? "" : normalizedItem;
         int start = 0;
         while (start < needle.length()) {
             int end = needle.indexOf(' ', start);
