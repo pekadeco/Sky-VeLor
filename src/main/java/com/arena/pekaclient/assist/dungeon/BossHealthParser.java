@@ -63,20 +63,33 @@ public final class BossHealthParser {
     }
 
     private static String healthTokenBefore(String text, int end) {
-        int start = end;
-        while (start >= 0 && isHealthChar(text.charAt(start))) start--;
-        return health(text.substring(start + 1, end + 1));
+        int exclusiveEnd = end + 1;
+        while (exclusiveEnd > 0 && Character.isWhitespace(text.charAt(exclusiveEnd - 1))) exclusiveEnd--;
+        if (exclusiveEnd > 0 && isSuffix(text.charAt(exclusiveEnd - 1))) exclusiveEnd--;
+        int start = exclusiveEnd;
+        while (start > 0 && isNumericHealthChar(text.charAt(start - 1))) start--;
+        if (start == exclusiveEnd || (start > 0 && Character.isLetterOrDigit(text.charAt(start - 1)))) return "";
+        int suffixEnd = end + 1;
+        while (suffixEnd > exclusiveEnd && Character.isWhitespace(text.charAt(suffixEnd - 1))) suffixEnd--;
+        return health(text.substring(start, suffixEnd));
     }
 
     private static String healthTokenAfter(String text, int start) {
-        int end = start;
-        while (end < text.length() && isHealthChar(text.charAt(end))) end++;
-        return health(text.substring(start, end));
+        int index = start;
+        while (index < text.length() && Character.isWhitespace(text.charAt(index))) index++;
+        int end = index;
+        while (end < text.length() && isNumericHealthChar(text.charAt(end))) end++;
+        if (end < text.length() && isSuffix(text.charAt(end))) end++;
+        return health(text.substring(index, end));
     }
 
-    private static boolean isHealthChar(char c) {
-        return Character.isDigit(c) || c == ',' || c == '.' || c == ' ' || c == 'k' || c == 'K' || c == 'm' || c == 'M'
-                || c == 'b' || c == 'B' || c == 't' || c == 'T';
+    /** A suffix is accepted only after a numeric token, never as part of a boss name such as Storm. */
+    private static boolean isSuffix(char c) {
+        return c == 'k' || c == 'K' || c == 'm' || c == 'M' || c == 'b' || c == 'B' || c == 't' || c == 'T';
+    }
+
+    private static boolean isNumericHealthChar(char c) {
+        return Character.isDigit(c) || c == ',' || c == '.';
     }
 
     private static String health(String raw) {

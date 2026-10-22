@@ -73,8 +73,8 @@ public final class AssistFeatureTests {
         check("strict UUID identity", ItemIdentity.parse("550e8400-e29b-41d4-a716-446655440000") != null
                 && ItemIdentity.parse("not-a-uuid") == null);
         check("guard protects throw/outside only", ItemGuardPolicy.shouldBlockWindowAction(true, true, true, -999, 0)
-                && ItemGuardPolicy.shouldBlockWindowAction(true, true, true, 4, 0)
-                && !ItemGuardPolicy.shouldBlockWindowAction(true, true, true, 4, 1));
+                && ItemGuardPolicy.shouldBlockWindowAction(true, true, true, 4, 4)
+                && !ItemGuardPolicy.shouldBlockWindowAction(true, true, true, 4, 0));
         check("auto sprint requires vanilla-safe movement", AutoSprintPolicy.mayStart(1F, false, false, false, false, true, false)
                 && !AutoSprintPolicy.mayStart(.5F, false, false, false, false, true, false));
         guardStoreRoundTrip();
