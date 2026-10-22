@@ -1,5 +1,17 @@
 # Changelog
 
+## Beta-0.10.8.7v — 2026-10-23
+
+- Added a clean-room assist foundation with namespaced, bounds-checked, old-key-compatible settings and a one-place Hub catalog. New game-affecting assists default to off; new keybinds are unbound and registered under **Sky VeLor**.
+- Added inventory search/filter dimming, potion-panel hiding, Roman tooltip rendering, long-tooltip scrolling, rarity tints, UUID-tagged item protection with persistent allow-list, local no-hurt camera, opt-in Auto Sprint, and Fakepixel-gated Wardrobe/Pets shortcuts.
+- Added Mining Assistant and Boss HP HUD elements, pickaxe-ready alerts, a read-only Dwarven Mines Puzzler marker, protected boss-health parsing, and HUD-editor registration without moving existing HUD positions.
+- Added guarded F7/M7 terminal visual helpers, known-wrong dim/block behavior, optional constrained auto-click, and local terminal/device waypoints. Unknown, malformed, duplicate, or stale containers deliberately do nothing.
+- Added opt-in Dungeon Sync: a local SHA-256 session derivation, WSS-only Java 8 transport with verified handshake/client masking/bounded frames, allow-listed inbound puzzle data, map-memory integration, reconnect limits, debug-safe status, and the privacy disclosure in `docs/DUNGEON_SYNC.md`.
+- Added clean-room visual hook support for inventory tooltip filtering/rarity rendering and local hurt-camera suppression, with transformer status in `/velor selftest`; existing Item Animation, Chat QoL, Fonts, settings, item lock/swap, Dungeon ESP/doors, HUD editor, sea-creature counters, and CorruptedHP behavior remain in place.
+- Added headless policy/config/parser/identity/reconnect/transformer tests for the new code. Runtime behavior still needs a real Minecraft 1.8.9 Forge pass.
+- The friend archive was compared only against its declared `Beta-0.10.6v` base. No archive is retained in the release tip; NotEnoughFakepixel/Better-NEF notice-derived solvers were independently recreated only where safely supportable, with no LGPL source copied.
+- Updated display version to `Beta-0.10.8.7v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.7`.
+
 ## Beta-0.10.8.6.4.1v — 2026-10-21
 
 - Consolidated every Dungeon ESP control into the **Mob ESP**, **Door ESP**, **Performance**, and **Presets** collapsible groups on the Dungeon page. Every control has a gray one-line explanation; responsive shared row geometry reserves distinct label/control columns at every GUI scale.

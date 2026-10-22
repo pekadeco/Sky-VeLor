@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.6.4.1v
+# Sky VeLor — Beta-0.10.8.7v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -14,6 +14,15 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Item Animation: live first-person X/Y/Z position, size and equip-animation controls, exact-value entry, clamped persistence and reset actions.
 - Item Lock and Item Swap: persistent player-inventory position locks, safe paired-slot swaps, configurable badges and cooldown, plus packet-before-send protection for GUI clicks and Q/Ctrl+Q drops.
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
+- Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; all gameplay-affecting controls are off by default.
+
+## Beta-0.10.8.7 assist additions
+
+- **Quality of Life** adds inventory search/filtering, potion-panel hiding, Roman tooltip levels, long-tooltip scrolling, rarity tints, local no-hurt camera, UUID-backed item protection, opt-in Auto Sprint, and unbound Wardrobe/Pets shortcuts.
+- **Mining** adds a local pickaxe-ready alert, read-only Puzzler route marker, and a configurable Mining Assistant HUD. **Dungeons** adds a Boss HP HUD, guarded terminal highlights/dimming/wrong-click blocking, terminal/device waypoints, and optional auto-click only for an unambiguous live F7/M7 terminal result.
+- **Dungeons → Dungeon Sync** is off by default. It shares only allow-listed puzzle labels and aligned coordinates through a TLS WebSocket after deriving a local SHA-256 session; names are hashing inputs only and are never serialized. Read [the privacy and safety note](docs/DUNGEON_SYNC.md) before enabling it.
+- New Controls bindings under **Sky VeLor** are unbound by default: Inventory Search, Toggle Item Protection, Wardrobe, and Pets. `/velor selftest` reports the new assist/core-hook and sync state.
+- These aids are client-side convenience features, not a guarantee of server safety. Auto-click, automated sprint, external sync, and every in-game behavior require user review; this release was **NOT tested in-game**.
 
 ## Requirements
 
@@ -57,7 +66,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.6.4.1v.jar --version Beta-0.10.8.6.4.1v --mcmod-version 0.10.8.6.4.1
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.7v.jar --version Beta-0.10.8.7v --mcmod-version 0.10.8.7
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -68,7 +77,7 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.6.4.1v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.7v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap
@@ -128,11 +137,14 @@ Automated tests cover logic, settings and configuration. They do not launch Mine
 ## Click in order terminal overlay
 
 For a real Floor VII/M7 Click in order chest, the helper reads the live lower-chest slots, determines the
-smallest unclicked displayed order, and draws one translucent outline over that slot. Duplicate, empty or
-unparseable candidates leave the GUI untouched; player inventory, normal chest clicks and all container
-behavior remain vanilla.
+smallest unclicked displayed order, and draws one translucent outline over that slot. It can also parse a deliberately
+small allow-list of terminal layouts to dim or block only known-wrong choices. Duplicate, empty or unparseable
+candidates leave the GUI untouched; player inventory and ordinary containers remain vanilla.
 
-The old path replaced the server chest with a synthetic terminal screen, so it could desynchronise from the real slot state. The new path only observes and draws after the real screen, so a parsing failure has no gameplay effect.
+**Terminal auto click is off by default.** Even when enabled, it requires terminal visuals, an F7/M7 context, a
+recognised live chest, exactly one candidate, a changed chest fingerprint, and a cooldown. Any uncertainty returns to
+no highlight, no block, and no click. The old path replaced the server chest with a synthetic terminal screen, so it
+could desynchronise from the real slot state; the current path keeps the real server chest in place.
 
 ## License and credits
 

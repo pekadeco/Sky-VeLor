@@ -57,6 +57,8 @@ public final class AssistSettingsTests {
         AssistSettings.load(saved);
         check("invalid endpoint and scale clamp", AssistSettings.DEFAULT_SYNC_ENDPOINT.equals(AssistSettings.dungeonSyncEndpoint)
                 && AssistSettings.terminalScale == AssistSettings.MAX_TERMINAL_SCALE);
+        check("sync endpoint requires the fixed secure worker route", !AssistSettings.validSecureEndpoint("wss://sync.example.org/other")
+                && !AssistSettings.validSecureEndpoint("wss://sync.example.org/ws?x=1"));
     }
 
     private static void check(String name, boolean ok) {

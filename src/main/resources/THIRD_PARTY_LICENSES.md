@@ -1,6 +1,6 @@
 # Sky VeLor — Third-party font licenses
 
-Sky VeLor Beta-0.10.8.6.4.1v bundles the following optional client-side font assets. They are used only by the Sky
+Sky VeLor Beta-0.10.8.7v bundles the following optional client-side font assets. They are used only by the Sky
 VeLor-owned `UIRender` font path; **Minecraft Default** remains the default and Minecraft-owned text is never
 silently replaced.
 

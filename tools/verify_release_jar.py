@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.6.4.1v] [--mcmod-version 0.10.8.6.4.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.7v] [--mcmod-version 0.10.8.7]
 """
 
 import argparse
@@ -125,6 +125,37 @@ REQUIRED_CLASSES = [
     'itemlockswap/ItemLockSwapTransformer',
     'itemlockswap/ItemLockSwapController',
     'widget/AppleKeybindButton',
+    # Beta-0.10.8.7 clean-room assist runtime: requiring these keeps a release from claiming
+    # the feature catalogue while accidentally packaging only its settings/UI surface.
+    'config/AssistSettings',
+    'assist/ShortcutController',
+    'assist/inventory/InventoryAssistController',
+    'assist/inventory/InventorySearchPolicy',
+    'assist/inventory/RomanNumeralPolicy',
+    'assist/inventory/TooltipWindow',
+    'assist/guard/ItemGuardController',
+    'assist/guard/ItemGuardPolicy',
+    'assist/guard/ItemGuardStore',
+    'assist/movement/AutoSprintController',
+    'assist/movement/AutoSprintPolicy',
+    'assist/mining/MiningAssistController',
+    'assist/mining/MiningAbilityPolicy',
+    'assist/mining/PuzzlerRoute',
+    'assist/dungeon/DungeonBossTracker',
+    'assist/dungeon/DungeonTerminalAssistController',
+    'assist/dungeon/DungeonWaypointController',
+    'assist/dungeon/TerminalParsePolicy',
+    'assist/sync/DungeonSyncManager',
+    'assist/sync/DungeonSyncClient',
+    'assist/sync/DungeonSyncEnvironment',
+    'assist/sync/DungeonSyncProtocol',
+    'assist/sync/DungeonSyncMessages',
+    'assist/sync/DungeonSyncReconnectPolicy',
+    'assist/visual/VisualAssistHookStatus',
+    'assist/visual/VisualAssistHooks',
+    'assist/visual/VisualAssistTransformer',
+    'hud/MiningAssistantHud',
+    'hud/DungeonBossHud',
 ]
 
 # Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
@@ -142,7 +173,7 @@ FORBIDDEN_CLASSES = [
     # The per-frame level-tag renderer was replaced by the cached yellow-star Dungeon ESP.
     'render/MobHighlight',
     'feature/MobMarkers',
-    # Beta-0.10.8.6.4.1 retains the one-default-chat implementation and no split-chat classes.
+    # Beta-0.10.8.7 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -272,8 +303,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.6.4.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.6.4.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.7v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.7')
     args = ap.parse_args()
 
     path = args.jar
@@ -411,6 +442,34 @@ def main():
     def raw_of(cls):
         path = MOD_PACKAGE + cls + '.class'
         return zf.read(path) if path in names else b''
+
+    # --- Beta-0.10.8.7 clean-room assist proof --------------------------------
+    # Presence alone is not enough: these checks tie the persisted safe-default controls, Hub labels,
+    # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
+    assist_settings_raw = raw_of('config/AssistSettings')
+    assist_hub_raw = raw_of('gui/AppleHubScreen')
+    sync_client_raw = raw_of('assist/sync/DungeonSyncClient')
+    sync_messages_raw = raw_of('assist/sync/DungeonSyncMessages')
+    sync_manager_raw = raw_of('assist/sync/DungeonSyncManager')
+    terminal_raw = raw_of('assist/dungeon/DungeonTerminalAssistController')
+    mining_raw = raw_of('assist/mining/MiningAssistController')
+    r.check(all(value in assist_settings_raw for value in
+                (b'assist.inventory.search', b'assist.itemGuard.enabled', b'assist.movement.autoSprint',
+                 b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
+                 b'assist.dungeon.terminal.autoClick')),
+            'AssistSettings packages namespaced inventory, safety, movement, terminal, and sync controls')
+    r.check(all(value in assist_hub_raw for value in
+                (b'Item Protection', b'Auto sprint', b'Pickaxe ability ready alert', b'Boss HP HUD',
+                 b'Dungeon Sync', b'Terminal auto click', b'Terminal waypoints')),
+            'AppleHubScreen packages every new assist through its Quality of Life, Mining, or Dungeons page')
+    r.check(all(value in sync_client_raw for value in
+                (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
+                and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
+                and b'DungeonSyncEnvironment' in sync_manager_raw and b'rememberSyncedPuzzle' in sync_manager_raw,
+            'Dungeon Sync packages WSS handshake validation, allow-listed events, local environment hashing, and map memory')
+    r.check(b'lastAutoFingerprint' in terminal_raw and b'lastAutoSlot' in terminal_raw
+                and b'TerminalParsePolicy' in terminal_raw and b'sendChatMessage' not in mining_raw,
+            'terminal automation remains fingerprint-guarded and the Puzzler helper remains read-only')
 
     # --- Cached Dungeon ESP proof --------------------------------------------
     # This release must not silently fall back to the retired per-frame MobHighlight path. The packaged controller,
