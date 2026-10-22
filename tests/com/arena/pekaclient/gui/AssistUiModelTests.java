@@ -22,7 +22,7 @@ public final class AssistUiModelTests {
             check("has label " + entry.name, entry.name.length() > 0 && names.add(entry.name));
             check("has one-line description " + entry.name, entry.description.length() >= 12 && entry.description.indexOf('\n') < 0);
         }
-        check("new areas are represented", AssistUiModel.find("Dungeon Sync") != null
+        check("new areas are represented", AssistUiModel.find("Enable Dungeon Sync") != null
                 && AssistUiModel.find("Mining Assistant HUD") != null && AssistUiModel.find("Item Protection") != null);
     }
 
