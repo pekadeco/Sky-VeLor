@@ -21,7 +21,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - **Quality of Life** adds inventory search/filtering, potion-panel hiding, Roman tooltip levels, long-tooltip scrolling, rarity tints, local no-hurt camera, UUID-backed item protection, opt-in Auto Sprint, and unbound Wardrobe/Pets shortcuts.
 - **Mining** adds a local pickaxe-ready alert, read-only Puzzler route marker, and a configurable Mining Assistant HUD. **Dungeons** adds a Boss HP HUD, guarded terminal highlights/dimming/wrong-click blocking, terminal/device waypoints, and optional auto-click only for an unambiguous live F7/M7 terminal result.
 - **Dungeons → Dungeon Sync** is off by default. It shares only allow-listed puzzle labels and aligned coordinates through a TLS WebSocket after deriving a local SHA-256 session; names are hashing inputs only and are never serialized. Read [the privacy and safety note](docs/DUNGEON_SYNC.md) before enabling it.
-- New Controls bindings under **Sky VeLor** are unbound by default: Inventory Search, Toggle Item Protection, Wardrobe, and Pets. `/velor selftest` reports the new assist/core-hook and sync state.
+- New Controls bindings under **Sky VeLor** are unbound by default: Toggle Item Protection, Wardrobe Shortcut, and Pets Shortcut. Inventory Search appears in compatible inventory screens when enabled; it has no default keybind. `/velor selftest` reports the new assist/core-hook and sync state.
 - These aids are client-side convenience features, not a guarantee of server safety. Auto-click, automated sprint, external sync, and every in-game behavior require user review; this release was **NOT tested in-game**.
 
 ## Requirements

@@ -8,7 +8,7 @@ Dungeon Sync is disabled by default. It starts only after you enable **Dungeons 
 - A random connection identifier for that launch/session.
 - One allow-listed puzzle label, its 32-block-aligned room coordinates, and confidence when the local dungeon map recognises a room.
 
-Profile names are inputs to the local hash only; they are not put in the WebSocket URL body, JSON messages, debug output, or chat notices. The remote service can still receive normal transport metadata, including your IP address, as any HTTPS/WebSocket service can.
+Profile names are inputs to the local hash only; they are not put in the WebSocket URL body, JSON messages, debug output, or chat notices. The SHA-256 value is a session-grouping identifier, not a secret: a service that already knows the exact server instance, floor, and roster could reproduce it. The remote service can still receive normal transport metadata, including your IP address, as any HTTPS/WebSocket service can.
 
 ## Transport and limits
 
