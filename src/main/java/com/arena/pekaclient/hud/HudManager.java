@@ -24,6 +24,8 @@ import java.util.Properties;
 public final class HudManager {
 
     public static final MiningHud MINING = new MiningHud();
+    public static final MiningAssistantHud MINING_ASSIST = new MiningAssistantHud();
+    public static final DungeonBossHud DUNGEON_BOSS_HP = new DungeonBossHud();
     public static final DollarsHud DOLLARS = new DollarsHud();
     public static final InventoryHud INVENTORY = new InventoryHud();
     public static final HotbarHud HOTBAR = new HotbarHud();
@@ -34,7 +36,8 @@ public final class HudManager {
     public static final SlayerHud SLAYER = new SlayerHud();
 
     /** Elements shown in the normal HUD editor, in draw order. */
-    public static final HudElement[] ELEMENTS = {MINING, DOLLARS, INVENTORY, HOTBAR, DOLL, STATS, FISHING, SEA_HP, SLAYER};
+    public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DOLLARS, INVENTORY, HOTBAR,
+            DOLL, STATS, FISHING, SEA_HP, SLAYER};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient-hud.properties";

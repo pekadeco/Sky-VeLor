@@ -3,6 +3,7 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.PekaClientMod;
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.config.DungeonEspSettings;
 import com.arena.pekaclient.feature.ChatChannelTabs;
@@ -87,8 +88,10 @@ public class AppleHubScreen extends AppleScreen {
     /** HUD groups in display order. Each one expands in place to its toggle and settings. */
     private static final HudElement[] HUD_OVERVIEW = {
             HudManager.DOLL, HudManager.INVENTORY, HudManager.MINING, HudManager.DOLLARS, HudManager.HOTBAR,
-            HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER};
+            HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER, HudManager.MINING_ASSIST, HudManager.DUNGEON_BOSS_HP};
     private static final int HUD_MINING = 2; // index into HUD_OVERVIEW
+    private static final int HUD_MINING_ASSIST = 8;
+    private static final int HUD_DUNGEON_BOSS_HP = 9;
     private static final int[] PAGE_ICONS = {
             Icons.GEAR, Icons.BOLT, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
     };
@@ -507,6 +510,17 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleToggle(() -> HudManager.MINING.enabled, v -> HudManager.MINING.enabled = v)));
         rows.add(Row.item("Open in HUD Editor", "Label, rolling window and decimals live in the HUD editor",
                 new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_MINING))));
+
+        GuiSettingsAuditModel.Feature assistant = GuiSettingsAuditModel.find("mining-assistant");
+        rows.add(Row.header(assistant.getTitle()));
+        rows.add(Row.item("Pickaxe ability ready alert", assistDescription("Pickaxe ability ready alert"),
+                new AppleToggle(() -> AssistSettings.miningAbilityAlert, v -> AssistSettings.miningAbilityAlert = v)));
+        rows.add(Row.item("Puzzler direction helper", assistDescription("Puzzler direction helper"),
+                new AppleToggle(() -> AssistSettings.miningPuzzlerMarker, v -> AssistSettings.miningPuzzlerMarker = v)));
+        rows.add(Row.item("Show Mining Assistant", assistDescription("Mining Assistant HUD"),
+                new AppleToggle(() -> HudManager.MINING_ASSIST.enabled, v -> HudManager.MINING_ASSIST.enabled = v)));
+        rows.add(Row.item("Open Mining Assistant Editor", "Position, scale, border and panel style live in the HUD editor",
+                new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_MINING_ASSIST))));
         return rows;
     }
 
@@ -532,6 +546,13 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Open in HUD Editor", "Position, scale, zoom and labels live in the HUD editor",
                 new AppleButton("Open in HUD Editor", 142f, 26f, false,
                         () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)))));
+
+        GuiSettingsAuditModel.Feature bossHud = GuiSettingsAuditModel.find("dungeon-boss-hp");
+        rows.add(Row.header(bossHud.getTitle()));
+        rows.add(Row.item("Show Boss HP", assistDescription("Boss HP HUD"),
+                new AppleToggle(() -> HudManager.DUNGEON_BOSS_HP.enabled, v -> HudManager.DUNGEON_BOSS_HP.enabled = v)));
+        rows.add(Row.item("Open Boss HP Editor", "Position, scale, border and panel style live in the HUD editor",
+                new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_DUNGEON_BOSS_HP))));
 
         // Every Dungeon ESP control lives under one of these four collapsible headers. The standard Row flow
         // and GuiLayoutToolkit-backed model keep cards and controls in separate vertical space at all GUI scales.
@@ -724,6 +745,12 @@ public class AppleHubScreen extends AppleScreen {
                 new AppleButton("Open in HUD Editor", 142f, 26f, false,
                         () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SEA_HP)))));
         return rows;
+    }
+
+    /** Resolves the centrally tested one-line copy for every newly added control. */
+    private static String assistDescription(String name) {
+        AssistUiModel.Entry entry = AssistUiModel.find(name);
+        return entry == null ? "Optional Sky VeLor client assist" : entry.description;
     }
 
     private static String bossName(M7OverlayRenderer.M7HitboxTarget t) {
