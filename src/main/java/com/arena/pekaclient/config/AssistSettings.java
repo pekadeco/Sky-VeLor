@@ -136,10 +136,12 @@ public final class AssistSettings {
     public static boolean validSecureEndpoint(String candidate) {
         if (candidate == null || candidate.length() > 240) return false;
         String value = candidate.trim().toLowerCase(Locale.ROOT);
-        if (!value.startsWith("wss://") || value.indexOf('@') >= 0 || value.indexOf('#') >= 0) return false;
+        if (!value.startsWith("wss://") || value.indexOf('@') >= 0 || value.indexOf('#') >= 0 || value.indexOf('?') >= 0) return false;
         int slash = value.indexOf('/', "wss://".length());
         String host = slash < 0 ? value.substring("wss://".length()) : value.substring("wss://".length(), slash);
-        return host.length() > 0 && host.indexOf(' ') < 0 && host.indexOf(':') < 0;
+        String path = slash < 0 ? "" : value.substring(slash).replaceAll("/+$", "");
+        // The transport appends only a local SHA-256 session path below the Worker websocket route.
+        return host.length() > 0 && host.indexOf(' ') < 0 && host.indexOf(':') < 0 && "/ws".equals(path);
     }
 
     private static void normalize() {

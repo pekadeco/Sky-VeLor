@@ -12,8 +12,11 @@ import com.arena.pekaclient.assist.inventory.TooltipWindow;
 import com.arena.pekaclient.assist.mining.MiningAbilityPolicy;
 import com.arena.pekaclient.assist.mining.PuzzlerRoute;
 import com.arena.pekaclient.assist.movement.AutoSprintPolicy;
+import com.arena.pekaclient.assist.sync.DungeonSyncEnvironment;
 import com.arena.pekaclient.assist.sync.DungeonSyncIdentity;
+import com.arena.pekaclient.assist.sync.DungeonSyncMessages;
 import com.arena.pekaclient.assist.sync.DungeonSyncProtocol;
+import com.arena.pekaclient.assist.sync.DungeonSyncReconnectPolicy;
 
 import java.io.File;
 import java.util.Arrays;
@@ -105,8 +108,19 @@ public final class AssistFeatureTests {
         check("sync identity is order/case stable", one.length() == 64 && one.equals(two));
         check("sync rejects solo and invalid identity", DungeonSyncIdentity.sessionId("sbdung-3", "F7", Arrays.asList("Solo")).length() == 0
                 && DungeonSyncIdentity.sessionId("bad id", "F7", Arrays.asList("Alice", "Bob")).length() == 0);
-        check("sync protocol bounds puzzle payload", DungeonSyncProtocol.encodePuzzle("Water Board", 1, 2, 3, .9D).contains("Water Board")
-                && DungeonSyncProtocol.encodePuzzle("bad\"name", 1, 2, 3, .9D).length() == 0);
+        String payload = DungeonSyncProtocol.encodePuzzle("Water Board", 0, 70, 32, .9D);
+        check("sync protocol bounds puzzle payload", payload.contains("puzzle_discovered") && payload.contains("\"water\"")
+                && DungeonSyncProtocol.encodePuzzle("bad\"name", 0, 70, 32, .9D).length() == 0
+                && DungeonSyncProtocol.encodePuzzle("water", 1, 70, 32, .9D).length() == 0);
+        check("sync inbound parser rejects arbitrary text", DungeonSyncMessages.puzzleEvent(
+                "{\"type\":\"puzzle_discovered\",\"name\":\"water\",\"x\":0,\"y\":70,\"z\":32,\"confidence\":0.9}") != null
+                && DungeonSyncMessages.puzzleEvent("{\"type\":\"chat\",\"name\":\"water\"}") == null);
+        check("sync environment extracts only strict identifiers", "mini42".equals(DungeonSyncEnvironment.findServerId(
+                Arrays.asList("Server: mini42"))) && "M7".equals(DungeonSyncEnvironment.findFloor(
+                Arrays.asList("Master Mode 7"))));
+        check("sync reconnect backs off and caps", DungeonSyncReconnectPolicy.afterDisconnect(1500L, 0L) == 3000L
+                && DungeonSyncReconnectPolicy.afterDisconnect(30000L, 0L) == 30000L
+                && DungeonSyncReconnectPolicy.afterDisconnect(30000L, 30000L) == 1500L);
     }
 
     private static void check(String name, boolean ok) {

@@ -594,6 +594,12 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Open Boss HP Editor", "Position, scale, border and panel style live in the HUD editor",
                 new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_DUNGEON_BOSS_HP))));
 
+        rows.add(Row.header("Dungeon Sync"));
+        rows.add(Row.item("Enable Dungeon Sync", assistDescription("Enable Dungeon Sync"),
+                new AppleToggle(() -> AssistSettings.dungeonSync, value -> AssistSettings.dungeonSync = value)));
+        rows.add(Row.item("Dungeon Sync Debug", assistDescription("Dungeon Sync Debug"),
+                new AppleToggle(() -> AssistSettings.dungeonSyncDebug, value -> AssistSettings.dungeonSyncDebug = value)));
+
         rows.add(Row.header("Terminal assist"));
         rows.add(Row.item("Terminal visual helpers", assistDescription("Terminal visual helpers"),
                 new AppleToggle(() -> AssistSettings.terminalHints, value -> AssistSettings.terminalHints = value)));

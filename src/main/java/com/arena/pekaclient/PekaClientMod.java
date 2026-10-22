@@ -6,6 +6,7 @@ import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonBossTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonWaypointController;
+import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.movement.AutoSprintController;
 import com.arena.pekaclient.command.ClientActions;
 import com.arena.pekaclient.command.ItemDebugCommand;
@@ -133,6 +134,7 @@ public class PekaClientMod {
     private Object itemAnimationReportedWorld;
     private final M7OverlayRenderer m7Overlay = new M7OverlayRenderer();
     private final DungeonMapOverlay dungeonMapOverlay = new DungeonMapOverlay();
+    private final DungeonSyncManager dungeonSyncManager = new DungeonSyncManager(dungeonMapOverlay);
     private final DungeonEspController dungeonEspController = new DungeonEspController();
     private final DragonKillAlert dragonKill = new DragonKillAlert(m7Overlay);
     private final TerminalSolver terminalSolver = new TerminalSolver();
@@ -182,6 +184,7 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(new GuiDebugOverlay());
         MinecraftForge.EVENT_BUS.register(m7Overlay);
         MinecraftForge.EVENT_BUS.register(dungeonMapOverlay);
+        MinecraftForge.EVENT_BUS.register(dungeonSyncManager);
         MinecraftForge.EVENT_BUS.register(dungeonEspController);
         MinecraftForge.EVENT_BUS.register(terminalSolver);
         MinecraftForge.EVENT_BUS.register(fishingStats);

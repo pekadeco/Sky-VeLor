@@ -93,6 +93,16 @@ public final class DungeonMapOverlay {
         puzzleMemory.remember(match.name, match.originX, match.originY, match.originZ, match.confidence);
     }
 
+    /** Read-only current local match for the separately opt-in sync manager; it never exposes roster data. */
+    public PuzzleRoomMatcher.Match currentPuzzleMatchForSync() {
+        return roomMatcher.current();
+    }
+
+    /** Applies a worker-validated teammate label to the same current-run memory used by the local map renderer. */
+    public void rememberSyncedPuzzle(String name, int originX, int originY, int originZ, double confidence) {
+        puzzleMemory.remember(name, originX, originY, originZ, confidence);
+    }
+
     private void clearPuzzleMemory() {
         puzzleMemory.clear();
         puzzleMemoryWorld = null;

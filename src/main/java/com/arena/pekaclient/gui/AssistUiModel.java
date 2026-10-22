@@ -77,7 +77,7 @@ public final class AssistUiModel {
         add(entries, TAB_DUNGEONS, "Boss HP HUD", "Boss HP HUD",
                 "Show detected F7/M7 boss and dragon health in the HUD editor");
         add(entries, TAB_DUNGEONS, "Dungeon Sync", "Enable Dungeon Sync",
-                "Opt in to encrypted puzzle-label sync using a temporary derived session ID");
+                "Opt in to encrypted puzzle sync; player names are hashed locally and never uploaded");
         add(entries, TAB_DUNGEONS, "Dungeon Sync", "Dungeon Sync Debug",
                 "Show local diagnostics without printing player names or session hashes");
         add(entries, TAB_DUNGEONS, "Terminal assist", "Terminal visual helpers",
