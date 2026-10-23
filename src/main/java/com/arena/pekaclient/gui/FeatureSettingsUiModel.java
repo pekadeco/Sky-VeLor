@@ -146,7 +146,6 @@ public final class FeatureSettingsUiModel {
         hud("hud-player-doll", "Player Doll", "A live model of you, with your armour and held item");
         hud("hud-inventory", "Inventory HUD", "The 27 main inventory slots, optional armour");
         hud("hud-dollars", "Player Dollars", "Purse from the scoreboard, or a typed value");
-        hud("hud-hotbar", "Hotbar", "The 9 hotbar slots as a separate element");
         dropdown("mining-bps", "Farming", "Mining BPS", "Mining block-break-speed HUD.",
                 "hud", "mining-bps-visible", "Mining BPS", options("Mining BPS visibility", "mining-bps-visible",
                 "Mining BPS editor", "mining-bps-editor"));

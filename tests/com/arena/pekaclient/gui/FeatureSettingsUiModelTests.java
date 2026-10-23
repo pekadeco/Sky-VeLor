@@ -59,6 +59,7 @@ public final class FeatureSettingsUiModelTests {
         check("FPS Display is a simple General row", FeatureSettingsUiModel.feature("fps-display").isSimple());
         check("Ping Display is a simple General row", FeatureSettingsUiModel.feature("ping-display").isSimple());
         check("Memory Display is a simple General row", FeatureSettingsUiModel.feature("memory-display").isSimple());
+        check("Hotbar customization is not a HUD row", FeatureSettingsUiModel.feature("hud-hotbar") == null);
         check("No Block Particles is a simple row", FeatureSettingsUiModel.feature("no-block-particles").isSimple());
         check("No Hurt Cam is a simple row", FeatureSettingsUiModel.feature("no-hurt-cam").isSimple());
         check("Auto Sprint is a simple row", FeatureSettingsUiModel.feature("auto-sprint").isSimple());

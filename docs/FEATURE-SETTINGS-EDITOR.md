@@ -30,7 +30,6 @@ Simple rows come before dropdowns in each tab. There are no tree arrows, connect
 | HUD | Player Doll | Dropdown | existing HUD Editor, Player Doll inspector |
 | HUD | Inventory HUD | Dropdown | existing HUD Editor, Inventory inspector |
 | HUD | Player Dollars | Dropdown | existing HUD Editor, Player Dollars inspector |
-| HUD | Hotbar | Dropdown | existing HUD Editor, Hotbar inspector |
 | Farming | Mining BPS | Dropdown | existing HUD Editor, Mining BPS inspector |
 | Farming | Mining Assistant | Dropdown | Mining Assistant Settings editor; its HUD route remains there |
 | Dungeon | Enable Dungeon Sync | Simple | this tab's toggle |
@@ -50,7 +49,7 @@ Simple rows come before dropdowns in each tab. There are no tree arrows, connect
 | Fishing | Fishing HUD | Dropdown | existing HUD Editor, Fishing inspector |
 | Fishing | Sea Creature HP | Dropdown | existing HUD Editor, Sea Creature HP inspector |
 
-`FeatureSettingsUiModel` is the source-level audit inventory for these 35 visible features and 190 existing option labels. It proves one-level dropdown depth, the exact two-control dropdown body, editor route ownership, simple-row ownership, status-dot colors, and no duplicate option identifiers. `DungeonEspUiModel` remains a non-rendered 67-control legacy option inventory so each former Dungeon ESP option is still checked against the editor route.
+`FeatureSettingsUiModel` is the source-level audit inventory for the visible features and their existing option labels. It proves one-level dropdown depth, the exact two-control dropdown body, editor route ownership, simple-row ownership, status-dot colors, and no duplicate option identifiers. `DungeonEspUiModel` remains a non-rendered 67-control legacy option inventory so each former Dungeon ESP option is still checked against the editor route.
 
 ## Mob and Door ESP editors
 

@@ -22,6 +22,7 @@ public final class ConfigTests {
         invalidValuesFallBack();
         outOfRangeIsClamped();
         legacyFileLoads();
+        retiredHotbarIsNotRegistered();
         metricDisplaysDefaultOffAndIgnoreRemovedStatsKeys();
         saveLoadRoundTrip();
 
@@ -100,12 +101,20 @@ public final class ConfigTests {
         check("legacy top", d.place.anchorY == Anchor.START && d.place.offsetY == 6, d.place.toString());
     }
 
+    private static void retiredHotbarIsNotRegistered() {
+        boolean registered = false;
+        for (HudElement element : HudManager.ELEMENTS) if ("hotbar".equals(element.id)) registered = true;
+        check("retired hotbar HUD is not registered", !registered, "registered=" + registered);
+    }
+
     private static void metricDisplaysDefaultOffAndIgnoreRemovedStatsKeys() throws IOException {
         ClientMetricHud display = new ClientMetricHud("fps-display", "FPS Display",
                 new HudPlacement(Anchor.END, 6, Anchor.START, 40), ClientMetricHud.Metric.FPS);
         check("metric default off", !display.enabled, "enabled");
         display.load(parse("stats.enabled=true\nstats.fps=true\nstats.ping=true\n"));
         check("removed stats keys ignored", !display.enabled, "enabled");
+        display.load(parse("hotbar.enabled=true\nhotbar.bg=false\nhotbar.border=false\n"));
+        check("removed hotbar HUD keys ignored", !display.enabled, "enabled");
         display.load(parse("fps-display.enabled=true\n"));
         check("metric own key loads", display.enabled, "enabled");
     }

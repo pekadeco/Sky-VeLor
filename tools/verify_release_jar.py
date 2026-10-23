@@ -572,6 +572,11 @@ def main():
             'flat Hub keeps one-level Item Animation and ESP routes without tree or child-row controls')
     r.check(b'HudSettingsBuilder' not in hub_raw,
             'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
+    hud_manager_raw = raw_of('hud/HudManager')
+    r.check(MOD_PACKAGE + 'hud/HotbarHud.class' not in names and b'HotbarHud' not in hud_manager_raw
+                and b'HOTBAR' not in hub_raw and b'hud-hotbar' not in flat_model_raw
+                and b'hotbar' not in raw_of('gui/GuiSettingsAuditModel'),
+            'retired Hotbar HUD customization, slot highlight and panel background have no packaged route')
     editor_members = members_of('gui/HudEditorScreen')
     editor_raw = raw_of('gui/HudEditorScreen')
     selection_raw = raw_of('gui/HudEditorSelectionPolicy')

@@ -72,14 +72,14 @@ public class AppleHubScreen extends AppleScreen {
     };
     /** HUD targets in editor order; contextual tabs route their own specialised HUD features. */
     private static final HudElement[] HUD_OVERVIEW = {
-            HudManager.DOLL, HudManager.INVENTORY, HudManager.MINING, HudManager.DOLLARS, HudManager.HOTBAR,
+            HudManager.DOLL, HudManager.INVENTORY, HudManager.MINING, HudManager.DOLLARS,
             HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER, HudManager.MINING_ASSIST, HudManager.DUNGEON_BOSS_HP};
     /** The HUD tab keeps only general-purpose elements; specialised HUDs live in their feature tab. */
     private static final HudElement[] HUD_TAB_ELEMENTS = {
-            HudManager.DOLL, HudManager.INVENTORY, HudManager.DOLLARS, HudManager.HOTBAR};
+            HudManager.DOLL, HudManager.INVENTORY, HudManager.DOLLARS};
     private static final int HUD_MINING = 2; // index into HUD_OVERVIEW
-    private static final int HUD_MINING_ASSIST = 8;
-    private static final int HUD_DUNGEON_BOSS_HP = 9;
+    private static final int HUD_MINING_ASSIST = 7;
+    private static final int HUD_DUNGEON_BOSS_HP = 8;
     private static final int[] PAGE_ICONS = {
             Icons.GEAR, Icons.BOLT, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
     };

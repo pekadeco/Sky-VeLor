@@ -115,6 +115,7 @@ final class HudSettingsBuilder {
             gatedSlider("Drops", 1, 4, 1, "", () -> sl.drops, v -> sl.drops = v, () -> sl.limitDrops);
             toggle("Profit", () -> sl.showProfit, v -> sl.showProfit = v);
             toggle("Boss timer", () -> sl.showBossTimer, v -> sl.showBossTimer = v);
+        }
     }
 
     private void common(final HudElement e) {

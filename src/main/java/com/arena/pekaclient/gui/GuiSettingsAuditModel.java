@@ -84,7 +84,6 @@ public final class GuiSettingsAuditModel {
                     "rows", "scan-status"),
             feature("dollars", "Player Dollars", "Purse from the scoreboard, or a typed value",
                     "label", "format", "coin-icon", "source", "amount"),
-            feature("hotbar", "Hotbar", "The 9 hotbar slots as a separate element"),
             feature("fishing", "Fishing counter", "Legendary/Mythic, Common Creature (CC), Festival and Festival best",
                     "catches", "common-creature", "festival"),
             feature("seahp", "Sea Creature HP", "Nearby sea creatures: name, level and health",
