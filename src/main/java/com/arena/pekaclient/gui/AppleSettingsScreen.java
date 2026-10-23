@@ -410,11 +410,11 @@ public class AppleSettingsScreen extends AppleScreen {
         if (compactRail) {
             drawCompactProfileControl(mouseX, mouseY);
         } else {
-            drawSidebarProfileControl(mouseX, mouseY);
+            drawRailProfileControl(mouseX, mouseY);
         }
     }
 
-    private void drawSidebarProfileControl(int mouseX, int mouseY) {
+    private void drawRailProfileControl(int mouseX, int mouseY) {
         float h = 36f;
         float y = railY + railH - h - 8f;
         float x = railX + 8f;
