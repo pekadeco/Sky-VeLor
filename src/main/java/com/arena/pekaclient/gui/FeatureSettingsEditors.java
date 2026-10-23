@@ -140,7 +140,14 @@ public final class FeatureSettingsEditors {
 
     private static void appearanceEntries(FeatureSettingsEditorScreen.Category ignored,
                                           List<FeatureSettingsEditorScreen.Entry> entries) {
-        entries.add(new FeatureSettingsEditorScreen.Entry("Appearance", "Dark or light interface.",
+        entries.add(new FeatureSettingsEditorScreen.Entry("Settings Theme", "Existing forest/cyan shell or deep Black & Blue.",
+                new AppleDropdown(AppleSettings.SETTINGS_THEME_NAMES, null, 132f, 24f,
+                        () -> AppleSettings.settingsTheme, value -> {
+                    AppleSettings.settingsTheme = Math.max(AppleSettings.SETTINGS_THEME_FOREST_CYAN,
+                            Math.min(AppleSettings.SETTINGS_THEME_BLACK_BLUE, value));
+                    Theme.refresh();
+                })));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Appearance", "Dark or light base surface for the existing theme.",
                 new AppleDropdown(new String[]{"Dark", "Light"}, null, 132f, 24f,
                         () -> AppleSettings.darkMode ? 0 : 1, value -> {
                     AppleSettings.darkMode = value == 0;
@@ -394,6 +401,7 @@ public final class FeatureSettingsEditors {
     }
 
     private static void resetAppearance() {
+        AppleSettings.settingsTheme = AppleSettings.DEFAULT_SETTINGS_THEME;
         AppleSettings.darkMode = true;
         AppleSettings.accent = 0;
         AppleSettings.cornerRadius = AppleSettings.DEFAULT_CORNER_RADIUS;

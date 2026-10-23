@@ -83,11 +83,14 @@ public final class HudManager {
                 && (mc.currentScreen == null || mc.currentScreen instanceof GuiChat);
     }
 
-    /** Draws the enabled elements in game. */
+    /** Draws the enabled elements in game. A rendering failure must not strand the shared 2D frame. */
     public static void render(ScaledResolution sr) {
         UIRender.beginFrame();
-        for (HudElement e : ELEMENTS) if (e.enabled) e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
-        UIRender.endFrame();
+        try {
+            for (HudElement e : ELEMENTS) if (e.enabled) e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
+        } finally {
+            UIRender.endFrame();
+        }
     }
 
     /** Draws every element for the editor. Disabled elements are shown faded. */
@@ -103,10 +106,17 @@ public final class HudManager {
         HudElement.backgroundOnHoverOnly = true;
         HudElement.hoveredInEditor = under;
         UIRender.beginFrame();
-        for (HudElement e : ELEMENTS) e.render(sw, sh, e.enabled ? 1f : 0.35f);
-        UIRender.endFrame();
-        HudElement.backgroundOnHoverOnly = false;
-        HudElement.hoveredInEditor = null;
+        try {
+            for (HudElement e : ELEMENTS) e.render(sw, sh, e.enabled ? 1f : 0.35f);
+        } finally {
+            // These static editor hints must not bleed into the normal in-game HUD if a preview renderer throws.
+            try {
+                UIRender.endFrame();
+            } finally {
+                HudElement.backgroundOnHoverOnly = false;
+                HudElement.hoveredInEditor = null;
+            }
+        }
     }
 
     public static void resetPositions() {

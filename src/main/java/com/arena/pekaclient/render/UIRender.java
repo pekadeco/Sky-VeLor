@@ -43,6 +43,10 @@ public final class UIRender {
 
     private static boolean batchMode;
     private static boolean batchOpen;
+    /** Nested frames are unusual but legal; inner frames restore the outer 2D contract instead of leaking item/model state. */
+    private static int frameDepth;
+    private static final float[] SAVED_ALPHA = new float[8];
+    private static final boolean[] SAVED_BATCH_MODE = new boolean[8];
 
     static {
         for (int s = 1; s <= MAX_SEG; s++) {
@@ -64,8 +68,18 @@ public final class UIRender {
 
     // ------------------------------------------------------------------ frame state
 
-    /** Saves/sets GL state for a block of custom drawing. Pair with {@link #endFrame()}. */
+    /**
+     * Saves/sets the known 2D state for a block of custom drawing. Always pair it with {@link #endFrame()} in a
+     * {@code finally} block: HUD editor previews mix item/entity renderers with primitive drawing, and one skipped
+     * cleanup used to leave later GUI screens tinted or depth-tested.
+     */
     public static void beginFrame() {
+        // A nested frame cannot inherit an open Tessellator batch because it may call vanilla's item/entity renderer.
+        flush();
+        int slot = Math.min(frameDepth, SAVED_ALPHA.length - 1);
+        SAVED_ALPHA[slot] = alphaMul;
+        SAVED_BATCH_MODE[slot] = batchMode;
+        frameDepth++;
         batchMode = false;
         batchOpen = false;
         alphaMul = 1f;
@@ -84,6 +98,8 @@ public final class UIRender {
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         GlStateManager.disableTexture2D();
         GlStateManager.disableAlpha();
+        GlStateManager.disableLighting();
+        GlStateManager.disableRescaleNormal();
         // UI is 2D: depth testing off, so the world's depth values can never hide a shape.
         GlStateManager.disableDepth();
         GlStateManager.depthMask(true);
@@ -92,15 +108,45 @@ public final class UIRender {
         GlStateManager.color(1f, 1f, 1f, 1f);
     }
 
-    /** Restores the state vanilla GUI code expects. */
-    public static void endFrame() {
+    /**
+     * Restores the stable state used by vanilla GUI code after a top-level custom frame. This is intentionally a
+     * known baseline rather than a partial cleanup: direct item/entity renderers can change lighting, depth, blend,
+     * texture, tint and scissor state independently. It is also safe to call when an editor is closing.
+     */
+    public static void restoreVanillaGuiState() {
         flush();
+        batchOpen = false;
         alphaMul = 1f;
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
         GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.disableLighting();
+        GlStateManager.disableRescaleNormal();
         GlStateManager.enableAlpha();
         GlStateManager.enableTexture2D();
         GlStateManager.disableBlend();
-        GlStateManager.popMatrix();
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableCull();
+    }
+
+    /** Restores the prior nested 2D frame or the stable vanilla GUI baseline at the outermost frame. */
+    public static void endFrame() {
+        try {
+            flush();
+        } finally {
+            int slot = Math.max(0, Math.min(frameDepth - 1, SAVED_ALPHA.length - 1));
+            if (frameDepth > 0) frameDepth--;
+            GlStateManager.popMatrix();
+            batchOpen = false;
+            if (frameDepth > 0) {
+                alphaMul = SAVED_ALPHA[slot];
+                batchMode = SAVED_BATCH_MODE[slot];
+                restoreFrameState();
+            } else {
+                batchMode = false;
+                restoreVanillaGuiState();
+            }
+        }
     }
 
     /** Draws any pending batched triangles. */

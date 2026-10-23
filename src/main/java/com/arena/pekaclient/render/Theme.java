@@ -33,9 +33,9 @@ public final class Theme {
     }
 
     /**
-     * Applies the graphite/frost surface palette from the native reference settings shell.  It deliberately reuses
-     * the persisted Sky VeLor accent, radius and opacity controls rather than introducing a second appearance
-     * schema. Call {@link #refresh()} after leaving that shell so focused legacy editors retain their own palette.
+     * Applies the reference-shell surface palette. It reuses the persisted Sky VeLor appearance controls, including
+     * the additive Settings Theme selection, rather than introducing a separate configuration file. Call
+     * {@link #refresh()} after leaving that shell so focused legacy editors retain their own palette.
      */
     public static void applyReferenceSettingsPalette() {
         int glass = Math.round(AppleSettings.effectiveGlassOpacity() * 2.55f);
@@ -43,6 +43,11 @@ public final class Theme {
         accent = AppleSettings.accentColor();
         animations = AppleSettings.animations;
         speed = AppleSettings.effectiveAnimSpeed() / 100f;
+
+        if (AppleSettings.isBlackBlueTheme()) {
+            applyBlackBluePalette(glass);
+            return;
+        }
 
         if (AppleSettings.darkMode) {
             // DeepSeek reference Graphite: forest-black chrome, graphite cards and low-contrast green lines.
@@ -81,12 +86,40 @@ public final class Theme {
         }
     }
 
+    /**
+     * A deliberately fixed black/blue palette. It uses a cyan-blue accent rather than the optional per-accent
+     * picker so the selected theme reads consistently across the shell, focused editors, dropdowns and popovers.
+     */
+    private static void applyBlackBluePalette(int glass) {
+        accent = 0xFF28B9FF;
+        windowTop = (glass << 24) | 0x090E16;
+        windowBottom = (glass << 24) | 0x05080D;
+        card = 0xFF0D1622;
+        cardHover = 0xFF142238;
+        buttonFill = 0xFF101C2B;
+        buttonHover = 0xFF19304A;
+        border = 0xFF234C70;
+        divider = 0xFF193953;
+        track = 0xFF29445E;
+        segSelected = 0xFF17304A;
+        popup = 0xFF0A121D;
+        veil = 0x62000000;
+        textPrimary = 0xFFF2F7FF;
+        textSecondary = 0xFFB4C6D9;
+        textTertiary = 0xFF7894B0;
+    }
+
     public static void refresh() {
         int glass = Math.round(AppleSettings.effectiveGlassOpacity() * 2.55f);
         radius = AppleSettings.effectiveCornerRadius();
         accent = AppleSettings.accentColor();
         animations = AppleSettings.animations;
         speed = AppleSettings.effectiveAnimSpeed() / 100f;
+
+        if (AppleSettings.isBlackBlueTheme()) {
+            applyBlackBluePalette(glass);
+            return;
+        }
 
         if (AppleSettings.darkMode) {
             windowTop = (glass << 24) | 0x1E1E21;

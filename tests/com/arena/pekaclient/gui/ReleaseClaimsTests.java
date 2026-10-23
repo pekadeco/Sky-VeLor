@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-/** Packaged-class regression proof for the reference-shell migration and retained feature boundaries. */
+/** Packaged-class regression proof for the refined direct-category settings shell and retained boundaries. */
 public final class ReleaseClaimsTests {
     private static int passed;
     private static int failed;
@@ -17,6 +17,7 @@ public final class ReleaseClaimsTests {
         vanillaFontSurfaceHasNoCustomFontSubsystem();
         hudEditorHasNoTargetSidebar();
         referenceShellHasRequiredBehavior();
+        editorStateCleanupIsPackaged();
         retainedControlsKeepTheirOwners();
         removedPrototypeEntriesStayRemoved();
         done();
@@ -47,24 +48,43 @@ public final class ReleaseClaimsTests {
     }
 
     private static void referenceShellHasRequiredBehavior() {
-        String[] destinations = {"Home", "Gameplay", "Dungeon", "Visuals", "System"};
+        String[] destinations = {"Home", "Quality of Life", "Mining", "Slayer", "Fishing", "Dungeon", "HUD Hub", "System"};
         check("reference shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
         check("reference screen class is packaged", classExists("com.arena.pekaclient.gui.AppleSettingsScreen"));
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
-        check("screen has global search and Advanced state", screen.contains("Search settings")
-                && screen.contains("Advanced"));
+        check("screen has global search without an Advanced-button state", screen.contains("Search settings")
+                && !screen.contains("Advanced settings shown") && !screen.contains("Advanced settings hidden"));
         check("screen uses one clipped settings viewport", screen.contains("scissorBegin")
                 && screen.contains("GuiLayoutToolkit$Scroll"));
+        check("screen packages title-bar drag and Black and Blue theme ownership", screen.contains("DRAG TITLE BAR")
+                && screen.contains("windowOffsetX") && screen.contains("appearance-theme")
+                && screen.contains("refreshReferenceTheme"));
         check("old Hub is compatibility-only", classText("com.arena.pekaclient.gui.AppleHubScreen")
                 .contains("AppleSettingsScreen"));
+    }
+
+    private static void editorStateCleanupIsPackaged() {
+        String uiRender = classText("com.arena.pekaclient.render.UIRender");
+        String manager = classText("com.arena.pekaclient.hud.HudManager");
+        String element = classText("com.arena.pekaclient.hud.HudElement");
+        String itemSlots = classText("com.arena.pekaclient.hud.ItemSlots");
+        String editor = classText("com.arena.pekaclient.gui.HudEditorScreen");
+        check("shared renderer packages a neutral GUI restoration baseline", uiRender.contains("restoreVanillaGuiState")
+                && uiRender.contains("restoreFrameState"));
+        check("HUD editor packages palette/state restoration around direct previews", editor.contains("restoreVanillaGuiState")
+                && editor.contains("restoreFrameState"));
+        check("HUD manager resets editor-only hover flags", manager.contains("backgroundOnHoverOnly")
+                && manager.contains("hoveredInEditor"));
+        check("HUD element and item slots use shared state restoration", element.contains("alphaMul")
+                && itemSlots.contains("restoreFrameState"));
     }
 
     private static void retainedControlsKeepTheirOwners() {
         ReferenceSettingsCatalog.Setting shake = ReferenceSettingsCatalog.find("hurt-camera-shake");
         ReferenceSettingsCatalog.Setting sprint = ReferenceSettingsCatalog.find("auto-sprint");
-        check("Hurt Camera Shake remains a direct Gameplay slider", shake != null
+        check("Hurt Camera Shake remains a direct Quality of Life slider", shake != null
                 && shake.control == ReferenceSettingsCatalog.Control.SLIDER && shake.min == 0 && shake.max == 100);
-        check("Auto Sprint remains a direct Gameplay control", sprint != null
+        check("Auto Sprint remains a direct Quality of Life control", sprint != null
                 && sprint.control == ReferenceSettingsCatalog.Control.TOGGLE);
         ReferenceSettingsCatalog.Setting lock = ReferenceSettingsCatalog.find("item-lock-swap");
         check("Item Lock and Swap retains a focused route", lock != null && "Open details".equals(lock.actionLabel)
@@ -75,6 +95,8 @@ public final class ReleaseClaimsTests {
                 && ReferenceSettingsCatalog.find("hud-editor") != null);
         check("Dungeon route inventory remains complete", ReferenceSettingsCatalog.routesAreComplete()
                 && ReferenceSettingsCatalog.find("door-esp") != null && ReferenceSettingsCatalog.find("m7-overlay") != null);
+        check("theme selector offers both supported palettes", ReferenceSettingsCatalog.find("appearance-theme") != null
+                && ReferenceSettingsCatalog.find("appearance-theme").choices.length == 2);
     }
 
     private static void removedPrototypeEntriesStayRemoved() {

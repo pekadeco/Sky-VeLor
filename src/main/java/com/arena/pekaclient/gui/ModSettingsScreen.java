@@ -43,7 +43,7 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
         drawLabel("Shift + wheel uses fine scrolling. A wheel event is applied once only to its hovered viewport.",
                 content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
         naturalY += 18f;
-        drawLabel("Hotbar scrolling is configured in Gameplay, Comfort and applies only during gameplay.",
+        drawLabel("Hotbar scrolling is configured in Quality of Life, Comfort and applies only during gameplay.",
                 content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
         finishContent(naturalY + 28f);
         endPanel();

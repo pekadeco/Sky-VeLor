@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.9.4v
+# Sky VeLor — Beta-0.10.8.9.5v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -16,17 +16,34 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 - Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; network, automated-click, and input/gameplay assists remain explicit opt-ins.
 
-## Beta-0.10.8.9.4v update — refined native settings desktop
+## Beta-0.10.8.9.5v update — GUI fixes and improvements
 
-- Refined the existing native Forge five-destination shell (**Home**, **Gameplay**, **Dungeon**, **Visuals**, **System**) without adding a browser runtime, React dependency, GUI library, or a second configuration schema.
-- The settings surface is now a centered desktop window: normal mode targets 85% of usable width and 82% of usable height before fixed sensible maxima, preserves a visible world border, and uses the existing clipped scroll viewport instead of shrinking controls unreadably at low GUI scales. Green toggles normal/larger layout, yellow minimizes/restores a compact strip, and red closes to the game.
-- Removed the visible **Done** button and its reserved toolbar gap. Search uses that recovered space; Escape, red close, and all established close paths retain save-on-close persistence.
-- Replaced Home setup presets with a compact cached **LIVE PERFORMANCE** panel for actual client FPS, Java used/max heap in MB, and local player tab-list ping. It refreshes from the existing 500 ms `ClientMetrics` snapshot and reports disconnected ping as `-- ms`; it does not replace or duplicate the in-game Stats Display.
-- Added a clickable sidebar **Profile** control and compact themed popover with creator **pekadeco** and contributors **ii88w** and **whiteShadow**. The popover has a clear X, Escape, and outside-click dismissal.
-- Fresh configuration defaults now enable only ordinary local inventory presentation conveniences (Roman numerals, tooltip scrolling, rarity highlighting). Existing files retain their saved/legacy behavior; network sync, automatic clicks, input/gameplay assists, specialized M7 tools, and Dungeon ESP remain opt-in for a fresh configuration.
-- Item Animation, HUD Editor/HUD Hub Editor, all focused routes, Dungeon ESP/settings, search, Advanced, persistence, and retained HUDs remain accessible. The separate in-game **Stats Display** remains the restored three-card **FRAME RATE**, **MINING**, and **MEMORY** HUD.
+- Refined the existing native Forge desktop without replacing its identity, dependencies, saved settings, HUD Editor,
+  HUD Hub Editor, Item Animation, Dungeon ESP, or established focused editors. No browser runtime, React dependency,
+  GUI library, or unrelated feature was added.
+- Replaced the five-item rail with direct existing-setting destinations: **Home**, **Quality of Life**, **Mining**,
+  **Slayer**, **Fishing**, **Dungeon**, **HUD Hub**, and **System**. Mining, Slayer, and Fishing contain only their
+  existing relevant controls. No Farming tab is shown because this source has no real farming control; Mining Assistant
+  was not mislabelled or moved into Farming.
+- Renamed visible navigation consistently: **Gameplay** is now **Quality of Life** and **Visuals** is now **HUD Hub**.
+  Search and inline children remain reachable, including former Advanced-marked controls; the visible **Advanced**
+  button was removed and its toolbar space was reclaimed by search.
+- Made the main settings desktop smoother and draggable by its title bar. Shared bounded layout geometry keeps drawing,
+  hit testing, scrolling, dropdowns, compact navigation, controls, resizing, larger/minimized modes, and a visible
+  world border aligned after movement.
+- Added selectable persisted **Settings Theme** choices: existing **Forest & Cyan** or new **Black & Blue**. Black &
+  Blue applies near-black surfaces, blue/cyan accents, light readable text, and subtle borders/cards consistently to
+  the main shell, navigation, controls, dropdowns, popups, and focused settings surfaces.
+- Hardened HUD Editor/HUD Hub Editor rendering cleanup. Shared GUI/OpenGL state, clipping, item/entity previews,
+  element matrix/alpha, and editor hover flags now restore through exception-safe cleanup; returning parent settings
+  screens reapply their selected palette so repeated transitions do not retain a corrupted color/state.
+- Kept Home's cached **LIVE PERFORMANCE** panel and the separate in-game three-card **Stats Display** (**FRAME RATE**,
+  **MINING**, **MEMORY**). Existing persistence owners and saved configurations remain authoritative.
+- Updated source/headless contracts, release verification, documentation, and version metadata for this minor source
+  update.
 
-This source update is **NOT tested in-game**. Build/distribution remains gated on the Java 8 Forge build and release verifiers below; generated artifacts are valid only when produced by that workflow.
+This source update is **NOT tested in-game**. Build/distribution remains gated on the Java 8 Forge build and release
+verifiers below; generated artifacts are valid only when produced by that workflow.
 
 ## Requirements
 
@@ -70,7 +87,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.4v.jar --version Beta-0.10.8.9.4v --mcmod-version 0.10.8.9.4
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.5v.jar --version Beta-0.10.8.9.5v --mcmod-version 0.10.8.9.5
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -78,20 +95,20 @@ file or nested archive was packaged, and — decisively — that the classes ref
 by SRG name with no development names left. The generated `build/` and `.gradle/` directories are
 temporary and should not be included in source ZIPs.
 
-The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.4v-source.zip`. It is generated with a
-curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.4v-source/` root prefix;
-use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.4v` to verify its contents.
+The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.5v-source.zip`. It is generated with a
+curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.5v-source/` root prefix;
+use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.5v` to verify its contents.
 The only JAR allowed in that source archive is the required Gradle wrapper.
 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.4v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.5v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap
 
-Open **Gameplay → Inventory → Item Lock and Swap → Open details**. The feature is on by default and uses **L** by default (the
+Open **Quality of Life → Inventory → Item Lock and Swap → Open details**. The feature is on by default and uses **L** by default (the
 key can be rebound there or in Controls). Hover a player-inventory position **A**, press and hold the key, move the
 pointer to **B**, then release the key — no mouse click is part of pairing. Releasing over an **unpaired** A toggles
 that position lock at any hold duration; releasing over empty space cancels unchanged. Locks persist for hotbar `0–8`,
@@ -117,7 +134,7 @@ rather than implying protection.
 
 ## Item Animation Settings
 
-**Item Animation** is reached from **Visuals → Item Animation**; its master switch has inline size/tempo/offset controls and **Open Item Animation** keeps the established, non-draggable HUD-editor renderer panel available.
+**Item Animation** is reached from **HUD Hub → Item Animation**; its master switch has inline size/tempo/offset controls and **Open Item Animation** keeps the established, non-draggable HUD-editor renderer panel available.
 It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -150 through 150), Size
 (30–200%), and Animation Speed (25–400%). Every slider has a visible numeric value and a nearby exact-value field; Enter
 applies and saves a typed value. **Reset Item Animation** restores X/Y/Z to 0 and Size/Speed to 100%.

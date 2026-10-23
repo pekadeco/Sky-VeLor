@@ -9,6 +9,7 @@ public final class ReferenceSettingsWindowLayoutTests {
         normalWindowUsesRequestedDesktopFootprint();
         maximumAndLowResolutionBoundsStayUsable();
         desktopModesRemainCenteredAndRestorable();
+        titleBarDragOffsetStaysVisibleAndUsesSharedBounds();
         System.out.println("reference window layout: passed " + passed + ", failed " + failed);
         if (failed > 0) System.exit(1);
     }
@@ -46,6 +47,25 @@ public final class ReferenceSettingsWindowLayoutTests {
                 && centered(larger, 960f, 540f) && centered(minimized, 960f, 540f));
         check("yellow minimized strip exposes controls", minimized.h == ReferenceSettingsWindowLayout.MINIMIZED_HEIGHT
                 && ReferenceSettingsWindowLayout.canShowDesktopControls(minimized));
+    }
+
+    private static void titleBarDragOffsetStaysVisibleAndUsesSharedBounds() {
+        GuiLayoutToolkit.Rect moved = ReferenceSettingsWindowLayout.layout(new GuiLayoutToolkit.Rect(),
+                960f, 540f, false, false, 200f, -200f);
+        check("title-bar drag translates the centered desktop window", moved.x > ReferenceSettingsWindowLayout.OUTER_MARGIN
+                && moved.y >= ReferenceSettingsWindowLayout.OUTER_MARGIN - .01f);
+        check("dragged window retains the visible world border", moved.right() <= 960f - ReferenceSettingsWindowLayout.OUTER_MARGIN + .01f
+                && moved.bottom() <= 540f - ReferenceSettingsWindowLayout.OUTER_MARGIN + .01f);
+
+        GuiLayoutToolkit.Rect constrained = ReferenceSettingsWindowLayout.layout(new GuiLayoutToolkit.Rect(),
+                960f, 540f, false, false, 5000f, -5000f);
+        check("extreme drag is constrained instead of losing the title bar", constrained.x >= ReferenceSettingsWindowLayout.OUTER_MARGIN - .01f
+                && constrained.y >= ReferenceSettingsWindowLayout.OUTER_MARGIN - .01f
+                && constrained.right() <= 960f - ReferenceSettingsWindowLayout.OUTER_MARGIN + .01f
+                && constrained.bottom() <= 540f - ReferenceSettingsWindowLayout.OUTER_MARGIN + .01f);
+        check("shared layout reports the same centered origin used to derive drag offsets",
+                close(ReferenceSettingsWindowLayout.centeredX(960f, moved.w), (960f - moved.w) * .5f)
+                        && close(ReferenceSettingsWindowLayout.centeredY(540f, moved.h), (540f - moved.h) * .5f));
     }
 
     private static boolean centered(GuiLayoutToolkit.Rect bounds, float w, float h) {

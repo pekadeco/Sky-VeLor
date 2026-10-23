@@ -1,5 +1,6 @@
 package com.arena.pekaclient.hud;
 
+import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
@@ -22,6 +23,8 @@ public final class ItemSlots {
     }
 
     public static void beginItems() {
+        // Flush shape geometry before vanilla starts its textured item pass.
+        UIRender.flush();
         GlStateManager.enableTexture2D();
         GlStateManager.enableRescaleNormal();
         GlStateManager.enableBlend();
@@ -30,13 +33,16 @@ public final class ItemSlots {
         RenderHelper.enableGUIStandardItemLighting();
     }
 
+    /** Returns to UIRender's texture-free 2D contract; callers guarantee this with a finally block. */
     public static void endItems() {
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.disableRescaleNormal();
-        GlStateManager.disableLighting();
-        GlStateManager.enableDepth();
-        GlStateManager.disableTexture2D();
-        GlStateManager.color(1f, 1f, 1f, 1f);
+        try {
+            RenderHelper.disableStandardItemLighting();
+            GlStateManager.disableRescaleNormal();
+            GlStateManager.disableLighting();
+        } finally {
+            // Do not re-enable depth here: an InventoryHud is rendered inside an active UIRender frame.
+            UIRender.restoreFrameState();
+        }
     }
 
     /** Draws one stack with its count and durability. An empty slot draws nothing. */

@@ -2,18 +2,29 @@ package com.arena.pekaclient.render;
 
 import com.arena.pekaclient.config.AppleSettings;
 
-/** Checks the hub palettes retain readable controls while making panels translucent and light surfaces softer. */
+/** Checks legacy palettes and the persisted Black & Blue shell remain readable and distinct. */
 public final class ThemeTests {
 
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
+        existingThemePalettesRemainCompatible();
+        blackBlueThemeUsesTheCompleteDarkBluePalette();
+        System.out.println();
+        System.out.println("theme: passed " + passed + ", failed " + failed);
+        if (failed > 0) {
+            System.exit(1);
+        }
+    }
+
+    private static void existingThemePalettesRemainCompatible() {
+        AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_FOREST_CYAN;
         AppleSettings.glassOpacityOn = true;
         AppleSettings.glassOpacity = AppleSettings.DEFAULT_GLASS_OPACITY;
         AppleSettings.darkMode = true;
         Theme.refresh();
-        check("dark panels use the new transparent default",
+        check("dark panels use the established transparent default",
                 alpha(Theme.windowTop) == Math.round(AppleSettings.DEFAULT_GLASS_OPACITY * 2.55f));
         check("dark cards remain translucent", alpha(Theme.card) < 255 && alpha(Theme.cardHover) < 255);
         check("dark controls retain visible fills", alpha(Theme.buttonFill) > 0 && alpha(Theme.buttonHover) > 0);
@@ -30,12 +41,32 @@ public final class ThemeTests {
                 && rgb(Theme.buttonFill) == 0xE5E5EA);
         check("light popup avoids pure white", rgb(Theme.popup) == 0xF1F1F5);
         check("light foreground retains dark contrast", Theme.textPrimary == 0xFF1C1C1E);
+    }
 
-        System.out.println();
-        System.out.println("theme: passed " + passed + ", failed " + failed);
-        if (failed > 0) {
-            System.exit(1);
-        }
+    private static void blackBlueThemeUsesTheCompleteDarkBluePalette() {
+        AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_BLACK_BLUE;
+        AppleSettings.darkMode = false; // Black & Blue intentionally owns its near-black surfaces regardless of this legacy choice.
+        AppleSettings.glassOpacity = 90;
+        Theme.refresh();
+        check("Black & Blue has near-black window surfaces", rgb(Theme.windowTop) == 0x090E16
+                && rgb(Theme.windowBottom) == 0x05080D);
+        check("Black & Blue uses readable light text", Theme.textPrimary == 0xFFF2F7FF
+                && Theme.textSecondary == 0xFFB4C6D9 && Theme.textTertiary == 0xFF7894B0);
+        check("Black & Blue fixes a blue-cyan accent", Theme.accent == 0xFF28B9FF);
+        check("Black & Blue covers cards controls borders and popups", Theme.card == 0xFF0D1622
+                && Theme.buttonFill == 0xFF101C2B && Theme.border == 0xFF234C70 && Theme.popup == 0xFF0A121D);
+        check("reference shell uses the same persisted Black & Blue palette", referencePaletteMatchesBlackBlue());
+
+        // Leave static state in the default compatibility position for independently-run legacy tests.
+        AppleSettings.settingsTheme = AppleSettings.DEFAULT_SETTINGS_THEME;
+        AppleSettings.darkMode = true;
+        Theme.refresh();
+    }
+
+    private static boolean referencePaletteMatchesBlackBlue() {
+        Theme.applyReferenceSettingsPalette();
+        return Theme.accent == 0xFF28B9FF && rgb(Theme.windowTop) == 0x090E16
+                && Theme.popup == 0xFF0A121D && Theme.textPrimary == 0xFFF2F7FF;
     }
 
     private static int alpha(int color) {

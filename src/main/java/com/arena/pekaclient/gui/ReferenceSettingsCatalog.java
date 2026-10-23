@@ -11,16 +11,19 @@ import java.util.Locale;
  *
  * <p>The catalog deliberately describes presentation only: ids resolve to the existing Sky VeLor configuration
  * owners and focused editors in {@link AppleSettingsScreen}. It never introduces a second persistence schema.
- * Home is an aggregate/live-summary surface; the four real destination sections are Gameplay, Dungeon, Visuals and
- * System. Cards, inline detail rows, the Advanced gate and search wording mirror the reference implementation.</p>
+ * Home is an aggregate/live-summary surface; Quality of Life, Mining, Slayer, Fishing, Dungeon, HUD Hub and System
+ * are direct destinations. Cards and inline detail rows keep every existing route visible without a second gate.</p>
  */
 public final class ReferenceSettingsCatalog {
 
     public enum Tab {
         HOME("Home", "Live performance and the handful of switches you touch most."),
-        GAMEPLAY("Gameplay", "Comfort, inventory, chat and skill trackers — the everyday surface."),
+        QUALITY_OF_LIFE("Quality of Life", "Comfort, inventory, chat and optional shortcuts for everyday play."),
+        MINING("Mining", "Mining readouts and the existing local mining assistant controls."),
+        SLAYER("Slayer", "Local Slayer history, timer, pricing and HUD controls."),
+        FISHING("Fishing", "Existing counters, creature readouts and local encounter alerts."),
         DUNGEON("Dungeon", "Everything that should only be alive inside Catacombs."),
-        VISUALS("Visuals", "Your HUD and first-person hand. All rendering, no server state."),
+        HUD_HUB("HUD Hub", "Movable HUD elements and first-person Item Animation controls."),
         SYSTEM("System", "Appearance, performance and the settings you rarely need.");
 
         public final String label;
@@ -70,15 +73,24 @@ public final class ReferenceSettingsCatalog {
             this.children = immutable(children);
         }
 
-        public boolean hasChildren(boolean showAdvanced) {
-            for (Setting child : children) if (showAdvanced || !child.advanced) return true;
-            return false;
+        public boolean hasChildren() {
+            return !children.isEmpty();
         }
 
-        public int visibleChildCount(boolean showAdvanced) {
-            int count = 0;
-            for (Setting child : children) if (showAdvanced || !child.advanced) count++;
-            return count;
+        public int visibleChildCount() {
+            return children.size();
+        }
+
+        /** Source-compatible overload; the removed Advanced gate does not hide inline settings. */
+        @Deprecated
+        public boolean hasChildren(boolean ignoredAdvancedFlag) {
+            return hasChildren();
+        }
+
+        /** Source-compatible overload; the removed Advanced gate does not hide inline settings. */
+        @Deprecated
+        public int visibleChildCount(boolean ignoredAdvancedFlag) {
+            return visibleChildCount();
         }
     }
 
@@ -115,7 +127,7 @@ public final class ReferenceSettingsCatalog {
         }
     }
 
-    /** Exact reference destination order: Home plus four intent sections. */
+    /** Native destination order; each category is backed by an existing settings owner. */
     public static final Tab[] TABS = Tab.values();
 
     /**
@@ -134,7 +146,7 @@ public final class ReferenceSettingsCatalog {
     };
 
     private static final List<Card> HOME = Collections.emptyList();
-    private static final List<Card> GAMEPLAY = cards(
+    private static final List<Card> QUALITY_OF_LIFE = cards(
             card("comfort", "Comfort", "Tiny adjustments that remove friction without changing how the game plays.",
                     false, "",
                     toggle("no-block-particles", "Quiet block particles",
@@ -178,7 +190,19 @@ public final class ReferenceSettingsCatalog {
                                     "animations messages", false),
                             toggle("chat-hover", "Highlight hovered line", "Use a quiet background on the message under the pointer.",
                                     "hover highlight", false))),
-            card("skills", "Skills", "Mining, Slayer and fishing trackers, off until you enable them.", false, "",
+            card("shortcuts", "Shortcuts", "Optional command keys. Nothing is bound on a fresh install.", true, "",
+                    routeAction("movement-shortcuts", "Wardrobe and Pets", "Configure optional local shortcut routes.",
+                            "wardrobe pets", false, "Open details",
+                            toggle("wardrobe-shortcut", "Wardrobe shortcut", "Unbound by default. Choose a key in Controls.",
+                                    "wardrobe key", false),
+                            toggle("pets-shortcut", "Pets shortcut", "Unbound by default. Choose a key in Controls.",
+                                    "pets key", false)))
+    );
+
+
+
+    private static final List<Card> MINING = cards(
+            card("mining", "Mining", "Existing mining readouts and local helper controls.", false, "",
                     routeToggle("mining-bps", "Mining speed", "Show the existing blocks-per-second readout while mining.",
                             "mining bps", false, "HUD settings"),
                     routeAction("mining-assistant-settings", "Mining assistant",
@@ -189,7 +213,11 @@ public final class ReferenceSettingsCatalog {
                             toggle("mining-puzzler", "Puzzler route marker", "Show a suggested Dwarven Mines direction. Never clicks or walks.",
                                     "dwarven route", false),
                             toggle("mining-assistant-hud", "Mining assistant HUD", "Add the assistant readout to the movable HUD layer.",
-                                    "hud", false)),
+                                    "hud", false)))
+    );
+
+    private static final List<Card> SLAYER = cards(
+            card("slayer", "Slayer", "Local drop history, boss timing, pricing and HUD controls.", false, "",
                     routeToggle("slayer-tracker", "Slayer tracker", "Local drop history, timer and price controls.",
                             "slayer boss timer", false, "Open details",
                             routeToggle("slayer-hud-route", "Slayer HUD", "Show the active tracker on the HUD layer.",
@@ -197,7 +225,11 @@ public final class ReferenceSettingsCatalog {
                             toggle("slayer-boss-timer", "Boss timer", "Track spawn and kill time for each attempt.",
                                     "timer", false),
                             toggle("slayer-pricing", "Estimated item value", "Use only locally saved prices; nothing is fetched.",
-                                    "prices", true)),
+                                    "prices", true)))
+    );
+
+    private static final List<Card> FISHING = cards(
+            card("fishing", "Fishing", "Existing catch counters, creature health and encounter alerts.", false, "",
                     routeAction("fishing-hud-route", "Fishing tracker", "Catch counters, sea-creature health and alerts in one place.",
                             "fishing catches sea creature", false, "Open details",
                             routeAction("catch-counter", "Catch counter", "Count every rarity locally, including festival catches.",
@@ -207,14 +239,7 @@ public final class ReferenceSettingsCatalog {
                             toggle("jawbus", "Lord Jawbus alert", "Show a local title when Lord Jawbus arrives.",
                                     "jawbus", false),
                             toggle("nearby-encounters", "Nearby encounters", "Show compatible nearby fishing title alerts. Useful, but busy.",
-                                    "fishing nearby", true))),
-            card("shortcuts", "Shortcuts", "Optional command keys. Nothing is bound on a fresh install.", true, "",
-                    routeAction("movement-shortcuts", "Wardrobe and Pets", "Configure optional local shortcut routes.",
-                            "wardrobe pets", false, "Open details",
-                            toggle("wardrobe-shortcut", "Wardrobe shortcut", "Unbound by default. Choose a key in Controls.",
-                                    "wardrobe key", false),
-                            toggle("pets-shortcut", "Pets shortcut", "Unbound by default. Choose a key in Controls.",
-                                    "pets key", false)))
+                                    "fishing nearby", true)))
     );
 
     private static final List<Card> DUNGEON = cards(
@@ -231,7 +256,7 @@ public final class ReferenceSettingsCatalog {
                                     "terminal dim", false),
                             toggle("terminal-prevent-clicks", "Block known wrong clicks", "Cancel your click only when layout and target are unambiguous.",
                                     "terminal prevent", false),
-                            toggle("terminal-auto-click", "Terminal auto click", "Existing opt-in automation control; kept Advanced and off by default.",
+                            toggle("terminal-auto-click", "Terminal auto click", "Existing opt-in automation control; off by default.",
                                     "terminal automation", true),
                             toggle("terminal-waypoints", "Terminal waypoints", "Show existing in-world route markers when enabled.",
                                     "terminal waypoint", true)),
@@ -262,8 +287,8 @@ public final class ReferenceSettingsCatalog {
                                     "sync debug", true)))
     );
 
-    private static final List<Card> VISUALS = cards(
-            card("hud", "HUD", "Movable elements. Drag them once in the editor, then forget this page.", false, "",
+    private static final List<Card> HUD_HUB = cards(
+            card("hud", "HUD Hub", "Movable elements. Drag them once in the editor, then forget this page.", false, "",
                     action("hud-editor", "HUD Editor", "Select, move, resize and style existing HUD elements.",
                             "hud hub editor", false, "Open editor"),
                     routeToggle("hud-stats", "Stats Display", "Frame rate, mining BPS and memory cards matching the classic HUD.",
@@ -290,8 +315,10 @@ public final class ReferenceSettingsCatalog {
     );
 
     private static final List<Card> SYSTEM = cards(
-            card("appearance", "Appearance", "The Apple surfaces: glass, corners, accent and density.", false, "",
-                    choice("appearance", "Theme", "Graphite for late-night dungeons, Frost for daylight.", "dark light graphite frost", false,
+            card("appearance", "Appearance", "The Apple surfaces: theme, glass, corners, accent and density.", false, "",
+                    choice("appearance-theme", "Settings theme", "Keep the existing forest/cyan surfaces, or use deep black with blue and cyan accents.",
+                            "theme forest black blue cyan", false, new String[]{"Forest & Cyan", "Black & Blue"}),
+                    choice("appearance", "Base surface", "Graphite for late-night dungeons, Frost for daylight.", "dark light graphite frost", false,
                             new String[]{"Graphite", "Frost"}),
                     choice("appearance-accent", "Accent", "The highlight used for selection and focus.", "accent color blue purple green", false,
                             new String[]{"Blue", "Purple", "Pink", "Green", "Orange", "Teal"}),
@@ -336,9 +363,12 @@ public final class ReferenceSettingsCatalog {
     public static List<Card> cards(Tab tab) {
         if (tab == null) return HOME;
         switch (tab) {
-            case GAMEPLAY: return GAMEPLAY;
+            case QUALITY_OF_LIFE: return QUALITY_OF_LIFE;
+            case MINING: return MINING;
+            case SLAYER: return SLAYER;
+            case FISHING: return FISHING;
             case DUNGEON: return DUNGEON;
-            case VISUALS: return VISUALS;
+            case HUD_HUB: return HUD_HUB;
             case SYSTEM: return SYSTEM;
             default: return HOME;
         }
@@ -368,22 +398,26 @@ public final class ReferenceSettingsCatalog {
         return null;
     }
 
-    public static List<Match> search(String value, boolean showAdvanced) {
+    /** Searches every visible category. Formerly gated settings stay discoverable after the toolbar filter was removed. */
+    public static List<Match> search(String value) {
         String query = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
         if (query.length() == 0) return Collections.emptyList();
         List<Match> matches = new ArrayList<Match>();
         for (Tab tab : TABS) {
             if (tab == Tab.HOME) continue;
             for (Card card : cards(tab)) {
-                if (card.advanced && !showAdvanced) continue;
                 for (Setting setting : card.settings) {
-                    if ((!setting.advanced || showAdvanced) && matches(setting, query)) {
-                        matches.add(new Match(tab, card, setting));
-                    }
+                    if (matches(setting, query)) matches.add(new Match(tab, card, setting));
                 }
             }
         }
         return Collections.unmodifiableList(matches);
+    }
+
+    /** Source-compatible overload; the removed Advanced filter no longer hides any route. */
+    @Deprecated
+    public static List<Match> search(String value, boolean ignoredAdvancedFlag) {
+        return search(value);
     }
 
     public static boolean routesAreComplete() {

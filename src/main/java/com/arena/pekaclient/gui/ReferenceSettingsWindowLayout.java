@@ -25,13 +25,19 @@ public final class ReferenceSettingsWindowLayout {
     private ReferenceSettingsWindowLayout() {
     }
 
-    /**
-     * Centers a bounded desktop window. On a normal-size screen it uses the requested 85% by 82% footprint; on a
-     * tiny GUI scale it gives priority to usable controls and the surrounding screen margin rather than shrinking
-     * text below readability. The caller continues to scroll content inside the returned bounds.
-     */
+    /** Centers a bounded desktop window without a user drag offset. */
     public static GuiLayoutToolkit.Rect layout(GuiLayoutToolkit.Rect out, float screenWidth, float screenHeight,
                                                boolean expanded, boolean minimized) {
+        return layout(out, screenWidth, screenHeight, expanded, minimized, 0f, 0f);
+    }
+
+    /**
+     * Lays out a bounded desktop window with a title-bar drag offset from its natural centre. The same constrained
+     * bounds drive drawing and hit testing, so a moved, expanded, or minimized window cannot leave stale controls
+     * behind. The offset is intentionally presentation-only; opening a fresh settings screen still starts centred.
+     */
+    public static GuiLayoutToolkit.Rect layout(GuiLayoutToolkit.Rect out, float screenWidth, float screenHeight,
+                                               boolean expanded, boolean minimized, float offsetX, float offsetY) {
         GuiLayoutToolkit.Rect result = out == null ? new GuiLayoutToolkit.Rect() : out;
         float sw = Math.max(1f, screenWidth);
         float sh = Math.max(1f, screenHeight);
@@ -54,8 +60,40 @@ public final class ReferenceSettingsWindowLayout {
 
         float w = Math.min(availableW, wantedW);
         float h = Math.min(availableH, wantedH);
-        result.set((sw - w) * .5f, (sh - h) * .5f, w, h);
+        float x = clampX(centeredX(sw, w) + offsetX, sw, w);
+        float y = clampY(centeredY(sh, h) + offsetY, sh, h);
+        result.set(x, y, w, h);
         return result;
+    }
+
+    /** Natural centered X position for a known panel width. */
+    public static float centeredX(float screenWidth, float panelWidth) {
+        return (Math.max(1f, screenWidth) - Math.max(0f, panelWidth)) * .5f;
+    }
+
+    /** Natural centered Y position for a known panel height. */
+    public static float centeredY(float screenHeight, float panelHeight) {
+        return (Math.max(1f, screenHeight) - Math.max(0f, panelHeight)) * .5f;
+    }
+
+    /** Constrains an X coordinate so dragging never loses the window beyond the visible world border. */
+    public static float clampX(float x, float screenWidth, float panelWidth) {
+        return clampCoordinate(x, screenWidth, panelWidth);
+    }
+
+    /** Constrains a Y coordinate so dragging never loses the window beyond the visible world border. */
+    public static float clampY(float y, float screenHeight, float panelHeight) {
+        return clampCoordinate(y, screenHeight, panelHeight);
+    }
+
+    private static float clampCoordinate(float position, float screen, float extent) {
+        float usableScreen = Math.max(1f, screen);
+        float usableExtent = Math.max(0f, Math.min(usableScreen, extent));
+        // Tiny GUI scales may consume the whole screen; in that case no artificial margin can exist.
+        float margin = Math.min(OUTER_MARGIN, Math.max(0f, (usableScreen - usableExtent) * .5f));
+        float min = margin;
+        float max = Math.max(min, usableScreen - usableExtent - margin);
+        return Math.max(min, Math.min(max, position));
     }
 
     /** A minimized chrome strip must still expose all three small desktop controls. */

@@ -1,5 +1,16 @@
 # Changelog
 
+## Beta-0.10.8.9.5v — 2026-10-23
+
+- Fixed the main settings desktop lifecycle and rendering cleanup around HUD Editor/HUD Hub Editor transitions. Shared UI/OpenGL frame state, scissor state, item/entity previews, HUD-element matrix/alpha, inventory item passes, and editor-only hover flags now have exception-safe restoration; the returned parent reapplies its selected palette on init and draw.
+- Added a bounded title-bar drag contract for the settings window. Normal, larger, and minimized windows retain a centered startup position, clamp a moved window inside the visible world border, and rebuild the exact same layout bounds for rendering and input after dragging or GUI-scale resize.
+- Reorganized the visible rail into **Home**, **Quality of Life**, **Mining**, **Slayer**, **Fishing**, **Dungeon**, **HUD Hub**, and **System**. Existing mining, Slayer, and Fishing controls moved only to their matching real categories; no empty Farming destination was fabricated because this source has no genuine farming setting.
+- Renamed **Gameplay** to **Quality of Life** and **Visuals** to **HUD Hub**. Removed the visible **Advanced** toolbar control, reclaimed its search space, and made former Advanced-marked cards, children, and search matches directly reachable without deleting their controls.
+- Added persisted **Settings Theme** selection with existing **Forest & Cyan** and new **Black & Blue** palettes. Black & Blue applies near-black backgrounds, blue/cyan accents, light text, and subtle cards/borders across the settings shell, navigation, dropdowns, popups, and focused settings UI.
+- Added/updated headless contracts for direct category ownership, ungated search/children, existing Mining/Slayer/Fishing routes, absence of a fabricated Farming tab, theme persistence/palette, drag/clamp geometry, and packaged rendering-state restoration; strengthened release-JAR verification accordingly.
+- Updated display metadata, generated Forge metadata, documentation, verifier examples, and build contract to `Beta-0.10.8.9.5v` / numeric `0.10.8.9.5`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input pass remains required for final visual confirmation.
+
 ## Beta-0.10.8.9.4v — 2026-10-23
 
 - Refined the native five-destination settings shell rather than replacing it: normal mode is a centered 85% × 82% desktop window before fixed maximums, expanded mode is larger, small GUI scales remain scrollable/readable, and a world border stays visible.
@@ -37,7 +48,7 @@
 
 - Rebuilt the focused settings editors around a responsive scrollable settings pane and scissored Live Preview surface; previews update the real shared state immediately.
 - Moved cached local FPS, tab-list Ping, and used/max Java heap telemetry into color-coded **General** GUI cards. Retired FPS/Ping/Memory HUD elements and their old keys are safely ignored.
-- Kept the visible Hub category table exactly **General**, **Quality of Life**, **HUD**, **Farming**, **Dungeon**, **Slayer**, and **Fishing**; legacy catalog and documentation references now use those same labels.
+- Historical category wording that placed Mining Assistant under **Farming** was superseded by the direct **Mining** ownership audit; no Farming category is claimed without a genuine farming control.
 - Added the reproducible `SkyVeLor-1.8.9-Beta-0.10.8.9v-source.zip` source delivery. CI creates it with a rooted `git archive` allow-list, verifies it with `tools/verify_source_zip.py`, uploads it as an artifact, and publishes exactly the JAR, delivery ZIP, and source ZIP in `dist/`.
 - Rechecked the prior cleanup claims with `ReleaseClaimsTests` and the release-JAR verifier: no custom font subsystem or HUD target sidebar remains; No Hurt Cam/Auto Sprint are simple toggles; retired Hotbar customization and Item Protection are absent while Item Lock and Swap remains routed.
 - Updated display version to `Beta-0.10.8.9v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.9`.

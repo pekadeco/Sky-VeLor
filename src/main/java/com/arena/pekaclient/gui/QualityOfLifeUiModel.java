@@ -7,7 +7,7 @@ import java.util.List;
 /** Minecraft-free ownership contract for the expandable Quality of Life Hub section. */
 public final class QualityOfLifeUiModel {
 
-    /** Legacy display label retained for focused-editor compatibility; the visible shell places it in Gameplay. */
+    /** Legacy display label retained for focused-editor compatibility; the visible shell places it in Quality of Life. */
     public static final String SECTION_LABEL = "Quality of Life";
     /** @deprecated The Hub has no tabs; retained only for source compatibility with older integrations. */
     @Deprecated

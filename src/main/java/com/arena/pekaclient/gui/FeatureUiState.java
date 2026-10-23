@@ -9,7 +9,7 @@ import java.util.Properties;
  * Small, Minecraft-free persistence model for remembered editor selection only.
  *
  * <p>The retired tree namespace is accepted when old properties load but is intentionally never interpreted or
- * created. Gameplay settings remain in their existing owners; this class only remembers the selected editor pane.</p>
+ * created. Feature settings remain in their existing owners; this class only remembers the selected editor pane.</p>
  */
 public final class FeatureUiState {
     public static final String PREFIX = "ui.feature.";

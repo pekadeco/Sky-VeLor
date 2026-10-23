@@ -279,26 +279,29 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
         drawDefaultBackground();
         UIRender.beginFrame();
-        UIRender.rect(0f, 0f, width, height, Theme.veil);
-        UIRender.shadow(panel.x, panel.y, panel.w, panel.h, Theme.radius);
-        UIRender.roundRectBorder(panel.x, panel.y, panel.w, panel.h, Theme.radius,
-                Theme.windowTop, Theme.windowBottom, Theme.border);
-        UIRender.rect(panel.x + 1f, panel.y + TITLE_H, panel.w - 2f, 1f, Theme.divider);
-        WindowDots.draw(panel.x + 16f, panel.y + 17f, mouseX, mouseY, 0b001, false);
+        try {
+            UIRender.rect(0f, 0f, width, height, Theme.veil);
+            UIRender.shadow(panel.x, panel.y, panel.w, panel.h, Theme.radius);
+            UIRender.roundRectBorder(panel.x, panel.y, panel.w, panel.h, Theme.radius,
+                    Theme.windowTop, Theme.windowBottom, Theme.border);
+            UIRender.rect(panel.x + 1f, panel.y + TITLE_H, panel.w - 2f, 1f, Theme.divider);
+            WindowDots.draw(panel.x + 16f, panel.y + 17f, mouseX, mouseY, 0b001, false);
 
-        FontRenderer font = fr();
-        UIRender.text(font, spec.title, panel.x + 42f, panel.y + 12.5f, Theme.textPrimary, 1.05f, false);
-        String heading = previewVisible ? "Settings + Live Preview" : "Settings";
-        UIRender.text(font, heading, panel.right() - PAD - font.getStringWidth(heading) * .78f,
-                panel.y + 13.5f, Theme.textTertiary, .78f, false);
-        drawSubtitle(font);
-        drawNavigation(mouseX, mouseY, font);
-        drawSettings(mouseX, mouseY, partialTicks, now, font);
-        drawBottomBar(mouseX, mouseY, font);
-        if (openDropdown != null) {
-            openDropdown.drawPopup(mouseX, mouseY, panel.y, panel.bottom(), panel.right(), panel.x);
+            FontRenderer font = fr();
+            UIRender.text(font, spec.title, panel.x + 42f, panel.y + 12.5f, Theme.textPrimary, 1.05f, false);
+            String heading = previewVisible ? "Settings + Live Preview" : "Settings";
+            UIRender.text(font, heading, panel.right() - PAD - font.getStringWidth(heading) * .78f,
+                    panel.y + 13.5f, Theme.textTertiary, .78f, false);
+            drawSubtitle(font);
+            drawNavigation(mouseX, mouseY, font);
+            drawSettings(mouseX, mouseY, partialTicks, now, font);
+            drawBottomBar(mouseX, mouseY, font);
+            if (openDropdown != null) {
+                openDropdown.drawPopup(mouseX, mouseY, panel.y, panel.bottom(), panel.right(), panel.x);
+            }
+        } finally {
+            UIRender.endFrame();
         }
-        UIRender.endFrame();
     }
 
     private void layout() {
@@ -403,52 +406,58 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         UIRender.roundRectBorder(left.x, left.y, left.w, left.h, Math.max(4f, Theme.radius - 4f),
                 Theme.card, Theme.card, Theme.border);
         UIRender.scissorBegin(left.x, left.y, left.w, left.h, scaleFactor);
-        float cursor = left.y + 4f - navigationScroll.value();
-        for (Category category : spec.categories) {
-            if (cursor + CATEGORY_H >= left.y && cursor <= left.bottom()) {
-                boolean chosen = category.id.equals(selectedId);
-                boolean hover = inside(mouseX, mouseY, left.x + 4f, cursor, left.w - 8f, CATEGORY_H);
-                int fill = chosen ? UIRender.withAlpha(Theme.accent, .18f) : hover ? Theme.cardHover : Theme.card;
-                UIRender.roundRect(left.x + 4f, cursor, Math.max(1f, left.w - 8f), CATEGORY_H - 2f,
-                        5f, fill, fill, 1f);
-                float toggleX = category.hasToggle() ? categoryToggleX() : left.right() - 8f;
-                float thumbnailW = category.hasThumbnail() ? 18f : 0f;
-                float thumbnailX = toggleX - (thumbnailW > 0f ? thumbnailW + 7f : 0f);
-                if (category.hasThumbnail()) category.drawThumbnail(thumbnailX, cursor + 10f, thumbnailW, 22f);
-                float titleX = left.x + 10f;
-                float titleW = Math.max(1f, thumbnailX - titleX - 6f);
-                UIRender.text(font, fit(font, category.title, titleW), titleX, cursor + 7f,
-                        chosen ? Theme.textPrimary : Theme.textSecondary, .92f, false);
-                if (category.description.length() > 0) {
-                    UIRender.text(font, fit(font, category.description, titleW), titleX, cursor + 21f,
-                            Theme.textTertiary, .73f, false);
+        try {
+            float cursor = left.y + 4f - navigationScroll.value();
+            for (Category category : spec.categories) {
+                if (cursor + CATEGORY_H >= left.y && cursor <= left.bottom()) {
+                    boolean chosen = category.id.equals(selectedId);
+                    boolean hover = inside(mouseX, mouseY, left.x + 4f, cursor, left.w - 8f, CATEGORY_H);
+                    int fill = chosen ? UIRender.withAlpha(Theme.accent, .18f) : hover ? Theme.cardHover : Theme.card;
+                    UIRender.roundRect(left.x + 4f, cursor, Math.max(1f, left.w - 8f), CATEGORY_H - 2f,
+                            5f, fill, fill, 1f);
+                    float toggleX = category.hasToggle() ? categoryToggleX() : left.right() - 8f;
+                    float thumbnailW = category.hasThumbnail() ? 18f : 0f;
+                    float thumbnailX = toggleX - (thumbnailW > 0f ? thumbnailW + 7f : 0f);
+                    if (category.hasThumbnail()) category.drawThumbnail(thumbnailX, cursor + 10f, thumbnailW, 22f);
+                    float titleX = left.x + 10f;
+                    float titleW = Math.max(1f, thumbnailX - titleX - 6f);
+                    UIRender.text(font, fit(font, category.title, titleW), titleX, cursor + 7f,
+                            chosen ? Theme.textPrimary : Theme.textSecondary, .92f, false);
+                    if (category.description.length() > 0) {
+                        UIRender.text(font, fit(font, category.description, titleW), titleX, cursor + 21f,
+                                Theme.textTertiary, .73f, false);
+                    }
+                    drawCategoryToggle(category, cursor);
                 }
-                drawCategoryToggle(category, cursor);
+                cursor += CATEGORY_H;
             }
-            cursor += CATEGORY_H;
+        } finally {
+            UIRender.scissorEnd();
         }
-        UIRender.scissorEnd();
     }
 
     private void drawSettings(int mouseX, int mouseY, float partialTicks, long now, FontRenderer font) {
         if (previewVisible && spec.preview != null) drawPreview(mouseX, mouseY, partialTicks, now, font);
         UIRender.scissorBegin(entriesView.x, entriesView.y, entriesView.w, entriesView.h, scaleFactor);
-        float cursor = entriesView.y - scroll.value();
-        for (Entry entry : entries) {
-            if (cursor + ENTRY_H >= entriesView.y && cursor <= entriesView.bottom()) {
-                UIRender.roundRectBorder(entriesView.x, cursor, entriesView.w, ENTRY_H,
-                        Math.max(4f, Theme.radius - 4f), Theme.card, Theme.card, Theme.border);
-                UIRender.text(font, fit(font, entry.label, entry.labelW), entry.labelX, cursor + 7f,
-                        Theme.textPrimary, .90f, false);
-                if (entry.description != null && entry.description.length() > 0) {
-                    UIRender.text(font, fit(font, entry.description, entry.labelW), entry.labelX, cursor + 21f,
-                            Theme.textSecondary, .78f, false);
+        try {
+            float cursor = entriesView.y - scroll.value();
+            for (Entry entry : entries) {
+                if (cursor + ENTRY_H >= entriesView.y && cursor <= entriesView.bottom()) {
+                    UIRender.roundRectBorder(entriesView.x, cursor, entriesView.w, ENTRY_H,
+                            Math.max(4f, Theme.radius - 4f), Theme.card, Theme.card, Theme.border);
+                    UIRender.text(font, fit(font, entry.label, entry.labelW), entry.labelX, cursor + 7f,
+                            Theme.textPrimary, .90f, false);
+                    if (entry.description != null && entry.description.length() > 0) {
+                        UIRender.text(font, fit(font, entry.description, entry.labelW), entry.labelX, cursor + 21f,
+                                Theme.textSecondary, .78f, false);
+                    }
+                    if (entry.widget != null) entry.widget.draw(mouseX, mouseY);
                 }
-                if (entry.widget != null) entry.widget.draw(mouseX, mouseY);
+                cursor += ENTRY_H + GAP;
             }
-            cursor += ENTRY_H + GAP;
+        } finally {
+            UIRender.scissorEnd();
         }
-        UIRender.scissorEnd();
         if (entries.isEmpty()) {
             String empty = "No settings in this section.";
             UIRender.text(font, empty, entriesView.x + 8f, entriesView.y + 18f, Theme.textTertiary, .85f, false);

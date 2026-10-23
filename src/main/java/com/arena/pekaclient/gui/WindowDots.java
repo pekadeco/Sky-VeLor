@@ -91,9 +91,12 @@ final class WindowDots {
         float x = Math.min(mx + 10f, screenWidth - w - 4f);
         float y = my + 14f;
         UIRender.beginFrame();
-        UIRender.roundRect(x, y, w, 16f, 4f, 0xE6101820, 0xE6101820, 1f);
-        UIRender.text(fr, tip, x + 6f, y + 4f, 0xFFFFFFFF, 1f, false);
-        UIRender.endFrame();
+        try {
+            UIRender.roundRect(x, y, w, 16f, 4f, 0xE6101820, 0xE6101820, 1f);
+            UIRender.text(fr, tip, x + 6f, y + 4f, 0xFFFFFFFF, 1f, false);
+        } finally {
+            UIRender.endFrame();
+        }
     }
 
     /** The hint shown when a dimmed button is hovered. Each screen passes its own reason. */

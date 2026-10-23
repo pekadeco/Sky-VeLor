@@ -67,6 +67,7 @@ public final class AppleSettingsTests {
         globalScrollCompatibility();
         mouseSettingsCompatibility();
         particleSettingsCompatibility();
+        settingsThemePersistence();
         configurationVersionMigration();
 
         System.out.println();
@@ -168,6 +169,31 @@ public final class AppleSettingsTests {
         establishedWithoutParticleChoice.setProperty("config.version", "2");
         AppleSettings.loadParticleSettings(establishedWithoutParticleChoice);
         check("missing visual key in established config keeps vanilla particles", !AppleSettings.noBlockParticles);
+    }
+
+    /** Additive palette choice must survive save/load while old configs retain the existing forest/cyan shell. */
+    private static void settingsThemePersistence() {
+        AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_BLACK_BLUE;
+        AppleSettings.loadSettingsTheme(new Properties());
+        check("missing legacy theme key keeps the established Forest and Cyan shell",
+                AppleSettings.settingsTheme == AppleSettings.DEFAULT_SETTINGS_THEME && !AppleSettings.isBlackBlueTheme());
+
+        Properties stored = new Properties();
+        stored.setProperty("appearance.settingsTheme", "1");
+        AppleSettings.loadSettingsTheme(stored);
+        check("Black and Blue selection loads", AppleSettings.settingsTheme == AppleSettings.SETTINGS_THEME_BLACK_BLUE
+                && AppleSettings.isBlackBlueTheme());
+
+        Properties written = new Properties();
+        AppleSettings.saveSettingsTheme(written);
+        check("Black and Blue selection has one stable persisted key",
+                "1".equals(written.getProperty("appearance.settingsTheme")) && written.size() == 1);
+
+        Properties invalid = new Properties();
+        invalid.setProperty("appearance.settingsTheme", "99");
+        AppleSettings.loadSettingsTheme(invalid);
+        check("theme selection is bounded", AppleSettings.settingsTheme == AppleSettings.SETTINGS_THEME_BLACK_BLUE);
+        AppleSettings.settingsTheme = AppleSettings.DEFAULT_SETTINGS_THEME;
     }
 
     /** Exercises the same order used by AppleSettings.load without requiring a Minecraft data directory. */

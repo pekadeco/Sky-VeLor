@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.4v] [--mcmod-version 0.10.8.9.4]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.5v] [--mcmod-version 0.10.8.9.5]
 """
 
 import argparse
@@ -65,6 +65,10 @@ REQUIRED_CLASSES = [
     'command/SvCommand',
     'gui/AppleSettingsScreen',
     'gui/ReferenceSettingsCatalog',
+    'render/UIRender',
+    'render/Theme',
+    'hud/HudElement',
+    'hud/ItemSlots',
     # Retained only as a binary-compatible alias; it must not be the visible entry point.
     'gui/AppleHubScreen',
     'gui/FeatureUiState',
@@ -332,8 +336,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.4v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.4')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.5v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.5')
     args = ap.parse_args()
 
     path = args.jar
@@ -554,6 +558,26 @@ def main():
     esp_editor_screen_raw = raw_of('gui/FeatureSettingsEditorScreen')
     layout_toolkit_raw = raw_of('gui/GuiLayoutToolkit')
     ui_render_raw = raw_of('render/UIRender')
+    theme_raw = raw_of('render/Theme')
+    apple_settings_raw = raw_of('config/AppleSettings')
+    hud_element_raw = raw_of('hud/HudElement')
+    hud_manager_raw = raw_of('hud/HudManager')
+    item_slots_raw = raw_of('hud/ItemSlots')
+    r.check(all(value in reference_catalog_raw for value in
+                (b'Quality of Life', b'Mining', b'Slayer', b'Fishing', b'HUD Hub', b'Settings theme',
+                 b'Forest & Cyan', b'Black & Blue'))
+                and all(value in settings_screen_raw for value in
+                        (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'DRAG TITLE BAR'))
+                and b'HIT_ADVANCED' not in settings_screen_raw
+                and b'Advanced settings shown' not in settings_screen_raw
+                and all(value in apple_settings_raw for value in
+                        (b'appearance.settingsTheme', b'SETTINGS_THEME_BLACK_BLUE', b'SETTINGS_THEME_FOREST_CYAN'))
+                and b'applyBlackBluePalette' in theme_raw,
+            'direct category shell removes the visible Advanced gate and persists Forest & Cyan or Black & Blue')
+    r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
+                and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
+                and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,
+            'HUD/editor rendering packages exception-safe state cleanup and a neutral GUI restoration baseline')
     r.check(all(value in esp_settings_constants for value in
                 ('dungeonEsp.', 'Outline', 'Filled', 'Outline + Filled', 'Nearest closed door',
                  'All closed doors', 'Cyan', 'Gold', 'Purple')),
@@ -594,15 +618,15 @@ def main():
             'DungeonEspTracker packages fixed storage, split tags, Skeletor, force filtering, and no identity sets')
 
     # --- Item Animation GUI reachability and ownership proof -----------------
-    # A standalone Item Animation class is not enough: the Gameplay/Visuals reference route and the renderer panel must
-    # both reference the same model, without recreating renderer controls in the main expandable menu.
+    # A standalone Item Animation class is not enough: the direct HUD Hub route and renderer panel must
+    # both reference the same model, without recreating renderer controls in the main category shell.
     ui_constants = constants_of('gui/ItemAnimationUiModel')
     r.check(all(value in ui_constants for value in
                 ('Item Animation', 'item-animation-open-editor', 'Scale', 'Position',
                  'Animation', 'Options', 'X', 'Y', 'Z', 'Reset Position', 'Remove Haste Effect',
                  'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth swing', 'Smoothness',
                  'Swing blur unavailable (no safe translucent ghosts)', 'Loop Preview Swing', 'Preview Swing', 'Reset to Defaults')),
-            'ItemAnimationUiModel packages the direct Quality of Life route and required compact editor controls')
+            'ItemAnimationUiModel packages the direct HUD Hub route and required compact editor controls')
     forbidden_item_animation_terms = ('transparency', 'opacity', 'background')
     r.check('On/Off' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
                 and 'Swing blur' not in ui_constants and 'Blur intensity' not in ui_constants
@@ -619,7 +643,8 @@ def main():
                 and all(value in flat_model_raw for value in
                         (b'simple', b'slider', b'editor-route', b'editor-button'))
                 and all(value in settings_surface_raw for value in
-                        (b'Home', b'Gameplay', b'Dungeon', b'Visuals', b'System', b'HUD', b'HUD Editor', b'Stats Display'))
+                        (b'Home', b'Quality of Life', b'Mining', b'Slayer', b'Fishing', b'Dungeon', b'HUD Hub', b'System',
+                         b'HUD Editor', b'Stats Display'))
                 and b'Item Animation' in raw_of('gui/ItemAnimationUiModel')
                 and b'Stats Display' in raw_of('gui/GuiSettingsAuditModel')
                 and all(value not in settings_screen_raw for value in
@@ -648,7 +673,6 @@ def main():
     metric_raw = raw_of('hud/ClientMetrics')
     metric_compat_raw = raw_of('hud/HudConfigCompatibility')
     metric_layout_raw = raw_of('gui/GeneralMetricsLayout')
-    hud_manager_raw = raw_of('hud/HudManager')
     stats_hud_raw = raw_of('hud/StatsHud')
     stats_text_raw = raw_of('hud/StatsHudText')
     r.check(b'ClientMetrics' in settings_screen_raw and b'Client metrics' in reference_catalog_raw
@@ -799,7 +823,7 @@ def main():
     r.check(b'com/arena/pekaclient/gui/ChatEditorScreen' in settings_screen_raw
                 and b'Chat QoL' in reference_catalog_raw and b'Enable Chat QoL' in chat_editor_raw
                 and b'Use chat tabs' in chat_editor_raw,
-            'reference Gameplay card routes Chat QoL through Chat Settings including its feature-level switches')
+            'reference Quality of Life card routes Chat QoL through Chat Settings including its feature-level switches')
     r.check(all(value not in settings_surface_raw for value in
                 (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
             'reference settings shell has no retired external animation or duplicate chat customization controls')
@@ -816,7 +840,7 @@ def main():
             'PekaClientMod registers native Chat QoL and its optional cycle/editor keybindings')
 
     # The gameplay wheel guard is deliberately one narrow MouseEvent predicate. Its default-off control and the
-    # default-on particle filter live in the reference Gameplay / Comfort card; scroll controls remain in System.
+    # default-on particle filter lives in the reference Quality of Life / Comfort card; scroll controls remain in System.
     mod_settings_raw = raw_of('gui/ModSettingsScreen')
     quality_ui_constants = constants_of('gui/QualityOfLifeUiModel')
     quality_ui_raw = raw_of('gui/QualityOfLifeUiModel')
@@ -826,7 +850,7 @@ def main():
                 and all(value in reference_catalog_raw for value in
                         (b'Comfort', b'Lock hotbar to keys', b'Quiet block particles'))
                 and 'mouse.disableHotbarScrolling' in apple_constants,
-            'Gameplay Comfort owns the default-off gameplay hotbar wheel guard and default-on block-particle filter')
+            'Quality of Life Comfort owns the default-off gameplay hotbar wheel guard and default-on block-particle filter')
     r.check(all(value in mod_ui_constants for value in ('Scroll speed', 'Smooth scrolling'))
                 and 'Item Animation' not in mod_ui_constants and 'Chat QoL master' not in mod_ui_constants
                 and b'com/arena/pekaclient/gui/ModSettingsUiModel' in mod_settings_raw
@@ -837,7 +861,7 @@ def main():
                 and b'No block particles' not in mod_settings_raw
                 and b'Item Animation' in reference_catalog_raw
                 and b'Item Animation' in raw_of('gui/ItemAnimationUiModel'),
-            'Gameplay keeps direct toggle/percentage rows and Visuals keeps a named non-duplicated Item Animation route')
+            'Quality of Life keeps direct toggle/percentage rows and HUD Hub keeps a named non-duplicated Item Animation route')
 
     # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
     # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.
@@ -938,7 +962,7 @@ def main():
     fishing_ui_constants = constants_of('gui/FishingUiModel')
     r.check('Nearby encounter titles' in fishing_ui_constants
                 and b'Nearby encounters' in reference_catalog_raw and b'Catch Counter Settings' in feature_editors_raw,
-            'Gameplay Skills keeps nearby encounter alerts and routes counters to their focused editor')
+            'Fishing keeps nearby encounter alerts and routes counters to their focused editor')
 
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at

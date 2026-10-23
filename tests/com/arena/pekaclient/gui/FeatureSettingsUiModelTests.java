@@ -9,52 +9,67 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Headless contract for the native port of the supplied five-destination settings reference. */
+/** Headless contract for the polished, direct-category settings surface. */
 public final class FeatureSettingsUiModelTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        referenceRailIsExact();
-        cardsFollowReferenceHierarchy();
+        categoryRailContainsOnlyBackedDestinations();
+        categoryCardsKeepExistingControlsInTheirRealAreas();
         allCurrentRoutesRemainReachable();
-        searchUsesLabelsDescriptionsAndInlineChildren();
-        advancedGateHidesOnlyAdvancedPresentation();
+        searchAndChildrenAreNeverAdvancedGated();
         catalogHasNoDuplicateSettingIds();
         legacyPrototypeOnlyEntriesStayAbsent();
-        homeIsLiveAndHasNoSetupPresetWorkflow();
+        homeIsLiveAndTheWindowUsesThePolishedShellContract();
         responsiveGeometryStaysBounded();
         done();
     }
 
-    private static void referenceRailIsExact() {
-        String[] expected = {"Home", "Gameplay", "Dungeon", "Visuals", "System"};
-        check("reference rail has the exact five destinations",
-                Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
-        check("catalog tabs are in reference order", ReferenceSettingsCatalog.TABS.length == 5
+    private static void categoryRailContainsOnlyBackedDestinations() {
+        String[] expected = {"Home", "Quality of Life", "Mining", "Slayer", "Fishing", "Dungeon", "HUD Hub", "System"};
+        check("settings rail has the direct real-category destinations", Arrays.equals(expected,
+                AppleSettingsScreen.destinationNames()));
+        check("catalog tabs have the same direct destination order", ReferenceSettingsCatalog.TABS.length == expected.length
                 && ReferenceSettingsCatalog.TABS[0] == ReferenceSettingsCatalog.Tab.HOME
-                && ReferenceSettingsCatalog.TABS[4] == ReferenceSettingsCatalog.Tab.SYSTEM);
+                && ReferenceSettingsCatalog.TABS[1] == ReferenceSettingsCatalog.Tab.QUALITY_OF_LIFE
+                && ReferenceSettingsCatalog.TABS[2] == ReferenceSettingsCatalog.Tab.MINING
+                && ReferenceSettingsCatalog.TABS[3] == ReferenceSettingsCatalog.Tab.SLAYER
+                && ReferenceSettingsCatalog.TABS[4] == ReferenceSettingsCatalog.Tab.FISHING
+                && ReferenceSettingsCatalog.TABS[6] == ReferenceSettingsCatalog.Tab.HUD_HUB
+                && ReferenceSettingsCatalog.TABS[7] == ReferenceSettingsCatalog.Tab.SYSTEM);
         check("Home catalog describes live performance rather than presets", ReferenceSettingsCatalog.Tab.HOME.caption
                 .contains("Live performance") && !ReferenceSettingsCatalog.Tab.HOME.caption.contains("Preset"));
-        check("main shell is a rail, not the retired expandable Hub", AppleSettingsScreen.mainNavigationDepth() == 0);
+        check("main shell is a rail, not retired expandable navigation", AppleSettingsScreen.mainNavigationDepth() == 0);
     }
 
-    private static void cardsFollowReferenceHierarchy() {
-        check("Gameplay has the reference Comfort/Inventory/Chat/Skills/Shortcuts cards", cardNames(ReferenceSettingsCatalog.Tab.GAMEPLAY)
-                .equals(Arrays.asList("Comfort", "Inventory", "Chat", "Skills", "Shortcuts")));
+    private static void categoryCardsKeepExistingControlsInTheirRealAreas() {
+        check("Quality of Life keeps Comfort, Inventory, Chat and Shortcuts", cardNames(ReferenceSettingsCatalog.Tab.QUALITY_OF_LIFE)
+                .equals(Arrays.asList("Comfort", "Inventory", "Chat", "Shortcuts")));
+        check("Mining is a nonempty existing-control category", cardNames(ReferenceSettingsCatalog.Tab.MINING)
+                .equals(Arrays.asList("Mining")) && ReferenceSettingsCatalog.find("mining-assistant-settings") != null
+                && ownerOf("mining-assistant-settings") == ReferenceSettingsCatalog.Tab.MINING);
+        check("Slayer is a nonempty existing-control category", cardNames(ReferenceSettingsCatalog.Tab.SLAYER)
+                .equals(Arrays.asList("Slayer")) && ownerOf("slayer-hud-route") == ReferenceSettingsCatalog.Tab.SLAYER);
+        check("Fishing is a nonempty existing-control category", cardNames(ReferenceSettingsCatalog.Tab.FISHING)
+                .equals(Arrays.asList("Fishing")) && ownerOf("fishing-hud-route") == ReferenceSettingsCatalog.Tab.FISHING);
+        check("HUD Hub owns HUD and Item Animation", cardNames(ReferenceSettingsCatalog.Tab.HUD_HUB)
+                .equals(Arrays.asList("HUD Hub", "Item Animation"))
+                && ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.HUD_HUB
+                && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.HUD_HUB);
         check("Dungeon has Run tools/Floor VII/Highlights/Party sync cards", cardNames(ReferenceSettingsCatalog.Tab.DUNGEON)
                 .equals(Arrays.asList("Run tools", "Floor VII", "Highlights", "Party sync")));
-        check("Visuals has HUD and Item Animation cards", cardNames(ReferenceSettingsCatalog.Tab.VISUALS)
-                .equals(Arrays.asList("HUD", "Item Animation")));
         check("System has Appearance through About cards", cardNames(ReferenceSettingsCatalog.Tab.SYSTEM)
                 .equals(Arrays.asList("Appearance", "Performance", "General", "Diagnostics", "About")));
         ReferenceSettingsCatalog.Setting itemAnimation = ReferenceSettingsCatalog.find("item-animation");
         check("Item Animation retains inline sliders and reset", itemAnimation != null && itemAnimation.children.size() == 6
                 && "item-animation-size".equals(itemAnimation.children.get(0).id)
                 && "item-animation-reset".equals(itemAnimation.children.get(5).id));
-        ReferenceSettingsCatalog.Setting terminal = ReferenceSettingsCatalog.find("terminal-assist");
-        check("Terminal safeguards remain inline and Advanced auto click is not deleted", terminal != null
-                && terminal.children.size() == 5 && terminal.children.get(3).advanced);
+        ReferenceSettingsCatalog.Setting settingsTheme = ReferenceSettingsCatalog.find("appearance-theme");
+        check("Settings Theme exposes both persisted palette choices", settingsTheme != null
+                && settingsTheme.control == ReferenceSettingsCatalog.Control.CHOICE
+                && Arrays.equals(new String[]{"Forest & Cyan", "Black & Blue"}, settingsTheme.choices));
+        check("no empty Farming placeholder is fabricated without a real farm setting", !hasTabNamed("FARMING"));
     }
 
     private static void allCurrentRoutesRemainReachable() {
@@ -70,26 +85,21 @@ public final class FeatureSettingsUiModelTests {
         check("focused chat route is retained", ReferenceSettingsCatalog.find("chat-qol") != null);
     }
 
-    private static void searchUsesLabelsDescriptionsAndInlineChildren() {
-        List<ReferenceSettingsCatalog.Match> lock = ReferenceSettingsCatalog.search("pairing", false);
+    private static void searchAndChildrenAreNeverAdvancedGated() {
+        List<ReferenceSettingsCatalog.Match> lock = ReferenceSettingsCatalog.search("pairing");
         check("search finds label/description intent", contains(lock, "item-lock-swap"));
-        List<ReferenceSettingsCatalog.Match> terminal = ReferenceSettingsCatalog.search("wrong clicks", false);
+        List<ReferenceSettingsCatalog.Match> terminal = ReferenceSettingsCatalog.search("wrong clicks");
         check("search indexes inline child descriptions", contains(terminal, "terminal-assist"));
-        List<ReferenceSettingsCatalog.Match> stats = ReferenceSettingsCatalog.search("frame rate mining memory", false);
-        check("search finds restored Stats surface", contains(stats, "hud-stats"));
-        check("empty search does not manufacture results", ReferenceSettingsCatalog.search("", false).isEmpty());
-    }
-
-    private static void advancedGateHidesOnlyAdvancedPresentation() {
-        List<ReferenceSettingsCatalog.Card> gameplay = ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.GAMEPLAY);
-        ReferenceSettingsCatalog.Card shortcuts = gameplay.get(gameplay.size() - 1);
-        check("Shortcuts is intentionally advanced", shortcuts.advanced);
-        ReferenceSettingsCatalog.Setting pricing = ReferenceSettingsCatalog.find("slayer-pricing");
-        check("advanced inline child is explicitly marked", pricing != null && pricing.advanced);
-        check("advanced search hides advanced-only card without the gate",
-                !contains(ReferenceSettingsCatalog.search("wardrobe", false), "movement-shortcuts"));
-        check("advanced search reveals the same route with the gate",
-                contains(ReferenceSettingsCatalog.search("wardrobe", true), "movement-shortcuts"));
+        List<ReferenceSettingsCatalog.Match> wardrobe = ReferenceSettingsCatalog.search("wardrobe");
+        check("formerly Advanced shortcut is directly searchable", contains(wardrobe, "movement-shortcuts"));
+        check("compatibility search overload no longer changes visible results",
+                sameIds(wardrobe, ReferenceSettingsCatalog.search("wardrobe", false))
+                        && sameIds(wardrobe, ReferenceSettingsCatalog.search("wardrobe", true)));
+        ReferenceSettingsCatalog.Setting terminalAssist = ReferenceSettingsCatalog.find("terminal-assist");
+        check("formerly Advanced inline child remains visible through normal child API", terminalAssist != null
+                && terminalAssist.visibleChildCount() == terminalAssist.visibleChildCount(false)
+                && terminalAssist.hasChildren() && terminalAssist.hasChildren(false));
+        check("empty search does not manufacture results", ReferenceSettingsCatalog.search("").isEmpty());
     }
 
     private static void catalogHasNoDuplicateSettingIds() {
@@ -107,13 +117,15 @@ public final class FeatureSettingsUiModelTests {
         check("current Hurt Camera Shake is retained", ReferenceSettingsCatalog.find("hurt-camera-shake") != null);
     }
 
-    private static void homeIsLiveAndHasNoSetupPresetWorkflow() {
+    private static void homeIsLiveAndTheWindowUsesThePolishedShellContract() {
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
         check("Home uses the cached live performance reader", screen.contains("LIVE PERFORMANCE")
                 && screen.contains("ClientMetrics$Reader") && screen.contains("SERVER PING"));
-        check("Home has no retired setup preset workflow", !screen.contains("Vanilla+")
-                && !screen.contains("Quality of Life") && !screen.contains("applyPreset") && !screen.contains("HIT_PRESET"));
-        check("window controls and profile credits remain part of the native shell", screen.contains("window-green")
+        check("screen has global search with no Advanced-button behavior", screen.contains("Search settings")
+                && !screen.contains("Advanced settings shown") && !screen.contains("Advanced settings hidden"));
+        check("title bar drag and palette reapplication are packaged", screen.contains("DRAG TITLE BAR")
+                && screen.contains("refreshReferenceTheme") && screen.contains("windowOffsetX"));
+        check("window controls and profile credits remain part of the shell", screen.contains("window-green")
                 && screen.contains("window-yellow") && screen.contains("window-red")
                 && "pekadeco".equals(AppleSettingsScreen.PROFILE_CREATOR)
                 && Arrays.equals(new String[]{"ii88w", "whiteShadow"}, AppleSettingsScreen.PROFILE_CONTRIBUTORS));
@@ -137,6 +149,31 @@ public final class FeatureSettingsUiModelTests {
         return names;
     }
 
+    private static ReferenceSettingsCatalog.Tab ownerOf(String id) {
+        for (ReferenceSettingsCatalog.Tab tab : ReferenceSettingsCatalog.TABS) {
+            for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(tab)) {
+                if (containsSetting(card.settings, id)) return tab;
+            }
+        }
+        return null;
+    }
+
+    private static boolean containsSetting(List<ReferenceSettingsCatalog.Setting> settings, String id) {
+        for (ReferenceSettingsCatalog.Setting setting : settings) {
+            if (id.equals(setting.id) || containsSetting(setting.children, id)) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasTabNamed(String name) {
+        try {
+            ReferenceSettingsCatalog.Tab.valueOf(name);
+            return true;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
     private static void collect(List<ReferenceSettingsCatalog.Setting> settings, List<String> ids) {
         for (ReferenceSettingsCatalog.Setting setting : settings) {
             ids.add(setting.id);
@@ -147,6 +184,12 @@ public final class FeatureSettingsUiModelTests {
     private static boolean contains(List<ReferenceSettingsCatalog.Match> values, String id) {
         for (ReferenceSettingsCatalog.Match match : values) if (id.equals(match.setting.id)) return true;
         return false;
+    }
+
+    private static boolean sameIds(List<ReferenceSettingsCatalog.Match> one, List<ReferenceSettingsCatalog.Match> two) {
+        if (one.size() != two.size()) return false;
+        for (int i = 0; i < one.size(); i++) if (!one.get(i).setting.id.equals(two.get(i).setting.id)) return false;
+        return true;
     }
 
     private static String classText(String binaryName) {
@@ -171,7 +214,7 @@ public final class FeatureSettingsUiModelTests {
     }
 
     private static void done() {
-        System.out.println("reference settings catalog: passed " + passed + ", failed " + failed);
+        System.out.println("feature settings UI model: passed " + passed + ", failed " + failed);
         if (failed > 0) System.exit(1);
     }
 }

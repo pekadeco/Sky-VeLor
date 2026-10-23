@@ -170,14 +170,20 @@ public abstract class HudElement {
     public final void render(int screenW, int screenH, float extraAlpha) {
         int x = leftFor(screenW);
         int y = topFor(screenH);
+        float priorAlpha = UIRender.alphaMul;
         GlStateManager.pushMatrix();
-        GlStateManager.translate(x, y, 0f);
-        GlStateManager.scale(scale, scale, 1f);
-        UIRender.alphaMul = (opacity / 100f) * extraAlpha;
-        drawContent();
-        UIRender.flush();
-        UIRender.alphaMul = 1f;
-        GlStateManager.popMatrix();
+        try {
+            GlStateManager.translate(x, y, 0f);
+            GlStateManager.scale(scale, scale, 1f);
+            UIRender.alphaMul = priorAlpha * (opacity / 100f) * extraAlpha;
+            drawContent();
+        } finally {
+            // Every element shares the editor's matrix/opacity state. Restore both even if a live preview/item
+            // renderer fails, otherwise following cards and the parent GUI inherit the wrong scale or tint.
+            UIRender.flush();
+            UIRender.alphaMul = priorAlpha;
+            GlStateManager.popMatrix();
+        }
     }
 
     // ---- persistence ----------------------------------------------------------------------

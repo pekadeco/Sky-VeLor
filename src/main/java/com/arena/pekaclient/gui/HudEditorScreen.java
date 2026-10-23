@@ -104,9 +104,11 @@ public final class HudEditorScreen extends AppleScreen {
 
         @Override
         public void draw(int mouseX, int mouseY) {
-            UIRender.roundRectBorder(x, y, w, h, 5f, 0x243F4856, 0x243F4856, 0xFF586473);
+            int fill = UIRender.withAlpha(Theme.buttonFill, .78f);
+            int border = UIRender.mix(Theme.border, Theme.textTertiary, .24f);
+            UIRender.roundRectBorder(x, y, w, h, 5f, fill, fill, border);
             UIRender.text(font(), fit(font(), note, Math.max(0f, w - 14f)), x + 7f, y + 7f,
-                    0xFFB9C1CD, 0.68f, false);
+                    Theme.textSecondary, 0.68f, false);
         }
 
         @Override
@@ -433,6 +435,9 @@ public final class HudEditorScreen extends AppleScreen {
         ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
+        // The editor combines HUD primitives, entity previews and vanilla item rendering. Always leave a neutral
+        // GUI baseline behind; an AppleSettingsScreen parent reapplies its selected reference palette on init/draw.
+        UIRender.restoreVanillaGuiState();
     }
 
     // ------------------------------------------------------------------ inspector
@@ -1125,9 +1130,12 @@ public final class HudEditorScreen extends AppleScreen {
 
         // The veil and the elements are separate frames. HudManager.renderEditor manages its own GL state.
         UIRender.beginFrame();
-        UIRender.alphaMul = open;
-        UIRender.rect(0f, 0f, width, height, Theme.veil);
-        UIRender.endFrame();
+        try {
+            UIRender.alphaMul = open;
+            UIRender.rect(0f, 0f, width, height, Theme.veil);
+        } finally {
+            UIRender.endFrame();
+        }
 
         ScaledResolution sr = new ScaledResolution(mc);
         HudManager.renderEditor(sr, mx, my);
@@ -1135,17 +1143,20 @@ public final class HudEditorScreen extends AppleScreen {
         drawItemAnimationEditorPreview(mc);
 
         UIRender.beginFrame();
-        UIRender.alphaMul = open;
-        drawSelection();
-        if ((dragging != null || draggingDungeonMap) && guides != 0) {
-            drawGuides();
+        try {
+            UIRender.alphaMul = open;
+            drawSelection();
+            if ((dragging != null || draggingDungeonMap) && guides != 0) {
+                drawGuides();
+            }
+            drawBar(mx, my);
+            drawCard(mx, my);
+            UIRender.alphaMul = open;
+            drawOpenDropdown(mx, my, 0f, height, width, 0f);
+        } finally {
+            UIRender.alphaMul = 1f;
+            UIRender.endFrame();
         }
-        drawBar(mx, my);
-        drawCard(mx, my);
-        UIRender.alphaMul = open;
-        drawOpenDropdown(mx, my, 0f, height, width, 0f);
-        UIRender.alphaMul = 1f;
-        UIRender.endFrame();
     }
 
     /** Thin rounded ring around the selected HUD target or the dedicated map preview. */
@@ -1234,19 +1245,22 @@ public final class HudEditorScreen extends AppleScreen {
         float viewH = visibleBottom - visibleTop;
 
         UIRender.scissorBegin(cardX, visibleTop, cardW, viewH, sf);
-        for (Entry entry : entries) {
-            Widget control = entry.control;
-            if (control.y + control.h < visibleTop || control.y > visibleBottom) {
-                continue;
+        try {
+            for (Entry entry : entries) {
+                Widget control = entry.control;
+                if (control.y + control.h < visibleTop || control.y > visibleBottom) {
+                    continue;
+                }
+                if (entry.label != null && entry.bounds.labelW > 0f) {
+                    String label = fit(fr, entry.label, entry.bounds.labelW);
+                    UIRender.text(fr, label, entry.bounds.labelX, entry.bounds.labelY,
+                            Theme.textSecondary, 0.9f, false);
+                }
+                control.draw(pmx, pmy);
             }
-            if (entry.label != null && entry.bounds.labelW > 0f) {
-                String label = fit(fr, entry.label, entry.bounds.labelW);
-                UIRender.text(fr, label, entry.bounds.labelX, entry.bounds.labelY,
-                        Theme.textSecondary, 0.9f, false);
-            }
-            control.draw(pmx, pmy);
+        } finally {
+            UIRender.scissorEnd();
         }
-        UIRender.scissorEnd();
 
         if (maxScroll > 0f) {
             UIRender.roundRect(inspectorLayout.scrollbarX, inspectorLayout.scrollbarY,
@@ -1294,9 +1308,11 @@ public final class HudEditorScreen extends AppleScreen {
         try {
             boolean hovering = mx >= x && mx <= x + size && my >= y && my <= y + size;
             int border = target == EditorTarget.DUNGEON_MAP || hovering ? Theme.accent : Theme.border;
+            int mapFrame = UIRender.withAlpha(Theme.card, .88f);
+            int mapSurface = UIRender.mix(Theme.card, Theme.windowBottom, .48f);
             UIRender.roundRectBorder(x - 2, y - 2, size + 4, size + 4, 4f,
-                    0xB8181C24, 0xB8181C24, border);
-            UIRender.rect(x + 2, y + 2, inner, inner, 0xAA292D34);
+                    mapFrame, mapFrame, border);
+            UIRender.rect(x + 2, y + 2, inner, inner, mapSurface);
             float zoom = AppleSettings.dungeonMapZoomFactor();
             for (int index = 0; index <= 4; index++) {
                 float source = index * 32.0F;
@@ -1304,12 +1320,12 @@ public final class HudEditorScreen extends AppleScreen {
                 if (mapped < 0.0F || mapped > 128.0F) continue;
                 float gx = x + 2 + mapped / 128.0F * inner;
                 float gy = y + 2 + mapped / 128.0F * inner;
-                UIRender.line(gx, y + 2, gx, y + size - 2, 1f, 0x553FFFFF);
-                UIRender.line(x + 2, gy, x + size - 2, gy, 1f, 0x553FFFFF);
+                UIRender.line(gx, y + 2, gx, y + size - 2, 1f, UIRender.withAlpha(Theme.textPrimary, .25f));
+                UIRender.line(x + 2, gy, x + size - 2, gy, 1f, UIRender.withAlpha(Theme.textPrimary, .25f));
             }
-            UIRender.text(fr(), "DUNGEON MAP", x + 7, y + 7, 0xFFFFFFFF, 0.9f, true);
+            UIRender.text(fr(), "DUNGEON MAP", x + 7, y + 7, Theme.textPrimary, 0.9f, true);
             UIRender.text(fr(), "Drag | Zoom " + AppleSettings.effectiveDungeonMapZoom() + "%",
-                    x + 7, y + size - 14, 0xFFD0D4DC, 0.8f, false);
+                    x + 7, y + size - 14, Theme.textSecondary, 0.8f, false);
         } finally {
             UIRender.endFrame();
         }
@@ -1349,8 +1365,9 @@ public final class HudEditorScreen extends AppleScreen {
                     Theme.textPrimary, 0.8f, false);
             UIRender.text(fr(), itemAnimationPreviewPositionText(), panelX + 9f, panelY + panelH - 13f,
                     Theme.textSecondary, 0.75f, false);
+            int iconWell = UIRender.withAlpha(Theme.buttonFill, .62f);
             UIRender.roundRect(panelX + 96f, panelY + 23f, 39f, 31f, 5f,
-                    0x552D333D, 0x552D333D, 0.4f);
+                    iconWell, iconWell, 0.4f);
             if (held == null) {
                 UIRender.text(fr(), "Empty hand", panelX + 14f, panelY + 37f,
                         Theme.textTertiary, 0.8f, false);
@@ -1385,6 +1402,8 @@ public final class HudEditorScreen extends AppleScreen {
             GlStateManager.disableDepth();
             GlStateManager.disableBlend();
             GlStateManager.popMatrix();
+            // The following inspector frame expects UIRender's texture-free state, even if RenderItem failed.
+            UIRender.restoreFrameState();
         }
     }
 

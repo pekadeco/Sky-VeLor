@@ -18,7 +18,7 @@ public final class AppleSettings {
 
     public static final String FILE_NAME = "skyvelor.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient.properties";
-    /** Schema v3 records the Beta-0.10.8.9.4v fresh-default audit without mutating saved choices. */
+    /** Schema v3 records the fresh-default audit without mutating saved choices. */
     static final String CONFIG_VERSION_KEY = "config.version";
     static final int CURRENT_CONFIG_VERSION = 3;
 
@@ -26,11 +26,18 @@ public final class AppleSettings {
     public static final int[] ACCENT_COLORS = {
             0xFF0A84FF, 0xFFBF5AF2, 0xFFFF375F, 0xFF30D158, 0xFFFF9F0A, 0xFF64D2FF
     };
+    /** The existing forest/cyan shell remains the default; Black & Blue is a separately persisted alternative. */
+    public static final String[] SETTINGS_THEME_NAMES = {"Forest & Cyan", "Black & Blue"};
+    public static final int SETTINGS_THEME_FOREST_CYAN = 0;
+    public static final int SETTINGS_THEME_BLACK_BLUE = 1;
+    public static final int DEFAULT_SETTINGS_THEME = SETTINGS_THEME_FOREST_CYAN;
     public static final String[] CURVE_NAMES = {"Smooth", "Balanced", "Fast"};
     /** Arc subdivisions per 90 degrees for each curve quality. */
     public static final int[] CURVE_SEGMENTS = {8, 4, 2};
 
     public static int accent = 0;
+    /** Persisted main/editor palette selection. Missing legacy key intentionally preserves the established shell. */
+    public static int settingsTheme = DEFAULT_SETTINGS_THEME;
     public static boolean darkMode = true;
     public static int cornerRadius = 12;      // 4..18
     /** Switches for the global sliders. Off uses the default value below. */
@@ -213,11 +220,32 @@ public final class AppleSettings {
         return ACCENT_COLORS[Math.max(0, Math.min(ACCENT_COLORS.length - 1, accent))];
     }
 
+    /** True only for the deliberate dark blue palette; legacy configs remain on the existing shell. */
+    public static boolean isBlackBlueTheme() {
+        return settingsTheme == SETTINGS_THEME_BLACK_BLUE;
+    }
+
+    /** Reads the additive theme key without mutating any existing appearance choice. */
+    static void loadSettingsTheme(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        settingsTheme = readInt(p, "appearance.settingsTheme", DEFAULT_SETTINGS_THEME,
+                SETTINGS_THEME_FOREST_CYAN, SETTINGS_THEME_BLACK_BLUE);
+    }
+
+    /** Writes the one stable theme-selection key alongside the established appearance keys. */
+    static void saveSettingsTheme(Properties settings) {
+        if (settings != null) {
+            settings.setProperty("appearance.settingsTheme", Integer.toString(Math.max(SETTINGS_THEME_FOREST_CYAN,
+                    Math.min(SETTINGS_THEME_BLACK_BLUE, settingsTheme))));
+        }
+    }
+
     public static void load() {
         itemAnimationMigrationPending = false;
         globalScrollMigrationPending = false;
         configVersionMigrationPending = false;
         Properties p = ConfigFiles.read(readFile());
+        loadSettingsTheme(p);
         accent = readInt(p, "accent", accent, 0, ACCENT_COLORS.length - 1);
         darkMode = readBool(p, "darkMode", darkMode);
         cornerRadius = readInt(p, "cornerRadius", cornerRadius, 4, 18);
@@ -453,6 +481,7 @@ public final class AppleSettings {
                 Math.min(ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT, itemAnimationSmoothness));
         Properties p = new Properties();
         saveConfigurationVersion(p);
+        saveSettingsTheme(p);
         p.setProperty("accent", Integer.toString(accent));
         p.setProperty("darkMode", Boolean.toString(darkMode));
         p.setProperty("cornerRadius", Integer.toString(cornerRadius));

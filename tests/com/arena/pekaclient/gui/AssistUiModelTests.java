@@ -24,9 +24,10 @@ public final class AssistUiModelTests {
         }
         AssistUiModel.Entry hurtCameraShake = AssistUiModel.find("Hurt Camera Shake");
         AssistUiModel.Entry autoSprint = AssistUiModel.find("Auto Sprint");
+        AssistUiModel.Entry miningHud = AssistUiModel.find("Mining Assistant HUD");
         check("current areas are represented", AssistUiModel.find("Dungeon Sync") != null
-                && AssistUiModel.find("Mining Assistant HUD") != null && AssistUiModel.find("Item Protection") == null
-                && AssistUiModel.find("Inventory search and filter") == null
+                && miningHud != null && "Mining".equals(miningHud.section)
+                && AssistUiModel.find("Item Protection") == null && AssistUiModel.find("Inventory search and filter") == null
                 && hurtCameraShake != null && "Simple features".equals(hurtCameraShake.group)
                 && autoSprint != null && "Simple features".equals(autoSprint.group)
                 && "Sprints automatically while you hold forward.".equals(autoSprint.description));

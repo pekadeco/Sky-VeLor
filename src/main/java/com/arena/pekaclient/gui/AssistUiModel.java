@@ -11,12 +11,17 @@ import java.util.List;
 public final class AssistUiModel {
 
     public static final String SECTION_QUALITY_OF_LIFE = "Quality of Life";
-    public static final String SECTION_FARMING = "Farming";
+    /** Mining Assistant is mining functionality; this model deliberately never claims a Farming surface exists. */
+    public static final String SECTION_MINING = "Mining";
     public static final String SECTION_DUNGEON = "Dungeon";
     /** @deprecated The Hub has no tab strip; use {@link #SECTION_QUALITY_OF_LIFE}. */
     @Deprecated public static final String TAB_QUALITY_OF_LIFE = SECTION_QUALITY_OF_LIFE;
-    /** @deprecated The Hub has no tab strip; use {@link #SECTION_FARMING}. */
-    @Deprecated public static final String TAB_FARMING = SECTION_FARMING;
+    /** @deprecated Kept only for binary/source consumers; its value now correctly identifies Mining. */
+    @Deprecated public static final String SECTION_FARMING = SECTION_MINING;
+    /** @deprecated Kept only for binary/source consumers; use {@link #SECTION_MINING}. */
+    @Deprecated public static final String TAB_FARMING = SECTION_MINING;
+    /** @deprecated The Hub has no tab strip; use {@link #SECTION_MINING}. */
+    @Deprecated public static final String TAB_MINING = SECTION_MINING;
     /** @deprecated The Hub has no tab strip; use {@link #SECTION_DUNGEON}. */
     @Deprecated public static final String TAB_DUNGEON = SECTION_DUNGEON;
 
@@ -70,11 +75,11 @@ public final class AssistUiModel {
         add(entries, TAB_QUALITY_OF_LIFE, "Movement and shortcuts", "Pets shortcut",
                 "Allow the unbound Pets key to send its command on Fakepixel");
 
-        add(entries, TAB_FARMING, "Mining assistant", "Pickaxe ability ready alert",
+        add(entries, TAB_MINING, "Mining assistant", "Pickaxe ability ready alert",
                 "Show a local title for supported Fakepixel pickaxe cooldowns");
-        add(entries, TAB_FARMING, "Mining assistant", "Puzzler direction helper",
+        add(entries, TAB_MINING, "Mining assistant", "Puzzler direction helper",
                 "Outline the decoded Dwarven Mines target block; never clicks it");
-        add(entries, TAB_FARMING, "Mining assistant", "Mining Assistant HUD",
+        add(entries, TAB_MINING, "Mining assistant", "Mining Assistant HUD",
                 "Show mining rate, session blocks, and ability status in the HUD editor");
 
         add(entries, TAB_DUNGEON, "Boss HP HUD", "Boss HP HUD",
