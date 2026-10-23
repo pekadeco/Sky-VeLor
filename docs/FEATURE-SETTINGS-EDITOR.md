@@ -31,15 +31,15 @@ Simple rows come before dropdowns in each tab. There are no tree arrows, connect
 | HUD | Player Dollars | Dropdown | existing HUD Editor, Player Dollars inspector |
 | Farming | Mining BPS | Dropdown | existing HUD Editor, Mining BPS inspector |
 | Farming | Mining Assistant | Dropdown | Mining Assistant Settings editor; its HUD route remains there |
-| Dungeon | Enable Dungeon Sync | Simple | this tab's toggle |
-| Dungeon | Dungeon Sync Debug | Simple | this tab's toggle |
-| Dungeon | Spirit Leap GUI | Dropdown | Spirit Leap Settings editor |
-| Dungeon | Dungeon Map | Dropdown | existing HUD Editor, Dungeon Map inspector |
-| Dungeon | Boss HP | Dropdown | existing HUD Editor, Boss HP inspector |
-| Dungeon | Terminal Assist | Dropdown | Terminal Assist Settings editor |
-| Dungeon | Mob ESP | Dropdown | Mob ESP Settings editor |
 | Dungeon | Door ESP | Dropdown | Door ESP Settings editor |
+| Dungeon | Mob ESP | Dropdown | Mob ESP Settings editor |
+| Dungeon | Enable Dungeon Sync | Simple | this tab's toggle |
 | Dungeon | Floor VII (M7) Overlay | Dropdown | Floor VII Overlay Settings editor |
+| Dungeon | Spirit Leap GUI | Dropdown | Spirit Leap Settings editor |
+| Dungeon | Terminal Assist | Dropdown | Terminal Assist Settings editor |
+| Dungeon | Boss HP | Dropdown | existing HUD Editor, Boss HP inspector |
+| Dungeon | Dungeon Map | Dropdown | existing HUD Editor, Dungeon Map inspector |
+| Dungeon | Dungeon Sync Debug | Simple | this tab's toggle |
 | Slayer | Slayer Tracker | Dropdown | Slayer Settings editor |
 | Slayer | Slayer HUD | Dropdown | existing HUD Editor, Slayer inspector |
 | Fishing | Lord Jawbus | Simple | this tab's toggle |

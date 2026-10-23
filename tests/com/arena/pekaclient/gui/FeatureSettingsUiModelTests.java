@@ -1,5 +1,8 @@
 package com.arena.pekaclient.gui;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /** Headless proof for the flat, one-level Hub contract and retained editor reachability. */
@@ -10,6 +13,7 @@ public final class FeatureSettingsUiModelTests {
         preservesOldConfigurationAndEditorState();
         flatRowsUseOnlyTheTwoAllowedForms();
         everyOldSurfaceHasOneRoute();
+        dungeonsUseRequestedUsageOrder();
         everyDungeonEspControlStillHasARoute();
         editorButtonsTargetTheRightEditors();
         mobCategoriesKeepTogglesAndSharedThumbnails();
@@ -67,6 +71,16 @@ public final class FeatureSettingsUiModelTests {
         check("Auto Sprint is not nested in Movement and Shortcuts", FeatureSettingsUiModel.option("auto-sprint") == null);
         check("No Hurt Cam is not nested in Inventory Assist", FeatureSettingsUiModel.option("no-hurt-camera") == null);
         check("Dungeon Sync Debug is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
+    }
+
+    private static void dungeonsUseRequestedUsageOrder() {
+        List<String> actual = new ArrayList<String>();
+        for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
+            if ("Dungeon".equals(feature.tab)) actual.add(feature.id);
+        }
+        List<String> expected = Arrays.asList("door-esp", "mob-esp", "dungeon-sync-enabled", "m7-overlay",
+                "spirit-leap", "terminal-assist", "dungeon-boss-hud", "dungeon-map", "dungeon-sync-debug");
+        check("Dungeons use ESP, helpers, then information order", expected.equals(actual));
     }
 
     private static boolean isDropdownEditor(String featureId, String editorId) {

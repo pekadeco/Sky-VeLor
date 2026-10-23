@@ -151,32 +151,32 @@ public final class FeatureSettingsUiModel {
                 "Puzzler direction helper", "mining-puzzler", "Mining Assistant HUD", "mining-assistant-hud",
                 "Mining Assistant editor", "mining-assistant-editor"));
 
-        // Dungeon: the two standalone sync switches are the only simple rows; all rich features have editors.
+        // Dungeon usage order: ESP first, solvers/helpers next, information/other last; each group is alphabetical.
+        dropdown("door-esp", "Dungeon", "Door ESP", "Wither and blood door hitbox styles, filters and preview.",
+                "door-esp", "door-esp-master", "Door ESP", doorEspOptions());
+        dropdown("mob-esp", "Dungeon", "Mob ESP", "Per-mob hitbox styles, global scan controls and presets.",
+                "mob-esp", "mob-esp-master", "Mob ESP", mobEspOptions());
         simple("dungeon-sync-enabled", "Dungeon", "Enable Dungeon Sync", "Opt into the existing dungeon-sync connection.",
                 "dungeon-sync-enabled", "Enable Dungeon Sync");
-        simple("dungeon-sync-debug", "Dungeon", "Dungeon Sync Debug", "Show the existing local Dungeon Sync diagnostics.",
-                "dungeon-sync-debug", "Dungeon Sync Debug");
+        dropdown("m7-overlay", "Dungeon", "Floor VII (M7) Overlay", "Areas, alerts, boss and dragon hitboxes.",
+                "m7-overlay", "m7-overlay", "Floor VII Overlay", options("M7 overlay", "m7-overlay", "Relic kill areas", "m7-relic-areas",
+                "Keep areas after dragons", "m7-areas-persist", "Dragon kill alert", "m7-dragon-alert", "Boss hitboxes", "m7-boss-hitboxes",
+                "Dragon hitboxes", "m7-dragon-hitboxes"));
         dropdown("spirit-leap", "Dungeon", "Spirit Leap GUI", "Spirit Leap menu, key shortcut and preview.",
                 "spirit-leap", "spirit-leap-menu", "Spirit Leap", options("Spirit Leap menu", "spirit-leap-menu",
                 "Spirit Leap key", "spirit-leap-key", "Spirit Leap preview", "spirit-leap-preview"));
-        dropdown("dungeon-map", "Dungeon", "Dungeon Map", "Dungeon map visibility and in-world editor.",
-                "hud", "dungeon-map", "Dungeon Map", options("Dungeon map", "dungeon-map", "Dungeon map editor", "dungeon-map-editor"));
-        dropdown("dungeon-boss-hud", "Dungeon", "Boss HP", "Dungeon boss-health HUD and editor route.",
-                "hud", "dungeon-boss-hp-visible", "Boss HP", options("Boss HP HUD", "dungeon-boss-hp-visible",
-                "Boss HP editor", "dungeon-boss-hp-editor"));
         dropdown("terminal-assist", "Dungeon", "Terminal Assist", "Terminal and Floor VII chest assistance.",
                 "terminal-assist", "terminal-hints", "Terminal Assist", options("Terminal visual helpers", "terminal-hints",
                 "Terminal auto click", "terminal-auto-click", "Hide incorrect terminal choices", "terminal-hide-incorrect",
                 "Prevent wrong terminal clicks", "terminal-prevent-wrong", "Terminal waypoints", "terminal-waypoints",
                 "Terminal scale", "terminal-scale"));
-        dropdown("mob-esp", "Dungeon", "Mob ESP", "Per-mob hitbox styles, global scan controls and presets.",
-                "mob-esp", "mob-esp-master", "Mob ESP", mobEspOptions());
-        dropdown("door-esp", "Dungeon", "Door ESP", "Wither and blood door hitbox styles, filters and preview.",
-                "door-esp", "door-esp-master", "Door ESP", doorEspOptions());
-        dropdown("m7-overlay", "Dungeon", "Floor VII (M7) Overlay", "Areas, alerts, boss and dragon hitboxes.",
-                "m7-overlay", "m7-overlay", "Floor VII Overlay", options("M7 overlay", "m7-overlay", "Relic kill areas", "m7-relic-areas",
-                "Keep areas after dragons", "m7-areas-persist", "Dragon kill alert", "m7-dragon-alert", "Boss hitboxes", "m7-boss-hitboxes",
-                "Dragon hitboxes", "m7-dragon-hitboxes"));
+        dropdown("dungeon-boss-hud", "Dungeon", "Boss HP", "Dungeon boss-health HUD and editor route.",
+                "hud", "dungeon-boss-hp-visible", "Boss HP", options("Boss HP HUD", "dungeon-boss-hp-visible",
+                "Boss HP editor", "dungeon-boss-hp-editor"));
+        dropdown("dungeon-map", "Dungeon", "Dungeon Map", "Dungeon map visibility and in-world editor.",
+                "hud", "dungeon-map", "Dungeon Map", options("Dungeon map", "dungeon-map", "Dungeon map editor", "dungeon-map-editor"));
+        simple("dungeon-sync-debug", "Dungeon", "Dungeon Sync Debug", "Show the existing local Dungeon Sync diagnostics.",
+                "dungeon-sync-debug", "Dungeon Sync Debug");
 
         // Slayer and fishing remain fully reachable without a third Hub row type.
         dropdown("slayer-tracker", "Slayer", "Slayer Tracker", "Drop history, timer, prices and clear-history controls.",

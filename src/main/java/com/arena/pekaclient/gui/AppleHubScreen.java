@@ -315,41 +315,42 @@ public class AppleHubScreen extends AppleScreen {
         List<Row> rows = new ArrayList<Row>();
         GuiSettingsAuditModel.Feature dungeonMap = GuiSettingsAuditModel.find("dungeon-map");
         GuiSettingsAuditModel.Feature bossHud = GuiSettingsAuditModel.find("dungeon-boss-hp");
-        rows.add(Row.section("Simple features"));
-        simpleFeature(rows, "Enable Dungeon Sync", assistDescription("Enable Dungeon Sync"),
-                () -> AssistSettings.dungeonSync, value -> AssistSettings.dungeonSync = value);
-        simpleFeature(rows, "Dungeon Sync Debug", assistDescription("Dungeon Sync Debug"),
-                () -> AssistSettings.dungeonSyncDebug, value -> AssistSettings.dungeonSyncDebug = value);
 
-        rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Spirit Leap GUI", "Dungeon-only teammate picker, shortcut and safe preview.",
-                "Spirit Leap GUI", "Replace the Spirit Leap teammate selector when a dungeon menu opens.",
-                () -> AppleSettings.leapMenu, value -> AppleSettings.leapMenu = value, "Spirit Leap",
-                () -> mc.displayGuiScreen(FeatureSettingsEditors.spiritLeap(this)));
-        editorFeature(rows, dungeonMap.getTitle(), dungeonMap.getDescription(), "Show Dungeon Map",
-                "Show the existing dungeon map overlay.", () -> AppleSettings.dungeonMap,
-                value -> AppleSettings.dungeonMap = value, dungeonMap.getTitle(),
-                () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)));
-        editorFeature(rows, bossHud.getTitle(), assistDescription("Boss HP HUD"), "Show Boss HP HUD",
-                "Show the existing dungeon boss-health HUD.", () -> HudManager.DUNGEON_BOSS_HP.enabled,
-                value -> HudManager.DUNGEON_BOSS_HP.enabled = value, bossHud.getTitle(),
-                () -> openHud(HUD_DUNGEON_BOSS_HP));
-        editorFeature(rows, "Terminal Assist", "Visual helpers, explicit automation and waypoints.",
-                "Terminal Visual Helpers", assistDescription("Terminal visual helpers"), () -> AssistSettings.terminalHints,
-                value -> AssistSettings.terminalHints = value, "Terminal Assist",
-                () -> mc.displayGuiScreen(FeatureSettingsEditors.terminalAssist(this)));
-        editorFeature(rows, "Mob ESP", "Per-mob styles, live hitbox preview, scan controls and presets.",
-                "Enable Dungeon ESP", "Master switch for cached dungeon Mob ESP.", () -> DungeonEspSettings.enabled,
-                value -> DungeonEspSettings.enabled = value, "Mob ESP",
-                () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this)));
+        // Flat usage order: ESP, solvers/helpers, then information/other. No group exceeds eight rows.
         editorFeature(rows, "Door ESP", "Wither and blood door filters, shared style and closed-prism preview.",
                 "Show Closed Doors", "Enable cached closed wither and blood door ESP.", () -> DungeonEspSettings.doorsEnabled,
                 value -> DungeonEspSettings.doorsEnabled = value, "Door ESP",
                 () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this)));
+        editorFeature(rows, "Mob ESP", "Per-mob styles, live hitbox preview, scan controls and presets.",
+                "Enable Dungeon ESP", "Master switch for cached dungeon Mob ESP.", () -> DungeonEspSettings.enabled,
+                value -> DungeonEspSettings.enabled = value, "Mob ESP",
+                () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this)));
+
+        simpleFeature(rows, "Enable Dungeon Sync", assistDescription("Enable Dungeon Sync"),
+                () -> AssistSettings.dungeonSync, value -> AssistSettings.dungeonSync = value);
         editorFeature(rows, "Floor VII (M7) Overlay", "Areas, alerts, terminal solver, boss and dragon hitboxes.",
                 "Enable M7 Overlay", "Show Floor VII areas, alerts and hitboxes.", M7Settings::isOverlayEnabled,
                 M7Settings::setOverlayEnabled, "Floor VII Overlay",
                 () -> mc.displayGuiScreen(FeatureSettingsEditors.m7Overlay(this)));
+        editorFeature(rows, "Spirit Leap GUI", "Dungeon-only teammate picker, shortcut and safe preview.",
+                "Spirit Leap GUI", "Replace the Spirit Leap teammate selector when a dungeon menu opens.",
+                () -> AppleSettings.leapMenu, value -> AppleSettings.leapMenu = value, "Spirit Leap",
+                () -> mc.displayGuiScreen(FeatureSettingsEditors.spiritLeap(this)));
+        editorFeature(rows, "Terminal Assist", "Visual helpers, explicit automation and waypoints.",
+                "Terminal Visual Helpers", assistDescription("Terminal visual helpers"), () -> AssistSettings.terminalHints,
+                value -> AssistSettings.terminalHints = value, "Terminal Assist",
+                () -> mc.displayGuiScreen(FeatureSettingsEditors.terminalAssist(this)));
+
+        editorFeature(rows, bossHud.getTitle(), assistDescription("Boss HP HUD"), "Show Boss HP HUD",
+                "Show the existing dungeon boss-health HUD.", () -> HudManager.DUNGEON_BOSS_HP.enabled,
+                value -> HudManager.DUNGEON_BOSS_HP.enabled = value, bossHud.getTitle(),
+                () -> openHud(HUD_DUNGEON_BOSS_HP));
+        editorFeature(rows, dungeonMap.getTitle(), dungeonMap.getDescription(), "Show Dungeon Map",
+                "Show the existing dungeon map overlay.", () -> AppleSettings.dungeonMap,
+                value -> AppleSettings.dungeonMap = value, dungeonMap.getTitle(),
+                () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)));
+        simpleFeature(rows, "Dungeon Sync Debug", assistDescription("Dungeon Sync Debug"),
+                () -> AssistSettings.dungeonSyncDebug, value -> AssistSettings.dungeonSyncDebug = value);
         return rows;
     }
 
