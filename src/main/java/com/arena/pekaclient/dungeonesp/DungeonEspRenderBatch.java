@@ -240,12 +240,8 @@ public final class DungeonEspRenderBatch {
             if (box.style == null || box.style.throughWalls != throughWalls
                     || (box.style.mode != DungeonEspSettings.MODE_FILLED && box.style.mode != DungeonEspSettings.MODE_BOTH)
                     || box.style.fillOpacity <= 0) continue;
-            quad(writer, box, box.style.fillOpacity, box.minX, box.minY, box.minZ, box.maxX, box.minY, box.minZ, box.maxX, box.minY, box.maxZ, box.minX, box.minY, box.maxZ);
-            quad(writer, box, box.style.fillOpacity, box.minX, box.maxY, box.minZ, box.minX, box.maxY, box.maxZ, box.maxX, box.maxY, box.maxZ, box.maxX, box.maxY, box.minZ);
-            quad(writer, box, box.style.fillOpacity, box.minX, box.minY, box.minZ, box.minX, box.maxY, box.minZ, box.maxX, box.maxY, box.minZ, box.maxX, box.minY, box.minZ);
-            quad(writer, box, box.style.fillOpacity, box.maxX, box.minY, box.minZ, box.maxX, box.maxY, box.minZ, box.maxX, box.maxY, box.maxZ, box.maxX, box.minY, box.maxZ);
-            quad(writer, box, box.style.fillOpacity, box.minX, box.minY, box.maxZ, box.maxX, box.minY, box.maxZ, box.maxX, box.maxY, box.maxZ, box.minX, box.maxY, box.maxZ);
-            quad(writer, box, box.style.fillOpacity, box.minX, box.minY, box.minZ, box.minX, box.minY, box.maxZ, box.minX, box.maxY, box.maxZ, box.minX, box.maxY, box.minZ);
+            drawStyledBox(writer, box.style, box.color, box.minX, box.minY, box.minZ,
+                    box.maxX, box.maxY, box.maxZ, true);
         }
         Tessellator.getInstance().draw();
     }
@@ -272,7 +268,8 @@ public final class DungeonEspRenderBatch {
                 if (box.style == null || box.style.throughWalls != throughWalls || box.style.outlineWidth != width
                         || (box.style.mode != DungeonEspSettings.MODE_OUTLINE && box.style.mode != DungeonEspSettings.MODE_BOTH)
                         || box.style.outlineOpacity <= 0) continue;
-                edges(writer, box, box.style.outlineOpacity);
+                drawStyledBox(writer, box.style, box.color, box.minX, box.minY, box.minZ,
+                        box.maxX, box.maxY, box.maxZ, false);
             }
             Tessellator.getInstance().draw();
         }
@@ -336,34 +333,60 @@ public final class DungeonEspRenderBatch {
         if (throughWalls) GlStateManager.disableDepth(); else GlStateManager.enableDepth();
     }
 
-    private static void edges(WorldRenderer writer, RenderBox b, int opacity) {
-        edge(writer, b, opacity, b.minX, b.minY, b.minZ, b.maxX, b.minY, b.minZ);
-        edge(writer, b, opacity, b.maxX, b.minY, b.minZ, b.maxX, b.minY, b.maxZ);
-        edge(writer, b, opacity, b.maxX, b.minY, b.maxZ, b.minX, b.minY, b.maxZ);
-        edge(writer, b, opacity, b.minX, b.minY, b.maxZ, b.minX, b.minY, b.minZ);
-        edge(writer, b, opacity, b.minX, b.maxY, b.minZ, b.maxX, b.maxY, b.minZ);
-        edge(writer, b, opacity, b.maxX, b.maxY, b.minZ, b.maxX, b.maxY, b.maxZ);
-        edge(writer, b, opacity, b.maxX, b.maxY, b.maxZ, b.minX, b.maxY, b.maxZ);
-        edge(writer, b, opacity, b.minX, b.maxY, b.maxZ, b.minX, b.maxY, b.minZ);
-        edge(writer, b, opacity, b.minX, b.minY, b.minZ, b.minX, b.maxY, b.minZ);
-        edge(writer, b, opacity, b.maxX, b.minY, b.minZ, b.maxX, b.maxY, b.minZ);
-        edge(writer, b, opacity, b.maxX, b.minY, b.maxZ, b.maxX, b.maxY, b.maxZ);
-        edge(writer, b, opacity, b.minX, b.minY, b.maxZ, b.minX, b.maxY, b.maxZ);
+    /**
+     * Emits either the fill or outline geometry for one box using the exact live style object. The batched renderer
+     * calls this method for every cached target; the settings preview calls it too, so a mode, opacity or width is
+     * never approximated by a second visual implementation.
+     *
+     * <p>The caller owns GL state and Tessellator begin/draw calls. Passing {@code fill=true} requires a quad
+     * writer; passing false requires a line writer.</p>
+     */
+    public static void drawStyledBox(WorldRenderer writer, DungeonEspSettings.Style style, int color,
+                                     double minX, double minY, double minZ,
+                                     double maxX, double maxY, double maxZ, boolean fill) {
+        if (writer == null || style == null) return;
+        if (fill) {
+            if ((style.mode != DungeonEspSettings.MODE_FILLED && style.mode != DungeonEspSettings.MODE_BOTH)
+                    || style.fillOpacity <= 0) return;
+            int opacity = style.fillOpacity;
+            quad(writer, color, opacity, minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, minX, minY, maxZ);
+            quad(writer, color, opacity, minX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ);
+            quad(writer, color, opacity, minX, minY, minZ, minX, maxY, minZ, maxX, maxY, minZ, maxX, minY, minZ);
+            quad(writer, color, opacity, maxX, minY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, maxX, minY, maxZ);
+            quad(writer, color, opacity, minX, minY, maxZ, maxX, minY, maxZ, maxX, maxY, maxZ, minX, maxY, maxZ);
+            quad(writer, color, opacity, minX, minY, minZ, minX, minY, maxZ, minX, maxY, maxZ, minX, maxY, minZ);
+            return;
+        }
+        if ((style.mode != DungeonEspSettings.MODE_OUTLINE && style.mode != DungeonEspSettings.MODE_BOTH)
+                || style.outlineOpacity <= 0) return;
+        int opacity = style.outlineOpacity;
+        edge(writer, color, opacity, minX, minY, minZ, maxX, minY, minZ);
+        edge(writer, color, opacity, maxX, minY, minZ, maxX, minY, maxZ);
+        edge(writer, color, opacity, maxX, minY, maxZ, minX, minY, maxZ);
+        edge(writer, color, opacity, minX, minY, maxZ, minX, minY, minZ);
+        edge(writer, color, opacity, minX, maxY, minZ, maxX, maxY, minZ);
+        edge(writer, color, opacity, maxX, maxY, minZ, maxX, maxY, maxZ);
+        edge(writer, color, opacity, maxX, maxY, maxZ, minX, maxY, maxZ);
+        edge(writer, color, opacity, minX, maxY, maxZ, minX, maxY, minZ);
+        edge(writer, color, opacity, minX, minY, minZ, minX, maxY, minZ);
+        edge(writer, color, opacity, maxX, minY, minZ, maxX, maxY, minZ);
+        edge(writer, color, opacity, maxX, minY, maxZ, maxX, maxY, maxZ);
+        edge(writer, color, opacity, minX, minY, maxZ, minX, maxY, maxZ);
     }
 
-    private static void edge(WorldRenderer writer, RenderBox b, int opacity,
+    private static void edge(WorldRenderer writer, int color, int opacity,
                              double x0, double y0, double z0, double x1, double y1, double z1) {
-        vertex(writer, b.color, opacity, x0, y0, z0);
-        vertex(writer, b.color, opacity, x1, y1, z1);
+        vertex(writer, color, opacity, x0, y0, z0);
+        vertex(writer, color, opacity, x1, y1, z1);
     }
 
-    private static void quad(WorldRenderer writer, RenderBox b, int opacity,
+    private static void quad(WorldRenderer writer, int color, int opacity,
                              double x0, double y0, double z0, double x1, double y1, double z1,
                              double x2, double y2, double z2, double x3, double y3, double z3) {
-        vertex(writer, b.color, opacity, x0, y0, z0);
-        vertex(writer, b.color, opacity, x1, y1, z1);
-        vertex(writer, b.color, opacity, x2, y2, z2);
-        vertex(writer, b.color, opacity, x3, y3, z3);
+        vertex(writer, color, opacity, x0, y0, z0);
+        vertex(writer, color, opacity, x1, y1, z1);
+        vertex(writer, color, opacity, x2, y2, z2);
+        vertex(writer, color, opacity, x3, y3, z3);
     }
 
     private static void vertex(WorldRenderer writer, int color, int opacity, double x, double y, double z) {

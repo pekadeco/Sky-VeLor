@@ -7,6 +7,7 @@ import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.config.DungeonEspSettings;
+import com.arena.pekaclient.config.FeatureUiPreferences;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.M7Settings;
@@ -29,6 +30,7 @@ import com.arena.pekaclient.widget.AppleKeybindButton;
 import com.arena.pekaclient.widget.AppleSegmented;
 import com.arena.pekaclient.widget.AppleSlider;
 import com.arena.pekaclient.widget.AppleToggle;
+import com.arena.pekaclient.widget.FeatureRowControl;
 import com.arena.pekaclient.widget.SearchField;
 import com.arena.pekaclient.widget.Widget;
 import net.minecraft.client.Minecraft;
@@ -44,8 +46,10 @@ import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
 
@@ -614,69 +618,31 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.item("Terminal waypoints", assistDescription("Terminal waypoints"),
                 new AppleToggle(() -> AssistSettings.terminalWaypoints, value -> AssistSettings.terminalWaypoints = value)));
 
-        // Every Dungeon ESP control lives under one of these four collapsible headers. The standard Row flow
-        // and GuiLayoutToolkit-backed model keep cards and controls in separate vertical space at all GUI scales.
-        rows.add(Row.header(DungeonEspUiModel.MOB_ESP_TITLE));
-        rows.add(Row.item("Enable Dungeon ESP",
-                "Master switch for cached dungeon mob and door ESP",
-                new AppleToggle(() -> DungeonEspSettings.enabled, v -> DungeonEspSettings.enabled = v)));
-        addDungeonEspStyleRows(rows, DungeonEspSettings.starred, "Starred Mob", "starred dungeon mobs");
-        addDungeonEspStyleRows(rows, DungeonEspSettings.miniboss, "Miniboss", "dungeon minibosses");
-        addDungeonEspStyleRows(rows, DungeonEspSettings.special, "Special Starred Mob", "special starred enemies");
-        addDungeonEspStyleRows(rows, DungeonEspSettings.enderman, "Enderman", "real and head-marker Endermen");
-        addDungeonEspStyleRows(rows, DungeonEspSettings.skeletor, "Skeletor", "starred Skeletors");
-        rows.add(Row.item("Force Render All Mobs in Room",
-                "Off by default. Caches eligible hostiles in the room or ESP range",
-                new AppleToggle(() -> DungeonEspSettings.forceRenderAllMobs,
-                        v -> DungeonEspSettings.forceRenderAllMobs = v)));
-        addDungeonEspStyleRows(rows, DungeonEspSettings.otherMobs, "Other Mobs", "eligible non-starred hostile mobs");
-        rows.add(Row.item("Include Bats", "Include bats only when force rendering room mobs",
-                new AppleToggle(() -> DungeonEspSettings.includeBats, v -> DungeonEspSettings.includeBats = v)));
-        rows.add(Row.item("Include Invisible Mobs", "Include invisible hostiles only when force rendering room mobs",
-                new AppleToggle(() -> DungeonEspSettings.includeInvisibleMobs,
-                        v -> DungeonEspSettings.includeInvisibleMobs = v)));
-
-        rows.add(Row.header(DungeonEspUiModel.DOOR_ESP_TITLE));
-        rows.add(Row.item("Show Closed Doors", "Scan cached closed wither and blood doors once per second",
-                new AppleToggle(() -> DungeonEspSettings.doorsEnabled, v -> DungeonEspSettings.doorsEnabled = v)));
-        rows.add(Row.item("Door Scope", "Render the nearest closed door or every cached closed door",
-                new AppleDropdown(DungeonEspSettings.DOOR_SCOPE_NAMES, null, 150f, 24f,
-                        () -> DungeonEspSettings.doorScope, v -> DungeonEspSettings.doorScope = v)));
-        rows.add(Row.item("Only With a Wither Key", "Hide cached doors until a Wither Key is in your inventory",
-                new AppleToggle(() -> DungeonEspSettings.doorOnlyWhenKey, v -> DungeonEspSettings.doorOnlyWhenKey = v)));
-        rows.add(Row.item("Blood Doors", "Include cached red-clay blood doors",
-                new AppleToggle(() -> DungeonEspSettings.showBloodDoors, v -> DungeonEspSettings.showBloodDoors = v)));
-        rows.add(Row.item("Blood Door Color", "Choose the cached blood-door box color",
-                espColorDropdown(() -> DungeonEspSettings.colorIndex(DungeonEspSettings.bloodDoorColor),
-                        v -> DungeonEspSettings.bloodDoorColor = DungeonEspSettings.colorForIndex(v))));
-        addDungeonDoorStyleRows(rows);
-        rows.add(Row.item("Door Distance Text", "Show rounded block distance above cached closed doors",
-                new AppleToggle(() -> DungeonEspSettings.doorDistanceText, v -> DungeonEspSettings.doorDistanceText = v)));
-
-        rows.add(Row.header(DungeonEspUiModel.PERFORMANCE_TITLE));
-        rows.add(Row.item("Maximum ESP Distance", "Scan only entities and doors inside this block range",
-                new AppleSlider(DungeonEspSettings.MIN_DISTANCE, DungeonEspSettings.MAX_DISTANCE, 1, " blocks", 150f,
-                        () -> DungeonEspSettings.maxDistance, v -> DungeonEspSettings.maxDistance = v)));
-        rows.add(Row.item("Update Interval", "Cached entity scan period; lower values react faster",
-                new AppleSlider(DungeonEspSettings.MIN_INTERVAL_TICKS, DungeonEspSettings.MAX_INTERVAL_TICKS, 1, " ticks", 150f,
-                        () -> DungeonEspSettings.updateIntervalTicks, v -> DungeonEspSettings.updateIntervalTicks = v)));
-        rows.add(Row.item("Hide Zero-Health Mobs", "Drop a cached living target when its scanned health is zero",
-                new AppleToggle(() -> DungeonEspSettings.hideZeroHealth, v -> DungeonEspSettings.hideZeroHealth = v)));
-        rows.add(Row.item("Tracers", "Draw a world-space line from you to each tracked mob",
-                new AppleToggle(() -> DungeonEspSettings.tracers, v -> DungeonEspSettings.tracers = v)));
-        rows.add(Row.item("Distance Text", "Show rounded block distance above tracked mob hitboxes",
-                new AppleToggle(() -> DungeonEspSettings.distanceText, v -> DungeonEspSettings.distanceText = v)));
-        rows.add(Row.item("Maximum Boxes", "Cap displayed mob hitboxes without dropping the tracker cache",
-                new AppleSlider(DungeonEspSettings.MIN_BOXES, DungeonEspSettings.MAX_BOXES, 1, "", 150f,
-                        () -> DungeonEspSettings.maxBoxes, v -> DungeonEspSettings.maxBoxes = v)));
-
-        rows.add(Row.header(DungeonEspUiModel.PRESETS_TITLE));
-        rows.add(Row.item("Default Preset", "Restore high-visibility default colors, fills, and scan settings",
-                new AppleButton("Apply Default", 122f, 26f, false, DungeonEspSettings::applyDefaultPreset)));
-        rows.add(Row.item("Subtle Preset", "Use depth-tested outlines with lower opacity and no fills",
-                new AppleButton("Apply Subtle", 122f, 26f, false, DungeonEspSettings::applySubtlePreset)));
-        rows.add(Row.item("Reset Dungeon ESP", "Restore every Dungeon ESP control to the Default preset",
-                new AppleButton("Reset", 96f, 26f, false, DungeonEspSettings::resetDefaults)));
+        // ESP now occupies a compact persisted tree. All former inline controls live in the focused Mob/Door
+        // Feature Settings Editors; child cards jump directly to their selected category.
+        rows.add(Row.section("Dungeon ESP"));
+        rows.add(Row.treeFeature("dungeon.esp", null, 0, true, true, "Dungeon ESP",
+                "Cached dungeon mob and closed-door hitboxes", null));
+        rows.add(Row.treeFeature("dungeon.mob-esp", "dungeon.esp", 1, true, false, "Mob ESP",
+                "Per-category styles, live fallback preview, scan controls and presets",
+                new FeatureRowControl(() -> DungeonEspSettings.enabled, value -> DungeonEspSettings.enabled = value,
+                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this)))));
+        addMobEspTreeRows(rows, "dungeon.mob-esp", mc);
+        rows.add(Row.treeFeature("dungeon.door-esp", "dungeon.esp", 1, true, false, "Door ESP",
+                "Wither and blood door filters, shared style and closed-prism preview",
+                new FeatureRowControl(() -> DungeonEspSettings.doorsEnabled,
+                        value -> DungeonEspSettings.doorsEnabled = value,
+                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this)))));
+        rows.add(Row.treeFeature("dungeon.door-esp.wither", "dungeon.door-esp", 2, false, false, "Wither Doors",
+                "Shared cached door style and wither door color",
+                new FeatureRowControl(() -> DungeonEspSettings.doors.enabled,
+                        value -> DungeonEspSettings.doors.enabled = value,
+                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this, "wither")))));
+        rows.add(Row.treeFeature("dungeon.door-esp.blood", "dungeon.door-esp", 2, false, false, "Blood Doors",
+                "Blood door filter, color and the existing shared door style",
+                new FeatureRowControl(() -> DungeonEspSettings.showBloodDoors,
+                        value -> DungeonEspSettings.showBloodDoors = value,
+                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this, "blood")))));
 
         rows.add(Row.header("Floor VII (M7) overlay"));
         rows.add(Row.item("M7 overlay",
@@ -711,56 +677,27 @@ public class AppleHubScreen extends AppleScreen {
         return rows;
     }
 
-    /** Shared controls for every tracked-mob category. Each label stays explicit when the Mob ESP group is searched. */
-    private static void addDungeonEspStyleRows(List<Row> rows, final DungeonEspSettings.Style style,
-                                               String labelPrefix, String targetDescription) {
-        rows.add(Row.item(labelPrefix + " ESP", "Render " + targetDescription,
-                new AppleToggle(() -> style.enabled, v -> style.enabled = v)));
-        rows.add(Row.item(labelPrefix + " Color", "Choose the " + labelPrefix.toLowerCase(Locale.ROOT) + " ESP color",
-                espColorDropdown(() -> DungeonEspSettings.colorIndex(style.color),
-                        v -> style.color = DungeonEspSettings.colorForIndex(v))));
-        rows.add(Row.item(labelPrefix + " Render Mode", "Draw an outline, filled hitbox, or both",
-                new AppleDropdown(DungeonEspSettings.MODE_NAMES, null, 150f, 24f,
-                        () -> style.mode, v -> style.mode = v)));
-        rows.add(Row.item(labelPrefix + " Through Walls", "Keep this category visible behind dungeon blocks",
-                new AppleToggle(() -> style.throughWalls, v -> style.throughWalls = v)));
-        rows.add(Row.item(labelPrefix + " Outline Width", "Set world-space outline thickness",
-                new AppleSlider(DungeonEspSettings.MIN_WIDTH, DungeonEspSettings.MAX_WIDTH, 1, " px", 150f,
-                        () -> style.outlineWidth, v -> style.outlineWidth = v)));
-        rows.add(Row.item(labelPrefix + " Outline Opacity", "Set opacity for hitbox edges",
-                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
-                        () -> style.outlineOpacity, v -> style.outlineOpacity = v)));
-        rows.add(Row.item(labelPrefix + " Fill Opacity", "Set opacity for hitbox faces",
-                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
-                        () -> style.fillOpacity, v -> style.fillOpacity = v)));
+    /** Adds child feature cards that route to the exact selected Mob ESP editor category. */
+    private void addMobEspTreeRows(List<Row> rows, String parentId, final Minecraft mc) {
+        addMobEspTreeRow(rows, parentId, "starred", "Starred Mob", "Standard starred dungeon mobs",
+                DungeonEspSettings.starred, mc);
+        addMobEspTreeRow(rows, parentId, "miniboss", "Miniboss", "Dungeon miniboss hitboxes",
+                DungeonEspSettings.miniboss, mc);
+        addMobEspTreeRow(rows, parentId, "special", "Special Starred Mob", "Named special starred enemies",
+                DungeonEspSettings.special, mc);
+        addMobEspTreeRow(rows, parentId, "enderman", "Enderman", "Real and head-marker Endermen",
+                DungeonEspSettings.enderman, mc);
+        addMobEspTreeRow(rows, parentId, "skeletor", "Skeletor", "Starred Skeletors",
+                DungeonEspSettings.skeletor, mc);
+        addMobEspTreeRow(rows, parentId, "other", "Other Mobs", "Optional room-wide hostile coverage",
+                DungeonEspSettings.otherMobs, mc);
     }
 
-    /** Door-specific style fields intentionally share the same palette and visual semantics as mob boxes. */
-    private static void addDungeonDoorStyleRows(List<Row> rows) {
-        final DungeonEspSettings.Style style = DungeonEspSettings.doors;
-        rows.add(Row.item("Wither Door Color", "Choose the cached wither-door box color",
-                espColorDropdown(() -> DungeonEspSettings.colorIndex(style.color),
-                        v -> style.color = DungeonEspSettings.colorForIndex(v))));
-        rows.add(Row.item("Door Render Mode", "Draw an outline, filled door prism, or both",
-                new AppleDropdown(DungeonEspSettings.MODE_NAMES, null, 150f, 24f,
-                        () -> style.mode, v -> style.mode = v)));
-        rows.add(Row.item("Doors Through Walls", "Keep cached closed door boxes visible behind blocks",
-                new AppleToggle(() -> style.throughWalls, v -> style.throughWalls = v)));
-        rows.add(Row.item("Door Outline Width", "Set closed-door outline thickness",
-                new AppleSlider(DungeonEspSettings.MIN_WIDTH, DungeonEspSettings.MAX_WIDTH, 1, " px", 150f,
-                        () -> style.outlineWidth, v -> style.outlineWidth = v)));
-        rows.add(Row.item("Door Outline Opacity", "Set opacity for closed-door edges",
-                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
-                        () -> style.outlineOpacity, v -> style.outlineOpacity = v)));
-        rows.add(Row.item("Door Fill Opacity", "Set opacity for closed-door prism faces",
-                new AppleSlider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY, 5, "%", 150f,
-                        () -> style.fillOpacity, v -> style.fillOpacity = v)));
-    }
-
-    private static AppleDropdown espColorDropdown(java.util.function.IntSupplier getter,
-                                                   java.util.function.IntConsumer setter) {
-        return new AppleDropdown(DungeonEspSettings.COLOR_NAMES, DungeonEspSettings.COLORS, 150f, 24f,
-                getter, setter);
+    private void addMobEspTreeRow(List<Row> rows, String parentId, String category, String title, String description,
+                                  final DungeonEspSettings.Style style, final Minecraft mc) {
+        rows.add(Row.treeFeature("dungeon.mob-esp." + category, parentId, 2, false, false, title, description,
+                new FeatureRowControl(() -> style.enabled, value -> style.enabled = value,
+                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this, category)))));
     }
 
     private List<Row> fishingPage() {
@@ -998,7 +935,7 @@ public class AppleHubScreen extends AppleScreen {
         if (!query.isEmpty()) {
             for (List<Row> page : pages) {
                 for (Row r : page) {
-                    if (r.kind != Row.ITEM) {
+                    if (r.kind != Row.ITEM && r.kind != Row.TREE) {
                         continue;
                     }
                     if (r.label.toLowerCase(Locale.ROOT).contains(query)
@@ -1129,8 +1066,14 @@ public class AppleHubScreen extends AppleScreen {
         return searching || r.visible;
     }
 
-    /** Sets each row's visibility from its group and counts the rows under each header. */
+    /** Sets row visibility from legacy headers and persistent compact-tree ancestors. */
     private void applyGroups(List<Row> rows) {
+        Map<String, Row> treeRows = new HashMap<String, Row>();
+        for (Row row : rows) {
+            if (row.kind == Row.TREE && row.treeId != null && row.treeId.length() > 0) {
+                treeRows.put(row.treeId, row);
+            }
+        }
         Row header = null;
         for (int i = 0, n = rows.size(); i < n; i++) {
             Row r = rows.get(i);
@@ -1142,19 +1085,36 @@ public class AppleHubScreen extends AppleScreen {
                 header = null;
                 r.visible = true;
             } else {
-                r.visible = header == null || expanded.contains(header.label);
-                if (header != null) {
-                    header.children++;
-                }
+                boolean groupVisible = header == null || expanded.contains(header.label);
+                r.visible = groupVisible && (r.kind != Row.TREE || treeVisible(r, treeRows));
+                if (header != null) header.children++;
             }
         }
     }
 
-    /** Toggles a group. Closing it also closes any dropdown that lives inside it. */
-    private void toggleGroup(String title) {
-        if (!expanded.remove(title)) {
-            expanded.add(title);
+    /** A closed tree branch has no body geometry; a malformed parent fails closed instead of exposing a stray child. */
+    private boolean treeVisible(Row row, Map<String, Row> trees) {
+        String parentId = row.treeParentId;
+        int safety = 0;
+        while (parentId != null && safety++ < 64) {
+            Row parentRow = trees.get(parentId);
+            if (parentRow == null) return false;
+            if (!FeatureUiPreferences.isExpanded(parentRow.treeId, parentRow.treeInitiallyOpen)) return false;
+            parentId = parentRow.treeParentId;
         }
+        return safety < 64;
+    }
+
+    /** Toggles a legacy group. Closing it also closes any dropdown that lives inside it. */
+    private void toggleGroup(String title) {
+        if (!expanded.remove(title)) expanded.add(title);
+        openDropdown = null;
+    }
+
+    /** Persists compact-tree state independently from gameplay settings. */
+    private void toggleTree(Row row) {
+        if (row == null || !row.treeHasChildren || row.treeId == null) return;
+        FeatureUiPreferences.toggleExpanded(row.treeId, row.treeInitiallyOpen);
         openDropdown = null;
     }
 
@@ -1167,9 +1127,11 @@ public class AppleHubScreen extends AppleScreen {
             }
             r.y = y;
             Widget c = r.control;
-            rowLayoutRect.set(cx0, y, cw, r.height);
+            float indent = r.kind == Row.TREE ? r.treeDepth * FeatureTreeLayout.INDENT : 0f;
+            rowLayoutRect.set(cx0 + indent, y, Math.max(1f, cw - indent), r.height);
+            float textPad = r.kind == Row.TREE ? (r.treeHasChildren ? 26f : 13f) : 12f;
             if (c != null) {
-                GuiLayoutToolkit.splitRow(rowLayoutRect, 12f, 12f, c.preferredWidth(), c.h,
+                GuiLayoutToolkit.splitRow(rowLayoutRect, textPad, 8f, c.preferredWidth(), c.h,
                         rowLabelRect, rowControlRect);
                 r.labelX = rowLabelRect.x;
                 r.labelWidth = rowLabelRect.w;
@@ -1177,8 +1139,8 @@ public class AppleHubScreen extends AppleScreen {
                 c.y = rowControlRect.y;
                 c.w = rowControlRect.w;
             } else {
-                r.labelX = rowLayoutRect.x + 12f;
-                r.labelWidth = Math.max(1f, rowLayoutRect.w - 24f);
+                r.labelX = rowLayoutRect.x + textPad;
+                r.labelWidth = Math.max(1f, rowLayoutRect.w - textPad * 2f);
             }
             y = nextRowTop(y, r.height);
         }
@@ -1325,6 +1287,8 @@ public class AppleHubScreen extends AppleScreen {
                 drawGroupHeader(fr, r, mx, my);
             } else if (r.kind == Row.ITEM) {
                 drawItem(fr, r, mx, my);
+            } else if (r.kind == Row.TREE) {
+                drawTreeFeature(fr, r, mx, my);
             } else {
                 r.painter.paint(vx, r.y, vw, r.height);
             }
@@ -1382,6 +1346,44 @@ public class AppleHubScreen extends AppleScreen {
         if (r.control != null) {
             r.control.draw(mx, my);
         }
+    }
+
+    /** Compact feature tree card with a persisted arrow, indentation, vertical connector and child branch tick. */
+    private void drawTreeFeature(FontRenderer fr, Row r, int mx, int my) {
+        float indent = r.treeDepth * FeatureTreeLayout.INDENT;
+        float x = vx + indent;
+        float y = r.y;
+        float w = Math.max(1f, vw - indent);
+        float h = r.height;
+        boolean hover = inside(mx, my, x, y, w, h);
+        UIRender.roundRectBorder(x, y, w, h, cardRadius(), Theme.card, Theme.card,
+                hover ? UIRender.mix(Theme.border, Theme.accent, .45f) : Theme.border);
+
+        // Parent stems are intentionally drawn in the shared indentation rhythm. They sit outside nested cards,
+        // making every child branch traceable even when an action strip is at the right edge.
+        if (r.treeDepth > 0) {
+            for (int level = 0; level < r.treeDepth; level++) {
+                float lineX = vx + 8f + level * FeatureTreeLayout.INDENT;
+                UIRender.rect(lineX, y - ROW_GAP * .5f, 1f, h * .5f + ROW_GAP * .5f, Theme.divider);
+            }
+            float tickX = vx + 8f + (r.treeDepth - 1) * FeatureTreeLayout.INDENT;
+            UIRender.rect(tickX, y + h * .5f, FeatureTreeLayout.CONNECTOR_TICK, 1f, Theme.divider);
+        }
+        if (r.treeHasChildren) {
+            boolean open = FeatureUiPreferences.isExpanded(r.treeId, r.treeInitiallyOpen);
+            float cx = x + 12f;
+            float cy = y + h * .5f;
+            int ink = hover ? Theme.accent : Theme.textSecondary;
+            if (open) UIRender.triangle(cx - 4f, cy - 2f, cx + 4f, cy - 2f, cx, cy + 3f, ink);
+            else UIRender.triangle(cx - 2f, cy - 4f, cx - 2f, cy + 4f, cx + 3f, cy, ink);
+        }
+        float labelX = r.labelX > 0f ? r.labelX : x + (r.treeHasChildren ? 26f : 12f);
+        float maxW = r.labelWidth > 0f ? r.labelWidth : Math.max(1f, w - 24f);
+        UIRender.text(fr, fit(fr, r.label, maxW), labelX, y + 7f, Theme.textPrimary, 1f, false);
+        if (r.desc != null && r.desc.length() > 0) {
+            UIRender.text(fr, fit(fr, r.desc, maxW), labelX, y + 22f, Theme.textSecondary, .92f, false);
+        }
+        if (r.control != null) r.control.draw(mx, my);
     }
 
     private void drawScrollIndicator() {
@@ -1500,6 +1502,7 @@ public class AppleHubScreen extends AppleScreen {
         }
 
         Row header = headerAt(mx, my);
+        if (header == null) header = treeAt(mx, my);
         if (header != null) {
             pendingHeader = header;
             active = null;
@@ -1566,7 +1569,7 @@ public class AppleHubScreen extends AppleScreen {
             pendingHeader = null;
             if (gesture.kind == Gesture.PENDING && mx >= vx && mx < vx + vw
                     && my >= header.y && my < header.y + header.height) {
-                toggleGroup(header.label);
+                if (header.kind == Row.TREE) toggleTree(header); else toggleGroup(header.label);
             }
         }
         if (gestureActive && gesture.kind == Gesture.SCROLL) {
@@ -1751,6 +1754,19 @@ public class AppleHubScreen extends AppleScreen {
             if (r.kind == Row.HEADER && my >= r.y && my < r.y + r.height && mx >= vx && mx < vx + vw) {
                 return r;
             }
+        }
+        return null;
+    }
+
+    /** Only the arrow/leading label portion toggles a compact branch; action strips retain their own click targets. */
+    private Row treeAt(int mx, int my) {
+        if (searching || !inside(mx, my, vx, vy, vw, vh)) return null;
+        List<Row> rows = pages.get(pageIndex);
+        for (Row row : rows) {
+            if (row.kind != Row.TREE || !row.treeHasChildren || !shown(row)) continue;
+            float left = vx + row.treeDepth * FeatureTreeLayout.INDENT;
+            float hitWidth = Math.min(Math.max(32f, row.labelWidth + 10f), Math.max(32f, vw - row.treeDepth * FeatureTreeLayout.INDENT));
+            if (mx >= left && mx < left + hitWidth && my >= row.y && my < row.y + row.height) return row;
         }
         return null;
     }

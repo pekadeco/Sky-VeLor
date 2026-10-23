@@ -20,6 +20,8 @@ final class Row {
     static final int ITEM = 1;
     static final int CUSTOM = 2;
     static final int HEADER = 3;
+    /** Compact feature tree row: optional arrow/children, indentation/connectors and at most toggle + Open Settings. */
+    static final int TREE = 4;
 
     /** Paints custom content (charts, stat cards) into the given card rectangle. */
     interface Painter {
@@ -44,6 +46,13 @@ final class Row {
     /** For HEADER rows: how many rows belong to the group. Set by the screen before layout. */
     int children;
 
+    /** Tree identity and visual depth. Parent branches persist independently from old transient headers. */
+    String treeId;
+    String treeParentId;
+    int treeDepth;
+    boolean treeHasChildren;
+    boolean treeInitiallyOpen;
+
     private Row(int kind, String label, String desc, Widget control, Painter painter, float height) {
         this.kind = kind;
         this.label = label;
@@ -64,6 +73,18 @@ final class Row {
 
     static Row item(String label, String desc, Widget control) {
         return new Row(ITEM, label, desc, control, null, 40f);
+    }
+
+    /** A compact tree feature. Children become physically absent while any ancestor is closed. */
+    static Row treeFeature(String id, String parentId, int depth, boolean hasChildren, boolean initiallyOpen,
+                           String label, String desc, Widget control) {
+        Row row = new Row(TREE, label, desc, control, null, 42f);
+        row.treeId = id;
+        row.treeParentId = parentId;
+        row.treeDepth = Math.max(0, depth);
+        row.treeHasChildren = hasChildren;
+        row.treeInitiallyOpen = initiallyOpen;
+        return row;
     }
 
     static Row custom(float height, Painter painter) {

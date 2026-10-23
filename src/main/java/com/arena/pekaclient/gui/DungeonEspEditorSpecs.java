@@ -1,0 +1,271 @@
+package com.arena.pekaclient.gui;
+
+import com.arena.pekaclient.config.DungeonEspSettings;
+import com.arena.pekaclient.widget.AppleDropdown;
+import com.arena.pekaclient.widget.AppleSlider;
+import com.arena.pekaclient.widget.AppleToggle;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.GuiScreen;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/** Focused Feature Settings Editor specifications for the existing Dungeon ESP configuration schema. */
+public final class DungeonEspEditorSpecs {
+    private static final StyleClipboard CLIPBOARD = new StyleClipboard();
+
+    private DungeonEspEditorSpecs() { }
+
+    public static FeatureSettingsEditorScreen mobEditor(GuiScreen parent) {
+        return new FeatureSettingsEditorScreen(parent, mobSpec());
+    }
+
+    public static FeatureSettingsEditorScreen mobEditor(GuiScreen parent, String categoryId) {
+        return new FeatureSettingsEditorScreen(parent, mobSpec(), categoryId);
+    }
+
+    public static FeatureSettingsEditorScreen doorEditor(GuiScreen parent) {
+        return new FeatureSettingsEditorScreen(parent, doorSpec());
+    }
+
+    public static FeatureSettingsEditorScreen doorEditor(GuiScreen parent, String categoryId) {
+        return new FeatureSettingsEditorScreen(parent, doorSpec(), categoryId);
+    }
+
+    private static FeatureSettingsEditorScreen.Spec mobSpec() {
+        List<FeatureSettingsEditorScreen.Category> categories = new ArrayList<FeatureSettingsEditorScreen.Category>();
+        categories.add(category("global", "Global", "Master, scan limits and presets"));
+        categories.add(category("starred", "Starred Mob", "Standard starred dungeon mobs"));
+        categories.add(category("miniboss", "Miniboss", "Dungeon miniboss hitboxes"));
+        categories.add(category("special", "Special Starred Mob", "Named special starred enemies"));
+        categories.add(category("enderman", "Enderman", "Real and head-marker Endermen"));
+        categories.add(category("skeletor", "Skeletor", "Starred Skeletors"));
+        categories.add(category("other", "Other Mobs", "Optional room-wide hostile coverage"));
+        return new FeatureSettingsEditorScreen.Spec("mob-esp", "Mob ESP Settings",
+                "Choose a category on the left. Changes apply immediately.", categories,
+                DungeonEspEditorSpecs::buildMobEntries, DungeonEspEditorSpecs::previewMob,
+                DungeonEspSettings::resetDefaults);
+    }
+
+    private static FeatureSettingsEditorScreen.Spec doorSpec() {
+        List<FeatureSettingsEditorScreen.Category> categories = new ArrayList<FeatureSettingsEditorScreen.Category>();
+        categories.add(category("global", "Global", "Master, scanning and reset"));
+        categories.add(category("wither", "Wither Doors", "Closed wither door style"));
+        categories.add(category("blood", "Blood Doors", "Blood door filter and shared style"));
+        return new FeatureSettingsEditorScreen.Spec("door-esp", "Door ESP Settings",
+                "Closed-door settings are cached and use the live ESP style.", categories,
+                DungeonEspEditorSpecs::buildDoorEntries, DungeonEspEditorSpecs::previewDoor,
+                DungeonEspSettings::resetDefaults);
+    }
+
+    private static FeatureSettingsEditorScreen.Category category(String id, String title, String description) {
+        return new FeatureSettingsEditorScreen.Category(id, title, description);
+    }
+
+    private static void buildMobEntries(FeatureSettingsEditorScreen.Category category,
+                                        List<FeatureSettingsEditorScreen.Entry> entries) {
+        if ("global".equals(category.id)) {
+            addGlobalMob(entries);
+            return;
+        }
+        DungeonEspSettings.Style style = mobStyle(category.id);
+        if (style == null) return;
+        entries.add(new FeatureSettingsEditorScreen.Entry("Enable " + category.title + " ESP",
+                "Keeps this category out of the live cached render batch when off.",
+                new AppleToggle(() -> style.enabled, value -> style.enabled = value)));
+        addStyleEntries(entries, style, category.title, true);
+        if ("other".equals(category.id)) {
+            entries.add(new FeatureSettingsEditorScreen.Entry("Force Render All Mobs in Room",
+                    "Off by default. Caches eligible hostiles in the room or ESP range.",
+                    new AppleToggle(() -> DungeonEspSettings.forceRenderAllMobs,
+                            value -> DungeonEspSettings.forceRenderAllMobs = value)));
+            entries.add(new FeatureSettingsEditorScreen.Entry("Include Bats",
+                    "Only applies while force-rendering room mobs.",
+                    new AppleToggle(() -> DungeonEspSettings.includeBats,
+                            value -> DungeonEspSettings.includeBats = value)));
+            entries.add(new FeatureSettingsEditorScreen.Entry("Include Invisible Mobs",
+                    "Only applies while force-rendering room mobs.",
+                    new AppleToggle(() -> DungeonEspSettings.includeInvisibleMobs,
+                            value -> DungeonEspSettings.includeInvisibleMobs = value)));
+        }
+    }
+
+    private static void addGlobalMob(List<FeatureSettingsEditorScreen.Entry> entries) {
+        entries.add(new FeatureSettingsEditorScreen.Entry("Enable Dungeon ESP",
+                "Master switch for cached dungeon mob and door ESP.",
+                new AppleToggle(() -> DungeonEspSettings.enabled, value -> DungeonEspSettings.enabled = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Maximum ESP Distance",
+                "Scan only entities and doors inside this block range.", slider(DungeonEspSettings.MIN_DISTANCE,
+                DungeonEspSettings.MAX_DISTANCE, 1, " blocks", () -> DungeonEspSettings.maxDistance,
+                value -> DungeonEspSettings.maxDistance = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Update Interval",
+                "Cached entity scan period; lower values react faster.", slider(DungeonEspSettings.MIN_INTERVAL_TICKS,
+                DungeonEspSettings.MAX_INTERVAL_TICKS, 1, " ticks", () -> DungeonEspSettings.updateIntervalTicks,
+                value -> DungeonEspSettings.updateIntervalTicks = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Hide Zero-Health Mobs",
+                "Drop a cached living target when its scanned health is zero.",
+                new AppleToggle(() -> DungeonEspSettings.hideZeroHealth, value -> DungeonEspSettings.hideZeroHealth = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Tracers",
+                "Draw a world-space line from you to each tracked mob.",
+                new AppleToggle(() -> DungeonEspSettings.tracers, value -> DungeonEspSettings.tracers = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Distance Text",
+                "Show rounded block distance above tracked mob hitboxes.",
+                new AppleToggle(() -> DungeonEspSettings.distanceText, value -> DungeonEspSettings.distanceText = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Maximum Boxes",
+                "Cap displayed mob hitboxes without dropping the tracker cache.", slider(DungeonEspSettings.MIN_BOXES,
+                DungeonEspSettings.MAX_BOXES, 1, "", () -> DungeonEspSettings.maxBoxes,
+                value -> DungeonEspSettings.maxBoxes = value)));
+        entries.add(FeatureSettingsEditorScreen.Entry.action("Default Preset",
+                "Restore high-visibility default colors, fills and scan settings.", "Apply Default",
+                DungeonEspSettings::applyDefaultPreset));
+        entries.add(FeatureSettingsEditorScreen.Entry.action("Subtle Preset",
+                "Use depth-tested outlines with lower opacity and no fills.", "Apply Subtle",
+                DungeonEspSettings::applySubtlePreset));
+        entries.add(FeatureSettingsEditorScreen.Entry.action("Reset Dungeon ESP",
+                "Restore every Dungeon ESP control to the Default preset.", "Reset", DungeonEspSettings::resetDefaults));
+    }
+
+    private static void buildDoorEntries(FeatureSettingsEditorScreen.Category category,
+                                         List<FeatureSettingsEditorScreen.Entry> entries) {
+        if ("global".equals(category.id)) {
+            entries.add(new FeatureSettingsEditorScreen.Entry("Show Closed Doors",
+                    "Scan cached closed wither and blood doors once per second.",
+                    new AppleToggle(() -> DungeonEspSettings.doorsEnabled, value -> DungeonEspSettings.doorsEnabled = value)));
+            entries.add(new FeatureSettingsEditorScreen.Entry("Door Scope",
+                    "Render the nearest closed door or every cached closed door.",
+                    new AppleDropdown(DungeonEspSettings.DOOR_SCOPE_NAMES, null, 150f, 24f,
+                            () -> DungeonEspSettings.doorScope, value -> DungeonEspSettings.doorScope = value)));
+            entries.add(new FeatureSettingsEditorScreen.Entry("Only With a Wither Key",
+                    "Hide cached doors until a Wither Key is in your inventory.",
+                    new AppleToggle(() -> DungeonEspSettings.doorOnlyWhenKey,
+                            value -> DungeonEspSettings.doorOnlyWhenKey = value)));
+            entries.add(new FeatureSettingsEditorScreen.Entry("Door Distance Text",
+                    "Show rounded block distance above cached closed doors.",
+                    new AppleToggle(() -> DungeonEspSettings.doorDistanceText,
+                            value -> DungeonEspSettings.doorDistanceText = value)));
+            entries.add(FeatureSettingsEditorScreen.Entry.action("Default Preset",
+                    "Restore the full Dungeon ESP default including doors.", "Apply Default",
+                    DungeonEspSettings::applyDefaultPreset));
+            entries.add(FeatureSettingsEditorScreen.Entry.action("Subtle Preset",
+                    "Use the depth-tested low-noise Dungeon ESP preset.", "Apply Subtle",
+                    DungeonEspSettings::applySubtlePreset));
+            entries.add(FeatureSettingsEditorScreen.Entry.action("Reset Door ESP",
+                    "Restore the existing shared Dungeon ESP defaults.", "Reset", DungeonEspSettings::resetDefaults));
+            return;
+        }
+        if ("blood".equals(category.id)) {
+            entries.add(new FeatureSettingsEditorScreen.Entry("Blood Doors",
+                    "Include cached red-clay blood doors.", new AppleToggle(() -> DungeonEspSettings.showBloodDoors,
+                    value -> DungeonEspSettings.showBloodDoors = value)));
+            entries.add(new FeatureSettingsEditorScreen.Entry("Blood Door Color",
+                    "Color used for blood door boxes; opacity stays in the shared style.", colorDropdown(
+                    () -> DungeonEspSettings.colorIndex(DungeonEspSettings.bloodDoorColor),
+                    value -> DungeonEspSettings.bloodDoorColor = DungeonEspSettings.colorForIndex(value))));
+            addStyleEntries(entries, DungeonEspSettings.doors, "Shared Door", true);
+            return;
+        }
+        entries.add(new FeatureSettingsEditorScreen.Entry("Enable Door Style",
+                "The existing shared door style gates both wither and blood cached boxes.",
+                new AppleToggle(() -> DungeonEspSettings.doors.enabled, value -> DungeonEspSettings.doors.enabled = value)));
+        addStyleEntries(entries, DungeonEspSettings.doors, "Wither Door", true);
+    }
+
+    /** Adds the complete existing Style schema with the regular palette dropdown rather than a bespoke color UI. */
+    private static void addStyleEntries(List<FeatureSettingsEditorScreen.Entry> entries,
+                                        final DungeonEspSettings.Style style, String label, boolean clipboard) {
+        final String lower = label.toLowerCase(java.util.Locale.ROOT);
+        entries.add(new FeatureSettingsEditorScreen.Entry(label + " Color",
+                "Choose the " + lower + " ESP color.", colorDropdown(
+                () -> DungeonEspSettings.colorIndex(style.color), value -> style.color = DungeonEspSettings.colorForIndex(value))));
+        entries.add(new FeatureSettingsEditorScreen.Entry(label + " Render Mode",
+                "Draw an outline, filled hitbox, or both.", new AppleDropdown(DungeonEspSettings.MODE_NAMES, null,
+                150f, 24f, () -> style.mode, value -> style.mode = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry(label + " Through Walls",
+                "Keep this category visible behind dungeon blocks.",
+                new AppleToggle(() -> style.throughWalls, value -> style.throughWalls = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry(label + " Outline Width",
+                "Set world-space outline thickness.", slider(DungeonEspSettings.MIN_WIDTH, DungeonEspSettings.MAX_WIDTH,
+                1, " px", () -> style.outlineWidth, value -> style.outlineWidth = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry(label + " Outline Opacity",
+                "Set opacity for hitbox edges.", slider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY,
+                5, "%", () -> style.outlineOpacity, value -> style.outlineOpacity = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry(label + " Fill Opacity",
+                "Set opacity for hitbox faces.", slider(DungeonEspSettings.MIN_OPACITY, DungeonEspSettings.MAX_OPACITY,
+                5, "%", () -> style.fillOpacity, value -> style.fillOpacity = value)));
+        if (clipboard) {
+            entries.add(FeatureSettingsEditorScreen.Entry.action("Copy " + label + " Style",
+                    "Copy enabled, color, mode, visibility and opacity values for this session.", "Copy",
+                    () -> CLIPBOARD.copy(style)));
+            entries.add(FeatureSettingsEditorScreen.Entry.action("Apply Copied Style",
+                    "Apply the last copied style to this existing category.", "Apply",
+                    () -> CLIPBOARD.apply(style)));
+        }
+    }
+
+    private static AppleSlider slider(int min, int max, int step, String suffix,
+                                      java.util.function.IntSupplier getter, java.util.function.IntConsumer setter) {
+        return new AppleSlider(min, max, step, suffix, 150f, getter, setter);
+    }
+
+    private static AppleDropdown colorDropdown(java.util.function.IntSupplier getter,
+                                               java.util.function.IntConsumer setter) {
+        return new AppleDropdown(DungeonEspSettings.COLOR_NAMES, DungeonEspSettings.COLORS, 150f, 24f, getter, setter);
+    }
+
+    private static DungeonEspSettings.Style mobStyle(String id) {
+        if ("starred".equals(id)) return DungeonEspSettings.starred;
+        if ("miniboss".equals(id)) return DungeonEspSettings.miniboss;
+        if ("special".equals(id)) return DungeonEspSettings.special;
+        if ("enderman".equals(id)) return DungeonEspSettings.enderman;
+        if ("skeletor".equals(id)) return DungeonEspSettings.skeletor;
+        if ("other".equals(id)) return DungeonEspSettings.otherMobs;
+        return null;
+    }
+
+    private static void previewMob(String category, float x, float y, float width, float height, FontRenderer font) {
+        DungeonEspSettings.Style style = mobStyle(category);
+        DungeonEspPreviewRenderer.drawMob(category, style == null ? DungeonEspSettings.starred : style,
+                x, y, width, height, font);
+    }
+
+    private static void previewDoor(String category, float x, float y, float width, float height, FontRenderer font) {
+        int color = "blood".equals(category) ? DungeonEspSettings.bloodDoorColor : DungeonEspSettings.doors.color;
+        DungeonEspPreviewRenderer.drawDoor(category, DungeonEspSettings.doors, color, x, y, width, height, font);
+    }
+
+    /** Session-only clipboard: no feature config key or behavior is added. */
+    private static final class StyleClipboard {
+        private boolean hasValue;
+        private boolean enabled;
+        private int color;
+        private int mode;
+        private boolean throughWalls;
+        private int outlineWidth;
+        private int outlineOpacity;
+        private int fillOpacity;
+
+        void copy(DungeonEspSettings.Style style) {
+            if (style == null) return;
+            hasValue = true;
+            enabled = style.enabled;
+            color = style.color;
+            mode = style.mode;
+            throughWalls = style.throughWalls;
+            outlineWidth = style.outlineWidth;
+            outlineOpacity = style.outlineOpacity;
+            fillOpacity = style.fillOpacity;
+        }
+
+        void apply(DungeonEspSettings.Style style) {
+            if (!hasValue || style == null) return;
+            style.enabled = enabled;
+            style.color = color;
+            style.mode = mode;
+            style.throughWalls = throughWalls;
+            style.outlineWidth = outlineWidth;
+            style.outlineOpacity = outlineOpacity;
+            style.fillOpacity = fillOpacity;
+            DungeonEspSettings.normalize();
+        }
+    }
+}
