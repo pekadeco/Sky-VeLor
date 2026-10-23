@@ -63,6 +63,9 @@ REQUIRED_CLASSES = [
     'feature/ChatSurfaceRenderer',
     'command/ItemDebugCommand',
     'command/SvCommand',
+    'gui/AppleSettingsScreen',
+    'gui/ReferenceSettingsCatalog',
+    # Retained only as a binary-compatible alias; it must not be the visible entry point.
     'gui/AppleHubScreen',
     'gui/FeatureUiState',
     'gui/Row',
@@ -463,10 +466,13 @@ def main():
         return zf.read(path) if path in names else b''
 
     # --- Assist and retained migration proof --------------------------------
-    # Presence alone is not enough: these checks tie the persisted safe-default controls, Hub labels,
+    # Presence alone is not enough: these checks tie persisted safe-default controls, reference-shell labels,
     # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
     assist_settings_raw = raw_of('config/AssistSettings')
-    assist_hub_raw = raw_of('gui/AppleHubScreen')
+    settings_screen_raw = raw_of('gui/AppleSettingsScreen')
+    reference_catalog_raw = raw_of('gui/ReferenceSettingsCatalog')
+    # Labels/data live in the immutable catalog while interaction owners live in the native screen.
+    settings_surface_raw = settings_screen_raw + reference_catalog_raw
     feature_editors_raw = raw_of('gui/FeatureSettingsEditors')
     sync_client_raw = raw_of('assist/sync/DungeonSyncClient')
     sync_messages_raw = raw_of('assist/sync/DungeonSyncMessages')
@@ -478,13 +484,13 @@ def main():
                  b'assist.dungeon.sync.endpoint', b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier'))
                 and b'itemGuard' not in assist_settings_raw,
             'AssistSettings packages bounded Hurt Camera Shake plus retained inventory, movement, terminal, and sync controls')
-    r.check(b'FeatureSettingsEditors' in assist_hub_raw and b'Dungeon Sync' in assist_hub_raw
-                and b'Hurt Camera Shake' in assist_hub_raw and b'Auto Sprint' in assist_hub_raw
+    r.check(b'FeatureSettingsEditors' in settings_screen_raw and b'Dungeon Sync' in settings_surface_raw
+                and b'Hurt Camera Shake' in settings_surface_raw and b'Sprint while holding forward' in settings_surface_raw
                 and b'Auto Sprint' not in feature_editors_raw
-                and b'Item Protection' not in assist_hub_raw and b'Item Protection' not in feature_editors_raw
+                and b'Item Protection' not in settings_surface_raw and b'Item Protection' not in feature_editors_raw
                 and all(value in feature_editors_raw for value in
                         (b'Pickaxe Ability Ready Alert', b'Terminal Auto Click', b'Terminal Waypoints')),
-            'compact Hub exposes the direct shake slider/Auto Sprint and has no retired Item Protection route')
+            'reference settings shell exposes direct shake/sprint controls and has no retired Item Protection route')
     r.check(all(value in sync_client_raw for value in
                 (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
@@ -506,8 +512,8 @@ def main():
     selftest_raw = raw_of('command/SvCommand')
     # The narrow transformer carries the explicit EntityRenderer aliases/float descriptor and calls one owned
     # amplitude helper. The persisted percentage stays in AssistSettings; no player hurt-time fallback is allowed.
-    shake_ui = (b'assist.visual.hurtCameraShake' in assist_settings_raw and b'Hurt Camera Shake' in assist_hub_raw
-                and b'No Hurt Cam' not in assist_hub_raw and b'No Hurt Camera' not in feature_editors_raw)
+    shake_ui = (b'assist.visual.hurtCameraShake' in assist_settings_raw and b'Hurt Camera Shake' in settings_surface_raw
+                and b'No Hurt Cam' not in settings_surface_raw and b'No Hurt Camera' not in feature_editors_raw)
     shake_hook_tokens = tuple(value in visual_transformer_raw for value in
                               (b'bfk', b'(F)V', b'VisualAssistHooks'))
     shake_hook = all(shake_hook_tokens) and all(value in visual_hooks_raw for value in
@@ -522,7 +528,7 @@ def main():
             (shake_ui, shake_hook, shake_hook_tokens, shake_no_fallback, shake_status))
     auto_sprint_raw = raw_of('assist/movement/AutoSprintController')
     auto_sprint_policy_raw = raw_of('assist/movement/AutoSprintPolicy')
-    r.check(b'assist.movement.autoSprint' in assist_settings_raw and b'Auto Sprint' in assist_hub_raw
+    r.check(b'assist.movement.autoSprint' in assist_settings_raw and b'Sprint while holding forward' in settings_surface_raw
                 and b'Sprints automatically while you hold forward.' in raw_of('gui/QualityOfLifeUiModel')
                 and b'Auto Sprint' not in feature_editors_raw
                 # Minecraft members are SRG-renamed by reobfJar. The static KeyBinding setter is func_74510_a;
@@ -541,7 +547,6 @@ def main():
     esp_controller_raw = raw_of('dungeonesp/DungeonEspController')
     esp_tracker_raw = raw_of('dungeonesp/DungeonEspTracker')
     esp_command_raw = raw_of('command/ItemDebugCommand')
-    hub_raw = raw_of('gui/AppleHubScreen')
     esp_editor_raw = raw_of('gui/DungeonEspEditorSpecs')
     esp_preview_raw = raw_of('gui/DungeonEspPreviewRenderer')
     esp_batch_raw = raw_of('dungeonesp/DungeonEspRenderBatch')
@@ -557,7 +562,7 @@ def main():
                 ('Mob ESP', 'Door ESP', 'Performance', 'Presets', 'Force Render All Mobs in Room', 'Enderman',
                  'Skeletor', 'Other Mobs')),
             'DungeonEspUiModel retains the pre-flat option inventory for reachability coverage')
-    r.check(all(value in hub_raw for value in (b'Mob ESP', b'Door ESP'))
+    r.check(all(value in settings_surface_raw for value in (b'Mob highlights', b'Door highlights'))
                 and all(value in esp_editor_raw for value in
                         (b'Enable Dungeon ESP', b'Force Render All Mobs in Room', b'Wither Door',
                          b'Blood Door Color', b'Default Preset', b'Subtle Preset', b'Apply Copied Style',
@@ -589,7 +594,7 @@ def main():
             'DungeonEspTracker packages fixed storage, split tags, Skeletor, force filtering, and no identity sets')
 
     # --- Item Animation GUI reachability and ownership proof -----------------
-    # A standalone Item Animation class is not enough: the Quality of Life Hub route and the renderer panel must
+    # A standalone Item Animation class is not enough: the Gameplay/Visuals reference route and the renderer panel must
     # both reference the same model, without recreating renderer controls in the main expandable menu.
     ui_constants = constants_of('gui/ItemAnimationUiModel')
     r.check(all(value in ui_constants for value in
@@ -607,24 +612,21 @@ def main():
     model_ref = b'com/arena/pekaclient/gui/ItemAnimationUiModel'
     audit_ref = b'com/arena/pekaclient/gui/GuiSettingsAuditModel'
     layout_ref = b'com/arena/pekaclient/gui/HudEditorLayout'
-    hub_raw = raw_of('gui/AppleHubScreen')
-    hub_members = members_of('gui/AppleHubScreen')
     flat_model_raw = raw_of('gui/FeatureSettingsUiModel')
-    r.check(b'HudEditorScreen' in hub_raw and b'AppleToggle' in hub_raw and b'AppleButton' in hub_raw
-                and b'AppleSlider' in hub_raw and audit_ref in hub_raw and model_ref in hub_raw
-                and model_ref in raw_of('gui/HudEditorScreen')
-                and all(value in flat_model_raw for value in (b'simple', b'slider', b'editor-route', b'editor-button',
-                                                               b'Hurt Camera Shake', b'Mob ESP', b'Door ESP',
-                                                               b'Item Animation', b'HUD Hub Editor', b'HUD Editor', b'Open'))
-                and all(value in hub_raw for value in
-                        (b'Quality of Life', b'HUD Hub Editor', b'HUD Editor', b'STATS'))
+    r.check(b'HudEditorScreen' in settings_screen_raw and b'AppleToggle' in settings_screen_raw
+                and b'AppleButton' in settings_screen_raw and b'AppleSlider' in settings_screen_raw
+                and b'ReferenceSettingsCatalog' in settings_screen_raw
+                and all(value in flat_model_raw for value in
+                        (b'simple', b'slider', b'editor-route', b'editor-button'))
+                and all(value in settings_surface_raw for value in
+                        (b'Home', b'Gameplay', b'Dungeon', b'Visuals', b'System', b'HUD', b'HUD Editor', b'Stats Display'))
                 and b'Item Animation' in raw_of('gui/ItemAnimationUiModel')
                 and b'Stats Display' in raw_of('gui/GuiSettingsAuditModel')
-                and all(value not in hub_raw for value in
+                and all(value not in settings_screen_raw for value in
                         (b'PAGE_NAMES', b'drawSidebar', b'drawTabs', b'FeatureRowControl', b'FeatureTreeLayout')),
-            'single expandable Hub keeps direct shake/routes, Item Animation in Quality of Life, and distinct HUD editor access')
-    r.check(b'HudSettingsBuilder' not in hub_raw,
-            'AppleHubScreen keeps HUD customization in the HUD editor rather than duplicating it in the Hub')
+            'reference rail keeps direct controls, inline Item Animation details, and distinct HUD editor access')
+    r.check(b'HudSettingsBuilder' not in settings_screen_raw,
+            'reference shell keeps HUD customization in the HUD editor rather than duplicating it')
     feature_editor_titles_raw = raw_of('gui/FeatureSettingsEditors')
     hud_editor_titles_raw = raw_of('gui/HudEditorScreen')
     chat_editor_titles_raw = raw_of('gui/ChatEditorScreen')
@@ -649,7 +651,7 @@ def main():
     hud_manager_raw = raw_of('hud/HudManager')
     stats_hud_raw = raw_of('hud/StatsHud')
     stats_text_raw = raw_of('hud/StatsHudText')
-    r.check(b'ClientMetrics' in hub_raw and b'GeneralMetricsLayout' in hub_raw
+    r.check(b'ClientMetrics' in settings_screen_raw and b'Client metrics' in reference_catalog_raw
                 and len(metric_raw) > 0 and len(metric_compat_raw) > 0 and len(metric_layout_raw) > 0
                 and MOD_PACKAGE + 'hud/ClientMetricHud.class' not in names
                 and b'ClientMetricHud' not in hud_manager_raw and b'FPS_DISPLAY' not in hud_manager_raw
@@ -661,12 +663,12 @@ def main():
                          b'CARD_WIDTH', b'CARD_HEIGHT', b'CARD_GAP', b'CARD_CUT',
                          b'CARD_SHADOW_OFFSET_X', b'CARD_SHADOW_OFFSET_Y'))
                 and all(value in stats_text_raw for value in (b' fps', b' BPS', b' MB')),
-            'General keeps GUI-only telemetry while only restored Frame Rate/Mining/Memory Stats Display renders in-game metrics and migrates legacy visibility')
+            'System Diagnostics keeps GUI-only telemetry while only restored Frame Rate/Mining/Memory Stats Display renders in-game metrics and migrates legacy visibility')
     r.check(MOD_PACKAGE + 'hud/DollarsHud.class' not in names and MOD_PACKAGE + 'hud/BalanceSource.class' not in names
                 and b'DollarsHud' not in hud_manager_raw and b'BalanceSource' not in hud_manager_raw,
             'Player Dollars HUD and manual balance source have no packaged runtime route')
     r.check(MOD_PACKAGE + 'hud/HotbarHud.class' not in names and b'HotbarHud' not in hud_manager_raw
-                and b'HOTBAR' not in hub_raw and b'hud-hotbar' not in flat_model_raw
+                and b'HOTBAR' not in settings_surface_raw and b'hud-hotbar' not in flat_model_raw
                 and b'hotbar' not in raw_of('gui/GuiSettingsAuditModel'),
             'retired Hotbar HUD customization, slot highlight and panel background have no packaged route')
     editor_members = members_of('gui/HudEditorScreen')
@@ -791,20 +793,21 @@ def main():
                 and b'COUNTER_LINE_ID' not in compact_raw
                 and any('(x' in value for value in compact_constants),
             'Compact Messages packages exact unique-group replacement, closed/open visibility audit, and editor colour')
-    r.check(all(value not in hub_raw and value not in chat_editor_raw for value in
+    r.check(all(value not in settings_surface_raw and value not in chat_editor_raw for value in
                 (b'FontsScreen', b'FontSettings', b'GlobalFontManager', b'custom font')),
             'Hub and Chat Settings have no custom-font route or renderer hook')
-    r.check(b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw
-                and b'Enable Chat QoL' in chat_editor_raw and b'Use chat tabs' in chat_editor_raw,
-            'compact Hub routes Chat QoL through Chat Settings including its feature-level switches')
-    r.check(all(value not in hub_raw for value in
+    r.check(b'com/arena/pekaclient/gui/ChatEditorScreen' in settings_screen_raw
+                and b'Chat QoL' in reference_catalog_raw and b'Enable Chat QoL' in chat_editor_raw
+                and b'Use chat tabs' in chat_editor_raw,
+            'reference Gameplay card routes Chat QoL through Chat Settings including its feature-level switches')
+    r.check(all(value not in settings_surface_raw for value in
                 (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
-            'AppleHubScreen has no retired external animation or duplicate chat customization controls')
-    r.check(all(value in hub_raw for value in
+            'reference settings shell has no retired external animation or duplicate chat customization controls')
+    r.check(all(value in settings_screen_raw for value in
                 (b'GuiLayoutToolkit', b'FeatureSettingsEditors')) and b'modSettings' in feature_editors_raw,
-            'AppleHubScreen uses shared clamped geometry and routes Mod Settings through the shared editor framework')
+            'reference shell uses shared clamped geometry and routes Mod Settings through the shared editor framework')
     r.check(all(b'GuiLayoutToolkit' in raw_of(cls) for cls in
-                ('gui/AppleHubScreen', 'gui/HudEditorScreen', 'gui/ChatEditorScreen',
+                ('gui/AppleSettingsScreen', 'gui/HudEditorScreen', 'gui/ChatEditorScreen',
                  'gui/LoadingScreen', 'notes/QuickNoteScreen')),
             'every production Sky VeLor screen packages the shared layout toolkit')
     client_raw = raw_of('PekaClientMod')
@@ -813,30 +816,28 @@ def main():
             'PekaClientMod registers native Chat QoL and its optional cycle/editor keybindings')
 
     # The gameplay wheel guard is deliberately one narrow MouseEvent predicate. Its default-off control and the
-    # default-on particle filter live only in the expandable Quality of Life section; scroll controls remain in Mod Settings.
+    # default-on particle filter live in the reference Gameplay / Comfort card; scroll controls remain in System.
     mod_settings_raw = raw_of('gui/ModSettingsScreen')
     quality_ui_constants = constants_of('gui/QualityOfLifeUiModel')
     quality_ui_raw = raw_of('gui/QualityOfLifeUiModel')
     mod_ui_constants = constants_of('gui/ModSettingsUiModel')
     apple_constants = constants_of('config/AppleSettings')
     r.check(b'HotbarScrollPolicy' in client_raw and 'shouldCancel' in members_of('PekaClientMod')
-                and all(value in quality_ui_constants for value in
-                        ('Quality of Life', 'No Hotbar Scrolling', 'No block particles'))
+                and all(value in reference_catalog_raw for value in
+                        (b'Comfort', b'Lock hotbar to keys', b'Quiet block particles'))
                 and 'mouse.disableHotbarScrolling' in apple_constants,
-            'Quality of Life owns the default-off gameplay hotbar wheel guard and default-on block-particle filter')
+            'Gameplay Comfort owns the default-off gameplay hotbar wheel guard and default-on block-particle filter')
     r.check(all(value in mod_ui_constants for value in ('Scroll speed', 'Smooth scrolling'))
                 and 'Item Animation' not in mod_ui_constants and 'Chat QoL master' not in mod_ui_constants
                 and b'com/arena/pekaclient/gui/ModSettingsUiModel' in mod_settings_raw
                 and b'ChatQolSettings' not in mod_settings_raw and b'itemAnimationEnabled' not in mod_settings_raw,
-            'Mod Settings is scroll-only and carries neither duplicate Item Animation nor Chat QoL master control')
-    r.check(b'com/arena/pekaclient/gui/QualityOfLifeUiModel' in hub_raw
-                and b'No Hotbar Scrolling' in quality_ui_raw and b'Disable Hotbar Scrolling' not in quality_ui_raw
-                and b'Hurt Camera Shake' in quality_ui_raw and b'No Hurt Cam' not in quality_ui_raw
+            'focused Mod Settings remains scroll-only and carries neither duplicate Item Animation nor Chat QoL master control')
+    r.check(b'No Hotbar Scrolling' in quality_ui_raw and b'Disable Hotbar Scrolling' not in quality_ui_raw
+                and b'Hurt Camera Shake' in reference_catalog_raw and b'No Hurt Cam' not in reference_catalog_raw
                 and b'No block particles' not in mod_settings_raw
-                and 'Quality of Life' in quality_ui_constants
-                and b'com/arena/pekaclient/gui/ItemAnimationUiModel' in hub_raw
+                and b'Item Animation' in reference_catalog_raw
                 and b'Item Animation' in raw_of('gui/ItemAnimationUiModel'),
-            'Quality of Life keeps direct toggle/percentage rows and a named non-duplicated Item Animation route')
+            'Gameplay keeps direct toggle/percentage rows and Visuals keeps a named non-duplicated Item Animation route')
 
     # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
     # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.
@@ -936,8 +937,8 @@ def main():
             'CorruptedHP profile excludes Water Hydra/Reindrake while retaining Yeti and Lord Jawbus labels')
     fishing_ui_constants = constants_of('gui/FishingUiModel')
     r.check('Nearby encounter titles' in fishing_ui_constants
-                and b'Nearby Encounters' in hub_raw and b'Catch Counter Settings' in feature_editors_raw,
-            'expandable Fishing rows keep nearby encounter alerts simple and route counters to their editor')
+                and b'Nearby encounters' in reference_catalog_raw and b'Catch Counter Settings' in feature_editors_raw,
+            'Gameplay Skills keeps nearby encounter alerts and routes counters to their focused editor')
 
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at

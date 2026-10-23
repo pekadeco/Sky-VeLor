@@ -32,6 +32,55 @@ public final class Theme {
     private Theme() {
     }
 
+    /**
+     * Applies the graphite/frost surface palette from the native reference settings shell.  It deliberately reuses
+     * the persisted Sky VeLor accent, radius and opacity controls rather than introducing a second appearance
+     * schema. Call {@link #refresh()} after leaving that shell so focused legacy editors retain their own palette.
+     */
+    public static void applyReferenceSettingsPalette() {
+        int glass = Math.round(AppleSettings.effectiveGlassOpacity() * 2.55f);
+        radius = AppleSettings.effectiveCornerRadius();
+        accent = AppleSettings.accentColor();
+        animations = AppleSettings.animations;
+        speed = AppleSettings.effectiveAnimSpeed() / 100f;
+
+        if (AppleSettings.darkMode) {
+            // DeepSeek reference Graphite: forest-black chrome, graphite cards and low-contrast green lines.
+            windowTop = (glass << 24) | 0x0D1410;
+            windowBottom = (glass << 24) | 0x0C120E;
+            card = 0xFF131B16;
+            cardHover = 0xFF1A2620;
+            buttonFill = 0xFF1A2620;
+            buttonHover = 0xFF233129;
+            border = 0xFF233129;
+            divider = 0xFF233129;
+            track = 0xFF2C3A32;
+            segSelected = 0xFF1A2620;
+            popup = 0xFF131B16;
+            veil = 0x50000000;
+            textPrimary = 0xFFE9F2EC;
+            textSecondary = 0xFF8BA095;
+            textTertiary = 0xFF6F8979;
+        } else {
+            // DeepSeek reference Frost: quiet neutral surfaces rather than pure-white slabs.
+            windowTop = (glass << 24) | 0xF6F7F8;
+            windowBottom = (glass << 24) | 0xECEEF0;
+            card = 0xFFFFFFFF;
+            cardHover = 0xFFF2F4F5;
+            buttonFill = 0xFFE9ECEE;
+            buttonHover = 0xFFDDE2E4;
+            border = 0xFFDDE3E6;
+            divider = 0xFFDDE3E6;
+            track = 0xFFD6DADC;
+            segSelected = 0xFFF2F4F5;
+            popup = 0xFFFFFFFF;
+            veil = 0x26000000;
+            textPrimary = 0xFF1B1F1D;
+            textSecondary = 0xFF6B7370;
+            textTertiary = 0xFF6B7370;
+        }
+    }
+
     public static void refresh() {
         int glass = Math.round(AppleSettings.effectiveGlassOpacity() * 2.55f);
         radius = AppleSettings.effectiveCornerRadius();

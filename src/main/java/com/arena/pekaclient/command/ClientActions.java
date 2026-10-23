@@ -1,6 +1,6 @@
 package com.arena.pekaclient.command;
 
-import com.arena.pekaclient.gui.AppleHubScreen;
+import com.arena.pekaclient.gui.AppleSettingsScreen;
 import com.arena.pekaclient.gui.ChatEditorScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.notes.QuickNoteScreen;
@@ -56,7 +56,7 @@ public final class ClientActions {
             mc.displayGuiScreen(new ChatEditorScreen(null));
         } else if (hubPending) {
             hubPending = false;
-            mc.displayGuiScreen(new AppleHubScreen(null));
+            mc.displayGuiScreen(new AppleSettingsScreen(null));
         } else if (notesPending) {
             notesPending = false;
             mc.displayGuiScreen(new QuickNoteScreen(QuickNotes.store(), null));

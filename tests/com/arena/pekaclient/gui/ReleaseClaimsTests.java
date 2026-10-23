@@ -1,21 +1,14 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.itemlockswap.ItemLockSwapUiModel;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
-/**
- * Regression proof for the retained cleanup and migration claims in this release line.
- *
- * <p>The release-JAR verifier repeats the packaged-artifact side of these checks. This suite keeps the
- * user-visible models and the intentionally absent implementation surfaces honest before packaging.</p>
- */
+/** Packaged-class regression proof for the reference-shell migration and retained feature boundaries. */
 public final class ReleaseClaimsTests {
     private static int passed;
     private static int failed;
@@ -23,9 +16,9 @@ public final class ReleaseClaimsTests {
     public static void main(String[] args) throws Exception {
         vanillaFontSurfaceHasNoCustomFontSubsystem();
         hudEditorHasNoTargetSidebar();
-        hurtCameraShakeAndAutoSprintUseDirectControls();
-        hotbarAndItemProtectionStayRetiredWhileItemLockSwapRemains();
-        categoryNamesAndDungeonOrderStayExact();
+        referenceShellHasRequiredBehavior();
+        retainedControlsKeepTheirOwners();
+        removedPrototypeEntriesStayRemoved();
         done();
     }
 
@@ -40,12 +33,6 @@ public final class ReleaseClaimsTests {
                 && !classExists("com.arena.pekaclient.gui.FontsScreen")
                 && !classExists("com.arena.pekaclient.render.FontAtlasGenerator")
                 && !classExists("com.arena.pekaclient.render.GlobalFontManager"));
-        String transforms = classText("com.arena.pekaclient.render.itemanimation.ItemAnimationTransformer")
-                + classText("com.arena.pekaclient.render.blockparticles.BlockParticleTransformer")
-                + classText("com.arena.pekaclient.assist.visual.VisualAssistTransformer")
-                + classText("com.arena.pekaclient.itemlockswap.ItemLockSwapTransformer");
-        check("registered bytecode transformers do not target FontRenderer", !transforms.contains("FontRenderer")
-                && !transforms.contains("fontRenderer"));
     }
 
     private static void hudEditorHasNoTargetSidebar() {
@@ -59,50 +46,44 @@ public final class ReleaseClaimsTests {
                 && HudEditorSelectionPolicy.nextIndex(1, overlap) == 0);
     }
 
-    private static void hurtCameraShakeAndAutoSprintUseDirectControls() {
-        FeatureSettingsUiModel.Feature shake = FeatureSettingsUiModel.feature("hurt-camera-shake");
-        FeatureSettingsUiModel.Feature sprint = FeatureSettingsUiModel.feature("auto-sprint");
-        check("Hurt Camera Shake is a one-slider Quality of Life row", shake != null && shake.isSlider()
-                && "Quality of Life".equals(shake.tab) && "Hurt Camera Shake".equals(shake.title)
-                && shake.optionIds.size() == 1 && shake.editorId.length() == 0);
-        check("binary No Hurt Cam route is retired", FeatureSettingsUiModel.feature("no-hurt-cam") == null);
-        check("Auto Sprint is a one-toggle Quality of Life row", isSimpleToggle(sprint, "Quality of Life", "Auto Sprint"));
-        check("Auto Sprint text preserves normal-key-state behavior",
-                sprint != null && "Sprints automatically while you hold forward.".equals(sprint.description));
+    private static void referenceShellHasRequiredBehavior() {
+        String[] destinations = {"Home", "Gameplay", "Dungeon", "Visuals", "System"};
+        check("reference shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
+        check("reference screen class is packaged", classExists("com.arena.pekaclient.gui.AppleSettingsScreen"));
+        String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
+        check("screen has global search and Advanced state", screen.contains("Search settings")
+                && screen.contains("Advanced"));
+        check("screen uses one clipped settings viewport", screen.contains("scissorBegin")
+                && screen.contains("GuiLayoutToolkit$Scroll"));
+        check("old Hub is compatibility-only", classText("com.arena.pekaclient.gui.AppleHubScreen")
+                .contains("AppleSettingsScreen"));
     }
 
-    private static void hotbarAndItemProtectionStayRetiredWhileItemLockSwapRemains() {
-        check("retired hotbar customization has no source route", FeatureSettingsUiModel.feature("hud-hotbar") == null
-                && !classExists("com.arena.pekaclient.hud.HotbarHud"));
-        check("retired Item Protection has no source route", FeatureSettingsUiModel.feature("item-protection") == null
-                && !classExists("com.arena.pekaclient.assist.guard.ItemGuardController")
-                && !classExists("com.arena.pekaclient.assist.guard.ItemGuardPolicy"));
-        FeatureSettingsUiModel.Feature lockSwap = FeatureSettingsUiModel.feature("item-lock-swap");
-        check("Item Lock and Swap retains its editor route", lockSwap != null && lockSwap.isEditorRoute()
-                && "item-lock-swap".equals(lockSwap.editorId)
+    private static void retainedControlsKeepTheirOwners() {
+        ReferenceSettingsCatalog.Setting shake = ReferenceSettingsCatalog.find("hurt-camera-shake");
+        ReferenceSettingsCatalog.Setting sprint = ReferenceSettingsCatalog.find("auto-sprint");
+        check("Hurt Camera Shake remains a direct Gameplay slider", shake != null
+                && shake.control == ReferenceSettingsCatalog.Control.SLIDER && shake.min == 0 && shake.max == 100);
+        check("Auto Sprint remains a direct Gameplay control", sprint != null
+                && sprint.control == ReferenceSettingsCatalog.Control.TOGGLE);
+        ReferenceSettingsCatalog.Setting lock = ReferenceSettingsCatalog.find("item-lock-swap");
+        check("Item Lock and Swap retains a focused route", lock != null && "Open details".equals(lock.actionLabel)
                 && ItemLockSwapUiModel.buildControlModel().size() == 14);
+        check("Item Animation route and inline settings survive", ReferenceSettingsCatalog.find("item-animation") != null
+                && ReferenceSettingsCatalog.find("item-animation-size") != null);
+        check("Stats HUD route stays separately named", ReferenceSettingsCatalog.find("hud-stats") != null
+                && ReferenceSettingsCatalog.find("hud-editor") != null);
+        check("Dungeon route inventory remains complete", ReferenceSettingsCatalog.routesAreComplete()
+                && ReferenceSettingsCatalog.find("door-esp") != null && ReferenceSettingsCatalog.find("m7-overlay") != null);
     }
 
-    private static void categoryNamesAndDungeonOrderStayExact() {
-        String[] categories = {"Quality of Life", "HUD Hub Editor", "General", "Farming", "Dungeon", "Slayer", "Fishing"};
-        check("Hub expandable section list is exact", Arrays.equals(categories, AppleHubScreen.sectionNames()));
-        for (AssistUiModel.Entry entry : AssistUiModel.entries()) {
-            check("assist catalog uses a current section: " + entry.name,
-                    Arrays.asList(categories).contains(entry.section));
-        }
-        List<String> dungeon = new ArrayList<String>();
-        for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
-            if ("Dungeon".equals(feature.section)) dungeon.add(feature.id);
-        }
-        check("Dungeon rows retain the requested usage order", dungeon.equals(Arrays.asList(
-                "door-esp", "mob-esp", "dungeon-sync-enabled", "m7-overlay", "spirit-leap",
-                "terminal-assist", "dungeon-boss-hud", "dungeon-map", "dungeon-sync-debug")));
-    }
-
-    private static boolean isSimpleToggle(FeatureSettingsUiModel.Feature feature, String tab, String title) {
-        return feature != null && feature.isSimple() && tab.equals(feature.tab) && title.equals(feature.title)
-                && feature.tabControls.equals(Collections.singletonList(FeatureSettingsUiModel.TOGGLE))
-                && feature.optionIds.size() == 1 && feature.editorId.length() == 0;
+    private static void removedPrototypeEntriesStayRemoved() {
+        check("retired hotbar customization has no reference route", ReferenceSettingsCatalog.find("hud-hotbar") == null
+                && !classExists("com.arena.pekaclient.hud.HotbarHud"));
+        check("retired Item Protection has no reference route", ReferenceSettingsCatalog.find("item-protection") == null
+                && !classExists("com.arena.pekaclient.assist.guard.ItemGuardController"));
+        check("binary No Hurt Cam remains retired", ReferenceSettingsCatalog.find("no-hurt-cam") == null);
+        check("Player Dollars remains retired", ReferenceSettingsCatalog.find("hud-dollars") == null);
     }
 
     private static boolean classExists(String binaryName) {

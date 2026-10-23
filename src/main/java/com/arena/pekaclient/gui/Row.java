@@ -29,7 +29,7 @@ final class Row {
     final Painter painter;
     final float height;
     float y;
-    /** Measured text column assigned by AppleHubScreen's shared responsive row split. */
+    /** Measured text column retained for legacy focused-editor row layout. */
     float labelX;
     float labelWidth;
 

@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Headless ownership proof for the expandable Quality of Life section and focused editors. */
+/** Headless ownership proof for the Gameplay card and retained focused editors. */
 public final class QualityOfLifeUiModelTests {
 
     private static int passed;
@@ -18,9 +18,9 @@ public final class QualityOfLifeUiModelTests {
         List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
         List<ItemAnimationUiModel.Entry> itemAnimation = ItemAnimationUiModel.buildQualityOfLifeModel();
 
-        check("Quality of Life has its dedicated expandable section label",
-                "Quality of Life".equals(QualityOfLifeUiModel.SECTION_LABEL));
-        check("Quality of Life starts with direct toggle/slider controls", quality.size() == 4
+        check("Gameplay retains the reference Comfort card",
+                "Comfort".equals(ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.GAMEPLAY).get(0).title));
+        check("Comfort starts with direct toggle/slider controls", quality.size() == 4
                 && "no-block-particles".equals(quality.get(0).getId()) && quality.get(0).isToggle()
                 && "disable-hotbar-scrolling".equals(quality.get(1).getId())
                 && "No Hotbar Scrolling".equals(quality.get(1).getLabel())
@@ -28,15 +28,16 @@ public final class QualityOfLifeUiModelTests {
                 && "Hurt Camera Shake".equals(quality.get(2).getLabel())
                 && "auto-sprint".equals(quality.get(3).getId()) && quality.get(3).isToggle()
                 && "Sprints automatically while you hold forward.".equals(quality.get(3).getDescription()));
-        check("Quality of Life direct control ids are not duplicated", uniqueQualityIds(quality));
-        check("Quality of Life is the first expanded Hub section", AppleHubScreen.SECTION_NAMES.length == 7
-                && "Quality of Life".equals(AppleHubScreen.SECTION_NAMES[0])
-                && "HUD Hub Editor".equals(AppleHubScreen.SECTION_NAMES[1]));
-        check("Quality of Life uses only one top-level expansion level", AppleHubScreen.mainExpansionDepth() == 1);
+        check("Comfort direct control ids are not duplicated", uniqueQualityIds(quality));
+        check("reference rail starts at Home then Gameplay", AppleSettingsScreen.destinationNames().length == 5
+                && "Home".equals(AppleSettingsScreen.destinationNames()[0])
+                && "Gameplay".equals(AppleSettingsScreen.destinationNames()[1]));
+        check("main settings shell has a rail rather than expandable section navigation",
+                AppleSettingsScreen.mainNavigationDepth() == 0);
 
-        FeatureSettingsUiModel.Feature lock = FeatureSettingsUiModel.feature("item-lock-swap");
-        check("Item Lock/Swap has one direct editor route", lock != null && lock.isEditorRoute()
-                && lock.tabControls.size() == 1 && "item-lock-swap".equals(lock.editorId));
+        ReferenceSettingsCatalog.Setting lock = ReferenceSettingsCatalog.find("item-lock-swap");
+        check("Item Lock/Swap has one direct in-card route", lock != null && lock.actionLabel.length() > 0
+                && "Open details".equals(lock.actionLabel));
         List<ItemLockSwapUiModel.Entry> itemLockSwap = ItemLockSwapUiModel.buildControlModel();
         check("Item Lock/Swap editor retains fourteen non-duplicated controls", itemLockSwap.size() == 14
                 && uniqueItemLockSwapIds(itemLockSwap)
@@ -73,7 +74,7 @@ public final class QualityOfLifeUiModelTests {
         for (ItemLockSwapUiModel.Entry ignored : entries) {
             if (top < previousBottom) return false;
             previousBottom = top + 42f;
-            top = AppleHubScreen.nextRowTop(top, 42f);
+            top = top + 42f + GuiLayoutToolkit.GAP;
         }
         return true;
     }

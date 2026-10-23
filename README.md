@@ -16,13 +16,13 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 - Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; all gameplay-affecting controls are off by default.
 
-## Beta-0.10.8.9.3v update — settings Hub and Stats Display restoration
+## Beta-0.10.8.9.3v update — reference settings shell and Stats Display
 
-- Restored the Hub to one simple scrollable page of historical-style expandable category headers. The sidebar, segmented main tabs, redundant per-feature dropdowns, status dots, and feature trees are gone; **Quality of Life** is the first opened section.
-- **Quality of Life** keeps its direct daily controls and now exposes the separately named **Item Animation** editor alongside Inventory Assist, shortcuts, Item Lock and Swap, Chat QoL, and Commands. It does not duplicate Item Animation's renderer-only controls.
-- The separately named **HUD Hub Editor** section retains a distinct **HUD Editor** route and direct Stats Display visibility/settings access. Existing focused editors, configuration keys, Dungeon ESP behavior, chat, inventory features, and HUD systems remain their owners.
-- Restored the fixed three-card **Stats Display** matching the supplied reference: dark beveled **FRAME RATE**, **MINING**, and **MEMORY** cards; cyan frame-rate/BPS values; white memory; 172 × 102 card proportions, 9 px gaps, 8 px cuts, and centered top placement. The middle metric is the existing mining tracker (`BPS`), not ping.
-- Stats Display remains opt-in for a fresh configuration. If an older independently positioned FPS/Ping/Memory HUD was enabled, it migrates once to the consolidated display unless an explicit modern Stats choice already exists; retired metric keys are removed so no duplicate renderer can draw.
+- The native settings surface now ports the supplied `analyze-sky-velor-mod-code.zip` React/Vite design proposal without adding a browser or GUI-framework dependency. Its visible architecture is the exact five-destination rail: **Home**, **Gameplay**, **Dungeon**, **Visuals**, and **System**.
+- The toolbar contains global search, an **Advanced** gate, and **Done**; the content area is one clipped/smoothed scroll viewport with compact bordered cards, inline child disclosure, switches, sliders, choices, focused-editor actions, responsive rail behavior, and Home presets/quick controls.
+- Existing ownership is preserved: Gameplay contains Comfort, Inventory, Chat, Skills and Shortcuts; Dungeon contains Run tools, Floor VII, Highlights and Party sync; Visuals contains HUD and Item Animation; System contains Appearance, Performance, General, Diagnostics and About. Existing configuration keys, direct focused editors, Dungeon ESP, chat, inventory, HUD systems, and commands remain the runtime owners.
+- Diagnostics retains read-only Frame Rate/Ping/Memory telemetry inside the settings screen only. The in-game **Stats Display** remains the one restored three-card **FRAME RATE**, **MINING**, and **MEMORY** renderer: dark beveled cards, cyan frame-rate/BPS values, white memory, 172 × 102 card proportions, 9 px gaps, 8 px cuts, and centered top placement. The middle metric is the existing mining tracker (`BPS`), not ping.
+- Stats Display remains opt-in for a fresh configuration. If an older independently positioned FPS/Ping/Memory HUD was enabled, it migrates once to the consolidated display unless an explicit modern Stats choice already exists; retired metric keys are removed so no duplicate metrics renderer can draw.
 - Dungeon ESP's 0.10.8.9.2 reliability/display improvements, Hurt Camera Shake, Player Dollars removal, Inventory Search removal, and Chat-tab close behavior remain unchanged.
 
 This source update is **NOT tested in-game**. Build/distribution remains gated on the Java 8 Forge build and release verifiers below; generated artifacts are valid only when produced by that workflow.
@@ -90,7 +90,7 @@ The only JAR allowed in that source archive is the required Gradle wrapper.
 
 ## Item Lock and Item Swap
 
-Open **Quality of Life → Item Lock and Item Swap**. The feature is on by default and uses **L** by default (the
+Open **Gameplay → Inventory → Item Lock and Swap → Open details**. The feature is on by default and uses **L** by default (the
 key can be rebound there or in Controls). Hover a player-inventory position **A**, press and hold the key, move the
 pointer to **B**, then release the key — no mouse click is part of pairing. Releasing over an **unpaired** A toggles
 that position lock at any hold duration; releasing over empty space cancels unchanged. Locks persist for hotbar `0–8`,
@@ -116,9 +116,9 @@ rather than implying protection.
 
 ## Item Animation Settings
 
-**Item Animation** is reached directly from the expandable **Quality of Life** section and is configured exclusively in its clearly labelled, non-draggable HUD-editor renderer panel.
-It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -75 through 75), Size and
-Animation Speed (50–200%). Every slider has a visible numeric value and a nearby exact-value field; Enter
+**Item Animation** is reached from **Visuals → Item Animation**; its master switch has inline size/tempo/offset controls and **Open Item Animation** keeps the established, non-draggable HUD-editor renderer panel available.
+It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -150 through 150), Size
+(30–200%), and Animation Speed (25–400%). Every slider has a visible numeric value and a nearby exact-value field; Enter
 applies and saves a typed value. **Reset Item Animation** restores X/Y/Z to 0 and Size/Speed to 100%.
 Legacy `firstPerson*` config keys are read once and atomically migrated to the `itemAnimation.*` category.
 

@@ -27,7 +27,7 @@ import com.arena.pekaclient.feature.LeapUse;
 import com.arena.pekaclient.feature.HotbarScrollPolicy;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.gui.AppleGuiButton;
-import com.arena.pekaclient.gui.AppleHubScreen;
+import com.arena.pekaclient.gui.AppleSettingsScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.gui.LeapScreen;
@@ -245,7 +245,7 @@ public class PekaClientMod {
         }
         ClientActions.run(mc);
         if (OPEN_KEY.isPressed() && mc.currentScreen == null) {
-            mc.displayGuiScreen(new AppleHubScreen(null));
+            mc.displayGuiScreen(new AppleSettingsScreen(null));
         }
         while (ITEM_ANIMATION_KEY.isPressed()) {
             if (mc.currentScreen == null) {
@@ -378,7 +378,7 @@ public class PekaClientMod {
     public void onActionPerformed(GuiScreenEvent.ActionPerformedEvent.Pre event) {
         if (event.button != null && event.button.id == MENU_BUTTON_ID) {
             event.setCanceled(true);
-            Minecraft.getMinecraft().displayGuiScreen(new AppleHubScreen(event.gui));
+            Minecraft.getMinecraft().displayGuiScreen(new AppleSettingsScreen(event.gui));
         }
     }
 

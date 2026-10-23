@@ -2,7 +2,7 @@ package com.arena.pekaclient.compat;
 
 import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.config.AssistSettings;
-import com.arena.pekaclient.gui.FeatureSettingsUiModel;
+import com.arena.pekaclient.gui.ReferenceSettingsCatalog;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
 
@@ -30,11 +30,11 @@ public final class RemovedFeatureSurfaceTests {
     }
 
     private static void retiredControlsAndSettingsAreAbsent() {
-        check("Player Dollars Hub route is absent", FeatureSettingsUiModel.feature("hud-dollars") == null);
-        check("binary No Hurt Cam route is absent", FeatureSettingsUiModel.feature("no-hurt-cam") == null);
-        check("Inventory Search option is absent", FeatureSettingsUiModel.option("inventory-search") == null);
-        check("Hurt Camera Shake replaces binary camera control", FeatureSettingsUiModel.feature("hurt-camera-shake") != null
-                && FeatureSettingsUiModel.feature("hurt-camera-shake").isSlider());
+        check("Player Dollars Hub route is absent", ReferenceSettingsCatalog.find("hud-dollars") == null);
+        check("binary No Hurt Cam route is absent", ReferenceSettingsCatalog.find("no-hurt-cam") == null);
+        check("Inventory Search option is absent", ReferenceSettingsCatalog.find("inventory-search") == null);
+        check("Hurt Camera Shake replaces binary camera control", ReferenceSettingsCatalog.find("hurt-camera-shake") != null
+                && ReferenceSettingsCatalog.find("hurt-camera-shake").control == ReferenceSettingsCatalog.Control.SLIDER);
         check("retired Search setting field is absent", fieldAbsent(AssistSettings.class, "inventorySearch"));
         check("retired binary camera setting field is absent", fieldAbsent(AssistSettings.class, "noHurtCam"));
     }

@@ -50,7 +50,7 @@ public final class SvCommand extends CommandBase {
         }
         if (!AppleSettings.svCommand) {
             mc.thePlayer.addChatMessage(new ChatComponentText(
-                    "\u00a7b[Sky VeLor] \u00a7f/sv is off. Turn it on in the hub, Quality of Life, Commands."));
+                    "\u00a7b[Sky VeLor] \u00a7f/sv is off. Turn it on in Settings, System, Diagnostics, Client command routes."));
             return;
         }
         ClientActions.requestHub();

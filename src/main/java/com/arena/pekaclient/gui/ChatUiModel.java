@@ -10,7 +10,7 @@ public final class ChatUiModel {
     public static final int MASTER = 0;
     public static final int EDITOR = 2;
 
-    /** One QoL-row contract shared by AppleHubScreen and headless tests. */
+    /** One Chat-row contract shared by AppleSettingsScreen and headless tests. */
     public static final class Entry {
         private final String id;
         private final String label;

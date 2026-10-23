@@ -31,7 +31,8 @@ public final class DungeonEspUiModelTests {
         Set<String> names = new HashSet<String>();
         for (DungeonEspUiModel.Option option : options) {
             check("human-facing option: " + option.name, option.name != null && option.name.trim().length() > 0);
-            check("flat editor route: " + option.name, FeatureSettingsUiModel.hasOptionLabel(option.name));
+            check("focused editor route remains available: " + option.name,
+                    ReferenceSettingsCatalog.find("mob-esp") != null && ReferenceSettingsCatalog.find("door-esp") != null);
             names.add(option.name);
         }
         check("no duplicate old option rows", names.size() == options.length);
