@@ -78,21 +78,21 @@ public final class ReleaseClaimsTests {
                 && !classExists("com.arena.pekaclient.assist.guard.ItemGuardController")
                 && !classExists("com.arena.pekaclient.assist.guard.ItemGuardPolicy"));
         FeatureSettingsUiModel.Feature lockSwap = FeatureSettingsUiModel.feature("item-lock-swap");
-        check("Item Lock and Swap retains its editor route", lockSwap != null && lockSwap.isDropdown()
+        check("Item Lock and Swap retains its editor route", lockSwap != null && lockSwap.isEditorRoute()
                 && "item-lock-swap".equals(lockSwap.editorId)
                 && ItemLockSwapUiModel.buildControlModel().size() == 14);
     }
 
     private static void categoryNamesAndDungeonOrderStayExact() {
-        String[] categories = {"General", "Quality of Life", "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
-        check("Hub category table is exact", Arrays.equals(categories, AppleHubScreen.PAGE_NAMES));
+        String[] categories = {"Quality of Life", "HUD Hub Editor", "General", "Farming", "Dungeon", "Slayer", "Fishing"};
+        check("Hub expandable section list is exact", Arrays.equals(categories, AppleHubScreen.sectionNames()));
         for (AssistUiModel.Entry entry : AssistUiModel.entries()) {
-            check("assist catalog uses a current category: " + entry.name,
-                    Arrays.asList(categories).contains(entry.tab));
+            check("assist catalog uses a current section: " + entry.name,
+                    Arrays.asList(categories).contains(entry.section));
         }
         List<String> dungeon = new ArrayList<String>();
         for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
-            if ("Dungeon".equals(feature.tab)) dungeon.add(feature.id);
+            if ("Dungeon".equals(feature.section)) dungeon.add(feature.id);
         }
         check("Dungeon rows retain the requested usage order", dungeon.equals(Arrays.asList(
                 "door-esp", "mob-esp", "dungeon-sync-enabled", "m7-overlay", "spirit-leap",

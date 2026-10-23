@@ -6,22 +6,31 @@ import java.util.List;
 
 /**
  * Minecraft-free catalog of retained assist controls. The Hub uses these exact labels/descriptions so tests can
- * prove each option has a one-line explanation and belongs to exactly one matching tab/channel.
+ * prove each option has a one-line explanation and belongs to exactly one matching Hub section/channel.
  */
 public final class AssistUiModel {
 
-    public static final String TAB_QUALITY_OF_LIFE = "Quality of Life";
-    public static final String TAB_FARMING = "Farming";
-    public static final String TAB_DUNGEON = "Dungeon";
+    public static final String SECTION_QUALITY_OF_LIFE = "Quality of Life";
+    public static final String SECTION_FARMING = "Farming";
+    public static final String SECTION_DUNGEON = "Dungeon";
+    /** @deprecated The Hub has no tab strip; use {@link #SECTION_QUALITY_OF_LIFE}. */
+    @Deprecated public static final String TAB_QUALITY_OF_LIFE = SECTION_QUALITY_OF_LIFE;
+    /** @deprecated The Hub has no tab strip; use {@link #SECTION_FARMING}. */
+    @Deprecated public static final String TAB_FARMING = SECTION_FARMING;
+    /** @deprecated The Hub has no tab strip; use {@link #SECTION_DUNGEON}. */
+    @Deprecated public static final String TAB_DUNGEON = SECTION_DUNGEON;
 
     public static final class Entry {
-        public final String tab;
+        /** @deprecated Logical section name; retained for older audit readers. */
+        @Deprecated public final String tab;
+        public final String section;
         public final String group;
         public final String name;
         public final String description;
 
-        private Entry(String tab, String group, String name, String description) {
-            this.tab = tab;
+        private Entry(String section, String group, String name, String description) {
+            this.tab = section;
+            this.section = section;
             this.group = group;
             this.name = name;
             this.description = description;

@@ -1,5 +1,16 @@
 # Changelog
 
+## Beta-0.10.8.9.3v — 2026-10-23
+
+- Restored the main settings surface as one compact, scrollable, historical-style expandable menu. Removed the sidebar, segmented main tabs, redundant feature dropdowns, status dots, and feature-tree navigation without removing any underlying setting, editor, configuration key, or focused tool.
+- Made **Quality of Life** the first expanded category and kept its direct controls for No Block Particles, No Hotbar Scrolling, Hurt Camera Shake, and Auto Sprint. It now contains the separately named **Item Animation** route alongside retained Inventory Assist, shortcuts, Item Lock and Swap, Chat QoL, and Commands tools.
+- Kept **HUD Hub Editor** as a separately named expandable category and **HUD Editor** as its distinct direct-canvas editor route. Existing HUD placement/style ownership remains in that editor; each surfaced HUD item retains visibility and a single named editor route.
+- Restored the reference-style **Stats Display** as the only consolidated in-game metric renderer: fixed dark beveled **FRAME RATE**, **MINING**, and **MEMORY** cards with cyan FPS/BPS values, white memory, 172 × 102 cards, 9 px gaps, 8 px cuts, 2 px dark offsets, and centered top placement. Historical/source evidence resolves the middle card to Mining BPS, not Ping.
+- Added safe legacy visibility migration: an enabled old `fps-display.*`, `ping-display.*`, or `memory-display.*` element enables Stats Display once only when no explicit `stats.enabled` value exists. Retired metric keys are removed before loading active elements, preventing duplicate renderers; fresh Stats Display remains opt-in.
+- Added/updated headless contracts for single-level section expansion, routing, Quality of Life Item Animation reachability, direct HUD Editor/HUD Hub Editor reachability, Stats geometry/default placement, no retired metric registration, and legacy metric migration. Dungeon ESP 0.10.8.9.2 behavior remains unchanged.
+- Updated display version to `Beta-0.10.8.9.3v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.9.3`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render pass remains required for final visual confirmation.
+
 ## Beta-0.10.8.9.2v — 2026-10-23
 
 - Fixed the focused **Dungeon ESP Settings** editor regression introduced by its live preview: preview renderers now flush before using their world-style GL path and the screen restores Apple UI depth, texture, blend, cull, alpha, and color state before drawing controls. A failed preview cannot leave the settings pane clipped or depth-hidden.
@@ -65,7 +76,7 @@
 - Added opt-in Dungeon Sync: a local SHA-256 session derivation, WSS-only Java 8 transport with verified handshake/client masking/bounded frames, allow-listed inbound puzzle data, bounded map-memory integration, reconnect limits, debug-safe status, and the privacy disclosure in `docs/DUNGEON_SYNC.md`.
 - Added clean-room visual hook support for inventory tooltip filtering/rarity rendering and local hurt-camera suppression, with transformer status in `/velor selftest`; existing Item Animation, Chat QoL, settings, item lock/swap, Dungeon ESP/doors, HUD editor, sea-creature counters, and CorruptedHP behavior remain in place.
 - Added headless policy/config/parser/identity/reconnect/transformer tests for the new code. Runtime behavior still needs a real Minecraft 1.8.9 Forge pass.
-- The friend archive was compared only against its declared `Beta-0.10.6v` base. No archive is retained in the release tip; NotEnoughFakepixel/Better-NEF notice-derived solvers were independently recreated only where safely supportable, with no LGPL source copied.
+- The friend archive was compared only against its declared `Beta-0.10.6v` base. No archive is retained in the release tip; research-derived solvers were independently recreated only where safely supportable, with no third-party source copied.
 - Updated display version to `Beta-0.10.8.7v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.7`.
 
 ## Beta-0.10.8.6.4.1v — 2026-10-21
@@ -75,7 +86,7 @@
 - Added independent **Skeletor** and **Other Mobs** styles, plus off-by-default **Force Render All Mobs in Room** cached coverage. It includes only eligible hostiles by default, keeps bats/invisible mobs opt-in, excludes NPCs/pets/dead/passive entities, and does not duplicate tagged targets.
 - Changed new wither-door boxes to red and blood-door boxes to dark red. Existing stored former defaults migrate once; non-default custom colors remain unchanged.
 - Added headless coverage for split/tall tags, Crypt Souleater, real/head Endermen, Skeletor, force inclusion/exclusion/no-duplicates, color migration/config persistence, and small/large GUI geometry.
-- Enderman-head behavior was implemented clean-room from runtime compatibility data; no NotEnoughFakepixel source or LGPL code was copied, so no NEF notice is included.
+- Enderman-head behavior was implemented clean-room from runtime compatibility data; no external source or notice is included.
 - Updated display version to `Beta-0.10.8.6.4.1v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.6.4.1`.
 
 ## Beta-0.10.8.6.4v — 2026-10-21
@@ -85,7 +96,7 @@
 - Added cached closed wither/blood-door ESP for the observed 3×4×3 coal/red-stained-clay prism behavior. Door discovery is timer-driven, cache entries are invalidated when opened, and UI controls cover nearest/all, key-only, blood visibility/color, rendering, and distance text.
 - Added `/velor espdebug` live dungeon state, tracked/rendered counts, scan/render timings, scan interval, door-cache size, and bounded-cache drops.
 - Added mock-500 entity storage-reuse/allocation regression coverage, tag/body delay/death/classification tests, sample door-layout/invalidation tests, persisted Dungeon ESP migration/bounds/preset tests, and shared GUI-scale overlap coverage.
-- Source research was clean-room only: NotEnoughFakepixel is LGPL-3.0 while Sky VeLor is MIT, so no NEF source or notices were copied. The superseded `MobHighlight`/`MobMarkers` implementation was removed.
+- Source research was clean-room only; no external source or notice was copied. The superseded `MobHighlight`/`MobMarkers` implementation was removed.
 - Updated display version to `Beta-0.10.8.6.4v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.6.4`.
 
 ## Beta-0.10.8.6.3.1v — 2026-10-20

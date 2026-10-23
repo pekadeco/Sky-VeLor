@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * Pure ownership map for options shared between the Hub and HUD editor. A feature may expose its visibility switch
- * in a tab, but visual/customization controls have one owner: the HUD editor. The Hub consumes the titles and
+ * in one Hub row, but visual/customization controls have one owner: the HUD editor. The Hub consumes the titles and
  * descriptions below, and headless tests use the same map to prevent duplicate settings from returning.
  */
 public final class GuiSettingsAuditModel {
@@ -43,7 +43,7 @@ public final class GuiSettingsAuditModel {
             return description;
         }
 
-        /** The tab may repeat only visibility; customization belongs to the editor. */
+        /** The Hub may repeat only visibility; customization belongs to the editor. */
         public String[] getTabControls() {
             return tabControls.clone();
         }

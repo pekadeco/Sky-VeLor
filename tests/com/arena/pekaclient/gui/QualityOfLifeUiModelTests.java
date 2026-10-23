@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Headless ownership proof for the flat Quality of Life tab and focused editors. */
+/** Headless ownership proof for the expandable Quality of Life section and focused editors. */
 public final class QualityOfLifeUiModelTests {
 
     private static int passed;
@@ -16,9 +16,10 @@ public final class QualityOfLifeUiModelTests {
         List<QualityOfLifeUiModel.Entry> quality = QualityOfLifeUiModel.buildControlModel();
         List<ModSettingsUiModel.Entry> mod = ModSettingsUiModel.buildScrollModel();
         List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
-        List<ItemAnimationUiModel.Entry> hud = ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
+        List<ItemAnimationUiModel.Entry> itemAnimation = ItemAnimationUiModel.buildQualityOfLifeModel();
 
-        check("Quality of Life has its dedicated tab label", "Quality of Life".equals(QualityOfLifeUiModel.TAB_LABEL));
+        check("Quality of Life has its dedicated expandable section label",
+                "Quality of Life".equals(QualityOfLifeUiModel.SECTION_LABEL));
         check("Quality of Life starts with direct toggle/slider controls", quality.size() == 4
                 && "no-block-particles".equals(quality.get(0).getId()) && quality.get(0).isToggle()
                 && "disable-hotbar-scrolling".equals(quality.get(1).getId())
@@ -28,17 +29,14 @@ public final class QualityOfLifeUiModelTests {
                 && "auto-sprint".equals(quality.get(3).getId()) && quality.get(3).isToggle()
                 && "Sprints automatically while you hold forward.".equals(quality.get(3).getDescription()));
         check("Quality of Life direct control ids are not duplicated", uniqueQualityIds(quality));
-        check("General is the first hub tab", AppleHubScreen.PAGE_NAMES.length == 7
-                && "General".equals(AppleHubScreen.PAGE_NAMES[0])
-                && "Quality of Life".equals(AppleHubScreen.PAGE_NAMES[1]));
-        check("Quality of Life has only simple/features headings",
-                QualityOfLifeUiModel.buildSectionTitles().size() == 2
-                        && "Simple features".equals(QualityOfLifeUiModel.buildSectionTitles().get(0))
-                        && "Feature editors".equals(QualityOfLifeUiModel.buildSectionTitles().get(1)));
+        check("Quality of Life is the first expanded Hub section", AppleHubScreen.SECTION_NAMES.length == 7
+                && "Quality of Life".equals(AppleHubScreen.SECTION_NAMES[0])
+                && "HUD Hub Editor".equals(AppleHubScreen.SECTION_NAMES[1]));
+        check("Quality of Life uses only one top-level expansion level", AppleHubScreen.mainExpansionDepth() == 1);
 
         FeatureSettingsUiModel.Feature lock = FeatureSettingsUiModel.feature("item-lock-swap");
-        check("Item Lock/Swap Hub dropdown has exactly toggle plus editor", lock != null && lock.isDropdown()
-                && lock.tabControls.size() == 2 && "item-lock-swap".equals(lock.editorId));
+        check("Item Lock/Swap has one direct editor route", lock != null && lock.isEditorRoute()
+                && lock.tabControls.size() == 1 && "item-lock-swap".equals(lock.editorId));
         List<ItemLockSwapUiModel.Entry> itemLockSwap = ItemLockSwapUiModel.buildControlModel();
         check("Item Lock/Swap editor retains fourteen non-duplicated controls", itemLockSwap.size() == 14
                 && uniqueItemLockSwapIds(itemLockSwap)
@@ -52,11 +50,12 @@ public final class QualityOfLifeUiModelTests {
                 !containsMod(mod, "item-animation") && !containsMod(mod, "chat-qol-master"));
         check("simple QoL and Mod Settings do not duplicate controls", noCrossSurfaceDuplicates(quality, mod));
 
-        check("Chat QoL Hub dropdown has On/Off plus Settings only", chat.size() == 2
+        check("Chat QoL editor retains On/Off plus Settings", chat.size() == 2
                 && containsChatMaster(chat, "chat-qol-master") && containsEditor(chat, "open-chat-editor")
                 && "On/Off".equals(chat.get(0).getLabel()) && "Settings".equals(chat.get(1).getLabel()));
-        check("Item Animation Hub dropdown has its two controls", hud.size() == 2 && containsItemAnimationToggle(hud)
-                && containsItemAnimationEditor(hud));
+        check("Item Animation is separately reachable from Quality of Life", itemAnimation.size() == 1
+                && containsItemAnimationEditor(itemAnimation)
+                && "Item Animation".equals(itemAnimation.get(0).getLabel()));
 
         System.out.println("quality of life UI model: passed " + passed + ", failed " + failed);
         if (failed > 0) throw new AssertionError("quality of life UI model failures: " + failed);
@@ -105,13 +104,6 @@ public final class QualityOfLifeUiModelTests {
 
     private static boolean containsEditor(List<ChatUiModel.Entry> entries, String id) {
         for (ChatUiModel.Entry entry : entries) if (id.equals(entry.getId())) return entry.isEditorRoute();
-        return false;
-    }
-
-    private static boolean containsItemAnimationToggle(List<ItemAnimationUiModel.Entry> entries) {
-        for (ItemAnimationUiModel.Entry entry : entries) {
-            if ("item-animation-toggle".equals(entry.getId())) return entry.isControlRegistered();
-        }
         return false;
     }
 

@@ -24,6 +24,7 @@ public final class ConfigTests {
         legacyPlacementLoadsForActiveHud();
         retiredHotbarIsNotRegistered();
         retiredMetricAndDollarsKeysAreIgnoredWhileStatsRemainsActive();
+        retiredMetricVisibilityMigratesWithoutOverridingModernChoice();
         saveLoadRoundTrip();
 
         System.out.println();
@@ -132,6 +133,31 @@ public final class ConfigTests {
                 && !old.containsKey("balance.source") && !old.containsKey("balance.manual"), old.toString());
         check("active Stats Display and unrelated HUD keys remain loadable", "true".equals(old.getProperty("stats.enabled"))
                 && "false".equals(old.getProperty("mining.enabled")), old.toString());
+    }
+
+    private static void retiredMetricVisibilityMigratesWithoutOverridingModernChoice() throws IOException {
+        Properties visibleLegacy = parse("fps-display.enabled=true\nping-display.enabled=false\n");
+        check("visible old metric enables restored Stats Display when no modern choice exists",
+                HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(visibleLegacy)
+                        && "true".equals(visibleLegacy.getProperty("stats.enabled")), visibleLegacy.toString());
+        HudConfigCompatibility.ignoreRetiredMetricKeys(visibleLegacy);
+        check("visibility migration still retires old metric keys", !visibleLegacy.containsKey("fps-display.enabled")
+                && !visibleLegacy.containsKey("ping-display.enabled"), visibleLegacy.toString());
+
+        Properties pingOrMemoryLegacy = parse("ping-display.enabled=true\nmemory-display.enabled=true\n");
+        check("any visible old metric carries visibility forward",
+                HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(pingOrMemoryLegacy)
+                        && "true".equals(pingOrMemoryLegacy.getProperty("stats.enabled")), pingOrMemoryLegacy.toString());
+
+        Properties hiddenLegacy = parse("fps-display.enabled=false\nping-display.enabled=false\nmemory-display.enabled=false\n");
+        check("hidden old metrics do not turn on Stats Display",
+                !HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(hiddenLegacy)
+                        && !hiddenLegacy.containsKey("stats.enabled"), hiddenLegacy.toString());
+
+        Properties explicitModern = parse("stats.enabled=false\nfps-display.enabled=true\n");
+        check("explicit modern Stats choice wins over old visible metric",
+                !HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(explicitModern)
+                        && "false".equals(explicitModern.getProperty("stats.enabled")), explicitModern.toString());
     }
 
     private static void saveLoadRoundTrip() throws IOException {

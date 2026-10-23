@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.9.2v
+# Sky VeLor — Beta-0.10.8.9.3v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -16,14 +16,14 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 - Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; all gameplay-affecting controls are off by default.
 
-## Beta-0.10.8.9.2v update — Dungeon ESP settings and display
+## Beta-0.10.8.9.3v update — settings Hub and Stats Display restoration
 
-- **Dungeon ESP Settings** now keeps its real controls reliable when the embedded live preview uses Minecraft-style OpenGL. The editor flushes before preview drawing and restores the Apple 2D GUI state afterward, so preview depth/texture changes cannot hide, clip, overlap, or make settings controls unresponsive.
-- The focused editor is responsive: wide GUI scales show a Live Preview beside a full control column; compact GUI scales give settings one full-width, scrollable column instead of shrinking sliders and dropdowns into unusable fragments. Category navigation remains scrollable, and all existing Mob/Door ESP controls remain reachable.
-- **Mob ESP** retains the existing cached detection, entity filters, real interpolated hitboxes, category styles, tracers, door ESP, and stale-target cleanup. It now adds small category-colored badges for the most important tracked mobs: **MINIBOSS**, **SPECIAL**, **ENDERMAN**, **SKELETOR**, **STARRED**, and optional room-wide **HOSTILE** targets.
-- The new badges use a compact contrast backing, existing per-category through-wall visibility, priority-first selection, and short collision-separated world-space lanes. This makes combat targets easier to identify without rendering an unbounded wall of labels.
-- **Mob Category Labels** is persisted and on by default; **Maximum Mob Labels** defaults to 16 and is bounded at 32. The existing **Distance Text** setting remains independent and appends a distance only to visible category badges. Turning category labels off preserves the prior distance-only label behavior.
-- The prior Hurt Camera Shake, Player Dollars removal, Inventory Search removal, Stats Display, and Chat-tab close behavior remain unchanged.
+- Restored the Hub to one simple scrollable page of historical-style expandable category headers. The sidebar, segmented main tabs, redundant per-feature dropdowns, status dots, and feature trees are gone; **Quality of Life** is the first opened section.
+- **Quality of Life** keeps its direct daily controls and now exposes the separately named **Item Animation** editor alongside Inventory Assist, shortcuts, Item Lock and Swap, Chat QoL, and Commands. It does not duplicate Item Animation's renderer-only controls.
+- The separately named **HUD Hub Editor** section retains a distinct **HUD Editor** route and direct Stats Display visibility/settings access. Existing focused editors, configuration keys, Dungeon ESP behavior, chat, inventory features, and HUD systems remain their owners.
+- Restored the fixed three-card **Stats Display** matching the supplied reference: dark beveled **FRAME RATE**, **MINING**, and **MEMORY** cards; cyan frame-rate/BPS values; white memory; 172 × 102 card proportions, 9 px gaps, 8 px cuts, and centered top placement. The middle metric is the existing mining tracker (`BPS`), not ping.
+- Stats Display remains opt-in for a fresh configuration. If an older independently positioned FPS/Ping/Memory HUD was enabled, it migrates once to the consolidated display unless an explicit modern Stats choice already exists; retired metric keys are removed so no duplicate renderer can draw.
+- Dungeon ESP's 0.10.8.9.2 reliability/display improvements, Hurt Camera Shake, Player Dollars removal, Inventory Search removal, and Chat-tab close behavior remain unchanged.
 
 This source update is **NOT tested in-game**. Build/distribution remains gated on the Java 8 Forge build and release verifiers below; generated artifacts are valid only when produced by that workflow.
 
@@ -69,7 +69,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.2v.jar --version Beta-0.10.8.9.2v --mcmod-version 0.10.8.9.2
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.3v.jar --version Beta-0.10.8.9.3v --mcmod-version 0.10.8.9.3
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -77,15 +77,15 @@ file or nested archive was packaged, and — decisively — that the classes ref
 by SRG name with no development names left. The generated `build/` and `.gradle/` directories are
 temporary and should not be included in source ZIPs.
 
-The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.2v-source.zip`. It is generated with a
-curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.2v-source/` root prefix;
-use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.2v` to verify its contents.
+The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.3v-source.zip`. It is generated with a
+curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.3v-source/` root prefix;
+use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.3v` to verify its contents.
 The only JAR allowed in that source archive is the required Gradle wrapper.
 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.2v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.3v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap
@@ -116,7 +116,7 @@ rather than implying protection.
 
 ## Item Animation Settings
 
-**Item Animation** lives exclusively in the HUD editor as a clearly labelled, non-draggable renderer panel.
+**Item Animation** is reached directly from the expandable **Quality of Life** section and is configured exclusively in its clearly labelled, non-draggable HUD-editor renderer panel.
 It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -75 through 75), Size and
 Animation Speed (50–200%). Every slider has a visible numeric value and a nearby exact-value field; Enter
 applies and saves a typed value. **Reset Item Animation** restores X/Y/Z to 0 and Size/Speed to 100%.
@@ -156,4 +156,4 @@ could desynchronise from the real slot state; the current path keeps the real se
 
 ## License and credits
 
-Both `LICENSE` and `LICENSE.txt` are retained from the supplied source archive. They contain different license texts (MIT and LGPL v3), so they must not be treated as interchangeable. Preserve upstream notices and verify the applicable license for each reused component before redistributing. Parts of the project were ported from RNG Carried Bald; existing attribution should remain with the relevant code. The dungeon-map-derived files retain the Better NEF LGPL notice in `THIRD_PARTY_NOTICES/Better-NEF-NOTICE.md`.
+`LICENSE` records the project license. Verify the applicable license for every reused component before redistributing. Parts of the project were ported from RNG Carried Bald; existing attribution remains with the relevant code.

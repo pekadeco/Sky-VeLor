@@ -9,27 +9,16 @@ public final class ItemAnimationReachabilityTests {
     private static int failed;
 
     public static void main(String[] args) {
-        List<ItemAnimationUiModel.Entry> hudTab = ItemAnimationUiModel.buildHudTabModel();
-        List<ItemAnimationUiModel.Entry> itemAnimationDropdown =
-                ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
+        List<ItemAnimationUiModel.Entry> qualityOfLife = ItemAnimationUiModel.buildQualityOfLifeModel();
 
-        check("HUD tab starts with the flat Item Animation dropdown", hasIdAt(hudTab, 0, "item-animation-dropdown"));
-        check("HUD tab has no separate nested HUD-editor launcher", hudTab.size() == 1
-                && !contains(hudTab, "hud-editor-open"));
-        check("Item Animation dropdown contains exactly two rows", itemAnimationDropdown.size() == 2);
-        check("dropdown starts with On/Off", hasIdAt(itemAnimationDropdown, 0, "item-animation-toggle")
-                && "On/Off".equals(find(itemAnimationDropdown, "item-animation-toggle").getLabel()));
-        check("dropdown ends with Settings", hasIdAt(itemAnimationDropdown, 1, "item-animation-open-editor")
-                && "Settings".equals(find(itemAnimationDropdown, "item-animation-open-editor").getLabel()));
-        requireInteractive(itemAnimationDropdown, "item-animation-toggle", "HUD-tab ON/OFF toggle is registered");
-        requireInteractive(itemAnimationDropdown, "item-animation-open-editor",
-                "HUD-tab Item Animation editor button is registered");
-        check("old editor-launch labels are absent from HUD model",
-                !hasLabel(hudTab, "Open Item Animation Editor")
-                        && !hasLabel(itemAnimationDropdown, "Open Item Animation Editor"));
-
+        check("Quality of Life exposes one named Item Animation route", qualityOfLife.size() == 1
+                && hasIdAt(qualityOfLife, 0, "item-animation-open-editor")
+                && "Item Animation".equals(find(qualityOfLife, "item-animation-open-editor").getLabel()));
+        requireInteractive(qualityOfLife, "item-animation-open-editor",
+                "Quality of Life Item Animation editor route is registered");
+        check("Hub does not duplicate the renderer enable control", !contains(qualityOfLife, "item-animation-toggle"));
         check("Item Animation remains reachable through its direct editor route",
-                contains(itemAnimationDropdown, "item-animation-open-editor"));
+                contains(qualityOfLife, "item-animation-open-editor"));
 
         ItemAnimationUiModel.PanelState panel = new ItemAnimationUiModel.PanelState();
         List<ItemAnimationUiModel.Entry> collapsed = ItemAnimationUiModel.buildPanelControlModel(panel);
@@ -67,10 +56,10 @@ public final class ItemAnimationReachabilityTests {
         check("renderer panel has no background transparency control", !contains(expanded, "background-transparency")
                 && !contains(expanded, "background-opacity") && !hasLabel(expanded, "Background transparency")
                 && !hasLabel(expanded, "Background opacity"));
-        check("HUD dropdown has no Item Animation background transparency duplicate",
-                !contains(itemAnimationDropdown, "background-transparency")
-                        && !hasLabel(itemAnimationDropdown, "Background transparency"));
-        verifyNoForbiddenItemAnimationTerms(hudTab, itemAnimationDropdown);
+        check("Quality of Life route has no Item Animation background transparency duplicate",
+                !contains(qualityOfLife, "background-transparency")
+                        && !hasLabel(qualityOfLife, "Background transparency"));
+        verifyNoForbiddenItemAnimationTerms(qualityOfLife);
 
         verifyNoCustomizationDuplicates();
         verifyFriendFeatureGuiOwnership();
@@ -84,13 +73,12 @@ public final class ItemAnimationReachabilityTests {
     }
 
     /**
-     * Covers the HUD-tab dropdown/direct route and every expandable Item Animation panel state. No label or control
+     * Covers the direct Quality of Life route and every expandable Item Animation panel state. No label or control
      * id may reintroduce generic HUD background/transparency/opacity controls into this renderer-only route.
      */
-    private static void verifyNoForbiddenItemAnimationTerms(List<ItemAnimationUiModel.Entry> hudTab,
-                                                             List<ItemAnimationUiModel.Entry> dropdown) {
-        check("HUD-tab Item Animation routes contain no background/opacity/transparency terms",
-                noForbiddenTerms(hudTab) && noForbiddenTerms(dropdown));
+    private static void verifyNoForbiddenItemAnimationTerms(List<ItemAnimationUiModel.Entry> qualityOfLife) {
+        check("Quality of Life Item Animation route contains no background/opacity/transparency terms",
+                noForbiddenTerms(qualityOfLife));
         for (int mask = 0; mask < 8; mask++) {
             ItemAnimationUiModel.PanelState state = new ItemAnimationUiModel.PanelState();
             if ((mask & 1) != 0) state.togglePosition();

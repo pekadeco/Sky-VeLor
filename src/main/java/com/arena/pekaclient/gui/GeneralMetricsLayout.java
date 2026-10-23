@@ -1,6 +1,6 @@
 package com.arena.pekaclient.gui;
 
-/** Pure geometry for the three GUI-only General-tab metric cards. */
+/** Pure geometry for the three GUI-only General-category metric cards. */
 public final class GeneralMetricsLayout {
     public static final int FPS = 0;
     public static final int PING = 1;

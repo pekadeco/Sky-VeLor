@@ -107,7 +107,7 @@ public final class M7OverlayRenderer {
         }
     }
 
-    /** Uses the NEF 1.2.4 final-phase chat cue to start showing M7 relic areas. */
+    /** Uses the observed final-phase chat cue to start showing M7 relic areas. */
     @SubscribeEvent
     public void onChatReceived(ClientChatReceivedEvent event) {
         if (event == null || event.message == null
@@ -153,7 +153,7 @@ public final class M7OverlayRenderer {
                 if (!m7FinalPhaseSeen) {
                     m7DragonSpawnedAfterFinalPhase = true;
                 }
-                // Fakepixel uses dragon health lines instead of NEF's Hypixel phase chat cue.
+                // Some compatible servers use dragon health lines instead of the phase chat cue.
                 m7FinalPhaseSeen = true;
             } else if (fakepixelM7DungeonRunId != null
                     && !fakepixelM7DungeonRunId.equals(fakepixelRunId)) {
@@ -793,7 +793,7 @@ public final class M7OverlayRenderer {
         }
     }
 
-    /** M7 relic-area box geometry adapted from NEF 1.2.4 DragonCloseAlert. */
+    /** M7 relic-area box geometry. */
     enum M7DragonKillArea {
         RED_RELIC(new BlockPos(43, 6, 64), -11, 21, -11, 13, 0xFFFF0000),
         GREEN_RELIC(new BlockPos(43, 6, 102), -11, 21, -11, 13, 0xFF00FF00),

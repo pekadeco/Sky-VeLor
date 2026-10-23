@@ -12,7 +12,30 @@ public final class HudConfigCompatibility {
 
     private HudConfigCompatibility() { }
 
-    /** The former independently-positioned metric elements were replaced by the restored single Stats Display. */
+    /**
+     * Carries an opt-in legacy metric display forward to the restored one-piece Stats Display.
+     *
+     * <p>The three old elements were independently positioned, while the reference display is one fixed
+     * Frame Rate / Mining / Memory group. If any old element was explicitly enabled and the user has not already
+     * chosen {@code stats.enabled}, enable that one group before retiring the old keys. An explicit modern value,
+     * including {@code false}, always wins. This migration cannot create duplicate renderers because the old element
+     * classes are no longer registered and their keys are removed immediately afterward.</p>
+     *
+     * @return true when this call inserted {@code stats.enabled=true}
+     */
+    public static boolean migrateVisibleRetiredMetricDisplay(Properties properties) {
+        if (properties == null || properties.containsKey("stats.enabled")) return false;
+        for (String prefix : RETIRED_METRIC_PREFIXES) {
+            String enabled = properties.getProperty(prefix + "enabled");
+            if (enabled != null && "true".equalsIgnoreCase(enabled.trim())) {
+                properties.setProperty("stats.enabled", "true");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The former independently-positioned metric elements are retired after optional visibility migration. */
     public static void ignoreRetiredMetricKeys(Properties properties) {
         removeMatching(properties, true, false);
     }

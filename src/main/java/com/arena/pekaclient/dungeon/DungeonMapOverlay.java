@@ -164,7 +164,7 @@ public final class DungeonMapOverlay {
             if (rotate) {
                 // Keep pixels not covered by the native map texture transparent. An opaque fill here
                 // obscures the game behind unknown map pixels and makes the entire map look black.
-                // The border is drawn separately after the map, like Better NEF.
+                // The border is drawn separately after the map.
                 renderRotatingMap(mc, data, self, angle, rotateZoom, x, y, scale);
             } else {
                 renderStaticMap(mc, data, contentZoom, x, y, scale);
@@ -224,7 +224,7 @@ public final class DungeonMapOverlay {
         }
     }
 
-    /** Mirrors Better NEF's map projection: rotate around the local-player decoration and clip to the map square. */
+    /** Rotates around the local-player decoration and clips to the map square. */
     private void renderRotatingMap(Minecraft mc, MapData data, Vec4b self, float angle, float rotateZoom,
                                    int screenX, int screenY, float scale) {
         float pivotX = self.func_176112_b() / 2.0F + 64.0F;

@@ -5,8 +5,9 @@ import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
 
 /**
- * Bounded-cadence client metrics for the General settings tab. This is deliberately not a HudElement:
- * FPS, local tab-list ping, and heap use are informative controls inside the GUI only.
+ * Bounded-cadence client metric reader shared by retained HUD/UI consumers. The restored Stats Display uses only
+ * its FPS and heap values; local tab-list ping remains available to existing non-HUD diagnostics without creating
+ * another on-screen metric renderer.
  */
 public final class ClientMetrics {
     public static final long REFRESH_MILLIS = 500L;
@@ -56,7 +57,7 @@ public final class ClientMetrics {
         public float memoryRatio() { return ClientMetrics.memoryRatio(usedBytes, maxBytes); }
     }
 
-    /** Reader caches data for roughly twice-per-second General-tab refreshes with no per-frame snapshot allocation. */
+    /** Reader caches data for roughly twice-per-second General-category refreshes with no per-frame snapshot allocation. */
     public static final class Reader {
         private final Provider provider;
         private final Snapshot snapshot = new Snapshot();

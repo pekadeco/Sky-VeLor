@@ -11,7 +11,7 @@ import java.util.Properties;
  *
  * The model shows the armour and the held item exactly as the game renders them, because it is the same
  * renderer. Settings: scale, position, background, border and opacity (the shared element style), plus
- * the facing angle and an optional slow spin. Dragging the preview in the hub's HUD tab sets the angle.
+ * the facing angle and an optional slow spin. Dragging the preview in the Hub's HUD editor sets the angle.
  *
  * The doll only reads the local player. It needs a loaded world, so with no world it draws nothing but its
  * panel. It never changes the entity-rendering pipeline.

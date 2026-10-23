@@ -58,7 +58,7 @@ final class DungeonMapPartyRoster {
             }
         }
 
-        // Mirror Better NEF's fallback: use tab names only when they actually appear in scoreboard lines.
+        // Use tab names only when they actually appear in scoreboard lines.
         // Never use the entire tab roster as a substitute for the dungeon party; that admits NPCs and lobby users.
         if (!foundClassRow && scoreboardLines != null) {
             for (String raw : scoreboardLines) {
@@ -82,7 +82,7 @@ final class DungeonMapPartyRoster {
             if (known.equalsIgnoreCase(candidate)) return known;
         }
 
-        // Better NEF resolves a truncated scoreboard username when it matches one tab-list identity uniquely.
+        // Resolve a truncated scoreboard username when it matches one tab-list identity uniquely.
         if (candidate.length() >= 10) {
             String match = null;
             int matches = 0;

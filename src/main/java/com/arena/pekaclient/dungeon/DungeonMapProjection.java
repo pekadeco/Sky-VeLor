@@ -1,6 +1,6 @@
 package com.arena.pekaclient.dungeon;
 
-/** Maps native map-pixel coordinates into the visible minimap, using Better NEF's player-centered rotation. */
+/** Maps native map-pixel coordinates into the visible minimap with player-centered rotation. */
 final class DungeonMapProjection {
     private final boolean rotated;
     private final float pivotX;

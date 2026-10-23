@@ -3,16 +3,10 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
-import com.arena.pekaclient.config.ChatQolSettings;
-import com.arena.pekaclient.config.DungeonEspSettings;
-import com.arena.pekaclient.feature.ChatChannelTabs;
-import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.hud.ClientMetrics;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
-import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
 import com.arena.pekaclient.render.Anim;
-import com.arena.pekaclient.render.Icons;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
@@ -36,61 +30,39 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * The Sky VeLor hub: a macOS-style window with window buttons, a sidebar (or tab bar on narrow
- * screens), a search field and scrollable grouped cards.
+ * The Sky VeLor settings hub.
  *
- * Tabs, in order: General, Quality of Life, HUD, Farming, Dungeon, Slayer, Fishing. General is the first overview
- * page; every tab uses direct controls or flat one-level editor dropdowns. HUD routes visual customization to the
- * HUD editor, while focused editors own rich feature settings without nested tab controls.
+ * <p>This intentionally uses the compact expandable-row interaction from the older Hub rather than a sidebar,
+ * segmented tabs, or feature trees. Each top-level category owns direct controls and clearly named editor routes;
+ * clicking its header expands or collapses only that category. The result remains one scrollable page at every GUI
+ * scale, while every focused editor keeps ownership of its existing configuration keys.</p>
  *
- * Window buttons: red closes the hub, yellow collapses it to the title bar, green zooms it to the
- * full screen. Input: mouse wheel and touch swipe scroll the list, with the speed set in Mod Settings. Keys scroll by a fixed step. A swipe
- * never activates a control. Keyboard: Ctrl+1 to Ctrl+7 pick a tab, Left and Right step through tabs,
- * Up, Down, Page Up, Page Down, Home and End scroll.
+ * <p>Window buttons: red closes the hub, yellow collapses it to the title bar, and green zooms it to the full screen.
+ * Mouse wheel, touch swipe, and the scroll keys move the single list. A swipe never activates a control. Ctrl+F
+ * focuses search; search temporarily shows matching rows from collapsed categories without changing their state.</p>
  */
 public class AppleHubScreen extends AppleScreen {
 
     private static final float TITLE_H = 34f;
-    private static final float SIDEBAR_W = 136f;
     private static final float PAD = 14f;
     private static final float ROW_GAP = 6f;
-    private static final float NAV_H = 26f;
-    private static final float NAV_STEP = 30f;
-    private static final float TAB_H = 24f;
-    /** Narrowest tab width at which the tab name is drawn. Below this, only the icon is drawn. */
-    private static final float TAB_TEXT_MIN = 52f;
 
-    static final String[] PAGE_NAMES = {"General", QualityOfLifeUiModel.TAB_LABEL, "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
-    private static final String[] PAGE_SUBS = {
-            "Appearance, global settings and performance",
-            "Simple gameplay toggles and focused feature editors",
-            "General HUD elements and first-person renderer settings",
-            "Mining BPS and Mining Assistant editors",
-            "Sync, Spirit Leap, cached ESP and Floor VII overlay",
-            "Drop tracker, boss timer, prices and Slayer HUD",
-            "Alerts, catch counters, Fishing HUD and Sea Creature HP"
+    static final String QUALITY_OF_LIFE_SECTION = QualityOfLifeUiModel.SECTION_LABEL;
+    static final String HUD_SECTION = "HUD Hub Editor";
+    static final String GENERAL_SECTION = "General";
+    static final String FARMING_SECTION = "Farming";
+    static final String DUNGEON_SECTION = "Dungeon";
+    static final String SLAYER_SECTION = "Slayer";
+    static final String FISHING_SECTION = "Fishing";
+
+    /** Display order in the single expandable menu. This is not a tab/navigation list. */
+    static final String[] SECTION_NAMES = {
+            QUALITY_OF_LIFE_SECTION, HUD_SECTION, GENERAL_SECTION, FARMING_SECTION,
+            DUNGEON_SECTION, SLAYER_SECTION, FISHING_SECTION
     };
-    /** HUD targets in editor order; contextual tabs route their own specialised HUD features. */
-    private static final HudElement[] HUD_OVERVIEW = {
-            HudManager.DOLL, HudManager.INVENTORY, HudManager.STATS, HudManager.MINING,
-            HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER, HudManager.MINING_ASSIST, HudManager.DUNGEON_BOSS_HP};
-    /** The HUD tab keeps only general-purpose elements; specialised HUDs live in their feature tab. */
-    private static final HudElement[] HUD_TAB_ELEMENTS = {
-            HudManager.STATS, HudManager.DOLL, HudManager.INVENTORY};
-    private static final int HUD_MINING = 3; // index into HUD_OVERVIEW
-    private static final int HUD_MINING_ASSIST = 7;
-    private static final int HUD_DUNGEON_BOSS_HP = 8;
-    private static final int[] PAGE_ICONS = {
-            Icons.GEAR, Icons.BOLT, Icons.HUD, Icons.LEAF, Icons.TOWER, Icons.SWORD, Icons.FISH
-    };
-    private static final int PAGE_HUD = 2;
-    private static final int PAGE_FARMING = 3;
-    private static final int PAGE_FISHING = 6;
-    private static final int PAGE_DUNGEON = 4;
 
     private final GuiScreen parent;
-    private final List<List<Row>> pages = new ArrayList<List<Row>>();
-    private int pageIndex;
+    private final List<Row> menuRows = new ArrayList<Row>();
 
     private final SearchField search = new SearchField("Search settings");
     private final List<Row> searchRows = new ArrayList<Row>();
@@ -98,9 +70,9 @@ public class AppleHubScreen extends AppleScreen {
     private boolean searching;
     private String query = "";
 
-    /** Titles of the one-level dropdowns currently expanded while the Hub is open. */
+    /** Open historical-style category headers for this Hub session only. */
     private final Set<String> expanded = new HashSet<String>();
-    /** Header under the pointer at press time. Toggles on release if the pointer did not drag. */
+    /** Header under the pointer at press time. Toggles on release only if the pointer did not drag. */
     private Row pendingHeader;
 
     // Window state. Collapsed hides everything but the title bar. Zoomed fills the screen.
@@ -109,8 +81,6 @@ public class AppleHubScreen extends AppleScreen {
 
     private final Anim openAnim = new Anim(0f);
     private final Anim fadeAnim = new Anim(1f);
-    private final Anim[] navSel = new Anim[PAGE_NAMES.length];
-    private final Anim[] navHover = new Anim[PAGE_NAMES.length];
     private final Anim indicator = new Anim(0f);
 
     // Scrolling state.
@@ -129,15 +99,14 @@ public class AppleHubScreen extends AppleScreen {
     private float wx, wy, ww, wh;
     private float cx0, cw, headY;
     private float vx, vy, vw, vh;
-    private boolean wide;
     private boolean tall;
 
-    // Timing and stats.
+    // Timing and GUI-only adaptive quality.
     private long lastNs;
     private int slowFrames;
     private int fastFrames;
     private boolean autoLow;
-    /** GUI-only telemetry; this is deliberately not a HUD element or a persisted feature toggle. */
+    /** Read-only GUI telemetry retained inside the General category; it is not another HUD element. */
     private final ClientMetrics.Reader clientMetrics = ClientMetrics.liveReader();
     private final GeneralMetricsLayout.Layout generalMetrics = new GeneralMetricsLayout.Layout();
     private int scaleKey = -1;
@@ -147,27 +116,53 @@ public class AppleHubScreen extends AppleScreen {
         this.parent = parent;
         Theme.refresh();
         openAnim.to(1f);
-        for (int i = 0; i < PAGE_NAMES.length; i++) {
-            navSel[i] = new Anim(i == 0 ? 1f : 0f);
-            navHover[i] = new Anim(0f);
+        buildMenu();
+        // Quality of Life is the first, immediately useful section on a fresh opening. All other sections remain
+        // one click away without consuming vertical space or introducing another navigation surface.
+        expanded.add(defaultExpandedSection());
+    }
+
+    /** The initial open category is deliberate, but expansion itself remains session-only presentation state. */
+    static String defaultExpandedSection() {
+        return QUALITY_OF_LIFE_SECTION;
+    }
+
+    /** A clone keeps headless reachability checks from mutating the screen's static display contract. */
+    static String[] sectionNames() {
+        return SECTION_NAMES.clone();
+    }
+
+    /** The Hub intentionally has one category-expansion level and no main sidebar/tab navigation. */
+    static int mainExpansionDepth() {
+        return 1;
+    }
+
+    // ------------------------------------------------------------------ menu construction
+
+    private void buildMenu() {
+        menuRows.clear();
+        appendGroup(QUALITY_OF_LIFE_SECTION, qualityOfLifeRows());
+        appendGroup(HUD_SECTION, hudRows());
+        appendGroup(GENERAL_SECTION, generalRows());
+        appendGroup(FARMING_SECTION, farmingRows());
+        appendGroup(DUNGEON_SECTION, dungeonRows());
+        appendGroup(SLAYER_SECTION, slayerRows());
+        appendGroup(FISHING_SECTION, fishingRows());
+    }
+
+    /**
+     * Restores the old simple category grouping rule: one header followed by direct rows until the next header.
+     * Page-era visual section labels are deliberately omitted so a category cannot acquire nested navigation.
+     */
+    private void appendGroup(String title, List<Row> rows) {
+        menuRows.add(Row.header(title));
+        for (int i = 0; i < rows.size(); i++) {
+            Row row = rows.get(i);
+            if (row.kind != Row.SECTION) menuRows.add(row);
         }
-        buildPages();
     }
 
-    // ------------------------------------------------------------------ pages
-
-    private void buildPages() {
-        pages.clear();
-        pages.add(generalPage());
-        pages.add(qualityOfLifePage());
-        pages.add(hudPage());
-        pages.add(farmingPage());
-        pages.add(dungeonPage());
-        pages.add(slayerPage());
-        pages.add(fishingPage());
-    }
-
-    /** Adds one direct Boolean control. It never opens a dropdown. */
+    /** Adds one direct Boolean control. It never opens a second dropdown. */
     private static void simpleFeature(List<Row> rows, String title, String description,
                                       java.util.function.Supplier<Boolean> getter,
                                       java.util.function.Consumer<Boolean> setter) {
@@ -182,28 +177,24 @@ public class AppleHubScreen extends AppleScreen {
                 .valueLabel(value -> value + "%")));
     }
 
-    /** Opens a detailed surface that has no meaningful all-or-nothing master toggle. */
+    /** Opens a focused existing settings owner; it does not create a replacement config surface. */
     private static void settingsFeature(List<Row> rows, String title, String description, Runnable open) {
-        rows.add(Row.item(title, description, new AppleButton("Settings", 172f, 24f, true, open)));
+        rows.add(Row.item(title, description, new AppleButton("Open", 102f, 24f, true, open)));
     }
 
-    /**
-     * Adds one flat, one-level dropdown. Its two and only two body rows are On/Off and Settings; the header status
-     * dot reads the same toggle, so it cannot drift from the control below it.
-     */
-    private static void editorFeature(List<Row> rows, String title, String description,
-                                      java.util.function.Supplier<Boolean> getter,
-                                      java.util.function.Consumer<Boolean> setter, Runnable open) {
-        rows.add(Row.dropdown(title, description, getter));
-        rows.add(Row.item("On/Off", "Turn this feature on or off.", new AppleToggle(getter, setter)));
-        rows.add(Row.item("Settings", "Open " + title + " settings.",
-                new AppleButton("Settings", 172f, 24f, true, open)));
+    /** Keeps a HUD element's visibility switch and its single established styling/placement route together. */
+    private void hudFeature(List<Row> rows, final HudElement element) {
+        GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find(element.id);
+        final String title = feature == null ? element.name : feature.getTitle();
+        final String description = feature == null ? "Show this HUD element on screen." : feature.getDescription();
+        simpleFeature(rows, "Show " + title, description, () -> element.enabled, value -> element.enabled = value);
+        settingsFeature(rows, title + " Settings", "Position, scale and style remain in the HUD editor.",
+                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, element)));
     }
 
-    /** One flat Quality of Life page: simple switches first, then one-level editor dropdowns. */
-    private List<Row> qualityOfLifePage() {
+    /** Main expandable Quality of Life section: direct daily controls and the retained focused tools. */
+    private List<Row> qualityOfLifeRows() {
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.section("Simple features"));
         List<QualityOfLifeUiModel.Entry> controls = QualityOfLifeUiModel.buildControlModel();
         simpleFeature(rows, "No Block Particles", controls.get(0).getDescription(),
                 () -> AppleSettings.noBlockParticles, value -> AppleSettings.noBlockParticles = value);
@@ -214,190 +205,120 @@ public class AppleHubScreen extends AppleScreen {
         simpleFeature(rows, "Auto Sprint", controls.get(3).getDescription(),
                 () -> AssistSettings.autoSprint, value -> AssistSettings.autoSprint = value);
 
-        rows.add(Row.section("Feature editors"));
+        // Item Animation belongs with the player quality-of-life tools, not behind a separate HUD category. Its editor remains the
+        // original non-draggable renderer panel and owns its enable switch, transforms, preview, and persistence.
+        List<ItemAnimationUiModel.Entry> itemAnimation = ItemAnimationUiModel.buildQualityOfLifeModel();
+        settingsFeature(rows, itemAnimation.get(0).getLabel(), "Open the dedicated first-person renderer editor.",
+                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openItemAnimation(this)));
         settingsFeature(rows, "Inventory Assist", "Tooltip, potion-panel and inventory visual helpers.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this)));
-        editorFeature(rows, "Movement and Shortcuts", "Wardrobe and pets shortcuts.", () -> AssistSettings.wardrobeShortcut,
-                value -> AssistSettings.wardrobeShortcut = value,
+        settingsFeature(rows, "Movement and Shortcuts", "Wardrobe and pets shortcuts.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.movementShortcuts(this)));
-        editorFeature(rows, "Item Lock and Swap", "Pair locks, indicators and persistent pair-center lines.",
-                () -> ItemLockSwapSettings.enabled, value -> ItemLockSwapSettings.enabled = value, () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemLockSwap(this)));
-        editorFeature(rows, "Chat QoL", "Attached tabs, message animation and highlighting.", () -> ChatQolSettings.enabled, value -> {
-                    ChatQolSettings.enabled = value;
-                    if (!value) ChatChannelTabs.disableAndRestoreAll();
-                }, () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)));
-        editorFeature(rows, "Commands", "Optional /sv and /qn routes plus diagnostics.", () -> AppleSettings.svCommand,
-                value -> AppleSettings.svCommand = value,
+        settingsFeature(rows, "Item Lock and Swap", "Pair locks, indicators and persistent pair-center lines.",
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemLockSwap(this)));
+        settingsFeature(rows, "Chat QoL", "Attached tabs, message animation and highlighting.",
+                () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)));
+        settingsFeature(rows, "Commands", "Optional /sv and /qn routes plus diagnostics.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.commands(this)));
         return rows;
     }
 
-    /** General begins with GUI-only live telemetry and routes multi-option controls to focused editors. */
-    private List<Row> generalPage() {
+    private List<Row> generalRows() {
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Appearance", "Dark/light theme, accent, corners and panel opacity.", () -> AppleSettings.darkMode,
-                value -> { AppleSettings.darkMode = value; Theme.refresh(); },
+        // This preserves the existing read-only GUI telemetry without registering a second in-game metric HUD.
+        rows.add(Row.custom(85f, (x, y, width, height) -> drawGeneralMetrics(fr(), x, y, width, height)));
+        settingsFeature(rows, "Appearance", "Dark/light theme, accent, corners and panel opacity.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.appearance(this)));
-        editorFeature(rows, "Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling.", () -> AppleSettings.smoothScrolling,
-                value -> AppleSettings.smoothScrolling = value,
+        settingsFeature(rows, "Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.modSettings(this)));
-        editorFeature(rows, "Performance", "Curve, shadows, animation and adaptive GUI quality.", () -> AppleSettings.experimentalPerformance,
-                value -> AppleSettings.experimentalPerformance = value,
+        settingsFeature(rows, "Performance", "Curve, shadows, animation and adaptive GUI quality.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.performance(this)));
         return rows;
     }
 
-    /** Retained entry point: the former HUD subcategory now opens the flat Dungeon tab directly. */
+    /**
+     * Retained compatibility entry point. The old HUD subcategory is now the normal single-menu Dungeon section.
+     */
     public static AppleHubScreen dungeonHud(GuiScreen parent) {
         AppleHubScreen hub = new AppleHubScreen(parent);
-        hub.selectPage(PAGE_DUNGEON);
+        hub.expanded.clear();
+        hub.expanded.add(DUNGEON_SECTION);
         return hub;
     }
 
-    private List<Row> hudPage() {
-        final Minecraft mc = Minecraft.getMinecraft();
+    /** HUD Hub Editor section: one clear editor entry, plus direct visibility/settings access for the reference HUDs. */
+    private List<Row> hudRows() {
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Item Animation", "Visual first-person transforms only; never changes packets, attacks or gameplay.", () -> AppleSettings.itemAnimationEnabled, value -> {
-                    AppleSettings.itemAnimationEnabled = value;
-                    AppleSettings.save();
-                }, () -> mc.displayGuiScreen(HudEditorScreen.openItemAnimation(this)));
-        for (final HudElement element : HUD_TAB_ELEMENTS) {
-            GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find(element.id);
-            final String title = feature == null ? element.name : feature.getTitle();
-            final String description = feature == null ? "Shown on screen." : feature.getDescription();
-            editorFeature(rows, title, description,
-                    () -> element.enabled, value -> element.enabled = value,
-                    () -> mc.displayGuiScreen(HudEditorScreen.openElement(this, element)));
-        }
+        settingsFeature(rows, "HUD Editor", "Click an on-screen HUD element to select it; drag to move it.",
+                () -> Minecraft.getMinecraft().displayGuiScreen(new HudEditorScreen(this)));
+        hudFeature(rows, HudManager.STATS);
+        hudFeature(rows, HudManager.DOLL);
+        hudFeature(rows, HudManager.INVENTORY);
         return rows;
     }
 
-    /** Opens one HUD element at its only customization surface: the HUD editor. */
-    private void openHud(int index) {
-        if (index < 0 || index >= HUD_OVERVIEW.length) return;
-        Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HUD_OVERVIEW[index]));
-    }
-
-    private List<Row> farmingPage() {
+    private List<Row> farmingRows() {
         List<Row> rows = new ArrayList<Row>();
-        GuiSettingsAuditModel.Feature mining = GuiSettingsAuditModel.find("mining");
-        GuiSettingsAuditModel.Feature assistant = GuiSettingsAuditModel.find("mining-assistant");
-        rows.add(Row.section("Feature editors"));
-        editorFeature(rows, mining.getTitle(), mining.getDescription(), () -> HudManager.MINING.enabled,
-                value -> HudManager.MINING.enabled = value, () -> openHud(HUD_MINING));
-        editorFeature(rows, assistant.getTitle(), assistant.getDescription(), () -> HudManager.MINING_ASSIST.enabled,
-                value -> HudManager.MINING_ASSIST.enabled = value,
+        hudFeature(rows, HudManager.MINING);
+        settingsFeature(rows, "Mining Assistant", "Alerts, helper controls, and its HUD route.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.miningAssistant(this)));
         return rows;
     }
 
-    private List<Row> dungeonPage() {
+    private List<Row> dungeonRows() {
         final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
-        GuiSettingsAuditModel.Feature dungeonMap = GuiSettingsAuditModel.find("dungeon-map");
-        GuiSettingsAuditModel.Feature bossHud = GuiSettingsAuditModel.find("dungeon-boss-hp");
-
-        // Flat usage order: ESP, solvers/helpers, then information/other. No group exceeds eight rows.
-        editorFeature(rows, "Door ESP", "Wither and blood door filters, shared style and closed-prism preview.", () -> DungeonEspSettings.doorsEnabled,
-                value -> DungeonEspSettings.doorsEnabled = value,
+        settingsFeature(rows, "Door ESP", "Wither and blood door filters, shared style and closed-prism preview.",
                 () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this)));
-        editorFeature(rows, "Mob ESP", "Per-mob styles, readable category labels, scan controls and presets.", () -> DungeonEspSettings.enabled,
-                value -> DungeonEspSettings.enabled = value,
+        settingsFeature(rows, "Mob ESP", "Per-mob styles, readable category labels, scan controls and presets.",
                 () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this)));
-
         simpleFeature(rows, "Dungeon Sync", assistDescription("Dungeon Sync"),
                 () -> AssistSettings.dungeonSync, value -> AssistSettings.dungeonSync = value);
-        editorFeature(rows, "Floor VII (M7) Overlay", "Areas, alerts, terminal solver, boss and dragon hitboxes.", M7Settings::isOverlayEnabled,
-                M7Settings::setOverlayEnabled,
+        settingsFeature(rows, "Floor VII (M7) Overlay", "Areas, alerts, terminal solver, boss and dragon hitboxes.",
                 () -> mc.displayGuiScreen(FeatureSettingsEditors.m7Overlay(this)));
-        editorFeature(rows, "Spirit Leap GUI", "Dungeon-only teammate picker, shortcut and safe preview.",
-                () -> AppleSettings.leapMenu, value -> AppleSettings.leapMenu = value,
+        settingsFeature(rows, "Spirit Leap GUI", "Dungeon-only teammate picker, shortcut and safe preview.",
                 () -> mc.displayGuiScreen(FeatureSettingsEditors.spiritLeap(this)));
-        editorFeature(rows, "Terminal Assist", "Visual helpers, explicit automation and waypoints.", () -> AssistSettings.terminalHints,
-                value -> AssistSettings.terminalHints = value,
+        settingsFeature(rows, "Terminal Assist", "Visual helpers, explicit automation and waypoints.",
                 () -> mc.displayGuiScreen(FeatureSettingsEditors.terminalAssist(this)));
-
-        editorFeature(rows, bossHud.getTitle(), assistDescription("Boss HP HUD"), () -> HudManager.DUNGEON_BOSS_HP.enabled,
-                value -> HudManager.DUNGEON_BOSS_HP.enabled = value,
-                () -> openHud(HUD_DUNGEON_BOSS_HP));
-        editorFeature(rows, dungeonMap.getTitle(), dungeonMap.getDescription(), () -> AppleSettings.dungeonMap,
-                value -> AppleSettings.dungeonMap = value,
+        hudFeature(rows, HudManager.DUNGEON_BOSS_HP);
+        simpleFeature(rows, "Show Dungeon Map", "Show the existing dungeon map overlay.",
+                () -> AppleSettings.dungeonMap, value -> AppleSettings.dungeonMap = value);
+        settingsFeature(rows, "Dungeon Map Settings", "Position and map options remain in the HUD editor.",
                 () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)));
         simpleFeature(rows, "Sync Details", assistDescription("Sync Details"),
                 () -> AssistSettings.dungeonSyncDebug, value -> AssistSettings.dungeonSyncDebug = value);
         return rows;
     }
 
-    private List<Row> fishingPage() {
+    private List<Row> slayerRows() {
         List<Row> rows = new ArrayList<Row>();
-        GuiSettingsAuditModel.Feature fishingHud = GuiSettingsAuditModel.find("fishing");
-        GuiSettingsAuditModel.Feature seaHpHud = GuiSettingsAuditModel.find("seahp");
-        rows.add(Row.section("Simple features"));
+        settingsFeature(rows, "Slayer Tracker", "Drop history, timer, prices and clear-history controls.",
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.slayer(this)));
+        hudFeature(rows, HudManager.SLAYER);
+        return rows;
+    }
+
+    private List<Row> fishingRows() {
+        List<Row> rows = new ArrayList<Row>();
         simpleFeature(rows, "Lord Jawbus", "Shows a title once when Lord Jawbus arrives.",
                 () -> AppleSettings.fishingJawbusAlert, value -> AppleSettings.fishingJawbusAlert = value);
         simpleFeature(rows, "Nearby Encounters", "Optional local title when compatible HP nameplates first appear.",
                 () -> AppleSettings.fishingNearbyEncounterAlert, value -> AppleSettings.fishingNearbyEncounterAlert = value);
-
-        rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Catch Counter", "Catch counts, Festival best and counter reset.", () -> AppleSettings.fishingCounter,
-                value -> AppleSettings.fishingCounter = value,
+        settingsFeature(rows, "Catch Counter", "Catch counts, Festival best and counter reset.",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.catchCounter(this)));
-        editorFeature(rows, fishingHud.getTitle(), fishingHud.getDescription(), () -> HudManager.FISHING.enabled,
-                value -> HudManager.FISHING.enabled = value,
-                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.FISHING)));
-        editorFeature(rows, seaHpHud.getTitle(), seaHpHud.getDescription(), () -> HudManager.SEA_HP.enabled,
-                value -> HudManager.SEA_HP.enabled = value,
-                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SEA_HP)));
+        hudFeature(rows, HudManager.FISHING);
+        hudFeature(rows, HudManager.SEA_HP);
         return rows;
     }
 
     /** Resolves the centrally tested one-line copy for every existing assist control. */
     private static String assistDescription(String name) {
         AssistUiModel.Entry entry = AssistUiModel.find(name);
-        return entry == null ? "Optional Sky VeLor client assist" : entry.description;
-    }
-
-    private List<Row> slayerPage() {
-        List<Row> rows = new ArrayList<Row>();
-        GuiSettingsAuditModel.Feature slayerHud = GuiSettingsAuditModel.find("slayer");
-        rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Slayer Tracker", "Drop history, timer, prices and clear-history controls.",
-                () -> AppleSettings.slayerTracker, value -> AppleSettings.slayerTracker = value,
-                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.slayer(this)));
-        editorFeature(rows, slayerHud.getTitle(), slayerHud.getDescription(), () -> HudManager.SLAYER.enabled,
-                value -> HudManager.SLAYER.enabled = value,
-                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SLAYER)));
-        return rows;
+        return entry == null ? "Optional Sky VeLor client assist." : entry.description;
     }
 
     private List<Row> currentRows() {
-        return searching ? searchRows : pages.get(pageIndex);
-    }
-
-    private void selectPage(int index) {
-        if (index == pageIndex && !searching) {
-            return;
-        }
-        pageIndex = index;
-        if (index == PAGE_HUD) {
-            pages.set(PAGE_HUD, hudPage());
-        } else if (index == PAGE_FARMING) {
-            pages.set(PAGE_FARMING, farmingPage());
-        } else if (index == PAGE_DUNGEON) {
-            pages.set(PAGE_DUNGEON, dungeonPage());
-        } else if (index == PAGE_FISHING) {
-            pages.set(PAGE_FISHING, fishingPage());
-        }
-        scroll.reset();
-        gestureActive = false;
-        active = null;
-        openDropdown = null;
-        search.clear();
-        search.setFocused(false);
-        fadeAnim.snap(0f);
-        fadeAnim.to(1f);
+        return searching ? searchRows : menuRows;
     }
 
     // ------------------------------------------------------------------ frame loop
@@ -482,35 +403,26 @@ public class AppleHubScreen extends AppleScreen {
         if (dt > 0.05f) {
             slowFrames++;
             fastFrames = 0;
-            if (slowFrames > 30) {
-                autoLow = true;
-            }
+            if (slowFrames > 30) autoLow = true;
         } else if (dt < 0.03f) {
             fastFrames++;
             slowFrames = 0;
-            if (fastFrames > 180) {
-                autoLow = false;
-            }
+            if (fastFrames > 180) autoLow = false;
         }
     }
 
     private void syncSearch() {
-        if (search.version() == searchVersion) {
-            return;
-        }
+        if (search.version() == searchVersion) return;
         searchVersion = search.version();
         query = search.text().toLowerCase(Locale.ROOT).trim();
         searchRows.clear();
         if (!query.isEmpty()) {
-            for (List<Row> page : pages) {
-                for (Row r : page) {
-                    if (r.kind != Row.ITEM) {
-                        continue;
-                    }
-                    if (r.label.toLowerCase(Locale.ROOT).contains(query)
-                            || (r.desc != null && r.desc.toLowerCase(Locale.ROOT).contains(query))) {
-                        searchRows.add(r);
-                    }
+            for (int i = 0; i < menuRows.size(); i++) {
+                Row row = menuRows.get(i);
+                if (row.kind != Row.ITEM) continue;
+                if (row.label.toLowerCase(Locale.ROOT).contains(query)
+                        || (row.desc != null && row.desc.toLowerCase(Locale.ROOT).contains(query))) {
+                    searchRows.add(row);
                 }
             }
         }
@@ -524,23 +436,15 @@ public class AppleHubScreen extends AppleScreen {
         fadeAnim.update(dt, 14f);
         indicator.update(dt, 10f);
         search.update(dt);
-        for (int i = 0; i < navSel.length; i++) {
-            navSel[i].to(!searching && i == pageIndex ? 1f : 0f);
-            navSel[i].update(dt, 14f);
-            navHover[i].update(dt, 16f);
-        }
 
         scroll.update(dt, gestureActive && gesture.kind == Gesture.SCROLL,
                 Theme.animations && AppleSettings.smoothScrolling, Theme.speed);
-        boolean moving = gestureActive || scroll.moving();
-        indicator.to(moving ? 1f : 0f);
+        indicator.to((gestureActive || scroll.moving()) ? 1f : 0f);
 
         List<Row> rows = currentRows();
         for (int i = 0, n = rows.size(); i < n; i++) {
-            Widget c = rows.get(i).control;
-            if (c != null) {
-                c.update(dt);
-            }
+            Widget control = rows.get(i).control;
+            if (control != null) control.update(dt);
         }
     }
 
@@ -551,8 +455,7 @@ public class AppleHubScreen extends AppleScreen {
         float availableH = Math.max(1f, height - 8f);
         float desiredW = zoomed ? availableW : Math.min(availableW, 620f);
         float desiredH = zoomed ? availableH : Math.min(availableH, 400f);
-        // A preferred minimum never exceeds the actual viewport; this is what makes 854x480 and small GUI scales
-        // safe without a second hardcoded layout branch.
+        // A preferred minimum never exceeds the actual viewport; this keeps tiny GUI scales reachable.
         desiredW = Math.max(Math.min(160f, availableW), desiredW);
         desiredH = Math.max(Math.min(120f, availableH), desiredH);
         if (collapsed) desiredH = Math.min(desiredH, TITLE_H + 1f);
@@ -563,15 +466,11 @@ public class AppleHubScreen extends AppleScreen {
         wy = hubPanel.y;
         ww = hubPanel.w;
         wh = hubPanel.h;
-        // A sidebar must fit every navigation row; short windows fall back to the existing compact tab strip.
-        wide = ww >= 460f && wh >= TITLE_H + 10f + (PAGE_NAMES.length - 1) * NAV_STEP + NAV_H + 12f;
         tall = wh >= 230f;
 
-        float side = wide ? SIDEBAR_W : 0f;
-        float inset = wide ? 16f : PAD;
-        cx0 = wx + side + inset;
-        cw = Math.max(1f, ww - side - inset - PAD);
-        headY = wy + TITLE_H + (wide ? 12f : 40f);
+        cx0 = wx + PAD;
+        cw = Math.max(1f, ww - PAD * 2f);
+        headY = wy + TITLE_H + 12f;
 
         if (tall) {
             search.x = cx0;
@@ -579,10 +478,10 @@ public class AppleHubScreen extends AppleScreen {
             search.w = cw;
             search.h = 22f;
         } else {
-            float sw = Math.min(170f, cw * 0.5f);
-            search.x = cx0 + cw - sw;
+            float searchWidth = Math.min(170f, cw * 0.5f);
+            search.x = cx0 + cw - searchWidth;
             search.y = headY - 3f;
-            search.w = sw;
+            search.w = searchWidth;
             search.h = 20f;
         }
 
@@ -592,23 +491,8 @@ public class AppleHubScreen extends AppleScreen {
         float candidateViewY = tall ? headY + 68f : headY + 26f;
         vy = Math.min(candidateViewY, Math.max(wy + TITLE_H + 2f, bodyBottom - 20f));
         vh = Math.max(1f, bodyBottom - vy);
-        if (showsGeneralMetrics()) {
-            GeneralMetricsLayout.update(generalMetrics, vx, vy, vw);
-            if (generalMetrics.height + ROW_GAP + 1f <= vh) {
-                float settingsTop = Math.min(bodyBottom - 1f, generalMetrics.cards[0].y + generalMetrics.height + ROW_GAP);
-                vy = Math.max(vy, settingsTop);
-                vh = Math.max(1f, bodyBottom - vy);
-            } else {
-                // At an extreme GUI scale, clip the optional dashboard rather than overlap editor rows.
-                generalMetrics.height = 0f;
-            }
-        } else {
-            generalMetrics.height = 0f;
-        }
 
-        if (!searching) {
-            applyGroups(pages.get(pageIndex));
-        }
+        if (!searching) applyGroups(menuRows);
         List<Row> rows = currentRows();
         scroll.setMax(Math.max(0f, contentHeight(rows) + 4f - vh));
         layoutRows(rows, vy - scroll.value());
@@ -619,41 +503,50 @@ public class AppleHubScreen extends AppleScreen {
         float total = 0f;
         boolean first = true;
         for (int i = 0, n = rows.size(); i < n; i++) {
-            Row r = rows.get(i);
-            if (!shown(r)) {
-                continue;
-            }
-            total += r.height + (first ? 0f : ROW_GAP);
+            Row row = rows.get(i);
+            if (!shown(row)) continue;
+            total += row.height + (first ? 0f : ROW_GAP);
             first = false;
         }
         return Math.max(0f, total);
     }
 
-    /** Whether a row is drawn and hit-tested. Search shows every match, even inside a collapsed group. */
-    private boolean shown(Row r) {
-        return searching || r.visible;
+    /** Search shows every matching direct row, including one stored in a collapsed category. */
+    private boolean shown(Row row) {
+        return searching || row.visible;
     }
 
-    /** Applies one-level dropdown visibility. A header owns rows only until the next section/header. */
+    /** Restored historical grouping: a header owns all following direct rows until another header or section. */
     private void applyGroups(List<Row> rows) {
+        applyGroupVisibility(rows, expanded);
+    }
+
+    /**
+     * Shared pure grouping rule used by the live menu and headless expansion regression tests. There is no recursive
+     * parent lookup: all rows are direct children of the most recent category header, so nested navigation cannot
+     * accidentally return.
+     */
+    static void applyGroupVisibility(List<Row> rows, Set<String> expandedGroups) {
+        if (rows == null) return;
         Row header = null;
         for (int i = 0, n = rows.size(); i < n; i++) {
             Row row = rows.get(i);
             if (row.kind == Row.HEADER) {
                 header = row;
                 row.visible = true;
-                row.bodyRows = 0;
+                row.children = 0;
             } else if (row.kind == Row.SECTION) {
                 header = null;
                 row.visible = true;
             } else {
-                row.visible = header == null || expanded.contains(header.label);
-                if (header != null) header.bodyRows++;
+                row.group = header == null ? null : header.label;
+                row.visible = header == null || (expandedGroups != null && expandedGroups.contains(header.label));
+                if (header != null) header.children++;
             }
         }
     }
 
-    /** Toggles one flat feature dropdown. Closing it also closes an editor-control popup inside it. */
+    /** Closing a category also closes an editor-control popup inside it. */
     private void toggleGroup(String title) {
         if (!expanded.remove(title)) expanded.add(title);
         openDropdown = null;
@@ -662,31 +555,29 @@ public class AppleHubScreen extends AppleScreen {
     private void layoutRows(List<Row> rows, float top) {
         float y = top;
         for (int i = 0, n = rows.size(); i < n; i++) {
-            Row r = rows.get(i);
-            if (!shown(r)) {
-                continue;
-            }
-            r.y = y;
-            Widget c = r.control;
-            rowLayoutRect.set(cx0, y, Math.max(1f, cw), r.height);
+            Row row = rows.get(i);
+            if (!shown(row)) continue;
+            row.y = y;
+            Widget control = row.control;
+            rowLayoutRect.set(cx0, y, Math.max(1f, cw), row.height);
             float textPad = 12f;
-            if (c != null) {
-                GuiLayoutToolkit.splitRow(rowLayoutRect, textPad, 8f, c.preferredWidth(), c.h,
+            if (control != null) {
+                GuiLayoutToolkit.splitRow(rowLayoutRect, textPad, 8f, control.preferredWidth(), control.h,
                         rowLabelRect, rowControlRect);
-                r.labelX = rowLabelRect.x;
-                r.labelWidth = rowLabelRect.w;
-                c.x = rowControlRect.x;
-                c.y = rowControlRect.y;
-                c.w = rowControlRect.w;
+                row.labelX = rowLabelRect.x;
+                row.labelWidth = rowLabelRect.w;
+                control.x = rowControlRect.x;
+                control.y = rowControlRect.y;
+                control.w = rowControlRect.w;
             } else {
-                r.labelX = rowLayoutRect.x + textPad;
-                r.labelWidth = Math.max(1f, rowLayoutRect.w - textPad * 2f);
+                row.labelX = rowLayoutRect.x + textPad;
+                row.labelWidth = Math.max(1f, rowLayoutRect.w - textPad * 2f);
             }
-            y = nextRowTop(y, r.height);
+            y = nextRowTop(y, row.height);
         }
     }
 
-    /** Shared row-flow invariant used by the real layout path and headless dropdown overlap regression tests. */
+    /** Shared row-flow invariant used by the real layout path and headless overlap regression tests. */
     static float nextRowTop(float rowTop, float rowHeight) {
         return rowTop + Math.max(0f, rowHeight) + ROW_GAP;
     }
@@ -707,107 +598,33 @@ public class AppleHubScreen extends AppleScreen {
         // Close (red), collapse (yellow), zoom (green). All three are live in the hub.
         WindowDots.draw(wx + 16f, wy + 17f, mx, my, 0b111, zoomed);
 
-        FontRenderer fr = fr();
+        FontRenderer font = fr();
         String title = searching ? "Search" : PekaVersion.DISPLAY_NAME;
-        UIRender.text(fr, title, wx + (ww - fr.getStringWidth(title)) * 0.5f, wy + 12.5f,
+        UIRender.text(font, title, wx + (ww - font.getStringWidth(title)) * 0.5f, wy + 12.5f,
                 Theme.textSecondary, 1f, false);
 
-        // The version is small and sits in the title bar, out of the way of the content.
-        String ver = PekaVersion.NAME;
-        float verW = fr.getStringWidth(ver) * 0.8f;
-        UIRender.text(fr, ver, wx + ww - 12f - verW, wy + 13.5f, Theme.textTertiary, 0.8f, false);
-
-        if (collapsed) {
-            return;
-        }
-        if (wide) {
-            UIRender.rect(wx + SIDEBAR_W, wy + TITLE_H + 1f, 1f, wh - TITLE_H - 2f, Theme.divider);
-            drawSidebar(mx, my);
-        } else {
-            drawTabs();
-        }
-    }
-
-    private void drawSidebar(int mx, int my) {
-        FontRenderer fr = fr();
-        for (int i = 0; i < PAGE_NAMES.length; i++) {
-            float x = wx + 8f;
-            float w = SIDEBAR_W - 16f;
-            float y = wy + TITLE_H + 10f + i * NAV_STEP;
-            boolean hov = inside(mx, my, x, y, w, NAV_H);
-            navHover[i].to(hov ? 1f : 0f);
-            float sel = navSel[i].get();
-            float hv = navHover[i].get();
-
-            if (hv > 0.01f) {
-                UIRender.roundRect(x, y, w, NAV_H, 8f, UIRender.withAlpha(Theme.cardHover, hv), UIRender.withAlpha(Theme.cardHover, hv), 1f);
-            }
-            if (sel > 0.01f) {
-                int pill = UIRender.withAlpha(Theme.accent, 0.20f * sel);
-                UIRender.roundRect(x, y, w, NAV_H, 8f, pill, pill, 1f);
-            }
-            int iconCol = UIRender.mix(Theme.textSecondary, Theme.accent, sel);
-            Icons.draw(PAGE_ICONS[i], x + 13f, y + NAV_H * 0.5f, 12f, iconCol);
-            UIRender.text(fr, PAGE_NAMES[i], x + 28f, y + (NAV_H - 9f) * 0.5f + 1f,
-                    UIRender.mix(Theme.textSecondary, Theme.textPrimary, sel), 1f, false);
-        }
-
-        // Version footer, only when the sidebar is tall enough to show it without overlapping the tabs.
-        if (wh >= TITLE_H + 10f + PAGE_NAMES.length * NAV_STEP + 34f && !collapsed) {
-            float fy = wy + wh - 34f;
-            UIRender.rect(wx + 14f, fy - 6f, SIDEBAR_W - 28f, 1f, Theme.divider);
-            UIRender.text(fr, "VERSION", wx + 14f, fy, Theme.textTertiary, 0.75f, false);
-            UIRender.text(fr, PekaVersion.NAME, wx + 14f, fy + 11f, Theme.textSecondary, 0.9f, false);
-        }
-    }
-
-    /** Narrow layout: a segmented tab bar. Names are shown when there is room, otherwise icons only. */
-    private void drawTabs() {
-        FontRenderer fr = fr();
-        float x = wx + PAD;
-        float y = wy + TITLE_H + 6f;
-        float w = ww - PAD * 2f;
-        float h = TAB_H;
-        UIRender.roundRect(x, y, w, h, h * 0.5f, Theme.track, Theme.track, 1f);
-        float seg = w / PAGE_NAMES.length;
-        float widestTabName = 0f;
-        for (String pageName : PAGE_NAMES) widestTabName = Math.max(widestTabName, fr.getStringWidth(pageName));
-        boolean names = seg >= Math.max(TAB_TEXT_MIN, widestTabName + 12f);
-        for (int i = 0; i < PAGE_NAMES.length; i++) {
-            float sx = x + i * seg;
-            float sel = navSel[i].get();
-            if (sel > 0.01f) {
-                float inner = h - 4f;
-                int pill = UIRender.withAlpha(Theme.segSelected, sel);
-                UIRender.roundRect(sx + 2f, y + 2f, seg - 4f, inner, inner * 0.5f, pill, pill, 1f);
-            }
-            int col = UIRender.mix(Theme.textSecondary, Theme.textPrimary, sel);
-            if (names) {
-                float tw = fr.getStringWidth(PAGE_NAMES[i]);
-                UIRender.text(fr, PAGE_NAMES[i], sx + (seg - tw) * 0.5f, y + (h - 9f) * 0.5f + 1f, col, 1f, false);
-            } else {
-                Icons.draw(PAGE_ICONS[i], sx + seg * 0.5f, y + h * 0.5f, 11f, col);
-            }
-        }
+        String version = PekaVersion.NAME;
+        float versionWidth = font.getStringWidth(version) * 0.8f;
+        UIRender.text(font, version, wx + ww - 12f - versionWidth, wy + 13.5f, Theme.textTertiary, 0.8f, false);
     }
 
     private void drawHeader() {
-        FontRenderer fr = fr();
-        String title = searching ? "Search" : PAGE_NAMES[pageIndex];
-        String sub = searching ? searchRows.size() + (searchRows.size() == 1 ? " match" : " matches")
-                : PAGE_SUBS[pageIndex];
-        UIRender.text(fr, title, cx0, headY, Theme.textPrimary, 1.5f, false);
-        if (tall) {
-            UIRender.text(fr, sub, cx0, headY + 19f, Theme.textSecondary, 1f, false);
-        }
+        FontRenderer font = fr();
+        String title = searching ? "Search" : "Settings";
+        String subtitle = searching ? searchRows.size() + (searchRows.size() == 1 ? " match" : " matches")
+                : "Expandable categories and focused editors";
+        UIRender.text(font, title, cx0, headY, Theme.textPrimary, 1.5f, false);
+        if (tall) UIRender.text(font, subtitle, cx0, headY + 19f, Theme.textSecondary, 1f, false);
     }
 
-    private boolean showsGeneralMetrics() {
-        return !searching && pageIndex == 0;
-    }
-
-    /** Top-of-General GUI telemetry: refreshed by ClientMetrics at a bounded 500 ms cadence. */
-    private void drawGeneralMetrics(FontRenderer font) {
+    /**
+     * Existing General-only readout. It is intentionally inside the General expandable category and never a
+     * HudElement, so it cannot duplicate the restored Frame Rate / Mining / Memory in-game display.
+     */
+    private void drawGeneralMetrics(FontRenderer font, float x, float y, float width, float rowHeight) {
+        GeneralMetricsLayout.update(generalMetrics, x, y, width);
+        float cardY = y + Math.max(0f, (rowHeight - generalMetrics.height) * 0.5f);
+        if (cardY != y) GeneralMetricsLayout.update(generalMetrics, x, cardY, width);
         ClientMetrics.Snapshot snapshot = clientMetrics.snapshot(System.currentTimeMillis());
         drawMetricCard(font, generalMetrics.cards[GeneralMetricsLayout.FPS], "FPS", snapshot.fpsText(),
                 snapshot.fpsColor(), 1f);
@@ -841,99 +658,97 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     private void drawContent(int mx, int my) {
-        FontRenderer fr = fr();
-        if (generalMetrics.height > 0f) drawGeneralMetrics(fr);
+        FontRenderer font = fr();
         List<Row> rows = currentRows();
         UIRender.scissorBegin(vx, vy, vw, vh, sf);
 
         if (searching && rows.isEmpty()) {
             String none = "No matching settings";
-            UIRender.text(fr, none, vx + (vw - fr.getStringWidth(none)) * 0.5f, vy + 16f,
+            UIRender.text(font, none, vx + (vw - font.getStringWidth(none)) * 0.5f, vy + 16f,
                     Theme.textTertiary, 1f, false);
         }
 
         float top = vy;
         float bottom = vy + vh;
         for (int i = 0, n = rows.size(); i < n; i++) {
-            Row r = rows.get(i);
-            if (!shown(r) || r.y + r.height < top || r.y > bottom) {
-                continue;
-            }
-            GuiDebugOverlay.recordRow("Hub: " + r.label, vx, r.y, vw, r.height);
-            if (r.kind == Row.SECTION) {
-                UIRender.text(fr, r.label, vx + 2f, r.y + 4f, Theme.textTertiary, 0.85f, false);
-            } else if (r.kind == Row.HEADER) {
-                drawGroupHeader(fr, r, mx, my);
-            } else if (r.kind == Row.ITEM) {
-                drawItem(fr, r, mx, my);
+            Row row = rows.get(i);
+            if (!shown(row) || row.y + row.height < top || row.y > bottom) continue;
+            GuiDebugOverlay.recordRow("Hub: " + row.label, vx, row.y, vw, row.height);
+            if (row.kind == Row.SECTION) {
+                UIRender.text(font, row.label, vx + 2f, row.y + 4f, Theme.textTertiary, 0.85f, false);
+            } else if (row.kind == Row.HEADER) {
+                drawGroupHeader(font, row, mx, my);
+            } else if (row.kind == Row.ITEM) {
+                drawItem(font, row, mx, my);
+            } else if (row.painter != null) {
+                row.painter.paint(vx, row.y, vw, row.height);
             }
         }
         drawScrollIndicator();
         UIRender.scissorEnd();
     }
 
-    /** One-level dropdown header with a small red/green status dot from its exact body toggle. */
-    private void drawGroupHeader(FontRenderer fr, Row r, int mx, int my) {
+    /** Restored header presentation: chevron, title, and direct-row count; no status dot or nested feature menu. */
+    private void drawGroupHeader(FontRenderer font, Row row, int mx, int my) {
         float x = vx;
-        float y = r.y;
+        float y = row.y;
         float w = vw;
-        float h = r.height;
-        boolean open = expanded.contains(r.label);
+        float h = row.height;
+        boolean open = expanded.contains(row.label);
         boolean hover = inside(mx, my, x, y, w, h);
         UIRender.roundRectBorder(x, y, w, h, cardRadius(), Theme.card, Theme.card,
                 hover ? UIRender.mix(Theme.border, Theme.accent, .45f) : Theme.border);
         int ink = hover ? Theme.accent : Theme.textSecondary;
         float cx = x + 14f;
-        float cy = y + h * .5f;
+        float cy = y + h * 0.5f;
         if (open) {
             UIRender.triangle(cx - 4f, cy - 2f, cx + 4f, cy - 2f, cx, cy + 3f, ink);
         } else {
             UIRender.triangle(cx - 2f, cy - 4f, cx - 2f, cy + 4f, cx + 3f, cy, ink);
         }
-        boolean enabled = r.status != null && Boolean.TRUE.equals(r.status.get());
-        int dot = enabled ? FeatureSettingsUiModel.STATUS_DOT_ON : FeatureSettingsUiModel.STATUS_DOT_OFF;
-        float dotX = x + w - 15f;
-        UIRender.circle(dotX, cy, 4f, dot);
-        float titleX = x + 26f;
-        float titleW = Math.max(1f, dotX - titleX - 10f);
-        UIRender.text(fr, fit(fr, r.label, titleW), titleX, y + 7f, Theme.textPrimary, 1f, false);
-        if (r.desc != null && r.desc.length() > 0) {
-            UIRender.text(fr, fit(fr, r.desc, titleW), titleX, y + 22f, Theme.textSecondary, .88f, false);
+        float textY = y + (h - 9f) * 0.5f + 1f;
+        String count = row.children + (row.children == 1 ? " setting" : " settings");
+        float countWidth = font.getStringWidth(count) * 0.9f;
+        float titleWidth = Math.max(0f, w - 26f - 12f - countWidth - 8f);
+        // At tiny widths, the title is more useful than a clipped count. Never let the two collide.
+        boolean showCount = titleWidth >= Math.min(40f, font.getStringWidth(row.label));
+        if (!showCount) titleWidth = Math.max(0f, w - 26f - 12f);
+        UIRender.text(font, fit(font, row.label, titleWidth), x + 26f, textY, Theme.textPrimary, 1.05f, false);
+        if (showCount) {
+            UIRender.text(font, count, x + w - 12f - countWidth, textY, Theme.textTertiary, 0.9f, false);
         }
     }
 
-    private void drawItem(FontRenderer fr, Row r, int mx, int my) {
+    private void drawItem(FontRenderer font, Row row, int mx, int my) {
         float x = vx;
-        float y = r.y;
+        float y = row.y;
         float w = vw;
-        float h = r.height;
+        float h = row.height;
         UIRender.roundRectBorder(x, y, w, h, cardRadius(), Theme.card, Theme.card, Theme.border);
 
-        float labelX = r.labelX > 0f ? r.labelX : x + 12f;
-        float maxW = r.labelWidth > 0f ? r.labelWidth : Math.max(1f, w - 24f);
-        String label = fit(fr, r.label, maxW);
-        if (r.desc != null) {
-            UIRender.text(fr, label, labelX, y + 7f, Theme.textPrimary, 1f, false);
-            UIRender.text(fr, fit(fr, r.desc, maxW), labelX, y + 21f, Theme.textSecondary, 1f, false);
+        float labelX = row.labelX > 0f ? row.labelX : x + 12f;
+        float maxWidth = row.labelWidth > 0f ? row.labelWidth : Math.max(1f, w - 24f);
+        String label = fit(font, row.label, maxWidth);
+        if (row.desc != null) {
+            UIRender.text(font, label, labelX, y + 7f, Theme.textPrimary, 1f, false);
+            UIRender.text(font, fit(font, row.desc, maxWidth), labelX, y + 21f, Theme.textSecondary, 1f, false);
         } else if (!label.isEmpty()) {
-            UIRender.text(fr, label, labelX, y + (h - 9f) * .5f + 1f, Theme.textPrimary, 1f, false);
+            UIRender.text(font, label, labelX, y + (h - 9f) * 0.5f + 1f, Theme.textPrimary, 1f, false);
         }
-        if (r.control != null) r.control.draw(mx, my);
+        if (row.control != null) row.control.draw(mx, my);
     }
 
     private void drawScrollIndicator() {
-        float ind = indicator.get();
-        float maxS = scroll.max();
-        if (ind <= 0.01f || maxS <= 0f) {
-            return;
-        }
+        float amount = indicator.get();
+        float maxScroll = scroll.max();
+        if (amount <= 0.01f || maxScroll <= 0f) return;
         float track = vh - 8f;
         float thumb = Math.max(24f, track * vh / (contentHeight(currentRows()) + 4f));
-        float ty = vy + 4f + (track - thumb) * (scroll.value() / maxS);
-        float prev = UIRender.alphaMul;
-        UIRender.alphaMul = prev * ind;
-        UIRender.roundRect(vx + vw - 3f, ty, 3f, thumb, 1.5f, Theme.textSecondary, Theme.textSecondary, 0.5f);
-        UIRender.alphaMul = prev;
+        float y = vy + 4f + (track - thumb) * (scroll.value() / maxScroll);
+        float previous = UIRender.alphaMul;
+        UIRender.alphaMul = previous * amount;
+        UIRender.roundRect(vx + vw - 3f, y, 3f, thumb, 1.5f, Theme.textSecondary, Theme.textSecondary, 0.5f);
+        UIRender.alphaMul = previous;
     }
 
     private float cardRadius() {
@@ -944,12 +759,8 @@ public class AppleHubScreen extends AppleScreen {
 
     @Override
     protected void mouseClicked(int mx, int my, int button) throws IOException {
-        if (button != 0) {
-            return;
-        }
-        if (handleOpenDropdownClick(mx, my)) {
-            return;
-        }
+        if (button != 0) return;
+        if (handleOpenDropdownClick(mx, my)) return;
         if (!inside(mx, my, wx, wy, ww, wh)) {
             close();
             return;
@@ -967,22 +778,13 @@ public class AppleHubScreen extends AppleScreen {
             toggleZoom();
             return;
         }
-        if (collapsed) {
-            return;
-        }
-        int nav = navIndexAt(mx, my);
-        if (nav >= 0) {
-            selectPage(nav);
-            return;
-        }
+        if (collapsed) return;
         if (search.contains(mx, my)) {
             search.setFocused(true);
             return;
         }
         search.setFocused(false);
-        if (!inside(mx, my, vx, vy, vw, vh)) {
-            return;
-        }
+        if (!inside(mx, my, vx, vy, vw, vh)) return;
 
         Row header = headerAt(mx, my);
         if (header != null) {
@@ -993,21 +795,17 @@ public class AppleHubScreen extends AppleScreen {
             gesture.begin(null, mx, my, scroll.value());
             return;
         }
-        Widget w = widgetAt(mx, my);
-        active = w;
+        Widget widget = widgetAt(mx, my);
+        active = widget;
         sliderEngaged = false;
         gestureActive = true;
-        gesture.begin(w, mx, my, scroll.value());
-        if (w != null && !(w instanceof AppleSlider)) {
-            w.onPress(mx, my);
-        }
+        gesture.begin(widget, mx, my, scroll.value());
+        if (widget != null && !(widget instanceof AppleSlider)) widget.onPress(mx, my);
     }
 
     @Override
     protected void mouseClickMove(int mx, int my, int button, long timeSinceLastClick) {
-        if (!gestureActive) {
-            return;
-        }
+        if (!gestureActive) return;
         float speed = scrollSpeed();
         int kind = gesture.move(mx, my);
         if (kind == Gesture.SLIDER) {
@@ -1035,15 +833,13 @@ public class AppleHubScreen extends AppleScreen {
                 active.onPress((int) gesture.startX, (int) gesture.startY);
             }
             boolean activate = gesture.kind == Gesture.PENDING && active.contains(mx, my);
-            Widget a = active;
+            Widget current = active;
             active = null;
-            a.onRelease(mx, my, activate);
-            if (activate && a instanceof AppleDropdown) {
-                AppleDropdown d = (AppleDropdown) a;
-                openDropdown = (openDropdown == d) ? null : d;
-                if (openDropdown != null) {
-                    openDropdown.onExpand();
-                }
+            current.onRelease(mx, my, activate);
+            if (activate && current instanceof AppleDropdown) {
+                AppleDropdown dropdown = (AppleDropdown) current;
+                openDropdown = (openDropdown == dropdown) ? null : dropdown;
+                if (openDropdown != null) openDropdown.onExpand();
             }
         }
         if (pendingHeader != null) {
@@ -1082,21 +878,13 @@ public class AppleHubScreen extends AppleScreen {
 
     @Override
     protected void keyTyped(char c, int code) throws IOException {
-        if (collapsed && code != Keyboard.KEY_ESCAPE) {
-            return;
-        }
+        if (collapsed && code != Keyboard.KEY_ESCAPE) return;
         if (search.isFocused()) {
             if (code == Keyboard.KEY_ESCAPE) {
-                if (!search.isEmpty()) {
-                    search.clear();
-                } else {
-                    search.setFocused(false);
-                }
+                if (!search.isEmpty()) search.clear(); else search.setFocused(false);
                 return;
             }
-            if (search.keyTyped(c, code)) {
-                return;
-            }
+            if (search.keyTyped(c, code)) return;
         }
         if (code == Keyboard.KEY_ESCAPE) {
             if (openDropdown != null) {
@@ -1106,35 +894,21 @@ public class AppleHubScreen extends AppleScreen {
             close();
             return;
         }
-        if (isCtrlKeyDown()) {
-            if (code == Keyboard.KEY_F) {
-                search.setFocused(true);
-                return;
-            }
-            if (code >= Keyboard.KEY_1 && code - Keyboard.KEY_1 < PAGE_NAMES.length) {
-                selectPage(code - Keyboard.KEY_1);
-            }
+        if (isCtrlKeyDown() && code == Keyboard.KEY_F) {
+            search.setFocused(true);
             return;
         }
-        if (handleNavigationKey(code)) {
-            return;
-        }
+        if (handleNavigationKey(code)) return;
         if (c >= 32 && c != 127) {
             search.setFocused(true);
             search.keyTyped(c, code);
         }
     }
 
-    /** Keyboard navigation: tabs with Left and Right, the list with the scroll keys. */
+    /** Keyboard navigation scrolls the one menu; there are deliberately no left/right category tabs. */
     private boolean handleNavigationKey(int code) {
         float page = Math.max(40f, vh * 0.8f);
         switch (code) {
-            case Keyboard.KEY_LEFT:
-                selectPage(Math.max(0, pageIndex - 1));
-                return true;
-            case Keyboard.KEY_RIGHT:
-                selectPage(Math.min(PAGE_NAMES.length - 1, pageIndex + 1));
-                return true;
             case Keyboard.KEY_DOWN:
                 scroll.key(ScrollState.KEY_STEP);
                 return true;
@@ -1183,42 +957,13 @@ public class AppleHubScreen extends AppleScreen {
         search.setFocused(false);
     }
 
-    private int navIndexAt(int mx, int my) {
-        if (wide) {
-            float x = wx + 8f;
-            float w = SIDEBAR_W - 16f;
-            for (int i = 0; i < PAGE_NAMES.length; i++) {
-                float y = wy + TITLE_H + 10f + i * NAV_STEP;
-                if (inside(mx, my, x, y, w, NAV_H)) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-        float y = wy + TITLE_H + 6f;
-        if (my < y || my >= y + TAB_H) {
-            return -1;
-        }
-        float x0 = wx + PAD;
-        float seg = (ww - PAD * 2f) / PAGE_NAMES.length;
-        if (mx < x0) {
-            return -1;
-        }
-        int i = (int) ((mx - x0) / seg);
-        return (i >= 0 && i < PAGE_NAMES.length) ? i : -1;
-    }
-
-    /** The group header under the pointer inside the visible list, or null. */
+    /** The category header under the pointer inside the visible list, or null. */
     private Row headerAt(int mx, int my) {
-        if (searching || !inside(mx, my, vx, vy, vw, vh)) {
-            return null;
-        }
-        List<Row> rows = pages.get(pageIndex);
-        for (int i = 0, n = rows.size(); i < n; i++) {
-            Row r = rows.get(i);
-            if (r.kind == Row.HEADER && my >= r.y && my < r.y + r.height && mx >= vx && mx < vx + vw) {
-                return r;
-            }
+        if (searching || !inside(mx, my, vx, vy, vw, vh)) return null;
+        for (int i = 0, n = menuRows.size(); i < n; i++) {
+            Row row = menuRows.get(i);
+            if (row.kind == Row.HEADER && my >= row.y && my < row.y + row.height
+                    && mx >= vx && mx < vx + vw) return row;
         }
         return null;
     }
@@ -1227,10 +972,8 @@ public class AppleHubScreen extends AppleScreen {
         List<Row> rows = currentRows();
         for (int i = rows.size() - 1; i >= 0; i--) {
             Row row = rows.get(i);
-            Widget c = row.control;
-            if (c != null && shown(row) && c.contains(mx, my)) {
-                return c;
-            }
+            Widget control = row.control;
+            if (control != null && shown(row) && control.contains(mx, my)) return control;
         }
         return null;
     }

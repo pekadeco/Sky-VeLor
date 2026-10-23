@@ -1,6 +1,6 @@
 package com.arena.pekaclient.hud;
 
-/** Pure checks for the three GUI-only General-tab metric labels. */
+/** Pure checks for the three GUI-only General-category metric labels. */
 public final class StatsTextTests {
 
     private static int passed;

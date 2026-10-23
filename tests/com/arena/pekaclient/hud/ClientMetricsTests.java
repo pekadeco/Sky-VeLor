@@ -1,6 +1,6 @@
 package com.arena.pekaclient.hud;
 
-/** Headless coverage for the General-tab client metric reader, colour coding, and 500 ms refresh boundary. */
+/** Headless coverage for the General-category client metric reader, colour coding, and 500 ms refresh boundary. */
 public final class ClientMetricsTests {
     private static int passed;
     private static int failed;

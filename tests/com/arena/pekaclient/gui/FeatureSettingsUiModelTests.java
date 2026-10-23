@@ -2,22 +2,24 @@ package com.arena.pekaclient.gui;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
-/** Headless proof for the flat, one-level Hub contract and retained editor reachability. */
+/** Headless proof for the restored single-menu expandable Hub and retained editor reachability. */
 public final class FeatureSettingsUiModelTests {
     private static int passed, failed;
 
     public static void main(String[] args) {
         preservesOldConfigurationAndEditorState();
-        directRowsAndDropdownsStayFlat();
+        categoryExpansionUsesHistoricalDirectChildren();
+        oneLevelExpandableMenuHasDirectRows();
         everyOldSurfaceHasOneRoute();
-        categoryNamesAndDungeonOrderRemainExact();
+        sectionNamesAndDungeonOrderRemainExact();
         everyDungeonEspControlStillHasARoute();
-        editorButtonsTargetTheRightEditors();
+        editorRoutesTargetTheRightOwners();
         mobCategoriesKeepTogglesAndSharedThumbnails();
-        statusDotsReflectTheirToggleState();
         rowsNeverOverlapAtGuiScales();
         done();
     }
@@ -25,7 +27,7 @@ public final class FeatureSettingsUiModelTests {
     private static void preservesOldConfigurationAndEditorState() {
         Properties p = new Properties();
         p.setProperty("dungeonEsp.enabled", "true");
-        p.setProperty("ui.feature.tree.dungeon.mob-esp", "false"); // accepted from the pre-flat layout and ignored by the Hub
+        p.setProperty("ui.feature.tree.dungeon.mob-esp", "false"); // accepted from an older presentation and ignored by the Hub
         p.setProperty("ui.feature.editor.mob-esp", "enderman");
         FeatureUiState restored = new FeatureUiState();
         restored.load(p);
@@ -35,29 +37,51 @@ public final class FeatureSettingsUiModelTests {
         check("old presentation key does not prevent settings loading", "false".equals(p.getProperty("ui.feature.tree.dungeon.mob-esp")));
     }
 
-    private static void directRowsAndDropdownsStayFlat() {
-        check("dropdown depth is at most one", FeatureSettingsUiModel.maximumDropdownDepth() <= 1);
+    private static void categoryExpansionUsesHistoricalDirectChildren() {
+        List<Row> rows = new ArrayList<Row>();
+        Row quality = Row.header("Quality of Life");
+        Row particles = Row.item("No Block Particles", null, null);
+        Row animation = Row.item("Item Animation", null, null);
+        Row hud = Row.header("HUD Hub Editor");
+        Row editor = Row.item("HUD Editor", null, null);
+        rows.add(quality);
+        rows.add(particles);
+        rows.add(animation);
+        rows.add(hud);
+        rows.add(editor);
+
+        Set<String> expanded = new HashSet<String>();
+        AppleHubScreen.applyGroupVisibility(rows, expanded);
+        check("fresh Quality of Life category is the intended default", "Quality of Life".equals(AppleHubScreen.defaultExpandedSection()));
+        check("closed header keeps only direct category headers visible", quality.visible && hud.visible
+                && !particles.visible && !animation.visible && !editor.visible);
+        check("header counts only direct rows", quality.children == 2 && hud.children == 1);
+
+        expanded.add("Quality of Life");
+        AppleHubScreen.applyGroupVisibility(rows, expanded);
+        check("opening Quality of Life reveals its controls and Item Animation", particles.visible && animation.visible
+                && !editor.visible && "Quality of Life".equals(animation.group));
+        expanded.add("HUD Hub Editor");
+        AppleHubScreen.applyGroupVisibility(rows, expanded);
+        check("opening another category preserves independent expansion", particles.visible && animation.visible && editor.visible
+                && "HUD Hub Editor".equals(editor.group));
+    }
+
+    private static void oneLevelExpandableMenuHasDirectRows() {
+        check("main menu expands exactly one category level", AppleHubScreen.mainExpansionDepth() == 1);
+        check("features create no nested dropdown depth", FeatureSettingsUiModel.maximumDropdownDepth() == 0);
         for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
+            check("row has exactly one direct control: " + feature.id, feature.tabControls.size() == 1);
+            String control = feature.tabControls.get(0);
             if (feature.isSimple()) {
-                check("direct row has exactly one control: " + feature.id, feature.tabControls.size() == 1);
-                String control = feature.tabControls.get(0);
-                check("direct row is toggle, slider, or Settings route: " + feature.id,
-                        FeatureSettingsUiModel.TOGGLE.equals(control) || FeatureSettingsUiModel.SLIDER.equals(control)
-                                || FeatureSettingsUiModel.EDITOR_BUTTON.equals(control));
-                if (FeatureSettingsUiModel.EDITOR_BUTTON.equals(control)) {
-                    check("direct Settings route has its editor: " + feature.id,
-                            feature.editorId.length() > 0 && "Settings".equals(feature.editorButtonLabel));
-                } else {
-                    check("direct value control has no editor: " + feature.id, feature.editorId.length() == 0
-                            && feature.editorButtonLabel.length() == 0);
-                }
+                check("simple row is an existing toggle or slider: " + feature.id,
+                        FeatureSettingsUiModel.TOGGLE.equals(control) || FeatureSettingsUiModel.SLIDER.equals(control));
+                check("simple row has no second editor surface: " + feature.id,
+                        feature.editorId.length() == 0 && feature.editorButtonLabel.length() == 0);
             } else {
-                check("dropdown has exactly toggle plus editor button: " + feature.id,
-                        feature.tabControls.size() == 2 && FeatureSettingsUiModel.TOGGLE.equals(feature.tabControls.get(0))
-                                && FeatureSettingsUiModel.EDITOR_BUTTON.equals(feature.tabControls.get(1)));
-                check("dropdown is one level: " + feature.id, feature.dropdownDepth() == 1);
-                check("dropdown editor button is Settings: " + feature.id,
-                        "Settings".equals(feature.editorButtonLabel));
+                check("focused editor route uses one Open button: " + feature.id,
+                        feature.isEditorRoute() && FeatureSettingsUiModel.EDITOR_BUTTON.equals(control)
+                                && feature.editorId.length() > 0 && "Open".equals(feature.editorButtonLabel));
             }
         }
     }
@@ -65,20 +89,20 @@ public final class FeatureSettingsUiModelTests {
     private static void everyOldSurfaceHasOneRoute() {
         check("option inventory is complete", FeatureSettingsUiModel.options().size() > 90);
         check("all options have a reachable route", FeatureSettingsUiModel.isReachabilityValid());
-        check("no per-child tab rows are modeled", FeatureSettingsUiModel.maximumDropdownDepth() == 1);
-        check("Mob ESP is a dropdown feature", isDropdownEditor("mob-esp", "mob-esp"));
-        check("Door ESP is a dropdown feature", isDropdownEditor("door-esp", "door-esp"));
-        check("FPS is General GUI telemetry, not a feature row", FeatureSettingsUiModel.feature("fps-display") == null);
-        check("Ping is General GUI telemetry, not a feature row", FeatureSettingsUiModel.feature("ping-display") == null);
-        check("Memory is General GUI telemetry, not a feature row", FeatureSettingsUiModel.feature("memory-display") == null);
+        check("FPS has no separate display route", FeatureSettingsUiModel.feature("fps-display") == null);
+        check("Ping has no separate display route", FeatureSettingsUiModel.feature("ping-display") == null);
+        check("Memory has no separate display route", FeatureSettingsUiModel.feature("memory-display") == null);
         check("Hotbar customization is not a HUD row", FeatureSettingsUiModel.feature("hud-hotbar") == null);
         check("Item Protection is not a Quality of Life row", FeatureSettingsUiModel.feature("item-protection") == null);
-        check("No Block Particles is a simple row",  FeatureSettingsUiModel.feature("no-block-particles").isSimple());
+        check("No Block Particles is a simple row", FeatureSettingsUiModel.feature("no-block-particles").isSimple());
         check("Hurt Camera Shake is a direct slider", FeatureSettingsUiModel.feature("hurt-camera-shake").isSlider());
         check("binary No Hurt Cam has no feature route", FeatureSettingsUiModel.feature("no-hurt-cam") == null);
         check("Inventory Search has no option route", FeatureSettingsUiModel.option("inventory-search") == null);
-        check("Inventory Assist has a direct Settings route", FeatureSettingsUiModel.feature("inventory-assist").isSettingsRoute());
-        check("Stats Display is a HUD editor route", isDropdownEditor("hud-stats", "hud"));
+        check("Inventory Assist has one direct editor route", FeatureSettingsUiModel.feature("inventory-assist").isSettingsRoute());
+        check("Stats Display is an HUD Hub Editor route", isEditorRoute("hud-stats", "hud"));
+        check("HUD Editor remains separately named and routed", isEditorRoute("hud-editor", "hud"));
+        check("Item Animation is a Quality of Life editor route", isEditorRoute("item-animation", "item-animation")
+                && "Quality of Life".equals(FeatureSettingsUiModel.feature("item-animation").section));
         check("Auto Sprint is a simple row", FeatureSettingsUiModel.feature("auto-sprint").isSimple());
         check("renamed direct labels are plain", "No Hotbar Scrolling".equals(
                 FeatureSettingsUiModel.feature("disable-hotbar-scrolling").title)
@@ -89,27 +113,28 @@ public final class FeatureSettingsUiModelTests {
         check("Sync Details is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
     }
 
-    private static void categoryNamesAndDungeonOrderRemainExact() {
-        String[] categories = {"General", "Quality of Life", "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
-        check("Hub category names match the requested table", Arrays.equals(AppleHubScreen.PAGE_NAMES, categories));
+    private static void sectionNamesAndDungeonOrderRemainExact() {
+        String[] sections = {"Quality of Life", "HUD Hub Editor", "General", "Farming", "Dungeon", "Slayer", "Fishing"};
+        check("Hub uses one expandable section list", Arrays.equals(AppleHubScreen.sectionNames(), sections));
         for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
-            check("feature uses an existing category: " + feature.id, Arrays.asList(categories).contains(feature.tab));
+            check("feature uses an existing section: " + feature.id, Arrays.asList(sections).contains(feature.section));
         }
         for (AssistUiModel.Entry entry : AssistUiModel.entries()) {
-            check("assist catalog uses an existing category: " + entry.name, Arrays.asList(categories).contains(entry.tab));
+            check("assist catalog uses a current section: " + entry.name,
+                    Arrays.asList(sections).contains(entry.section));
         }
         List<String> actual = new ArrayList<String>();
         for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
-            if ("Dungeon".equals(feature.tab)) actual.add(feature.id);
+            if ("Dungeon".equals(feature.section)) actual.add(feature.id);
         }
         List<String> expected = Arrays.asList("door-esp", "mob-esp", "dungeon-sync-enabled", "m7-overlay",
                 "spirit-leap", "terminal-assist", "dungeon-boss-hud", "dungeon-map", "dungeon-sync-debug");
         check("Dungeon uses ESP, helpers, then information order", expected.equals(actual));
     }
 
-    private static boolean isDropdownEditor(String featureId, String editorId) {
+    private static boolean isEditorRoute(String featureId, String editorId) {
         FeatureSettingsUiModel.Feature feature = FeatureSettingsUiModel.feature(featureId);
-        return feature != null && feature.isDropdown() && editorId.equals(feature.editorId);
+        return feature != null && feature.isEditorRoute() && editorId.equals(feature.editorId);
     }
 
     private static boolean ownsOnlySimpleToggle(String featureId, String optionId) {
@@ -133,13 +158,13 @@ public final class FeatureSettingsUiModelTests {
         }
     }
 
-    private static void editorButtonsTargetTheRightEditors() {
-        check("Mob ESP button is Settings", "Settings".equals(FeatureSettingsUiModel.feature("mob-esp").editorButtonLabel));
-        check("Door ESP button is Settings", "Settings".equals(FeatureSettingsUiModel.feature("door-esp").editorButtonLabel));
-        check("Item Lock button keeps its editor", isDropdownEditor("item-lock-swap", "item-lock-swap"));
-        check("Chat button keeps Chat settings route", isDropdownEditor("chat-qol", "chat"));
-        check("Item Animation keeps its existing editor", isDropdownEditor("item-animation", "item-animation"));
-        check("M7 keeps its focused editor", isDropdownEditor("m7-overlay", "m7-overlay"));
+    private static void editorRoutesTargetTheRightOwners() {
+        check("Mob ESP button is Open", "Open".equals(FeatureSettingsUiModel.feature("mob-esp").editorButtonLabel));
+        check("Door ESP button is Open", "Open".equals(FeatureSettingsUiModel.feature("door-esp").editorButtonLabel));
+        check("Item Lock keeps its editor", isEditorRoute("item-lock-swap", "item-lock-swap"));
+        check("Chat keeps Chat settings route", isEditorRoute("chat-qol", "chat"));
+        check("Item Animation keeps its existing editor", isEditorRoute("item-animation", "item-animation"));
+        check("M7 keeps its focused editor", isEditorRoute("m7-overlay", "m7-overlay"));
     }
 
     private static void mobCategoriesKeepTogglesAndSharedThumbnails() {
@@ -159,12 +184,6 @@ public final class FeatureSettingsUiModelTests {
         return null;
     }
 
-    private static void statusDotsReflectTheirToggleState() {
-        check("enabled status dot is green", FeatureSettingsUiModel.statusDotColor(true) == FeatureSettingsUiModel.STATUS_DOT_ON);
-        check("disabled status dot is red", FeatureSettingsUiModel.statusDotColor(false) == FeatureSettingsUiModel.STATUS_DOT_OFF);
-        check("status dots are distinct", FeatureSettingsUiModel.STATUS_DOT_ON != FeatureSettingsUiModel.STATUS_DOT_OFF);
-    }
-
     private static void rowsNeverOverlapAtGuiScales() {
         float[] widths = {1f, 80f, 160f, 214f, 427f, 854f, 1708f};
         for (float width : widths) {
@@ -172,23 +191,15 @@ public final class FeatureSettingsUiModelTests {
             GuiLayoutToolkit.Rect label = new GuiLayoutToolkit.Rect();
             GuiLayoutToolkit.Rect control = new GuiLayoutToolkit.Rect();
             GuiLayoutToolkit.splitRow(row, 12f, 8f, 172f, 24f, label, control);
-            check("flat label/control columns do not overlap at " + width, !label.intersects(control));
-            check("flat control stays in bounds at " + width, control.right() <= row.right() && control.x >= row.x);
+            check("label/control columns do not overlap at " + width, !label.intersects(control));
+            check("control stays in bounds at " + width, control.right() <= row.right() && control.x >= row.x);
         }
         float top = 0f;
         float previousBottom = -1f;
-        for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
-            float height = feature.isSimple() ? 40f : 42f;
-            check("feature header follows previous row: " + feature.id, top >= previousBottom);
-            previousBottom = top + height;
-            top = AppleHubScreen.nextRowTop(top, height);
-            if (feature.isDropdown()) {
-                for (int body = 0; body < 2; body++) {
-                    check("dropdown body follows header: " + feature.id + " / " + body, top >= previousBottom);
-                    previousBottom = top + 40f;
-                    top = AppleHubScreen.nextRowTop(top, 40f);
-                }
-            }
+        for (FeatureSettingsUiModel.Feature ignored : FeatureSettingsUiModel.features()) {
+            check("direct row follows previous row", top >= previousBottom);
+            previousBottom = top + 40f;
+            top = AppleHubScreen.nextRowTop(top, 40f);
         }
     }
 

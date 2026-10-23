@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.2v] [--mcmod-version 0.10.8.9.2]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.3v] [--mcmod-version 0.10.8.9.3]
 """
 
 import argparse
@@ -329,8 +329,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.2v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.2')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.3v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.3')
     args = ap.parse_args()
 
     path = args.jar
@@ -589,21 +589,21 @@ def main():
             'DungeonEspTracker packages fixed storage, split tags, Skeletor, force filtering, and no identity sets')
 
     # --- Item Animation GUI reachability and ownership proof -----------------
-    # A standalone Item Animation class is not enough: both real GUI entry points must reference the pure models,
-    # the Hub must use its one-level dropdown, and customization may not be duplicated in a GUI tab.
+    # A standalone Item Animation class is not enough: the Quality of Life Hub route and the renderer panel must
+    # both reference the same model, without recreating renderer controls in the main expandable menu.
     ui_constants = constants_of('gui/ItemAnimationUiModel')
     r.check(all(value in ui_constants for value in
-                ('Item Animation', 'On/Off', 'Settings', 'Scale', 'Position',
+                ('Item Animation', 'item-animation-open-editor', 'Scale', 'Position',
                  'Animation', 'Options', 'X', 'Y', 'Z', 'Reset Position', 'Remove Haste Effect',
                  'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth swing', 'Smoothness',
                  'Swing blur unavailable (no safe translucent ghosts)', 'Loop Preview Swing', 'Preview Swing', 'Reset to Defaults')),
-            'ItemAnimationUiModel packages the required compact HUD/editor labels and controls')
+            'ItemAnimationUiModel packages the direct Quality of Life route and required compact editor controls')
     forbidden_item_animation_terms = ('transparency', 'opacity', 'background')
-    r.check('Open Item Animation Editor' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
+    r.check('On/Off' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
                 and 'Swing blur' not in ui_constants and 'Blur intensity' not in ui_constants
                 and not any(term in value.lower() for value in ui_constants
                             for term in forbidden_item_animation_terms),
-            'ItemAnimationUiModel excludes every background/opacity/transparency label and unsafe blur controls')
+            'ItemAnimationUiModel excludes duplicate Hub switches, background controls, and unsafe blur controls')
     model_ref = b'com/arena/pekaclient/gui/ItemAnimationUiModel'
     audit_ref = b'com/arena/pekaclient/gui/GuiSettingsAuditModel'
     layout_ref = b'com/arena/pekaclient/gui/HudEditorLayout'
@@ -611,14 +611,20 @@ def main():
     hub_members = members_of('gui/AppleHubScreen')
     flat_model_raw = raw_of('gui/FeatureSettingsUiModel')
     r.check(b'HudEditorScreen' in hub_raw and b'AppleToggle' in hub_raw and b'AppleButton' in hub_raw
-                and b'AppleSlider' in hub_raw and audit_ref in hub_raw and model_ref in raw_of('gui/HudEditorScreen')
-                and all(value in flat_model_raw for value in (b'simple', b'slider', b'dropdown', b'editor-button',
+                and b'AppleSlider' in hub_raw and audit_ref in hub_raw and model_ref in hub_raw
+                and model_ref in raw_of('gui/HudEditorScreen')
+                and all(value in flat_model_raw for value in (b'simple', b'slider', b'editor-route', b'editor-button',
                                                                b'Hurt Camera Shake', b'Mob ESP', b'Door ESP',
-                                                               b'On/Off', b'Settings'))
-                and b'FeatureRowControl' not in hub_raw and b'FeatureTreeLayout' not in hub_raw,
-            'flat Hub keeps direct shake slider/settings routes and one-level Item Animation/ESP dropdowns')
+                                                               b'Item Animation', b'HUD Hub Editor', b'HUD Editor', b'Open'))
+                and all(value in hub_raw for value in
+                        (b'Quality of Life', b'HUD Hub Editor', b'HUD Editor', b'STATS'))
+                and b'Item Animation' in raw_of('gui/ItemAnimationUiModel')
+                and b'Stats Display' in raw_of('gui/GuiSettingsAuditModel')
+                and all(value not in hub_raw for value in
+                        (b'PAGE_NAMES', b'drawSidebar', b'drawTabs', b'FeatureRowControl', b'FeatureTreeLayout')),
+            'single expandable Hub keeps direct shake/routes, Item Animation in Quality of Life, and distinct HUD editor access')
     r.check(b'HudSettingsBuilder' not in hub_raw,
-            'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
+            'AppleHubScreen keeps HUD customization in the HUD editor rather than duplicating it in the Hub')
     feature_editor_titles_raw = raw_of('gui/FeatureSettingsEditors')
     hud_editor_titles_raw = raw_of('gui/HudEditorScreen')
     chat_editor_titles_raw = raw_of('gui/ChatEditorScreen')
@@ -648,10 +654,14 @@ def main():
                 and MOD_PACKAGE + 'hud/ClientMetricHud.class' not in names
                 and b'ClientMetricHud' not in hud_manager_raw and b'FPS_DISPLAY' not in hud_manager_raw
                 and b'PING_DISPLAY' not in hud_manager_raw and b'MEMORY_DISPLAY' not in hud_manager_raw
-                and b'StatsHud' in hud_manager_raw and all(value in stats_hud_raw for value in
-                        (b'FRAME RATE', b'MINING', b'MEMORY', b'bevelRect', b'ClientMetrics', b'MiningTracker'))
+                and b'StatsHud' in hud_manager_raw and b'migrateVisibleRetiredMetricDisplay' in metric_compat_raw
+                and b'migrateVisibleRetiredMetricDisplay' in hud_manager_raw
+                and all(value in stats_hud_raw for value in
+                        (b'FRAME RATE', b'MINING', b'MEMORY', b'bevelRect', b'ClientMetrics', b'MiningTracker',
+                         b'CARD_WIDTH', b'CARD_HEIGHT', b'CARD_GAP', b'CARD_CUT',
+                         b'CARD_SHADOW_OFFSET_X', b'CARD_SHADOW_OFFSET_Y'))
                 and all(value in stats_text_raw for value in (b' fps', b' BPS', b' MB')),
-            'General keeps cached FPS/Ping/heap telemetry while restored Stats Display packages Frame Rate, Mining and Memory cards')
+            'General keeps GUI-only telemetry while only restored Frame Rate/Mining/Memory Stats Display renders in-game metrics and migrates legacy visibility')
     r.check(MOD_PACKAGE + 'hud/DollarsHud.class' not in names and MOD_PACKAGE + 'hud/BalanceSource.class' not in names
                 and b'DollarsHud' not in hud_manager_raw and b'BalanceSource' not in hud_manager_raw,
             'Player Dollars HUD and manual balance source have no packaged runtime route')
@@ -803,7 +813,7 @@ def main():
             'PekaClientMod registers native Chat QoL and its optional cycle/editor keybindings')
 
     # The gameplay wheel guard is deliberately one narrow MouseEvent predicate. Its default-off control and the
-    # default-on particle filter live only in the dedicated Quality of Life tab; scroll controls remain in Mod Settings.
+    # default-on particle filter live only in the expandable Quality of Life section; scroll controls remain in Mod Settings.
     mod_settings_raw = raw_of('gui/ModSettingsScreen')
     quality_ui_constants = constants_of('gui/QualityOfLifeUiModel')
     quality_ui_raw = raw_of('gui/QualityOfLifeUiModel')
@@ -823,10 +833,10 @@ def main():
                 and b'No Hotbar Scrolling' in quality_ui_raw and b'Disable Hotbar Scrolling' not in quality_ui_raw
                 and b'Hurt Camera Shake' in quality_ui_raw and b'No Hurt Cam' not in quality_ui_raw
                 and b'No block particles' not in mod_settings_raw
-                and all(value in quality_ui_constants for value in
-                        ('Simple features', 'Feature editors'))
-                and b'Item Animation' not in quality_ui_raw,
-            'Quality of Life keeps direct toggle/percentage rows before flat feature-editor routes')
+                and 'Quality of Life' in quality_ui_constants
+                and b'com/arena/pekaclient/gui/ItemAnimationUiModel' in hub_raw
+                and b'Item Animation' in raw_of('gui/ItemAnimationUiModel'),
+            'Quality of Life keeps direct toggle/percentage rows and a named non-duplicated Item Animation route')
 
     # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
     # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.
@@ -905,7 +915,7 @@ def main():
                 and b'ItemLockSwapOverlay' in client_raw and b'ItemLockSwapController' in client_raw
                 and b'key.pekaclient.itemLockSwap' in client_raw and b'key.pekaclient.itemLockSwap' in lock_key_resource
                 and b'lockdebug' in raw_of('command/ItemDebugCommand'),
-            'Item Lock/Swap ships the Quality of Life dropdown, L keybind, overlay/controller registration and diagnostics')
+            'Item Lock/Swap ships the Quality of Life editor route, L keybind, overlay/controller registration and diagnostics')
     r.check(b'ItemLockSwapTransformer' in loading_raw and b'com.arena.pekaclient.itemlockswap' in loading_raw,
             'loading plugin registers and excludes the Item Lock/Swap transformer package')
     fishing_constants = constants_of('fishing/FishingStats')
@@ -927,7 +937,7 @@ def main():
     fishing_ui_constants = constants_of('gui/FishingUiModel')
     r.check('Nearby encounter titles' in fishing_ui_constants
                 and b'Nearby Encounters' in hub_raw and b'Catch Counter Settings' in feature_editors_raw,
-            'flat Fishing rows keep nearby encounter alerts simple and route counters to their editor')
+            'expandable Fishing rows keep nearby encounter alerts simple and route counters to their editor')
 
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at

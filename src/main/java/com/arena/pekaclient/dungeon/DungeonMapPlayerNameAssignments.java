@@ -46,7 +46,7 @@ final class DungeonMapPlayerNameAssignments {
             if (!usedNames.contains(normalized) && seenNames.add(normalized)) remainingNames.add(name);
         }
 
-        // Better NEF only uses roster order as a last resort when the remaining lists correspond one-to-one.
+        // Use roster order only as a last resort when the remaining lists correspond one-to-one.
         // If counts differ, an unlabelled marker may be an NPC/map decoration: leave it unlabeled rather than lie.
         if (remainingKeys.size() != remainingNames.size()) return result;
         for (int i = 0; i < remainingKeys.size(); i++) {

@@ -19,6 +19,9 @@ public final class StatsHud extends HudElement {
     public static final float CARD_HEIGHT = 102f;
     public static final float CARD_GAP = 9f;
     public static final float CARD_CUT = 8f;
+    /** The reference cards have one shared, crisp offset edge rather than a generic rounded drop shadow. */
+    public static final float CARD_SHADOW_OFFSET_X = 2f;
+    public static final float CARD_SHADOW_OFFSET_Y = 2f;
 
     private static final int CARD_SHADOW = 0xC0101012;
     private static final int CARD_FILL = 0xFF404044;
@@ -68,8 +71,9 @@ public final class StatsHud extends HudElement {
     }
 
     private void drawCard(float x, String title, String value, int valueColor) {
-        // The one-pixel dark offset provides the visible separation/shadow without a rounded generic panel.
-        UIRender.bevelRect(x + 2f, 2f, CARD_WIDTH, CARD_HEIGHT, CARD_CUT, CARD_SHADOW);
+        // The two-pixel dark offset provides the visible separation/shadow without a rounded generic panel.
+        UIRender.bevelRect(x + CARD_SHADOW_OFFSET_X, CARD_SHADOW_OFFSET_Y,
+                CARD_WIDTH, CARD_HEIGHT, CARD_CUT, CARD_SHADOW);
         UIRender.bevelRect(x, 0f, CARD_WIDTH, CARD_HEIGHT, CARD_CUT, CARD_FILL);
         float textSize = textScale();
         UIRender.text(fr(), title, x + 12f, 13f, TITLE_COLOR, .84f * textSize, false);

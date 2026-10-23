@@ -1,80 +1,65 @@
-# Hub and editor reachability — Beta-0.10.8.9.2v
+# Hub and editor reachability — Beta-0.10.8.9.3v
 
-This document audits the source UI routes for the Beta 0.10.8.9.2 update. It distinguishes direct controls from the existing one-level dropdown/editor routes and records the responsive Dungeon ESP editor behavior. It is source documentation; distributable artifacts still require the Java 8 Forge build and release verifier.
+This document audits the source UI routes for Beta 0.10.8.9.3. It records the restored single-page expandable Hub and the existing focused editors that still own every detailed setting. It is source documentation; distributable artifacts still require the Java 8 Forge build and release verifier.
 
-## Hub contract
+## Restored Hub contract
 
-Each visible Hub feature uses one of these non-nested forms:
+The main Hub is one scrollable settings page. It has no sidebar, segmented tab strip, feature tree, nested feature dropdown, or per-feature status-dot navigation.
 
-1. **Toggle** — one direct On/Off control.
-2. **Slider** — one direct bounded value control, currently **Hurt Camera Shake** at 0–100%.
-3. **Settings** — one direct **Settings** button for a feature with no meaningful all-or-nothing master switch.
-4. **Dropdown** — one non-nesting header with its accurate green/red status dot; its body has exactly **On/Off** and one **Settings** button.
-
-There are no nested dropdowns, tree connector lines, or Inventory Search field rows. Section captions separate direct controls from editor routes; they are not controls.
+- The only expansion level is a historical-style category header: chevron, title, and direct-row count.
+- The display order is **Quality of Life**, **HUD Hub Editor**, **General**, **Farming**, **Dungeon**, **Slayer**, and **Fishing**. Quality of Life opens on a fresh Hub session.
+- Direct rows contain exactly one existing toggle, slider, or named **Open** route. Search temporarily reveals matching rows from closed categories without changing expansion state.
+- **Item Animation** is a named Quality of Life tool. Its established Item Animation editor remains its sole renderer-control surface.
+- **HUD Hub Editor** is the named expandable HUD category; its distinct **HUD Editor** route opens the existing direct-canvas editor. HUD elements retain their own visibility switch and one placement/style route.
 
 ## Feature / row type / option-location audit
 
-| Tab | Feature | Row type | Current option location |
+| Expandable section | Feature | Main Hub row | Detailed option location |
 | --- | --- | --- | --- |
-| General | Appearance | Dropdown | Appearance Settings editor |
-| General | Mod Settings | Dropdown | Mod Settings screen |
-| General | Performance | Dropdown | Performance Settings |
-| Quality of Life | No Block Particles | Toggle | this tab's toggle |
-| Quality of Life | No Hotbar Scrolling | Toggle | this tab's toggle |
-| Quality of Life | Hurt Camera Shake | Slider | this tab's 0–100% slider |
-| Quality of Life | Auto Sprint | Toggle | this tab's toggle |
-| Quality of Life | Inventory Assist | Settings | Inventory Assist Settings (tooltips, potion panel, rarity) |
-| Quality of Life | Movement and Shortcuts | Dropdown | Movement and Shortcuts Settings |
-| Quality of Life | Item Lock and Swap | Dropdown | Item Lock and Swap Settings |
-| Quality of Life | Chat QoL | Dropdown | Chat Settings |
-| Quality of Life | Commands | Dropdown | Commands Settings |
-| HUD | Item Animation | Dropdown | Item Animation Settings |
-| HUD | Stats Display | Dropdown | HUD editor (Frame Rate, Mining, Memory cards) |
-| HUD | Player Doll | Dropdown | Player Doll Settings |
-| HUD | Inventory HUD | Dropdown | Inventory HUD Settings |
-| Farming | Mining BPS | Dropdown | Mining BPS Settings |
-| Farming | Mining Assistant | Dropdown | Mining Assistant Settings; its HUD route remains there |
-| Dungeon | Door ESP | Dropdown | Door ESP Settings |
-| Dungeon | Mob ESP | Dropdown | Mob ESP Settings |
-| Dungeon | Dungeon Sync | Toggle | this tab's toggle |
-| Dungeon | Floor VII (M7) Overlay | Dropdown | Floor VII (M7) Overlay Settings |
-| Dungeon | Spirit Leap GUI | Dropdown | Spirit Leap GUI Settings |
-| Dungeon | Terminal Assist | Dropdown | Terminal Assist Settings |
-| Dungeon | Boss HP | Dropdown | Boss HP Settings |
-| Dungeon | Dungeon Map | Dropdown | Dungeon Map Settings |
-| Dungeon | Sync Details | Toggle | this tab's toggle |
-| Slayer | Slayer Tracker | Dropdown | Slayer Tracker Settings |
-| Slayer | Slayer HUD | Dropdown | Slayer HUD Settings |
-| Fishing | Lord Jawbus | Toggle | this tab's toggle |
-| Fishing | Nearby Encounters | Toggle | this tab's toggle |
-| Fishing | Catch Counter | Dropdown | Catch Counter Settings |
-| Fishing | Fishing HUD | Dropdown | Fishing HUD Settings |
-| Fishing | Sea Creature HP | Dropdown | Sea Creature HP Settings |
+| Quality of Life | No Block Particles | Toggle | Hub row |
+| Quality of Life | No Hotbar Scrolling | Toggle | Hub row |
+| Quality of Life | Hurt Camera Shake | 0–100% slider | Hub row |
+| Quality of Life | Auto Sprint | Toggle | Hub row |
+| Quality of Life | Item Animation | Open route | Item Animation editor |
+| Quality of Life | Inventory Assist | Open route | Inventory Assist Settings |
+| Quality of Life | Movement and Shortcuts | Open route | Movement and Shortcuts Settings |
+| Quality of Life | Item Lock and Swap | Open route | Item Lock and Swap Settings |
+| Quality of Life | Chat QoL | Open route | Chat Settings |
+| Quality of Life | Commands | Open route | Commands Settings |
+| HUD Hub Editor | HUD Editor | Open route | Existing direct-canvas HUD editor |
+| HUD Hub Editor | Stats Display | Visibility toggle + Open route | HUD editor — Frame Rate, Mining, Memory cards |
+| HUD Hub Editor | Player Doll / Inventory HUD | Visibility toggle + Open route | HUD editor |
+| General | FPS / Ping / Memory | Read-only GUI cards | General category only; not an in-game HUD |
+| General | Appearance / Mod Settings / Performance | Open routes | Their existing focused editors |
+| Farming | Mining BPS | Visibility toggle + Open route | HUD editor |
+| Farming | Mining Assistant | Open route | Mining Assistant Settings |
+| Dungeon | Door ESP / Mob ESP | Open routes | Existing ESP editors |
+| Dungeon | Dungeon Sync / Sync Details | Toggles | Hub rows |
+| Dungeon | M7 Overlay / Spirit Leap / Terminal Assist | Open routes | Their focused editors |
+| Dungeon | Boss HP / Dungeon Map | Visibility toggle + Open route | HUD editor |
+| Slayer | Slayer Tracker / Slayer HUD | Open routes / HUD route | Existing editor / HUD editor |
+| Fishing | Jawbus / Nearby Encounters | Toggles | Hub rows |
+| Fishing | Catch Counter / Fishing HUD / Sea Creature HP | Open routes / HUD routes | Existing editor / HUD editor |
 
-`FeatureSettingsUiModel` is the source-level audit inventory for visible features and existing option labels. It proves one-level dropdown depth, direct slider/settings ownership, editor-route ownership, status-dot colors, and no duplicate option identifiers. `DungeonEspUiModel` remains a non-rendered legacy option inventory so former Dungeon ESP options still resolve to their editor route.
+`FeatureSettingsUiModel` is the source-level audit inventory for visible features and existing option labels. It proves direct-row/editor-route ownership, no duplicate option identifiers, zero feature-dropdown depth, section reachability, and complete legacy-option routing. `DungeonEspUiModel` remains a non-rendered legacy option inventory so former Dungeon ESP options still resolve to their editor route.
 
-## Retired surfaces and compatibility
+## Stats Display restoration and compatibility
 
-- **Hurt Camera Shake** persists under `assist.visual.hurtCameraShake`; old binary No Hurt Cam keys map once to 0%/100% and are omitted on the next save.
-- **Inventory Search** has no feature row, option id, text-input/filter hook, or persisted setting. Tooltip conversion/scrolling, rarity overlays, and optional potion-panel layout remain under Inventory Assist.
-- **Player Dollars** has no HUD element or editor route. Old `dollars.*`, `balance.source`, and `balance.manual` keys are ignored so remaining HUD settings can load normally.
-- The default-off **Stats Display** replaces the retired individually placed FPS/Ping/Memory HUD surface. Old `fps-display.*`, `ping-display.*`, and `memory-display.*` keys are ignored; General-tab Ping telemetry remains independent.
+- The only restored **in-game** metric group is **Stats Display**: **FRAME RATE**, **MINING**, and **MEMORY**. The middle card uses the existing mining tracker and shows bounded `BPS`, not ping.
+- The existing General-category FPS/Ping/Memory cards remain a read-only settings-GUI telemetry view. They are not `HudElement`s and cannot create an in-game duplicate of Stats Display.
+- It uses the historic fixed three-card geometry: 172 × 102 cards, 9 px gaps, 8 px cut corners, a 2 px dark offset edge, centered near the top of the HUD. Frame rate and Mining values are cyan; Memory is white.
+- Stats Display remains opt-in on a fresh configuration. The HUD Hub Editor exposes its visibility switch and direct editor route, and the HUD editor shows disabled elements as selectable faded placeholders.
+- Legacy visible `fps-display.*`, `ping-display.*`, or `memory-display.*` configurations migrate once to `stats.enabled=true` only when no explicit modern `stats.enabled` choice exists. The retired keys are then ignored, so no duplicate metric renderer is registered. An explicit modern false value wins.
+- **Player Dollars** remains absent. Old `dollars.*`, `balance.source`, and `balance.manual` keys are ignored so active HUD settings load normally.
+
+## Dungeon ESP and other retained behavior
+
+- Existing Dungeon ESP detection, entity filters, styles, cached doors, badges, live preview, and GL-state restoration remain unchanged. Mob ESP retains Global, Starred Mob, Miniboss, Special Starred Mob, Enderman, Skeletor, and Other Mobs. Door ESP retains Global, Wither Doors, and Blood Doors.
+- On wide GUI scales the focused ESP editor keeps its clipped Live Preview beside controls; on compact scales it gives settings one full-width scrollable column. All categories and controls remain reachable.
+- Existing configuration owners and key names remain unchanged. Old `ui.feature.tree.*` presentation values are accepted and ignored; editor selections continue under `ui.feature.editor.*`.
 
 ## Verification scope
 
-Headless tests cover shake persistence at 0/intermediate/100%, the one-time hurt-tilt transformer hook, removed class/control surfaces, normal Inventory HUD retention, Stats labels/layout, and the pure GuiChat close transition. They do not start Minecraft; render behavior and the actual Escape/send chat paths still require an in-game Forge 1.8.9 pass.
+Headless tests cover section/order contracts, direct routes, editor ownership, persisted configuration compatibility, row flow/scale geometry, scroll behavior, Dungeon ESP routes, Stats labels/geometry/default placement, legacy metric visibility migration, and no retired metric HUD registration. They do not start Minecraft; rendering and gameplay still require an in-game Forge 1.8.9 pass.
 
-## Mob and Door ESP editors
-
-- The left pane is a flat item list. **Mob ESP** has Global, Starred Mob, Miniboss, Special Starred Mob, Enderman, Skeletor, and Other Mobs; each item has its existing individual toggle and compact hitbox thumbnail.
-- **Door ESP** has Global, Wither Doors, and Blood Doors; each uses its existing toggle and compact cached-prism thumbnail.
-- The selected settings pane owns detailed customization. Mob Global owns master/performance/presets plus **Mob Category Labels** and **Maximum Mob Labels**. Category style pages retain color, mode, through-walls, width, opacity, copy/apply, Reset, and **Apply This Style to All**. Door filters and shared style stay in the Door editor.
-- On wide GUI scales, the selected settings column sits beside a clipped Live Preview. On compact scales, the preview yields to one full-width, scrollable settings column so sliders/dropdowns remain usable; all categories remain reachable through the independently scrollable flat list.
-- Compact thumbnails and the larger preview both call `DungeonEspPreviewRenderer` and the existing `DungeonEspRenderBatch.drawStyledBox` path. No dummy world or entity is created. The live mob renderer uses the same category color/style for its bounded badges; it always restores its world GL state after drawing.
-
-## Compatibility and verification
-
-- Existing feature/config owners remain unchanged. Old `ui.feature.tree.*` presentation values are accepted and ignored; editor selections continue under `ui.feature.editor.*`.
-- Headless coverage checks direct slider/settings routes and one-level dropdown bodies, editor routes, Mob/door categories and toggles, responsive preview/control geometry, live widget-to-setting ownership, label persistence/bounds, status dots, GUI-scale non-overlap, old-config handling, and the Beta 0.10.8.9.2 Dungeon ESP paths.
-- This source update is **NOT tested in-game**; generated artifacts require the Java 8 Forge build and verifier.
+This source update is **NOT tested in-game**. Generated artifacts require the Java 8 Forge build, standalone test suite, release-JAR verifier, and source-ZIP verifier.

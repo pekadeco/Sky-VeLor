@@ -19,7 +19,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 /**
- * Builds the settings controls for one HUD element. The HUD tab of the hub and the HUD editor's
+ * Builds the settings controls for one HUD element. The HUD Hub Editor category and the HUD editor's
  * inspector both use this, so the two always offer the same options.
  *
  * Each item is a label and a control. A null label means the control is a full-width action.

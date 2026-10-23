@@ -3,57 +3,66 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.widget.Widget;
 
 import java.util.Locale;
-import java.util.function.Supplier;
 
 /**
- * One entry in the Hub's single flat vertical flow.
+ * One entry in the Hub's single vertical flow.
  *
- * <p>Feature presentation has only two forms: {@link #ITEM} is a simple feature or a dropdown-body control, and
- * {@link #HEADER} is a one-level feature dropdown. A header owns exactly its toggle and editor-button body rows;
- * it never nests another group or an option list.</p>
+ * <p>This deliberately keeps the small, historical Hub model: a {@link #HEADER} owns the direct rows below it
+ * until the next header or section. It is an expandable category, not a nested feature tree or a second navigation
+ * bar. Search can reuse the same rows because their visibility and geometry are plain data.</p>
  */
 final class Row {
     static final int SECTION = 0;
     static final int ITEM = 1;
-    static final int HEADER = 2;
+    static final int CUSTOM = 2;
+    static final int HEADER = 3;
+
+    /** Paints custom content into a card rectangle when a caller needs a non-widget row. */
+    interface Painter {
+        void paint(float x, float y, float w, float h);
+    }
 
     final int kind;
     final String label;
     final String desc;
     final Widget control;
+    final Painter painter;
     final float height;
-    /** A header's existing feature switch; used only for its accurate green/red status dot. */
-    final Supplier<Boolean> status;
     float y;
     /** Measured text column assigned by AppleHubScreen's shared responsive row split. */
     float labelX;
     float labelWidth;
 
-    /** False while this header's one-level body is closed. Set by the screen before layout. */
+    /** For ITEM and CUSTOM rows: the HEADER title this row belongs to, or null. */
+    String group;
+    /** False while the row's enclosing category is collapsed. Set by the screen before layout. */
     boolean visible = true;
-    /** For HEADER rows: exactly the two body rows owned by this dropdown. */
-    int bodyRows;
+    /** For HEADER rows: the direct rows contained in that category. */
+    int children;
 
-    private Row(int kind, String label, String desc, Widget control, float height, Supplier<Boolean> status) {
+    private Row(int kind, String label, String desc, Widget control, Painter painter, float height) {
         this.kind = kind;
         this.label = label;
         this.desc = desc;
         this.control = control;
+        this.painter = painter;
         this.height = height;
-        this.status = status;
     }
 
     static Row section(String title) {
-        return new Row(SECTION, title.toUpperCase(Locale.ROOT), null, null, 20f, null);
+        return new Row(SECTION, title.toUpperCase(Locale.ROOT), null, null, null, 20f);
     }
 
-    /** A one-level feature dropdown. Its status comes from the exact existing toggle in its body. */
-    static Row dropdown(String title, String description, Supplier<Boolean> status) {
-        return new Row(HEADER, title, description, null, 42f, status);
+    /** A historical-style collapsible category header. */
+    static Row header(String title) {
+        return new Row(HEADER, title, null, null, null, 32f);
     }
 
-    /** A simple feature row, or one of the two direct body rows in a feature dropdown. */
     static Row item(String label, String desc, Widget control) {
-        return new Row(ITEM, label, desc, control, 40f, null);
+        return new Row(ITEM, label, desc, control, null, 40f);
+    }
+
+    static Row custom(float height, Painter painter) {
+        return new Row(CUSTOM, null, null, null, painter, height);
     }
 }

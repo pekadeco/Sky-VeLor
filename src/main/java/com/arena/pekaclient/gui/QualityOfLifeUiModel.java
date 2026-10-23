@@ -4,10 +4,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/** Minecraft-free ownership contract for the flat Quality of Life hub tab. */
+/** Minecraft-free ownership contract for the expandable Quality of Life Hub section. */
 public final class QualityOfLifeUiModel {
 
-    public static final String TAB_LABEL = "Quality of Life";
+    /** Display name of the main expandable Hub section. */
+    public static final String SECTION_LABEL = "Quality of Life";
+    /** @deprecated The Hub has no tabs; retained only for source compatibility with older integrations. */
+    @Deprecated
+    public static final String TAB_LABEL = SECTION_LABEL;
     public static final String TOGGLE = "toggle";
     public static final String SLIDER = "slider";
 
@@ -33,7 +37,7 @@ public final class QualityOfLifeUiModel {
         public boolean isSlider() { return SLIDER.equals(control); }
     }
 
-    /** The first rows in the tab: direct controls only, with no nested feature tree. */
+    /** The first direct controls in the expandable section, with no nested feature tree. */
     public static List<Entry> buildControlModel() {
         return Collections.unmodifiableList(Arrays.asList(
                 new Entry("no-block-particles", "No block particles",
@@ -52,8 +56,8 @@ public final class QualityOfLifeUiModel {
         return buildControlModel();
     }
 
-    /** Display-only headings; feature rows themselves remain a single flat list. */
+    /** The Hub has one top-level Quality of Life header; its direct rows need no nested headings. */
     public static List<String> buildSectionTitles() {
-        return Collections.unmodifiableList(Arrays.asList("Simple features", "Feature editors"));
+        return Collections.singletonList(SECTION_LABEL);
     }
 }

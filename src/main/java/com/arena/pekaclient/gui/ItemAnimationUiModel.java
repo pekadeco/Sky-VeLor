@@ -7,9 +7,7 @@ import java.util.List;
 /** Minecraft-free discoverability and compact-panel model shared by the real screens and headless tests. */
 public final class ItemAnimationUiModel {
 
-    private static final String HUD_ITEM_ANIMATION_DROPDOWN = "Item Animation";
-    private static final String HUD_TOGGLE = "On/Off";
-    private static final String HUD_OPEN_EDITOR = "Settings";
+    private static final String QUALITY_OF_LIFE_ITEM_ANIMATION = "Item Animation";
 
     /** One discoverability or panel-control entry. */
     public static final class Entry {
@@ -76,18 +74,14 @@ public final class ItemAnimationUiModel {
     private ItemAnimationUiModel() {
     }
 
-    /** Item Animation is one flat HUD dropdown; its target-specific HUD editor route is its second body row. */
-    public static List<Entry> buildHudTabModel() {
+    /**
+     * The main expandable Quality of Life section exposes one clearly named direct route. The renderer's enable
+     * switch and all renderer-only controls remain together in the established Item Animation editor; duplicating
+     * them in the Hub would create a second settings surface.
+     */
+    public static List<Entry> buildQualityOfLifeModel() {
         List<Entry> entries = new ArrayList<Entry>();
-        entries.add(new Entry("item-animation-dropdown", HUD_ITEM_ANIMATION_DROPDOWN, true, true));
-        return Collections.unmodifiableList(entries);
-    }
-
-    /** Exactly the two controls inside the HUD tab's Item Animation dropdown. */
-    public static List<Entry> buildHudItemAnimationDropdownModel() {
-        List<Entry> entries = new ArrayList<Entry>();
-        entries.add(new Entry("item-animation-toggle", HUD_TOGGLE, true, true));
-        entries.add(new Entry("item-animation-open-editor", HUD_OPEN_EDITOR, true, true));
+        entries.add(new Entry("item-animation-open-editor", QUALITY_OF_LIFE_ITEM_ANIMATION, true, true));
         return Collections.unmodifiableList(entries);
     }
 
@@ -97,7 +91,7 @@ public final class ItemAnimationUiModel {
 
     /**
      * Required controls for the current compact-panel expansion state. Item Animation is a renderer-only surface:
-     * it deliberately owns no HUD background/transparency control in either this panel or the HUD-tab dropdown.
+     * it deliberately owns no HUD background/transparency control in either this panel or the Quality of Life route.
      */
     public static List<Entry> buildPanelControlModel(PanelState state) {
         PanelState panel = state == null ? new PanelState() : state;

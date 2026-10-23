@@ -18,6 +18,13 @@ public final class StatsHudTextTests {
                 && StatsHud.cardLeft(1) == StatsHud.CARD_WIDTH + StatsHud.CARD_GAP
                 && StatsHud.cardLeft(2) == (StatsHud.CARD_WIDTH + StatsHud.CARD_GAP) * 2f);
         check("total width accounts for exactly three cards", StatsHud.CARD_WIDTH * 3f + StatsHud.CARD_GAP * 2f == 534f);
+        check("reference bevel keeps its 8px cut and 2px dark offset", StatsHud.CARD_CUT == 8f
+                && StatsHud.CARD_SHADOW_OFFSET_X == 2f && StatsHud.CARD_SHADOW_OFFSET_Y == 2f);
+        StatsHud stats = new StatsHud();
+        check("reference group starts centered near the top", stats.place.anchorX == HudPlacement.Anchor.CENTER
+                && stats.place.offsetX == 0 && stats.place.anchorY == HudPlacement.Anchor.START
+                && stats.place.offsetY == 8);
+        check("three-card Stats Display remains opt-in on a fresh configuration", !stats.enabled);
         System.out.println("stats HUD text: passed " + passed + ", failed " + failed);
         if (failed != 0) throw new AssertionError(failed + " stats HUD checks failed");
     }

@@ -1,6 +1,6 @@
 package com.arena.pekaclient.gui;
 
-/** Geometry regression for General-tab FPS/Ping/Memory cards at every practical GUI width. */
+/** Geometry regression for General-category FPS/Ping/Memory cards at every practical GUI width. */
 public final class GeneralMetricsLayoutTests {
     private static int passed;
     private static int failed;
