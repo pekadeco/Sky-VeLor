@@ -267,7 +267,7 @@ public final class ReferenceSettingsCatalog {
                     action("hud-editor", "HUD Editor", "Select, move, resize and style existing HUD elements.",
                             "hud hub editor", false, "Open editor"),
                     routeToggle("hud-stats", "Stats Display", "Frame rate, mining BPS and memory cards matching the classic HUD.",
-                            "stats fps mining memory", false, "HUD settings"),
+                            "stats fps mining memory frame rate mining memory", false, "HUD settings"),
                     routeToggle("hud-player-doll", "Player doll", "A live model of you, with armour and held item.",
                             "doll armour", false, "HUD settings"),
                     routeToggle("hud-inventory", "Inventory HUD", "The 27 main inventory slots and optional armour.",
