@@ -57,6 +57,7 @@ REQUIRED_CLASSES = [
     'feature/ChatTabLayout',
     'feature/ChatInteractionModel',
     'feature/ChatChannelTabs',
+    'feature/ChatSurfaceRenderer',
     'command/ItemDebugCommand',
     'command/SvCommand',
     'gui/AppleHubScreen',
@@ -74,6 +75,7 @@ REQUIRED_CLASSES = [
     'gui/ChatUiModel',
     'gui/ChatEditorLayout',
     'gui/ChatEditorScreen',
+    'gui/ChatEditorPreview',
     'gui/GuiLayoutToolkit',
     'gui/ModSettingsScreen',
     'notes/QuickNoteLayout',
@@ -571,7 +573,7 @@ def main():
                 ('Item Animation', 'On/Off', 'Settings', 'Scale', 'Position',
                  'Animation', 'Options', 'X', 'Y', 'Z', 'Reset Position', 'Remove Haste Effect',
                  'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth swing', 'Smoothness',
-                 'Swing blur unavailable (no safe translucent ghosts)', 'Preview Swing', 'Reset to Defaults')),
+                 'Swing blur unavailable (no safe translucent ghosts)', 'Loop Preview Swing', 'Preview Swing', 'Reset to Defaults')),
             'ItemAnimationUiModel packages the required compact HUD/editor labels and controls')
     forbidden_item_animation_terms = ('transparency', 'opacity', 'background')
     r.check('Open Item Animation Editor' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
@@ -657,6 +659,8 @@ def main():
     menu_state_raw = raw_of('chat/ChatMenuState')
     menu_state_members = members_of('chat/ChatMenuState')
     tabs_raw = raw_of('feature/ChatChannelTabs')
+    chat_surface_raw = raw_of('feature/ChatSurfaceRenderer')
+    chat_preview_raw = raw_of('gui/ChatEditorPreview')
     copy_menu_raw = raw_of('feature/ChatChannelTabs$CopyMenu')
     tabs_model_raw = raw_of('feature/ChatTabs')
     geometry_raw = raw_of('chat/ChatRenderGeometry')
@@ -691,12 +695,14 @@ def main():
     interaction_members = members_of('feature/ChatInteractionModel$Menu')
     r.check('setAnimationMillis' not in interaction_members and 'openAmount' not in interaction_members,
             'context menu opens and closes instantly while retaining only row-hover easing')
-    r.check(all(value in tabs_raw for value in (b'backgroundOpenFullArea', b'backgroundFitWidth',
-                                                  b'tabInactiveColor', b'tabBackgroundColor', b'tabOpacity',
-                                                  b'tabActiveOpacity'))
+    chat_visual_raw = tabs_raw + chat_surface_raw + chat_preview_raw
+    r.check(all(value in chat_visual_raw for value in (b'backgroundOpenFullArea', b'backgroundFitWidth',
+                                                        b'tabInactiveColor', b'tabBackgroundColor', b'tabOpacity',
+                                                        b'tabActiveOpacity'))
+                and b'ChatSurfaceRenderer' in tabs_raw and b'ChatSurfaceRenderer' in chat_preview_raw
                 and b'BackgroundTransition' in geometry_raw and b'messageBackground' in geometry_raw
                 and b'tabs.always' in settings_raw_chat and b'menu.animation' in settings_raw_chat,
-            'message-only background uses eased geometry with black inactive and blue selected tab surfaces')
+            'message-only background, tabs, hover and menu share the live Chat surface renderer with the editor preview')
     r.check(all(value in tabs_model_raw for value in
                 (b'custom-', b'Invalid regex', b'Contains text', b'Starts with', b'Regex', b'partyCommandLine',
                  b'joined the party', b'party was disbanded', b'party members'))
@@ -738,8 +744,8 @@ def main():
                 (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
             'AppleHubScreen has no retired external animation or duplicate chat customization controls')
     r.check(all(value in hub_raw for value in
-                (b'GuiLayoutToolkit', b'ModSettingsScreen')),
-            'AppleHubScreen uses shared clamped geometry and retained global settings routes')
+                (b'GuiLayoutToolkit', b'FeatureSettingsEditors')) and b'modSettings' in feature_editors_raw,
+            'AppleHubScreen uses shared clamped geometry and routes Mod Settings through the shared editor framework')
     r.check(all(b'GuiLayoutToolkit' in raw_of(cls) for cls in
                 ('gui/AppleHubScreen', 'gui/HudEditorScreen', 'gui/ChatEditorScreen',
                  'gui/LoadingScreen', 'notes/QuickNoteScreen')),
@@ -836,7 +842,8 @@ def main():
     r.check(b'removePairContaining' in lock_gesture_raw and b'PAIR_REMOVED' in lock_gesture_decision_raw
                 and b'Swap removed' in lock_controller_raw and b'AppleSettings' in lock_controller_raw,
             'Item Lock/Swap ships persisted paired-endpoint tap removal with the concise Swap removed feedback')
-    r.check(b'drawContainerForeground' in lock_overlay_raw and b'drawRoundLine' in lock_overlay_raw
+    r.check(b'drawContainerForeground' in lock_overlay_raw and b'drawEditorPreview' in lock_overlay_raw
+                and b'drawBadge' in lock_overlay_raw and b'drawRoundLine' in lock_overlay_raw
                 and b'ItemLockSwapLineGeometry' in lock_overlay_raw and b'ItemLockSwapGesturePolicy' in lock_overlay_raw
                 and b'Release L on another slot to create Item Swap' in lock_overlay_raw
                 and b'ItemLockSwapOverlay' in lock_transformer_raw
