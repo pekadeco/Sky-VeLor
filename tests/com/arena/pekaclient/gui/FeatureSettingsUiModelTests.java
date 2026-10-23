@@ -13,6 +13,7 @@ public final class FeatureSettingsUiModelTests {
         closedTreeConsumesNoRows();
         connectorsFollowIndentedChildren();
         everyOldSurfaceHasOneRoute();
+        everyDungeonEspControlStillHasARoute();
         done();
     }
 
@@ -67,6 +68,12 @@ public final class FeatureSettingsUiModelTests {
         check("Door ESP is an editor feature", FeatureSettingsUiModel.feature("door-esp") != null
                 && "door-esp".equals(FeatureSettingsUiModel.feature("door-esp").editorId));
         check("simple branches stay short", FeatureSettingsUiModel.feature("qol-gameplay").optionIds.size() <= 2);
+    }
+
+    private static void everyDungeonEspControlStillHasARoute() {
+        for (DungeonEspUiModel.Option option : DungeonEspUiModel.options()) {
+            check("Dungeon ESP route: " + option.name, FeatureSettingsUiModel.hasOptionLabel(option.name));
+        }
     }
 
     private static void check(String name, boolean okay) {

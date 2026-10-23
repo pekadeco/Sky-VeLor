@@ -128,24 +128,23 @@ public final class FeatureSettingsUiModel {
                 "spirit-leap", options("Spirit Leap menu", "spirit-leap-menu", "Spirit Leap key", "spirit-leap-key", "Spirit Leap preview", "spirit-leap-preview"));
         addFeature("dungeon-map", "Dungeon", null, "Dungeon Map", "Dungeon map visibility and in-world editor.", EXTERNAL_EDITOR,
                 "hud", options("Dungeon map", "dungeon-map", "Dungeon map editor", "dungeon-map-editor"));
-        addFeature("dungeon-sync", "Dungeon", null, "Dungeon Sync", "Party puzzle announcement and sync diagnostics.", INLINE,
-                "", options("Party puzzle announce", "party-puzzle-announce", "Dungeon debug", "dungeon-debug"));
+        addFeature("dungeon-sync", "Dungeon", null, "Dungeon Sync", "Two small sync switches.", INLINE,
+                "", options("Enable Dungeon Sync", "dungeon-sync-enabled", "Dungeon Sync Debug", "dungeon-sync-debug"));
         addFeature("terminal-assist", "Dungeon", null, "Terminal Assist", "Terminal and Floor VII chest assistance.", EDITOR,
-                "terminal-assist", options("Terminal hints", "terminal-hints", "Click in order solver", "terminal-solver",
-                "Terminal debug", "terminal-debug"));
+                "terminal-assist", options("Terminal visual helpers", "terminal-hints", "Terminal auto click", "terminal-auto-click",
+                "Hide incorrect terminal choices", "terminal-hide-incorrect", "Prevent wrong terminal clicks", "terminal-prevent-wrong",
+                "Terminal waypoints", "terminal-waypoints", "Terminal scale", "terminal-scale"));
         addFeature("mob-esp", "Dungeon", null, "Mob ESP", "Per-mob hitbox styles, global scan controls and presets.", EDITOR,
-                "mob-esp", options("Mob ESP master", "mob-esp-master", "Global Mob ESP", "mob-esp-global", "Starred Mob ESP", "mob-esp-starred",
-                "Shadow Assassin ESP", "mob-esp-shadow-assassin", "Fels ESP", "mob-esp-fels", "Crypt Dreadlord ESP", "mob-esp-dreadlord",
-                "Skeletor ESP", "mob-esp-skeletor", "Wither Skeleton ESP", "mob-esp-wither-skeleton", "Enderman ESP", "mob-esp-enderman",
-                "Bat ESP", "mob-esp-bat", "Mimic ESP", "mob-esp-mimic", "Ice Spray ESP", "mob-esp-ice-spray",
-                "Force Render All Mobs in Room", "mob-esp-force-room", "Mob ESP distance", "mob-esp-distance", "Mob ESP interval", "mob-esp-interval",
-                "Hide zero-health mobs", "mob-esp-hide-zero", "Tracers", "mob-esp-tracers", "Distance text", "mob-esp-distance-text", "Maximum boxes", "mob-esp-max-boxes",
-                "Default preset", "mob-esp-default-preset", "Subtle preset", "mob-esp-subtle-preset", "Reset Mob ESP", "mob-esp-reset"));
+                "mob-esp", options("Enable Dungeon ESP", "mob-esp-master",
+                "Starred Mob ESP", "mob-starred-enabled", "Starred Mob Color", "mob-starred-color", "Starred Mob Render Mode", "mob-starred-mode", "Starred Mob Through Walls", "mob-starred-walls", "Starred Mob Outline Width", "mob-starred-width", "Starred Mob Outline Opacity", "mob-starred-outline", "Starred Mob Fill Opacity", "mob-starred-fill",
+                "Miniboss ESP", "mob-miniboss-enabled", "Miniboss Color", "mob-miniboss-color", "Miniboss Render Mode", "mob-miniboss-mode", "Miniboss Through Walls", "mob-miniboss-walls", "Miniboss Outline Width", "mob-miniboss-width", "Miniboss Outline Opacity", "mob-miniboss-outline", "Miniboss Fill Opacity", "mob-miniboss-fill",
+                "Special Starred Mob ESP", "mob-special-enabled", "Special Starred Mob Color", "mob-special-color", "Special Starred Mob Render Mode", "mob-special-mode", "Special Starred Mob Through Walls", "mob-special-walls", "Special Starred Mob Outline Width", "mob-special-width", "Special Starred Mob Outline Opacity", "mob-special-outline", "Special Starred Mob Fill Opacity", "mob-special-fill",
+                "Enderman ESP", "mob-enderman-enabled", "Enderman Color", "mob-enderman-color", "Enderman Render Mode", "mob-enderman-mode", "Enderman Through Walls", "mob-enderman-walls", "Enderman Outline Width", "mob-enderman-width", "Enderman Outline Opacity", "mob-enderman-outline", "Enderman Fill Opacity", "mob-enderman-fill",
+                "Skeletor ESP", "mob-skeletor-enabled", "Skeletor Color", "mob-skeletor-color", "Skeletor Render Mode", "mob-skeletor-mode", "Skeletor Through Walls", "mob-skeletor-walls", "Skeletor Outline Width", "mob-skeletor-width", "Skeletor Outline Opacity", "mob-skeletor-outline", "Skeletor Fill Opacity", "mob-skeletor-fill",
+                "Force Render All Mobs in Room", "mob-force-room", "Other Mobs ESP", "mob-other-enabled", "Other Mobs Color", "mob-other-color", "Other Mobs Render Mode", "mob-other-mode", "Other Mobs Through Walls", "mob-other-walls", "Other Mobs Outline Width", "mob-other-width", "Other Mobs Outline Opacity", "mob-other-outline", "Other Mobs Fill Opacity", "mob-other-fill", "Include Bats", "mob-include-bats", "Include Invisible Mobs", "mob-include-invisible",
+                "Maximum ESP Distance", "mob-distance", "Update Interval", "mob-interval", "Hide Zero-Health Mobs", "mob-hide-zero", "Tracers", "mob-tracers", "Distance Text", "mob-distance-text", "Maximum Boxes", "mob-max-boxes", "Default Preset", "mob-default-preset", "Subtle Preset", "mob-subtle-preset", "Reset Dungeon ESP", "mob-reset", "Copy Style", "mob-copy-style", "Apply Copied Style", "mob-apply-style"));
         addFeature("door-esp", "Dungeon", null, "Door ESP", "Wither and blood door hitbox styles, filters and preview.", EDITOR,
-                "door-esp", options("Door ESP master", "door-esp-master", "Wither Doors", "door-esp-wither", "Blood Doors", "door-esp-blood",
-                "Blood door color", "door-esp-blood-color", "Door render mode", "door-esp-mode", "Doors through walls", "door-esp-through-walls",
-                "Door outline width", "door-esp-width", "Door outline opacity", "door-esp-outline-opacity", "Door fill opacity", "door-esp-fill-opacity",
-                "Door distance text", "door-esp-distance-text", "Door ESP reset", "door-esp-reset"));
+                "door-esp", options("Show Closed Doors", "door-esp-master", "Door Scope", "door-esp-scope", "Only With a Wither Key", "door-esp-key", "Blood Doors", "door-esp-blood", "Blood Door Color", "door-esp-blood-color", "Enable Door Style", "door-esp-style-enabled", "Wither Door Color", "door-esp-wither-color", "Door Render Mode", "door-esp-mode", "Doors Through Walls", "door-esp-through-walls", "Door Outline Width", "door-esp-width", "Door Outline Opacity", "door-esp-outline-opacity", "Door Fill Opacity", "door-esp-fill-opacity", "Door Distance Text", "door-esp-distance-text", "Default Preset", "door-esp-default-preset", "Subtle Preset", "door-esp-subtle-preset", "Reset Door ESP", "door-esp-reset", "Copy Style", "door-esp-copy", "Apply Copied Style", "door-esp-apply"));
         addFeature("m7-overlay", "Dungeon", null, "Floor VII Overlay", "Areas, alerts, boss and dragon hitboxes.", EDITOR,
                 "m7-overlay", options("M7 overlay", "m7-overlay", "Relic kill areas", "m7-relic-areas", "Keep areas after dragons", "m7-areas-persist",
                 "Dragon kill alert", "m7-dragon-alert", "Boss hitboxes", "m7-boss-hitboxes", "Dragon hitboxes", "m7-dragon-hitboxes"));
@@ -188,6 +187,13 @@ public final class FeatureSettingsUiModel {
     public static List<Feature> features() { return Collections.unmodifiableList(FEATURES); }
     public static Option option(String id) { return OPTIONS.get(id); }
     public static List<Option> options() { return Collections.unmodifiableList(new ArrayList<Option>(OPTIONS.values())); }
+
+    /** True when a former human-facing control label is still owned by a compact row/editor route. */
+    public static boolean hasOptionLabel(String label) {
+        if (label == null) return false;
+        for (Option option : OPTIONS.values()) if (label.equals(option.label)) return true;
+        return false;
+    }
 
     public static Feature feature(String id) {
         for (Feature feature : FEATURES) if (feature.id.equals(id)) return feature;
