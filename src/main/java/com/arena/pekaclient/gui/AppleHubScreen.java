@@ -303,7 +303,7 @@ public class AppleHubScreen extends AppleScreen {
         editorFeature(rows, "Door ESP", "Wither and blood door filters, shared style and closed-prism preview.", () -> DungeonEspSettings.doorsEnabled,
                 value -> DungeonEspSettings.doorsEnabled = value,
                 () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this)));
-        editorFeature(rows, "Mob ESP", "Per-mob styles, live hitbox preview, scan controls and presets.", () -> DungeonEspSettings.enabled,
+        editorFeature(rows, "Mob ESP", "Per-mob styles, readable category labels, scan controls and presets.", () -> DungeonEspSettings.enabled,
                 value -> DungeonEspSettings.enabled = value,
                 () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this)));
 

@@ -51,8 +51,10 @@ call :run com.arena.pekaclient.config.AssistSettingsTests || goto fail
 call :run com.arena.pekaclient.assist.AssistFeatureTests || goto fail
 call :run com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests || goto fail
+call :run com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.WitherDoorCacheTests || goto fail
 call :run com.arena.pekaclient.gui.DungeonEspUiModelTests || goto fail
+call :run com.arena.pekaclient.gui.DungeonEspEditorSpecsTests || goto fail
 call :run com.arena.pekaclient.gui.AssistUiModelTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests || goto fail

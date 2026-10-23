@@ -70,12 +70,23 @@ public final class UIRender {
         batchOpen = false;
         alphaMul = 1f;
         GlStateManager.pushMatrix();
+        restoreFrameState();
+    }
+
+    /**
+     * Reapplies the active Apple GUI's 2D state after an embedded preview used immediate-mode/world-style OpenGL.
+     * It deliberately does not touch the matrix stack, scissor state, batch mode, or alpha multiplier, so callers
+     * can safely use it inside a clipped preview viewport and then continue drawing ordinary widgets.
+     */
+    public static void restoreFrameState() {
+        flush();
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         GlStateManager.disableTexture2D();
         GlStateManager.disableAlpha();
         // UI is 2D: depth testing off, so the world's depth values can never hide a shape.
         GlStateManager.disableDepth();
+        GlStateManager.depthMask(true);
         // Shapes wind either way (rounded ones and rectangles differ). Culling would hide the rounded ones.
         GlStateManager.disableCull();
         GlStateManager.color(1f, 1f, 1f, 1f);

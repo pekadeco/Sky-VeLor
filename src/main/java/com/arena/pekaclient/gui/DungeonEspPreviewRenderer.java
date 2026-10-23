@@ -1,6 +1,8 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.DungeonEspSettings;
+import com.arena.pekaclient.dungeonesp.DungeonEspCategory;
+import com.arena.pekaclient.dungeonesp.DungeonEspMobDisplay;
 import com.arena.pekaclient.dungeonesp.DungeonEspRenderBatch;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
@@ -33,6 +35,7 @@ public final class DungeonEspPreviewRenderer {
         UIRender.text(font, name, x + 10f, y + 8f, Theme.textSecondary, .84f, false);
         UIRender.text(font, "Rotating model + live ESP hitbox", x + 10f, y + height - 16f,
                 Theme.textTertiary, .72f, false);
+        drawMobLabelPreview(category, style, x, y, width, font);
         float entityHeight = mobHeight(category);
         float modelScale = Math.max(8f, Math.min(Math.min(width, height) * .20f, 28f));
         float centerX = x + width * .43f;
@@ -41,6 +44,27 @@ public final class DungeonEspPreviewRenderer {
                 style == null ? 0xFFFFFFFF : opaque(style.color));
         drawBox(style, style == null ? 0xFFFFFF : style.color, x + width * .72f, y + height - 27f,
                 Math.max(13f, Math.min(width * .12f, 26f)), entityHeight, 1.0f);
+    }
+
+    /** Uses the same compact title/distance hierarchy as the live renderer without constructing a dummy entity. */
+    private static void drawMobLabelPreview(String category, DungeonEspSettings.Style style,
+                                            float x, float y, float width, FontRenderer font) {
+        if (!DungeonEspSettings.mobLabels || style == null) return;
+        String title = DungeonEspMobDisplay.title(displayCategory(category));
+        if (title.length() == 0) return;
+        String distance = DungeonEspSettings.distanceText ? DungeonEspMobDisplay.distance(24D * 24D) : "";
+        int titleWidth = font.getStringWidth(title);
+        int distanceWidth = distance.length() == 0 ? 0 : font.getStringWidth(distance);
+        float contentWidth = titleWidth + (distanceWidth == 0 ? 0f : 4f + distanceWidth);
+        float badgeW = contentWidth + 8f;
+        float badgeX = x + Math.max(10f, Math.min(width - badgeW - 8f, width * .51f));
+        float badgeY = y + 25f;
+        UIRender.roundRect(badgeX, badgeY, badgeW, 13f, 3f, 0xD8121215, 0xD8121215, 0f);
+        UIRender.rect(badgeX + 2f, badgeY, Math.max(1f, badgeW - 4f), 1f, opaque(style.color));
+        UIRender.text(font, title, badgeX + 4f, badgeY + 3f, opaque(style.color), .72f, true);
+        if (distanceWidth > 0) {
+            UIRender.text(font, distance, badgeX + 4f + titleWidth + 4f, badgeY + 3f, 0xFFF2F2F7, .72f, true);
+        }
     }
 
     /** Door frame plus the exact cached closed-door hitbox path used by live Wither/Blood Door ESP. */
@@ -162,6 +186,16 @@ public final class DungeonEspPreviewRenderer {
     }
 
     private static int opaque(int color) { return 0xFF000000 | (color & 0xFFFFFF); }
+
+    private static DungeonEspCategory displayCategory(String id) {
+        if ("starred".equals(id) || "global".equals(id)) return DungeonEspCategory.STARRED;
+        if ("miniboss".equals(id)) return DungeonEspCategory.MINIBOSS;
+        if ("special".equals(id)) return DungeonEspCategory.SPECIAL;
+        if ("enderman".equals(id)) return DungeonEspCategory.ENDERMAN;
+        if ("skeletor".equals(id)) return DungeonEspCategory.SKELETOR;
+        if ("other".equals(id)) return DungeonEspCategory.OTHER;
+        return DungeonEspCategory.NONE;
+    }
 
     private static String mobName(String id) {
         if ("starred".equals(id)) return "Starred Mob";

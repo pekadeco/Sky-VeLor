@@ -29,6 +29,10 @@ public final class DungeonEspSettings {
     public static final int MIN_BOXES = 8;
     public static final int MAX_BOXES = 128;
     public static final int DEFAULT_BOXES = 64;
+    /** Category labels use the same live render cache but remain capped to avoid obscuring combat. */
+    public static final int MIN_MOB_LABELS = 1;
+    public static final int MAX_MOB_LABELS = 32;
+    public static final int DEFAULT_MOB_LABELS = 16;
     public static final int MIN_WIDTH = 1;
     public static final int MAX_WIDTH = 6;
     public static final int MIN_OPACITY = 0;
@@ -70,6 +74,9 @@ public final class DungeonEspSettings {
     public static int updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
     public static boolean hideZeroHealth = true;
     public static boolean tracers = false;
+    /** Compact category badges use the tracked category; optional distance text remains independent below. */
+    public static boolean mobLabels = true;
+    public static int maxMobLabels = DEFAULT_MOB_LABELS;
     public static boolean distanceText = false;
     public static int maxBoxes = DEFAULT_BOXES;
 
@@ -134,6 +141,8 @@ public final class DungeonEspSettings {
         updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
         hideZeroHealth = true;
         tracers = false;
+        mobLabels = true;
+        maxMobLabels = DEFAULT_MOB_LABELS;
         distanceText = false;
         maxBoxes = DEFAULT_BOXES;
         doorsEnabled = true;
@@ -161,6 +170,8 @@ public final class DungeonEspSettings {
         updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
         hideZeroHealth = true;
         tracers = false;
+        mobLabels = true;
+        maxMobLabels = 10;
         distanceText = false;
         maxBoxes = DEFAULT_BOXES;
         doorsEnabled = true;
@@ -198,6 +209,8 @@ public final class DungeonEspSettings {
                 MIN_INTERVAL_TICKS, MAX_INTERVAL_TICKS);
         hideZeroHealth = readBool(source, PREFIX + "hideZeroHealth", hideZeroHealth);
         tracers = readBool(source, PREFIX + "tracers", tracers);
+        mobLabels = readBool(source, PREFIX + "mobLabels", mobLabels);
+        maxMobLabels = readInt(source, PREFIX + "maxMobLabels", maxMobLabels, MIN_MOB_LABELS, MAX_MOB_LABELS);
         distanceText = readBool(source, PREFIX + "distanceText", distanceText);
         maxBoxes = readInt(source, PREFIX + "maxBoxes", maxBoxes, MIN_BOXES, MAX_BOXES);
 
@@ -231,6 +244,8 @@ public final class DungeonEspSettings {
         p.setProperty(PREFIX + "updateIntervalTicks", Integer.toString(updateIntervalTicks));
         p.setProperty(PREFIX + "hideZeroHealth", Boolean.toString(hideZeroHealth));
         p.setProperty(PREFIX + "tracers", Boolean.toString(tracers));
+        p.setProperty(PREFIX + "mobLabels", Boolean.toString(mobLabels));
+        p.setProperty(PREFIX + "maxMobLabels", Integer.toString(maxMobLabels));
         p.setProperty(PREFIX + "distanceText", Boolean.toString(distanceText));
         p.setProperty(PREFIX + "maxBoxes", Integer.toString(maxBoxes));
 
@@ -247,6 +262,7 @@ public final class DungeonEspSettings {
     public static void normalize() {
         maxDistance = clamp(maxDistance, MIN_DISTANCE, MAX_DISTANCE);
         updateIntervalTicks = clamp(updateIntervalTicks, MIN_INTERVAL_TICKS, MAX_INTERVAL_TICKS);
+        maxMobLabels = clamp(maxMobLabels, MIN_MOB_LABELS, MAX_MOB_LABELS);
         maxBoxes = clamp(maxBoxes, MIN_BOXES, MAX_BOXES);
         doorScope = clamp(doorScope, DOORS_NEAREST, DOORS_ALL);
         bloodDoorColor = sanitizeColor(bloodDoorColor, DEFAULT_BLOOD_DOOR_COLOR);

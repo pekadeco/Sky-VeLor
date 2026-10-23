@@ -155,7 +155,10 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private static final float CATEGORY_H = 42f;
     private static final float ENTRY_H = 42f;
     private static final float GAP = 6f;
-    private static final float SETTINGS_RATIO = .35f;
+    /** A 150px slider needs a real label column; the preview yields gracefully before controls do. */
+    private static final float SETTINGS_RATIO = .48f;
+    private static final float MIN_SETTINGS_WITH_PREVIEW = 330f;
+    private static final float MIN_PREVIEW_WIDTH = 250f;
 
     private final GuiScreen parent;
     private final Spec spec;
@@ -182,6 +185,8 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private float scaleFactor = 1f;
     private boolean dirtyEntries = true;
     private boolean previewAvailable = true;
+    /** False only on narrow GUI scales where a full-width settings column is more usable than a tiny preview. */
+    private boolean previewVisible;
     private String status = "";
 
     public FeatureSettingsEditorScreen(GuiScreen parent, Spec spec) {
@@ -283,7 +288,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
         FontRenderer font = fr();
         UIRender.text(font, spec.title, panel.x + 42f, panel.y + 12.5f, Theme.textPrimary, 1.05f, false);
-        String heading = spec.preview == null ? "Settings" : "Settings + Live Preview";
+        String heading = previewVisible ? "Settings + Live Preview" : "Settings";
         UIRender.text(font, heading, panel.right() - PAD - font.getStringWidth(heading) * .78f,
                 panel.y + 13.5f, Theme.textTertiary, .78f, false);
         drawSubtitle(font);
@@ -309,8 +314,8 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         float contentTop = panel.y + TITLE_H + PAD + 18f;
         content.set(panel.x + PAD, contentTop, panel.w - PAD * 2f,
                 Math.max(1f, panel.bottom() - PAD - BOTTOM_H - GAP - contentTop));
-        boolean hasPreview = spec.preview != null;
-        GuiLayoutToolkit.splitLivePreview(content, SETTINGS_RATIO, GAP, 110f, hasPreview, left, right);
+        previewVisible = GuiLayoutToolkit.splitResponsiveLivePreview(content, SETTINGS_RATIO, GAP,
+                MIN_SETTINGS_WITH_PREVIEW, MIN_PREVIEW_WIDTH, spec.preview != null, left, right);
         float settingsW = left.w;
         float categoryH = Math.min(Math.max(42f, content.h * .30f), Math.max(42f, spec.categories.size() * CATEGORY_H + 8f));
         if (content.h < 115f) categoryH = Math.min(categoryH, Math.max(26f, content.h * .38f));
@@ -361,7 +366,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         UIRender.rect(panel.x + 1f, back.y - 7f, panel.w - 2f, 1f, Theme.divider);
         back.draw(mouseX, mouseY);
         reset.draw(mouseX, mouseY);
-        String hint = spec.preview == null ? "Changes apply instantly." : "Live Preview — changes apply instantly.";
+        String hint = previewVisible ? "Live Preview — changes apply instantly." : "Changes apply instantly.";
         float hintX = reset.x + reset.w + 10f;
         UIRender.text(font, fit(font, hint, panel.right() - PAD - hintX), hintX, back.y + 7f,
                 Theme.textTertiary, .80f, false);
@@ -426,7 +431,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     }
 
     private void drawSettings(int mouseX, int mouseY, float partialTicks, long now, FontRenderer font) {
-        if (spec.preview != null) drawPreview(mouseX, mouseY, partialTicks, now, font);
+        if (previewVisible && spec.preview != null) drawPreview(mouseX, mouseY, partialTicks, now, font);
         UIRender.scissorBegin(entriesView.x, entriesView.y, entriesView.w, entriesView.h, scaleFactor);
         float cursor = entriesView.y - scroll.value();
         for (Entry entry : entries) {
@@ -461,18 +466,29 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
                     previewBounds.y + previewBounds.h * .5f, Theme.textTertiary, .9f, false);
             return;
         }
+        boolean clipped = false;
         try {
+            // Preview renderers may use a world-style Tessellator/GL path. Flush the Apple UI batch before entering
+            // it, and restore the exact 2D UI state below so a preview can never hide or depth-clip real controls.
+            UIRender.flush();
             UIRender.scissorBegin(previewBounds.x + 1f, previewBounds.y + 18f,
                     Math.max(1f, previewBounds.w - 2f), Math.max(1f, previewBounds.h - 19f), scaleFactor);
+            clipped = true;
             previewContext.set(selectedId, previewBounds.x + 1f, previewBounds.y + 19f,
                     Math.max(1f, previewBounds.w - 2f), Math.max(1f, previewBounds.h - 20f),
                     mouseX, mouseY, partialTicks, now, font);
             spec.preview.draw(previewContext);
-            UIRender.scissorEnd();
         } catch (RuntimeException | LinkageError unavailable) {
             // A missing renderer/world/mod hook must never block access to the real settings column.
             previewAvailable = false;
-            try { UIRender.scissorEnd(); } catch (RuntimeException ignored) { }
+        } finally {
+            try {
+                if (clipped) UIRender.scissorEnd();
+            } finally {
+                // Dungeon previews deliberately use live styled-box rendering, which changes depth, texture and blend
+                // state. The next settings row must resume as a 2D Apple UI even if that preview failed halfway through.
+                UIRender.restoreFrameState();
+            }
         }
     }
 

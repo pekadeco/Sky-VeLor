@@ -113,6 +113,8 @@ public final class DungeonEspUiModel {
         add(values, PERFORMANCE_TITLE, "Update Interval");
         add(values, PERFORMANCE_TITLE, "Hide Zero-Health Mobs");
         add(values, PERFORMANCE_TITLE, "Tracers");
+        add(values, PERFORMANCE_TITLE, "Mob Category Labels");
+        add(values, PERFORMANCE_TITLE, "Maximum Mob Labels");
         add(values, PERFORMANCE_TITLE, "Distance Text");
         add(values, PERFORMANCE_TITLE, "Maximum Boxes");
 

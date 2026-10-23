@@ -21,6 +21,8 @@ public final class DungeonEspSettingsTests {
         check("master defaults on", DungeonEspSettings.enabled);
         check("five tick update default", DungeonEspSettings.updateIntervalTicks == 5);
         check("distance and box defaults", DungeonEspSettings.maxDistance == 60 && DungeonEspSettings.maxBoxes == 64);
+        check("compact mob labels default on with a bounded budget", DungeonEspSettings.mobLabels
+                && DungeonEspSettings.maxMobLabels == DungeonEspSettings.DEFAULT_MOB_LABELS);
         check("starred miniboss special categories on", DungeonEspSettings.starred.enabled
                 && DungeonEspSettings.miniboss.enabled && DungeonEspSettings.special.enabled);
         check("new mob categories default safely", DungeonEspSettings.enderman.enabled
@@ -61,6 +63,8 @@ public final class DungeonEspSettingsTests {
         DungeonEspSettings.forceRenderAllMobs = true;
         DungeonEspSettings.includeBats = true;
         DungeonEspSettings.includeInvisibleMobs = true;
+        DungeonEspSettings.mobLabels = false;
+        DungeonEspSettings.maxMobLabels = 23;
         DungeonEspSettings.doors.fillOpacity = 37;
         DungeonEspSettings.doorScope = DungeonEspSettings.DOORS_ALL;
         Properties saved = new Properties();
@@ -72,6 +76,8 @@ public final class DungeonEspSettingsTests {
                 && saved.containsKey("dungeonEsp.includeBats") && saved.containsKey("dungeonEsp.includeInvisibleMobs")
                 && saved.containsKey("dungeonEsp.otherMobs.color")
                 && saved.containsKey("dungeonEsp.otherMobs.outlineWidth"));
+        check("mob label controls have persisted keys", saved.containsKey("dungeonEsp.mobLabels")
+                && saved.containsKey("dungeonEsp.maxMobLabels"));
         DungeonEspSettings.load(saved);
         check("styles round trip", DungeonEspSettings.maxDistance == 133 && DungeonEspSettings.updateIntervalTicks == 7
                 && DungeonEspSettings.starred.color == 0xA6E22E && DungeonEspSettings.starred.mode == DungeonEspSettings.MODE_FILLED
@@ -83,15 +89,18 @@ public final class DungeonEspSettingsTests {
                 && DungeonEspSettings.otherMobs.mode == DungeonEspSettings.MODE_FILLED
                 && DungeonEspSettings.otherMobs.outlineWidth == 4 && !DungeonEspSettings.otherMobs.throughWalls
                 && DungeonEspSettings.forceRenderAllMobs && DungeonEspSettings.includeBats
-                && DungeonEspSettings.includeInvisibleMobs && DungeonEspSettings.doors.fillOpacity == 37
+                && DungeonEspSettings.includeInvisibleMobs && !DungeonEspSettings.mobLabels
+                && DungeonEspSettings.maxMobLabels == 23 && DungeonEspSettings.doors.fillOpacity == 37
                 && DungeonEspSettings.doorScope == DungeonEspSettings.DOORS_ALL);
         saved.setProperty("dungeonEsp.maxDistance", "9999");
         saved.setProperty("dungeonEsp.updateIntervalTicks", "0");
+        saved.setProperty("dungeonEsp.maxMobLabels", "999");
         saved.setProperty("dungeonEsp.starred.outlineWidth", "-10");
         saved.setProperty("dungeonEsp.doors.style.fillOpacity", "500");
         DungeonEspSettings.load(saved);
         check("hand-edited values clamp", DungeonEspSettings.maxDistance == DungeonEspSettings.MAX_DISTANCE
                 && DungeonEspSettings.updateIntervalTicks == DungeonEspSettings.MIN_INTERVAL_TICKS
+                && DungeonEspSettings.maxMobLabels == DungeonEspSettings.MAX_MOB_LABELS
                 && DungeonEspSettings.starred.outlineWidth == DungeonEspSettings.MIN_WIDTH
                 && DungeonEspSettings.doors.fillOpacity == DungeonEspSettings.MAX_OPACITY);
     }
@@ -100,6 +109,8 @@ public final class DungeonEspSettingsTests {
         DungeonEspSettings.applySubtlePreset();
         check("subtle is depth-tested outline", DungeonEspSettings.starred.mode == DungeonEspSettings.MODE_OUTLINE
                 && !DungeonEspSettings.starred.throughWalls && DungeonEspSettings.starred.fillOpacity == 0);
+        check("subtle keeps a smaller readable label budget", DungeonEspSettings.mobLabels
+                && DungeonEspSettings.maxMobLabels == 10);
         DungeonEspSettings.applyDefaultPreset();
         check("default restores filled through-wall style", DungeonEspSettings.starred.mode == DungeonEspSettings.MODE_BOTH
                 && DungeonEspSettings.starred.throughWalls && DungeonEspSettings.starred.fillOpacity > 0);

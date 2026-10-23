@@ -23,11 +23,17 @@ import org.lwjgl.opengl.GL11;
 public final class DungeonEspRenderBatch {
 
     private static final int MAX_RENDER_BOXES = DungeonEspTracker.MAX_TRACKED + WitherDoorCache.MAX_DOORS;
+    /** Nearby labels are raised in small fixed lanes instead of fighting for the same nameplate position. */
+    private static final double LABEL_HORIZONTAL_SQ = 3.24D;
+    private static final double LABEL_VERTICAL_GAP = .48D;
+    private static final double MAX_LABEL_LIFT = 2.40D;
+    private static final int LABEL_LAYOUT_PASSES = 6;
     private final RenderBox[] boxes = new RenderBox[MAX_RENDER_BOXES];
     private final Frustum frustum = new Frustum();
     private int mobCandidateCount;
     private int boxCount;
     private int renderedMobCount;
+    private int renderedMobLabelCount;
     private int renderedDoorCount;
 
     private static final class RenderBox {
@@ -43,13 +49,19 @@ public final class DungeonEspRenderBatch {
         double labelZ;
         int color;
         DungeonEspSettings.Style style;
+        DungeonEspCategory category;
         boolean tracer;
-        boolean label;
+        /** Existing optional numeric distance text, retained independently from the new category label. */
+        boolean distanceText;
+        /** True only for a bounded, collision-separated dungeon mob category badge. */
+        boolean categoryLabel;
+        /** Render-time result: preserves legacy distance-only labels when category labels are disabled. */
+        boolean showDistance;
         boolean door;
 
         void set(double newMinX, double newMinY, double newMinZ, double newMaxX, double newMaxY, double newMaxZ,
-                 double newDistanceSq, int newColor, DungeonEspSettings.Style newStyle,
-                 boolean newTracer, boolean newLabel, boolean newDoor) {
+                 double newDistanceSq, int newColor, DungeonEspSettings.Style newStyle, DungeonEspCategory newCategory,
+                 boolean newTracer, boolean newDistanceText, boolean newDoor) {
             minX = newMinX;
             minY = newMinY;
             minZ = newMinZ;
@@ -62,8 +74,11 @@ public final class DungeonEspRenderBatch {
             labelZ = (newMinZ + newMaxZ) * 0.5D;
             color = newColor & 0xFFFFFF;
             style = newStyle;
+            category = newCategory == null ? DungeonEspCategory.NONE : newCategory;
             tracer = newTracer;
-            label = newLabel;
+            distanceText = newDistanceText;
+            categoryLabel = false;
+            showDistance = newDistanceText;
             door = newDoor;
         }
     }
@@ -77,6 +92,7 @@ public final class DungeonEspRenderBatch {
         mobCandidateCount = 0;
         boxCount = 0;
         renderedMobCount = 0;
+        renderedMobLabelCount = 0;
         renderedDoorCount = 0;
         frustum.setPosition(cameraX, cameraY, cameraZ);
     }
@@ -141,11 +157,12 @@ public final class DungeonEspRenderBatch {
             double centerZ = (minZ + maxZ) * 0.5D;
             double distanceSq = distanceSq(centerX, centerY, centerZ, playerX, playerY, playerZ);
             boxes[mobCandidateCount++].set(minX, minY, minZ, maxX, maxY, maxZ, distanceSq, style.color, style,
-                    DungeonEspSettings.tracers, DungeonEspSettings.distanceText, false);
+                    tracked.category, DungeonEspSettings.tracers, DungeonEspSettings.distanceText, false);
         }
         sortMobCandidatesByDistance();
         boxCount = Math.min(mobCandidateCount, DungeonEspSettings.maxBoxes);
         renderedMobCount = boxCount;
+        layoutMobLabels();
     }
 
     /** Adds a cached static closed-door prism to the same render batch after frustum culling. */
@@ -162,7 +179,7 @@ public final class DungeonEspRenderBatch {
         double distanceSq = distanceSq((minX + maxX) * 0.5D, (minY + maxY) * 0.5D, (minZ + maxZ) * 0.5D,
                 playerX, playerY, playerZ);
         boxes[boxCount++].set(minX, minY, minZ, maxX, maxY, maxZ, distanceSq, color, DungeonEspSettings.doors,
-                false, label, true);
+                DungeonEspCategory.NONE, false, label, true);
         renderedDoorCount++;
     }
 
@@ -171,31 +188,26 @@ public final class DungeonEspRenderBatch {
                        double cameraX, double cameraY, double cameraZ) {
         if (boxCount <= 0 || minecraft == null || renderManager == null) return;
         GlStateManager.pushMatrix();
-        GlStateManager.translate(-cameraX, -cameraY, -cameraZ);
-        GlStateManager.disableTexture2D();
-        GlStateManager.disableLighting();
-        GlStateManager.disableCull();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.depthMask(false);
+        try {
+            GlStateManager.translate(-cameraX, -cameraY, -cameraZ);
+            GlStateManager.disableTexture2D();
+            GlStateManager.disableLighting();
+            GlStateManager.disableCull();
+            GlStateManager.enableBlend();
+            GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+            GlStateManager.depthMask(false);
 
-        // Filled faces: one quad batch for depth-tested entries and one for see-through entries; never per entity.
-        drawFills(false);
-        drawFills(true);
-        // Edge widths require separate GL batches, but category state is changed at most once per width/depth group.
-        drawOutlines(false);
-        drawOutlines(true);
-        drawTracers(cameraX, cameraY, cameraZ);
-
-        GL11.glLineWidth(1F);
-        GlStateManager.depthMask(true);
-        GlStateManager.enableDepth();
-        GlStateManager.enableCull();
-        GlStateManager.disableBlend();
-        GlStateManager.enableLighting();
-        GlStateManager.enableTexture2D();
-        GlStateManager.color(1F, 1F, 1F, 1F);
-        GlStateManager.popMatrix();
+            // Filled faces: one quad batch for depth-tested entries and one for see-through entries; never per entity.
+            drawFills(false);
+            drawFills(true);
+            // Edge widths require separate GL batches, but category state is changed at most once per width/depth group.
+            drawOutlines(false);
+            drawOutlines(true);
+            drawTracers(cameraX, cameraY, cameraZ);
+        } finally {
+            restoreWorldRenderState();
+            GlStateManager.popMatrix();
+        }
         drawLabels(minecraft, renderManager, cameraX, cameraY, cameraZ);
     }
 
@@ -205,6 +217,11 @@ public final class DungeonEspRenderBatch {
 
     public int renderedDoorCount() {
         return renderedDoorCount;
+    }
+
+    /** Number of selected category badges, excluding legacy distance-only text. */
+    public int renderedMobLabelCount() {
+        return renderedMobLabelCount;
     }
 
     private void sortMobCandidatesByDistance() {
@@ -218,6 +235,61 @@ public final class DungeonEspRenderBatch {
             }
             boxes[j + 1] = current;
         }
+    }
+
+    /**
+     * Selects a small hierarchy-first label set after the existing nearest-box cap is known. The display never asks
+     * the world for a second entity list: category, geometry and distance all come from the cached collection pass.
+     * Neighbouring labels receive a short world-space vertical lane; a crowded stack is skipped rather than covering
+     * the view with unstable text.
+     */
+    private void layoutMobLabels() {
+        renderedMobLabelCount = 0;
+        for (int i = 0; i < renderedMobCount; i++) {
+            RenderBox box = boxes[i];
+            box.categoryLabel = false;
+            // Disabling the redesign deliberately restores the pre-update distance-only behavior for every box.
+            box.showDistance = box.distanceText && !DungeonEspSettings.mobLabels;
+            box.labelY = box.maxY + .32D;
+        }
+        if (!DungeonEspSettings.mobLabels || DungeonEspSettings.maxMobLabels <= 0) return;
+        int remaining = DungeonEspMobDisplay.clampLabelCount(DungeonEspSettings.maxMobLabels);
+        for (int priority = 0; priority <= 5 && remaining > 0; priority++) {
+            for (int i = 0; i < renderedMobCount && remaining > 0; i++) {
+                RenderBox candidate = boxes[i];
+                if (DungeonEspMobDisplay.priority(candidate.category) != priority
+                        || !DungeonEspMobDisplay.hasTitle(candidate.category)) continue;
+                double baseY = candidate.maxY + .32D;
+                double labelY = separatedLabelY(candidate, baseY);
+                if (labelY < baseY || labelY - baseY > MAX_LABEL_LIFT) continue;
+                candidate.labelY = labelY;
+                candidate.categoryLabel = true;
+                candidate.showDistance = candidate.distanceText;
+                remaining--;
+            }
+        }
+        for (int i = 0; i < renderedMobCount; i++) if (boxes[i].categoryLabel) renderedMobLabelCount++;
+    }
+
+    /** Returns -1 for a dense stack whose extra lane would obstruct more than it helps. */
+    private double separatedLabelY(RenderBox candidate, double baseY) {
+        double result = baseY;
+        for (int pass = 0; pass < LABEL_LAYOUT_PASSES; pass++) {
+            boolean moved = false;
+            for (int i = 0; i < renderedMobCount; i++) {
+                RenderBox placed = boxes[i];
+                if (!placed.categoryLabel) continue;
+                double dx = candidate.labelX - placed.labelX;
+                double dz = candidate.labelZ - placed.labelZ;
+                if (dx * dx + dz * dz > LABEL_HORIZONTAL_SQ) continue;
+                if (Math.abs(result - placed.labelY) < LABEL_VERTICAL_GAP) {
+                    result = placed.labelY + LABEL_VERTICAL_GAP;
+                    moved = true;
+                }
+            }
+            if (!moved) break;
+        }
+        return result - baseY > MAX_LABEL_LIFT ? -1D : result;
     }
 
     private void drawFills(boolean throughWalls) {
@@ -288,35 +360,115 @@ public final class DungeonEspRenderBatch {
             RenderBox box = boxes[i];
             if (!box.tracer) continue;
             writer.pos(cameraX, cameraY, cameraZ).color(red(box.color), green(box.color), blue(box.color), 0.8F).endVertex();
-            writer.pos(box.labelX, box.labelY - 0.32D, box.labelZ).color(red(box.color), green(box.color), blue(box.color), 0.8F).endVertex();
+            // A collision-separated label can be raised; tracers still terminate at the actual hitbox top.
+            writer.pos(box.labelX, box.maxY, box.labelZ).color(red(box.color), green(box.color), blue(box.color), 0.8F).endVertex();
         }
         Tessellator.getInstance().draw();
     }
 
+    /**
+     * Draws compact world-space badges after the box batches. Category headers are limited and collision-separated;
+     * the legacy distance-only text remains available when category labels are disabled. Text uses each category's
+     * existing through-walls setting instead of silently forcing every label through dungeon blocks.
+     */
     private void drawLabels(Minecraft minecraft, RenderManager renderManager,
                             double cameraX, double cameraY, double cameraZ) {
         boolean any = false;
-        for (int i = 0; i < boxCount; i++) if (boxes[i].label) { any = true; break; }
-        if (!any || minecraft.fontRendererObj == null) return;
-        FontRenderer font = minecraft.fontRendererObj;
         for (int i = 0; i < boxCount; i++) {
             RenderBox box = boxes[i];
-            if (!box.label) continue;
-            String text = Integer.toString((int) Math.ceil(Math.sqrt(box.distanceSq))) + "m";
-            GlStateManager.pushMatrix();
+            if (box.categoryLabel || box.showDistance) {
+                any = true;
+                break;
+            }
+        }
+        if (!any || minecraft.fontRendererObj == null) return;
+        FontRenderer font = minecraft.fontRendererObj;
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableLighting();
+        GlStateManager.depthMask(false);
+        try {
+            for (int i = 0; i < boxCount; i++) {
+                RenderBox box = boxes[i];
+                if (!box.categoryLabel && !box.showDistance) continue;
+                drawLabel(font, renderManager, box, cameraX, cameraY, cameraZ);
+            }
+        } finally {
+            restoreWorldRenderState();
+        }
+    }
+
+    private void drawLabel(FontRenderer font, RenderManager renderManager, RenderBox box,
+                           double cameraX, double cameraY, double cameraZ) {
+        String title = box.categoryLabel ? DungeonEspMobDisplay.title(box.category) : "";
+        String distance = box.showDistance ? DungeonEspMobDisplay.distance(box.distanceSq) : "";
+        if (title.length() == 0 && distance.length() == 0) return;
+        GlStateManager.pushMatrix();
+        try {
             GlStateManager.translate(box.labelX - cameraX, box.labelY - cameraY, box.labelZ - cameraZ);
             GlStateManager.rotate(-renderManager.playerViewY, 0F, 1F, 0F);
             GlStateManager.rotate(renderManager.playerViewX, 1F, 0F, 0F);
             GlStateManager.scale(-0.025F, -0.025F, 0.025F);
-            GlStateManager.disableLighting();
-            GlStateManager.disableDepth();
+            if (box.style != null && box.style.throughWalls) GlStateManager.disableDepth();
+            else GlStateManager.enableDepth();
             GlStateManager.depthMask(false);
-            int width = font.getStringWidth(text);
-            font.drawStringWithShadow(text, -width / 2, 0, 0xFFFFFFFF);
-            GlStateManager.depthMask(true);
-            GlStateManager.enableDepth();
+
+            int titleWidth = title.length() == 0 ? 0 : font.getStringWidth(title);
+            int distanceWidth = distance.length() == 0 ? 0 : font.getStringWidth(distance);
+            int gap = titleWidth > 0 && distanceWidth > 0 ? 4 : 0;
+            int contentWidth = titleWidth + gap + distanceWidth;
+            float textX = -contentWidth * .5F;
+            if (titleWidth > 0) {
+                drawLabelBackdrop(textX - 4F, -3F, contentWidth + 8F, 13F, box.color);
+                font.drawStringWithShadow(title, textX, 0F, 0xFF000000 | box.color);
+            }
+            if (distanceWidth > 0) {
+                float distanceX = textX + titleWidth + gap;
+                font.drawStringWithShadow(distance, distanceX, 0F,
+                        titleWidth > 0 ? 0xFFF2F2F7 : 0xFFFFFFFF);
+            }
+        } finally {
             GlStateManager.popMatrix();
         }
+    }
+
+    /** A small opaque backing and one-pixel category accent keep the label readable without decorative clutter. */
+    private static void drawLabelBackdrop(float x, float y, float width, float height, int color) {
+        if (width <= 0F || height <= 0F) return;
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.disableTexture2D();
+        WorldRenderer writer = Tessellator.getInstance().getWorldRenderer();
+        writer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+        labelVertex(writer, x, y, 0xB8121215);
+        labelVertex(writer, x + width, y, 0xB8121215);
+        labelVertex(writer, x + width, y + height, 0xB8121215);
+        labelVertex(writer, x, y + height, 0xB8121215);
+        int accent = 0xFF000000 | (color & 0xFFFFFF);
+        labelVertex(writer, x + 2F, y, accent);
+        labelVertex(writer, x + width - 2F, y, accent);
+        labelVertex(writer, x + width - 2F, y + 1F, accent);
+        labelVertex(writer, x + 2F, y + 1F, accent);
+        Tessellator.getInstance().draw();
+        GlStateManager.enableTexture2D();
+    }
+
+    private static void labelVertex(WorldRenderer writer, float x, float y, int color) {
+        writer.pos(x, y, 0D).color(red(color), green(color), blue(color), ((color >>> 24) & 0xFF) / 255F).endVertex();
+    }
+
+    /** Returns the standard RenderWorldLast state after every normal or exceptional box/label pass. */
+    private static void restoreWorldRenderState() {
+        GL11.glLineWidth(1F);
+        GlStateManager.depthMask(true);
+        GlStateManager.enableDepth();
+        GlStateManager.enableCull();
+        GlStateManager.disableBlend();
+        GlStateManager.enableLighting();
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableAlpha();
+        GlStateManager.color(1F, 1F, 1F, 1F);
     }
 
     private static DungeonEspSettings.Style styleFor(DungeonEspCategory category) {

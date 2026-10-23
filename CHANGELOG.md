@@ -1,14 +1,14 @@
 # Changelog
 
-## Beta-0.10.8.9.1v — 2026-10-23 (source update; build pending)
+## Beta-0.10.8.9.2v — 2026-10-23
 
-- Replaced binary **No Hurt Cam** with persisted whole-number **Hurt Camera Shake** from 0–100%, default 100%. The narrow EntityRenderer hook now scales only vanilla's regular hurt-camera tilt amplitude once; 0% suppresses that tilt, intermediate values scale it proportionally, and 100% retains vanilla amplitude. Damage tint, indicators, hit animation, knockback, health, and packets are untouched.
-- Removed only **Player Dollars** and its manual balance source: the HUD element, HUD/editor routes, settings, and obsolete keys are retired without changing remaining HUD placement, inventory, price, or unrelated currency paths.
-- Removed only **Inventory Search** input/filter rendering and configuration. Normal inventory/chest screens plus potion-panel, Roman-tooltip, tooltip scrolling, and rarity-overlay helpers remain.
-- Restored the supplied three-card **Stats Display** HUD with hard-beveled **FRAME RATE**, **MINING**, and **MEMORY** cards. It reuses existing FPS/heap/BPS sources, is default-off, and is configured in the HUD editor.
-- Reset the selected Chat QoL tab to **All** only after a `GuiChat` open-to-closed transition, covering Escape, sending, commands, and ordinary close routes without clearing messages, typing/history, or tab configuration.
-- Added persistence/bounds, transformer, removal-surface, chat-close, and Stats formatting/layout test coverage; updated release verification metadata and documentation for `Beta-0.10.8.9.1v` / numeric Forge metadata `0.10.8.9.1`.
-- **NOT tested in-game.** No new JAR, ZIP, GitHub release, or generated `dist/` artifact is claimed by this source update until the Java 8 Forge build and verifier complete.
+- Fixed the focused **Dungeon ESP Settings** editor regression introduced by its live preview: preview renderers now flush before using their world-style GL path and the screen restores Apple UI depth, texture, blend, cull, alpha, and color state before drawing controls. A failed preview cannot leave the settings pane clipped or depth-hidden.
+- Made the focused editor responsive: when a Minecraft GUI scale cannot fit both a readable settings column and preview, it uses one full-width scrollable settings column. Wide windows retain the Live Preview with a minimum-width control column. Existing category scrolling, dropdowns, Back/Reset behavior, remembered selection, direct configuration owners, and save-on-close behavior remain.
+- Redesigned **Dungeon Mob ESP** display without changing detection: cached/interpolated boxes retain each category's existing style, while a bounded hierarchy-first category badge identifies **MINIBOSS**, **SPECIAL**, **ENDERMAN**, **SKELETOR**, **STARRED**, or **HOSTILE** targets. Badges use each category color, a restrained contrast backing, existing through-wall behavior, closest-first ordering within a category priority, and short world-space lanes to avoid needless overlap.
+- Added persisted **Mob Category Labels** and **Maximum Mob Labels** controls (default on / 16), while retaining the existing independent **Distance Text** setting as an optional distance suffix. Disabling category labels restores the old distance-only behavior; Default/Subtle presets use readable 16/10 badge budgets.
+- Kept detector/filter behavior, category styles, box/tracer controls, door ESP, cached scans, range caps, and stale/dead-target cleanup intact. `/velor espdebug` now reports the live rendered badge count alongside tracked/rendered entities.
+- Added focused persistence/bounds, live editor-widget ownership, responsive preview-layout, and label hierarchy/distance-cap tests; strengthened the release verifier to require the redesigned renderer and the GUI-state restoration path.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render pass remains required for final visual confirmation.
 
 ## Beta-0.10.8.9v — 2026-10-23
 

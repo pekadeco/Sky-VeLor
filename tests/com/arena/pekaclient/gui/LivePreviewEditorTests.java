@@ -14,6 +14,7 @@ public final class LivePreviewEditorTests {
         chatUpdatesInTheSameFrame();
         chatTestMessageAnimates();
         allGuiScalesKeepColumnsSeparate();
+        responsivePreviewYieldsToUsableControls();
         itemAnimationKeepsLoopPreviewControl();
         done();
     }
@@ -75,6 +76,23 @@ public final class LivePreviewEditorTests {
             check("no-preview editor is full-width at " + width,
                     settings.w == outer.w && preview.w == 0f);
         }
+    }
+
+    /** A Dungeon ESP slider remains a proper control on GUI scales where a preview would make it too narrow. */
+    private static void responsivePreviewYieldsToUsableControls() {
+        GuiLayoutToolkit.Rect settings = new GuiLayoutToolkit.Rect();
+        GuiLayoutToolkit.Rect preview = new GuiLayoutToolkit.Rect();
+        GuiLayoutToolkit.Rect compact = new GuiLayoutToolkit.Rect().set(0f, 0f, 395f, 240f);
+        boolean compactPreview = GuiLayoutToolkit.splitResponsiveLivePreview(compact, .48f, 6f,
+                330f, 250f, true, settings, preview);
+        check("compact ESP editor hides preview instead of shrinking controls", !compactPreview
+                && settings.w == compact.w && preview.w == 0f);
+        GuiLayoutToolkit.Rect wide = new GuiLayoutToolkit.Rect().set(0f, 0f, 896f, 320f);
+        boolean widePreview = GuiLayoutToolkit.splitResponsiveLivePreview(wide, .48f, 6f,
+                330f, 250f, true, settings, preview);
+        check("wide ESP editor keeps a useful settings column", widePreview && settings.w >= 330f);
+        check("wide ESP editor keeps a useful live preview", widePreview && preview.w >= 250f
+                && !settings.intersects(preview));
     }
 
     private static void itemAnimationKeepsLoopPreviewControl() {

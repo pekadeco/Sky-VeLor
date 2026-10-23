@@ -152,7 +152,7 @@ public final class FeatureSettingsUiModel {
         // Dungeon usage order: ESP first, solvers/helpers next, information/other last; each group is alphabetical.
         dropdown("door-esp", "Dungeon", "Door ESP", "Wither and blood door hitbox styles, filters and preview.",
                 "door-esp", "door-esp-master", "Door ESP", doorEspOptions());
-        dropdown("mob-esp", "Dungeon", "Mob ESP", "Per-mob hitbox styles, global scan controls and presets.",
+        dropdown("mob-esp", "Dungeon", "Mob ESP", "Per-mob hitbox styles, readable category labels, scan controls and presets.",
                 "mob-esp", "mob-esp-master", "Mob ESP", mobEspOptions());
         simple("dungeon-sync-enabled", "Dungeon", "Dungeon Sync", "Opt into the existing dungeon-sync connection.",
                 "dungeon-sync-enabled", "Dungeon Sync");
@@ -252,7 +252,7 @@ public final class FeatureSettingsUiModel {
                 "Enderman ESP", "mob-enderman-enabled", "Enderman Color", "mob-enderman-color", "Enderman Render Mode", "mob-enderman-mode", "Enderman Through Walls", "mob-enderman-walls", "Enderman Outline Width", "mob-enderman-width", "Enderman Outline Opacity", "mob-enderman-outline", "Enderman Fill Opacity", "mob-enderman-fill",
                 "Skeletor ESP", "mob-skeletor-enabled", "Skeletor Color", "mob-skeletor-color", "Skeletor Render Mode", "mob-skeletor-mode", "Skeletor Through Walls", "mob-skeletor-walls", "Skeletor Outline Width", "mob-skeletor-width", "Skeletor Outline Opacity", "mob-skeletor-outline", "Skeletor Fill Opacity", "mob-skeletor-fill",
                 "Force Render All Mobs in Room", "mob-force-room", "Other Mobs ESP", "mob-other-enabled", "Other Mobs Color", "mob-other-color", "Other Mobs Render Mode", "mob-other-mode", "Other Mobs Through Walls", "mob-other-walls", "Other Mobs Outline Width", "mob-other-width", "Other Mobs Outline Opacity", "mob-other-outline", "Other Mobs Fill Opacity", "mob-other-fill", "Include Bats", "mob-include-bats", "Include Invisible Mobs", "mob-include-invisible",
-                "Maximum ESP Distance", "mob-distance", "Update Interval", "mob-interval", "Hide Zero-Health Mobs", "mob-hide-zero", "Tracers", "mob-tracers", "Distance Text", "mob-distance-text", "Maximum Boxes", "mob-max-boxes", "Default Preset", "mob-default-preset", "Subtle Preset", "mob-subtle-preset", "Reset Dungeon ESP", "mob-reset", "Copy Style", "mob-copy-style", "Apply Copied Style", "mob-apply-style", "Apply This Style to All", "mob-apply-all");
+                "Maximum ESP Distance", "mob-distance", "Update Interval", "mob-interval", "Hide Zero-Health Mobs", "mob-hide-zero", "Tracers", "mob-tracers", "Mob Category Labels", "mob-category-labels", "Maximum Mob Labels", "mob-max-labels", "Distance Text", "mob-distance-text", "Maximum Boxes", "mob-max-boxes", "Default Preset", "mob-default-preset", "Subtle Preset", "mob-subtle-preset", "Reset Dungeon ESP", "mob-reset", "Copy Style", "mob-copy-style", "Apply Copied Style", "mob-apply-style", "Apply This Style to All", "mob-apply-all");
     }
 
     private static String[] doorEspOptions() {

@@ -163,8 +163,15 @@ public final class DungeonEspEditorSpecs {
         entries.add(new FeatureSettingsEditorScreen.Entry("Tracers",
                 "Draw a world-space line from you to each tracked mob.",
                 new AppleToggle(() -> DungeonEspSettings.tracers, value -> DungeonEspSettings.tracers = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Mob Category Labels",
+                "Show compact category badges for the most important tracked mobs.",
+                new AppleToggle(() -> DungeonEspSettings.mobLabels, value -> DungeonEspSettings.mobLabels = value)));
+        entries.add(new FeatureSettingsEditorScreen.Entry("Maximum Mob Labels",
+                "Cap category badges so a dense room stays readable.", slider(DungeonEspSettings.MIN_MOB_LABELS,
+                DungeonEspSettings.MAX_MOB_LABELS, 1, "", () -> DungeonEspSettings.maxMobLabels,
+                value -> DungeonEspSettings.maxMobLabels = value)));
         entries.add(new FeatureSettingsEditorScreen.Entry("Distance Text",
-                "Show rounded block distance above tracked mob hitboxes.",
+                "Add rounded block distance to visible mob category badges.",
                 new AppleToggle(() -> DungeonEspSettings.distanceText, value -> DungeonEspSettings.distanceText = value)));
         entries.add(new FeatureSettingsEditorScreen.Entry("Maximum Boxes",
                 "Cap displayed mob hitboxes without dropping the tracker cache.", slider(DungeonEspSettings.MIN_BOXES,

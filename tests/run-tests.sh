@@ -44,8 +44,10 @@ java -cp "$OUT:$CP" com.arena.pekaclient.config.AssistSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.AssistFeatureTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests
+java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.WitherDoorCacheTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.DungeonEspUiModelTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.DungeonEspEditorSpecsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.AssistUiModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests

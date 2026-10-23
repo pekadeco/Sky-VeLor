@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.9.1v
+# Sky VeLor — Beta-0.10.8.9.2v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -16,16 +16,16 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 - Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; all gameplay-affecting controls are off by default.
 
-## Beta-0.10.8.9.1v update (source release preparation)
+## Beta-0.10.8.9.2v update — Dungeon ESP settings and display
 
-- **Hurt Camera Shake** replaces the binary No Hurt Cam setting. It persists as a whole-number **0–100%** control, defaults to **100%**, and scales only vanilla's local hurt-camera tilt amplitude: 0% suppresses that tilt, intermediate values scale it once, and 100% is vanilla-identical. Damage tint, hit animation, knockback, health, packets, and all other hurt behavior remain untouched.
-- Removed only **Player Dollars**: its HUD element, editor/settings route, manual balance source, and saved keys are retired. Other HUD elements, placement, inventory, prices, and unrelated currency behavior remain unchanged.
-- Removed only **Inventory Search**: its setting, field/filter input path, and search rendering are gone. Ordinary player/chest inventories and the remaining potion-panel, Roman-tooltip, tooltip-scroll, and rarity-overlay helpers remain available.
-- Restored the image-backed **Stats Display** HUD: adjacent hard-beveled **FRAME RATE**, **MINING**, and **MEMORY** cards use the existing FPS, mining BPS, and used-heap sources. The display is off by default and is configured through the HUD editor; Ping remains General-tab telemetry rather than a fourth card.
-- Closing `GuiChat` through Escape, sending text/commands, or another normal close path resets the selected chat tab to **All**. While chat stays open, tab choice, messages, typed text/history, and tab configuration are unchanged.
-- The General tab still shows cached local FPS, tab-list Ping, and used/max Java heap telemetry. These GUI cards are separate from the restored HUD cards.
+- **Dungeon ESP Settings** now keeps its real controls reliable when the embedded live preview uses Minecraft-style OpenGL. The editor flushes before preview drawing and restores the Apple 2D GUI state afterward, so preview depth/texture changes cannot hide, clip, overlap, or make settings controls unresponsive.
+- The focused editor is responsive: wide GUI scales show a Live Preview beside a full control column; compact GUI scales give settings one full-width, scrollable column instead of shrinking sliders and dropdowns into unusable fragments. Category navigation remains scrollable, and all existing Mob/Door ESP controls remain reachable.
+- **Mob ESP** retains the existing cached detection, entity filters, real interpolated hitboxes, category styles, tracers, door ESP, and stale-target cleanup. It now adds small category-colored badges for the most important tracked mobs: **MINIBOSS**, **SPECIAL**, **ENDERMAN**, **SKELETOR**, **STARRED**, and optional room-wide **HOSTILE** targets.
+- The new badges use a compact contrast backing, existing per-category through-wall visibility, priority-first selection, and short collision-separated world-space lanes. This makes combat targets easier to identify without rendering an unbounded wall of labels.
+- **Mob Category Labels** is persisted and on by default; **Maximum Mob Labels** defaults to 16 and is bounded at 32. The existing **Distance Text** setting remains independent and appends a distance only to visible category badges. Turning category labels off preserves the prior distance-only label behavior.
+- The prior Hurt Camera Shake, Player Dollars removal, Inventory Search removal, Stats Display, and Chat-tab close behavior remain unchanged.
 
-This source update is **NOT tested in-game**. It does not claim a newly built or published JAR; run the Java 8 Forge build and verification commands below before distributing it.
+This source update is **NOT tested in-game**. Build/distribution remains gated on the Java 8 Forge build and release verifiers below; generated artifacts are valid only when produced by that workflow.
 
 ## Requirements
 
@@ -69,7 +69,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.1v.jar --version Beta-0.10.8.9.1v --mcmod-version 0.10.8.9.1
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.2v.jar --version Beta-0.10.8.9.2v --mcmod-version 0.10.8.9.2
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -77,15 +77,15 @@ file or nested archive was packaged, and — decisively — that the classes ref
 by SRG name with no development names left. The generated `build/` and `.gradle/` directories are
 temporary and should not be included in source ZIPs.
 
-The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.1v-source.zip`. It is generated with a
-curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.1v-source/` root prefix;
-use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.1v` to verify its contents.
+The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.2v-source.zip`. It is generated with a
+curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.2v-source/` root prefix;
+use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.2v` to verify its contents.
 The only JAR allowed in that source archive is the required Gradle wrapper.
 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.1v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.2v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap

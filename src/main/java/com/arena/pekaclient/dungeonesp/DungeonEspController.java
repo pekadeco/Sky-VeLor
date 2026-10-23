@@ -138,6 +138,7 @@ public final class DungeonEspController {
         return "Dungeon ESP " + dungeon + ", master=" + (DungeonEspSettings.enabled ? "ON" : "OFF")
                 + ", tracked=" + controller.tracker.trackedCount()
                 + ", rendered=" + controller.renderBatch.renderedMobCount()
+                + ", labels=" + controller.renderBatch.renderedMobLabelCount()
                 + ", doors=" + controller.doorCache.size()
                 + ", scan=" + micros(controller.lastScanNanos) + "us"
                 + ", render=" + micros(controller.lastRenderNanos) + "us"

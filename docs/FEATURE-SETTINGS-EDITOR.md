@@ -1,6 +1,6 @@
-# Hub and editor reachability — Beta-0.10.8.9.1v
+# Hub and editor reachability — Beta-0.10.8.9.2v
 
-This document audits the source UI routes for the Beta 0.10.8.9.1 update. It distinguishes direct controls from the existing one-level dropdown/editor routes. It is source documentation, not a claim that a distributable JAR has been built.
+This document audits the source UI routes for the Beta 0.10.8.9.2 update. It distinguishes direct controls from the existing one-level dropdown/editor routes and records the responsive Dungeon ESP editor behavior. It is source documentation; distributable artifacts still require the Java 8 Forge build and release verifier.
 
 ## Hub contract
 
@@ -69,11 +69,12 @@ Headless tests cover shake persistence at 0/intermediate/100%, the one-time hurt
 
 - The left pane is a flat item list. **Mob ESP** has Global, Starred Mob, Miniboss, Special Starred Mob, Enderman, Skeletor, and Other Mobs; each item has its existing individual toggle and compact hitbox thumbnail.
 - **Door ESP** has Global, Wither Doors, and Blood Doors; each uses its existing toggle and compact cached-prism thumbnail.
-- The selected right pane owns detailed customization. Mob Global owns master/performance/presets. Category style pages retain color, mode, through-walls, width, opacity, copy/apply, Reset, and **Apply This Style to All**. Door filters and shared style stay in the Door editor.
-- Compact thumbnails and the larger preview both call `DungeonEspPreviewRenderer` and the existing `DungeonEspRenderBatch.drawStyledBox` path. No dummy world or entity is created.
+- The selected settings pane owns detailed customization. Mob Global owns master/performance/presets plus **Mob Category Labels** and **Maximum Mob Labels**. Category style pages retain color, mode, through-walls, width, opacity, copy/apply, Reset, and **Apply This Style to All**. Door filters and shared style stay in the Door editor.
+- On wide GUI scales, the selected settings column sits beside a clipped Live Preview. On compact scales, the preview yields to one full-width, scrollable settings column so sliders/dropdowns remain usable; all categories remain reachable through the independently scrollable flat list.
+- Compact thumbnails and the larger preview both call `DungeonEspPreviewRenderer` and the existing `DungeonEspRenderBatch.drawStyledBox` path. No dummy world or entity is created. The live mob renderer uses the same category color/style for its bounded badges; it always restores its world GL state after drawing.
 
 ## Compatibility and verification
 
 - Existing feature/config owners remain unchanged. Old `ui.feature.tree.*` presentation values are accepted and ignored; editor selections continue under `ui.feature.editor.*`.
-- Headless coverage checks direct slider/settings routes and one-level dropdown bodies, editor routes, Mob/door categories and toggles, status dots, GUI-scale non-overlap, old-config handling, and the Beta 0.10.8.9.1 removal/migration paths.
-- This source update is **NOT tested in-game** and does not represent a built release artifact.
+- Headless coverage checks direct slider/settings routes and one-level dropdown bodies, editor routes, Mob/door categories and toggles, responsive preview/control geometry, live widget-to-setting ownership, label persistence/bounds, status dots, GUI-scale non-overlap, old-config handling, and the Beta 0.10.8.9.2 Dungeon ESP paths.
+- This source update is **NOT tested in-game**; generated artifacts require the Java 8 Forge build and verifier.

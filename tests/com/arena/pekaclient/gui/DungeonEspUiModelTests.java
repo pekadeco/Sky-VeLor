@@ -19,10 +19,10 @@ public final class DungeonEspUiModelTests {
         String[] groups = DungeonEspUiModel.groupTitles();
         check("legacy Mob ESP group remains inventory owner", groups.length > 0 && "Mob ESP".equals(groups[0]));
         check("legacy Door ESP group remains inventory owner", groups.length > 1 && "Door ESP".equals(groups[1]));
-        check("all previous ESP controls represented", DungeonEspUiModel.totalControlRows() == 67);
+        check("all previous ESP controls plus readable label controls represented", DungeonEspUiModel.totalControlRows() == 69);
         check("mob control count", DungeonEspUiModel.rowCount(0) == 46);
         check("door control count", DungeonEspUiModel.rowCount(1) == 12);
-        check("performance control count", DungeonEspUiModel.rowCount(2) == 6);
+        check("performance and label control count", DungeonEspUiModel.rowCount(2) == 8);
         check("preset control count", DungeonEspUiModel.rowCount(3) == 3);
     }
 
@@ -38,6 +38,8 @@ public final class DungeonEspUiModelTests {
         check("Enderman remains in the editor", names.contains("Enderman ESP"));
         check("Skeletor remains in the editor", names.contains("Skeletor ESP"));
         check("force-render switch remains in the editor", names.contains("Force Render All Mobs in Room"));
+        check("mob labels remain editor-reachable", names.contains("Mob Category Labels")
+                && names.contains("Maximum Mob Labels"));
     }
 
     private static void editorsUseFlatCategories() {

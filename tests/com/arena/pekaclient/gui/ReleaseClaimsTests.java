@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Regression proof for the Beta-0.10.8.9.1 cleanup and migration claims.
+ * Regression proof for the retained cleanup and migration claims in this release line.
  *
  * <p>The release-JAR verifier repeats the packaged-artifact side of these checks. This suite keeps the
  * user-visible models and the intentionally absent implementation surfaces honest before packaging.</p>

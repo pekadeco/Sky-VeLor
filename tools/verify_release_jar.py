@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.1v] [--mcmod-version 0.10.8.9.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.2v] [--mcmod-version 0.10.8.9.2]
 """
 
 import argparse
@@ -112,6 +112,7 @@ REQUIRED_CLASSES = [
     'dungeonesp/DungeonEspMatchReason',
     'dungeonesp/WitherDoorCache',
     'dungeonesp/DungeonEspRenderBatch',
+    'dungeonesp/DungeonEspMobDisplay',
     'render/itemanimation/ItemAnimationHooks',
     'render/itemanimation/ItemAnimationHookStatus',
     'render/itemanimation/ItemAnimationLoadingPlugin',
@@ -204,7 +205,7 @@ FORBIDDEN_CLASSES = [
     'assist/guard/ItemGuardPolicy',
     'assist/guard/ItemGuardStore',
     'assist/guard/ItemIdentity',
-    # Beta-0.10.8.9.1 retires only the Player Dollars and Inventory Search implementations.
+    # The established cleanup retires only the Player Dollars and Inventory Search implementations.
     'hud/DollarsHud',
     'hud/BalanceSource',
     'assist/inventory/InventorySearchPolicy',
@@ -328,8 +329,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.2v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.2')
     args = ap.parse_args()
 
     path = args.jar
@@ -461,7 +462,7 @@ def main():
         path = MOD_PACKAGE + cls + '.class'
         return zf.read(path) if path in names else b''
 
-    # --- Assist and Beta-0.10.8.9.1 migration proof --------------------------
+    # --- Assist and retained migration proof --------------------------------
     # Presence alone is not enough: these checks tie the persisted safe-default controls, Hub labels,
     # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
     assist_settings_raw = raw_of('config/AssistSettings')
@@ -544,6 +545,10 @@ def main():
     esp_editor_raw = raw_of('gui/DungeonEspEditorSpecs')
     esp_preview_raw = raw_of('gui/DungeonEspPreviewRenderer')
     esp_batch_raw = raw_of('dungeonesp/DungeonEspRenderBatch')
+    esp_display_raw = raw_of('dungeonesp/DungeonEspMobDisplay')
+    esp_editor_screen_raw = raw_of('gui/FeatureSettingsEditorScreen')
+    layout_toolkit_raw = raw_of('gui/GuiLayoutToolkit')
+    ui_render_raw = raw_of('render/UIRender')
     r.check(all(value in esp_settings_constants for value in
                 ('dungeonEsp.', 'Outline', 'Filled', 'Outline + Filled', 'Nearest closed door',
                  'All closed doors', 'Cyan', 'Gold', 'Purple')),
@@ -560,6 +565,17 @@ def main():
                 and all(value in esp_preview_raw for value in (b'drawStyledBox', b'drawMobThumbnail', b'drawDoorThumbnail'))
                 and b'drawStyledBox' in esp_batch_raw,
             'flat Dungeon rows route every ESP control through shared Mob/Door editors and shared live-style previews')
+    r.check(all(value in esp_editor_raw for value in (b'Mob Category Labels', b'Maximum Mob Labels'))
+                and all(value in esp_hub_constants for value in ('Mob Category Labels', 'Maximum Mob Labels'))
+                and all(value in esp_batch_raw for value in
+                        (b'DungeonEspMobDisplay', b'layoutMobLabels', b'drawLabelBackdrop', b'restoreWorldRenderState'))
+                and all(value in esp_display_raw for value in (b'MINIBOSS', b'SPECIAL', b'ENDERMAN', b'HARD_LABEL_CAP')),
+            'Mob ESP packages bounded hierarchy labels, collision-aware layout and world-render state restoration')
+    r.check(all(value in esp_editor_screen_raw for value in
+                (b'splitResponsiveLivePreview', b'previewVisible', b'restoreFrameState'))
+                and b'splitResponsiveLivePreview' in layout_toolkit_raw
+                and b'restoreFrameState' in ui_render_raw,
+            'Dungeon ESP editor preserves usable full-width controls on compact GUIs and restores 2D state after preview rendering')
     # ReobfJar remaps Minecraft class names, so inspect durable Sky VeLor fields/strings rather than MCP class names.
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
