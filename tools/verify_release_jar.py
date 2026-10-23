@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.8v] [--mcmod-version 0.10.8.8]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.8.1v] [--mcmod-version 0.10.8.8.1]
 """
 
 import argparse
@@ -311,8 +311,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.8v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.8')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.8.1v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.8.1')
     args = ap.parse_args()
 
     path = args.jar
@@ -701,9 +701,9 @@ def main():
                 and b'Disable hotbar scrolling' not in mod_settings_raw
                 and b'No block particles' not in mod_settings_raw
                 and all(value in quality_ui_constants for value in
-                        ('Gameplay', 'Chat QoL', 'Commands'))
+                        ('Simple features', 'Feature editors'))
                 and b'Item Animation' not in quality_ui_raw,
-            'Quality of Life owns gameplay plus collapsible Chat QoL/Commands without Item Animation duplication')
+            'Quality of Life keeps its simple gameplay rows before flat feature-editor dropdowns')
 
     # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
     # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.

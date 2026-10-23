@@ -1,5 +1,16 @@
 # Changelog
 
+## Beta-0.10.8.8.1v — 2026-10-23
+
+- Replaced Hub feature trees with a flat two-form surface: **Simple** rows contain only the existing On/Off switch, name, and gray description; one-level **Dropdowns** contain a title, accurate green/red status dot, that same existing switch, and one correctly named editor button.
+- Removed tree arrows, connector lines, indentation, nested dropdowns, per-mob/per-door tab rows, and every child-row settings button. Simple rows are ordered before dropdowns in every tab.
+- Kept detailed controls in their established focused owners: HUD/Item Animation, Chat, Fonts, Mod Settings, the shared Feature Settings Editor, and Mob/Door ESP editors. No feature behavior or configuration schema was changed.
+- Simplified the shared editor left pane to a flat list. Mob/Door category entries expose their existing individual toggles and compact previews; Mob style pages add **Apply This Style to All** while Global retains performance and preset controls.
+- Added flat-Hub model/audit tests for body shape, depth, routes, legacy-option reachability, status dots, category toggles/thumbnails, GUI-scale geometry, and old-config loading. Updated the release-JAR verifier for the flat architecture.
+- Added the complete feature / row type / option-location audit in `docs/FEATURE-SETTINGS-EDITOR.md`.
+- Updated display version to `Beta-0.10.8.8.1v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.8.1`.
+- **NOT tested in-game.**
+
 ## Beta-0.10.8.8v — 2026-10-23
 
 - Reworked settings presentation only: every crowded Hub tab now uses compact, persisted feature-tree rows with an optional master toggle, gray description, and one **Open Settings** route. Existing feature behavior, config keys/values, migration and old-config loading are unchanged.

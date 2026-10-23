@@ -1,32 +1,67 @@
-# Feature Settings Editor reachability — Beta-0.10.8.8v
+# Flat Hub and editor reachability — Beta-0.10.8.8.1v
 
-The Hub now presents short, persisted feature trees. A row has an optional master toggle and one **Open Settings** route; its gray copy says what the feature does. Tree arrows store only `ui.feature.tree.*` presentation state, so feature values and legacy config loading remain unchanged.
+This release changes presentation only. It does **not** change gameplay behavior, setting keys, values, defaults, HUD placement, or feature ownership.
 
-## Before / after option reachability
+## Hub contract
 
-| Tab | Before | After |
-|---|---|---|
-| General | Appearance and Performance each expanded into 6–7 inline rows | One feature row → **Feature Settings Editor**; Mod Settings and Fonts retain their existing editors |
-| Quality of Life | Inventory, Item Protection, Movement, Item Lock & Swap, Chat, and Commands crowded one long tab | One root tree; each detailed feature opens **Feature Settings Editor** (Chat routes to the existing Chat Editor) |
-| HUD | Item Animation and every HUD element used multiple tab rows | One Item Animation row → existing Item Animation editor; each HUD element keeps a toggle + HUD Editor route |
-| Farming | Mining Assistant exposed four inline rows | Mining BPS routes to HUD Editor; Mining Assistant opens **Feature Settings Editor** and retains its HUD Editor route |
-| Dungeon | Spirit Leap, Terminal Assist, Mob ESP, Door ESP, M7 and all ESP style controls occupied the tab | One tree; detailed features open **Feature Settings Editor**. Dungeon Sync is the deliberate two-toggle inline exception |
-| Slayer | Tracker, HUD, timer, prices and history clears were separate groups | Tracker/HUD short rows; timer, prices, `/setprice` help and history clears open **Feature Settings Editor** |
-| Fishing | Counter, Festival, reset, alerts and HUD routes were separate groups | Catch Counter opens **Feature Settings Editor**; Jawbus/Nearby are deliberate one-toggle exceptions; HUDs retain HUD Editor routes |
+Every feature in a Hub tab uses one of two flat forms:
 
-## Dungeon ESP click paths
+1. **Simple** — one row with its existing On/Off toggle, feature name, and one gray description.
+2. **Dropdown** — one non-nesting header with title and accurate green/red status dot. Its body has exactly the feature's existing On/Off toggle and one **Open _Name_ Editor** button.
 
-- **Mob ESP:** `Dungeon → Dungeon Features → Dungeon ESP → Mob ESP → Open Settings`.
-- Expanding **Mob ESP** reveals **Starred Mob, Miniboss, Special Starred Mob, Enderman, Skeletor,** and **Other Mobs**. Each child’s button opens that exact category.
-- **Door ESP:** `Dungeon → Dungeon Features → Dungeon ESP → Door ESP → Open Settings`; the Wither Doors and Blood Doors children open their matching category.
+Simple rows come before dropdowns in each tab. There are no tree arrows, connector lines, indentation, tab-level per-mob/per-door rows, nested dropdowns, or child-row settings buttons. Section captions only separate the two permitted forms; they are not controls.
 
-## Shared rendering and safe preview
+## Feature / row type / option-location audit
 
-The Mob/Door editors use `DungeonEspPreviewRenderer`. It shows a named, real-dimension fallback hitbox/prism rather than constructing a dummy entity or world. Both live rendering and preview call `DungeonEspRenderBatch.drawStyledBox` with the same `DungeonEspSettings.Style`, so mode, color, opacity, outline width and through-walls behavior are not recreated separately.
+| Tab | Feature | Row type | Existing option location |
+| --- | --- | --- | --- |
+| General | Appearance | Dropdown | Appearance Settings editor |
+| General | Mod Settings | Dropdown | existing Mod Settings screen |
+| General | Fonts | Dropdown | existing Font Settings screen |
+| General | Performance | Dropdown | Performance Settings editor |
+| Quality of Life | No Block Particles | Simple | this tab's toggle |
+| Quality of Life | Disable Hotbar Scrolling | Simple | this tab's toggle |
+| Quality of Life | Inventory Assist | Dropdown | Inventory Assist Settings editor |
+| Quality of Life | Item Protection | Dropdown | Item Protection Settings editor |
+| Quality of Life | Movement and Shortcuts | Dropdown | Movement and Shortcuts editor |
+| Quality of Life | Item Lock and Swap | Dropdown | Item Lock & Swap Settings editor |
+| Quality of Life | Chat QoL | Dropdown | existing Chat Editor |
+| Quality of Life | Commands | Dropdown | Command Settings editor |
+| HUD | Item Animation | Dropdown | existing HUD Editor, Item Animation panel |
+| HUD | Player Doll | Dropdown | existing HUD Editor, Player Doll inspector |
+| HUD | Inventory HUD | Dropdown | existing HUD Editor, Inventory inspector |
+| HUD | Player Dollars | Dropdown | existing HUD Editor, Player Dollars inspector |
+| HUD | Hotbar | Dropdown | existing HUD Editor, Hotbar inspector |
+| Farming | Mining BPS | Dropdown | existing HUD Editor, Mining BPS inspector |
+| Farming | Mining Assistant | Dropdown | Mining Assistant Settings editor; its HUD route remains there |
+| Dungeon | Enable Dungeon Sync | Simple | this tab's toggle |
+| Dungeon | Dungeon Sync Debug | Simple | this tab's toggle |
+| Dungeon | Spirit Leap GUI | Dropdown | Spirit Leap Settings editor |
+| Dungeon | Dungeon Map | Dropdown | existing HUD Editor, Dungeon Map inspector |
+| Dungeon | Boss HP | Dropdown | existing HUD Editor, Boss HP inspector |
+| Dungeon | Terminal Assist | Dropdown | Terminal Assist Settings editor |
+| Dungeon | Mob ESP | Dropdown | Mob ESP Settings editor |
+| Dungeon | Door ESP | Dropdown | Door ESP Settings editor |
+| Dungeon | Floor VII (M7) Overlay | Dropdown | Floor VII Overlay Settings editor |
+| Slayer | Slayer Tracker | Dropdown | Slayer Settings editor |
+| Slayer | Slayer HUD | Dropdown | existing HUD Editor, Slayer inspector |
+| Fishing | Lord Jawbus | Simple | this tab's toggle |
+| Fishing | Nearby Encounters | Simple | this tab's toggle |
+| Fishing | Catch Counter | Dropdown | Catch Counter Settings editor |
+| Fishing | Fishing HUD | Dropdown | existing HUD Editor, Fishing inspector |
+| Fishing | Sea Creature HP | Dropdown | existing HUD Editor, Sea Creature HP inspector |
 
-## State and limits
+`FeatureSettingsUiModel` is the source-level audit inventory for these 35 visible features and 190 existing option labels. It proves one-level dropdown depth, the exact two-control dropdown body, editor route ownership, simple-row ownership, status-dot colors, and no duplicate option identifiers. `DungeonEspUiModel` remains a non-rendered 67-control legacy option inventory so each former Dungeon ESP option is still checked against the editor route.
 
-- Editor selection is remembered under `ui.feature.editor.*`.
-- Tree branches are physically zero-height while closed, preventing overlap at all GUI scales.
-- The editor has Back, Reset, scrollable left list/tree, scrollable settings pane, reused dropdown palette controls, and optional preview.
-- Copy/Apply Style is session-only and introduces no feature config key.
+## Mob and Door ESP editors
+
+- The left pane is a flat item list. **Mob ESP** has Global, Starred Mob, Miniboss, Special Starred Mob, Enderman, Skeletor, and Other Mobs; each item has its existing individual toggle and compact hitbox thumbnail.
+- **Door ESP** has Global, Wither Doors, and Blood Doors; each uses its existing toggle and compact cached-prism thumbnail.
+- The selected right pane owns detailed customization. Mob Global owns master/performance/presets. Category style pages retain color, mode, through-walls, width, opacity, copy/apply, Reset, and **Apply This Style to All**. Door filters and shared style stay in the Door editor.
+- Compact thumbnails and the larger preview both call `DungeonEspPreviewRenderer` and the existing `DungeonEspRenderBatch.drawStyledBox` path. No dummy world or entity is created.
+
+## Compatibility and verification
+
+- Existing feature/config owners remain unchanged. Old `ui.feature.tree.*` presentation values are accepted and ignored; editor selections continue under `ui.feature.editor.*`.
+- Headless coverage checks dropdown depth/body contract, simple rows, old-option reachability, editor routes, Mob/door categories and toggles, status dots, GUI-scale non-overlap, and old-config loading.
+- This release was **NOT tested in-game**.
