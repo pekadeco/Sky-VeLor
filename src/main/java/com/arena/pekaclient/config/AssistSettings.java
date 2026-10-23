@@ -17,6 +17,10 @@ public final class AssistSettings {
     public static final int MIN_HURT_CAMERA_SHAKE = 0;
     public static final int MAX_HURT_CAMERA_SHAKE = 100;
     public static final int DEFAULT_HURT_CAMERA_SHAKE = 100;
+    /** Fresh installs enable only these client-side inventory presentation helpers. */
+    public static final boolean DEFAULT_ROMAN_NUMERALS = true;
+    public static final boolean DEFAULT_TOOLTIP_SCROLL = true;
+    public static final boolean DEFAULT_RARITY_HIGHLIGHT = true;
 
     public static boolean miningAbilityAlert;
     public static boolean miningPuzzlerMarker;
@@ -46,14 +50,22 @@ public final class AssistSettings {
     private AssistSettings() {
     }
 
+    /** Applies the fresh-install defaults, including only local visual/inventory conveniences. */
     public static void resetDefaults() {
-        // Gameplay, network and input assists deliberately start opt-in. The hurt camera remains vanilla at 100%.
+        resetDefaults(true);
+    }
+
+    /**
+     * Existing configurations must not acquire a new visible inventory behavior merely because an old file lacks a
+     * newly-defaulted key. Gameplay, network and input assists remain opt-in in both paths.
+     */
+    private static void resetDefaults(boolean freshInstall) {
         miningAbilityAlert = false;
         miningPuzzlerMarker = false;
         hidePotionEffects = false;
-        romanNumerals = false;
-        tooltipScroll = false;
-        rarityHighlight = false;
+        romanNumerals = freshInstall && DEFAULT_ROMAN_NUMERALS;
+        tooltipScroll = freshInstall && DEFAULT_TOOLTIP_SCROLL;
+        rarityHighlight = freshInstall && DEFAULT_RARITY_HIGHLIGHT;
         hurtCameraShake = DEFAULT_HURT_CAMERA_SHAKE;
         autoSprint = false;
         wardrobeShortcut = false;
@@ -72,14 +84,15 @@ public final class AssistSettings {
     /** Reads only explicit assist keys, with harmless one-time aliases for a compatible older local config. */
     public static void load(Properties source) {
         Properties p = source == null ? new Properties() : source;
-        resetDefaults();
-        miningAbilityAlert = bool(p, "mining.abilityAlert", "miningAbilityNotifier", false);
-        miningPuzzlerMarker = bool(p, "mining.puzzlerMarker", "miningPuzzlerSolver", false);
+        // A nonempty file is an established player's configuration, even if it predates an individual assist key.
+        resetDefaults(p.isEmpty());
+        miningAbilityAlert = bool(p, "mining.abilityAlert", "miningAbilityNotifier", miningAbilityAlert);
+        miningPuzzlerMarker = bool(p, "mining.puzzlerMarker", "miningPuzzlerSolver", miningPuzzlerMarker);
         // Retired Inventory Search keys are deliberately unread. The other inventory conveniences remain independent.
-        hidePotionEffects = bool(p, "inventory.hidePotionEffects", "hideInventoryPotionEffects", false);
-        romanNumerals = bool(p, "inventory.romanNumerals", "romanNumeralsInTooltips", false);
-        tooltipScroll = bool(p, "inventory.tooltipScroll", "scrollableTooltipsEnabled", false);
-        rarityHighlight = bool(p, "inventory.rarityHighlight", "itemRarityBordersEnabled", false);
+        hidePotionEffects = bool(p, "inventory.hidePotionEffects", "hideInventoryPotionEffects", hidePotionEffects);
+        romanNumerals = bool(p, "inventory.romanNumerals", "romanNumeralsInTooltips", romanNumerals);
+        tooltipScroll = bool(p, "inventory.tooltipScroll", "scrollableTooltipsEnabled", tooltipScroll);
+        rarityHighlight = bool(p, "inventory.rarityHighlight", "itemRarityBordersEnabled", rarityHighlight);
         hurtCameraShake = hurtCameraShake(p);
         // Retired Item Protection keys (assist.itemGuard.* and old itemProtection*) are deliberately unread.
         autoSprint = bool(p, "movement.autoSprint", "autoSprintEnabled", false);

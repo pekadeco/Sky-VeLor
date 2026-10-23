@@ -19,6 +19,8 @@ public final class AssistSettingsTests {
         AssistSettings.load(new Properties());
         check("intrusive controls default off", !AssistSettings.autoSprint && !AssistSettings.dungeonSync
                 && !AssistSettings.terminalAutoClick && !AssistSettings.miningAbilityAlert);
+        check("fresh local inventory presentation is useful by default", AssistSettings.romanNumerals
+                && AssistSettings.tooltipScroll && AssistSettings.rarityHighlight && !AssistSettings.hidePotionEffects);
         check("hurt camera defaults to vanilla 100 percent", AssistSettings.hurtCameraShake == 100
                 && Math.abs(AssistSettings.hurtCameraShakeMultiplier() - 1f) < .00001f);
         check("endpoint default is usable", AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
@@ -38,6 +40,8 @@ public final class AssistSettingsTests {
         check("retained aliases load", AssistSettings.miningAbilityAlert && AssistSettings.autoSprint
                 && AssistSettings.terminalScale == 150);
         check("old no-hurt toggle maps to zero percent", AssistSettings.hurtCameraShake == 0);
+        check("established config does not acquire newly defaulted inventory visuals", !AssistSettings.romanNumerals
+                && !AssistSettings.tooltipScroll && !AssistSettings.rarityHighlight);
         Properties rewritten = new Properties();
         rewritten.putAll(old);
         AssistSettings.save(rewritten);

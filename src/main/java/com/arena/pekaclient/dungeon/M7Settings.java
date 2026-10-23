@@ -13,39 +13,45 @@ import java.util.Properties;
  */
 public final class M7Settings {
 
-    private static boolean overlayEnabled = true;
-    private static boolean maxorEnabled = true;
-    private static boolean stormEnabled = true;
-    private static boolean goldorEnabled = true;
-    private static boolean necronEnabled = true;
-    private static boolean powerDragonEnabled = true;
-    private static boolean apexDragonEnabled = true;
-    private static boolean soulDragonEnabled = true;
-    private static boolean iceDragonEnabled = true;
-    private static boolean flameDragonEnabled = true;
-    private static boolean statueZonesEnabled = true;
-    private static boolean areasPersistAfterDragonSpawn = true;
-    private static boolean dragonKillAlertEnabled = true;
-    private static boolean terminalSolverEnabled = true;
+    private static boolean overlayEnabled = false;
+    private static boolean maxorEnabled = false;
+    private static boolean stormEnabled = false;
+    private static boolean goldorEnabled = false;
+    private static boolean necronEnabled = false;
+    private static boolean powerDragonEnabled = false;
+    private static boolean apexDragonEnabled = false;
+    private static boolean soulDragonEnabled = false;
+    private static boolean iceDragonEnabled = false;
+    private static boolean flameDragonEnabled = false;
+    private static boolean statueZonesEnabled = false;
+    private static boolean areasPersistAfterDragonSpawn = false;
+    private static boolean dragonKillAlertEnabled = false;
+    private static boolean terminalSolverEnabled = false;
 
     private M7Settings() {
     }
 
+    /**
+     * Floor VII overlays/solvers are specialized opt-in tools on a fresh install. A populated configuration from an
+     * earlier build retains its historic default for keys it never wrote, while every explicit saved value wins.
+     */
     public static void load(Properties p) {
-        overlayEnabled = bool(p, "dungeon.m7.overlay", true);
-        maxorEnabled = bool(p, "dungeon.m7.boss.maxor", true);
-        stormEnabled = bool(p, "dungeon.m7.boss.storm", true);
-        goldorEnabled = bool(p, "dungeon.m7.boss.goldor", true);
-        necronEnabled = bool(p, "dungeon.m7.boss.necron", true);
-        powerDragonEnabled = bool(p, "dungeon.m7.dragon.power", true);
-        apexDragonEnabled = bool(p, "dungeon.m7.dragon.apex", true);
-        soulDragonEnabled = bool(p, "dungeon.m7.dragon.soul", true);
-        iceDragonEnabled = bool(p, "dungeon.m7.dragon.ice", true);
-        flameDragonEnabled = bool(p, "dungeon.m7.dragon.flame", true);
-        statueZonesEnabled = bool(p, "dungeon.m7.statueZones", true);
-        areasPersistAfterDragonSpawn = bool(p, "dungeon.m7.areasPersist", true);
-        dragonKillAlertEnabled = bool(p, "dungeon.m7.dragonKillAlert", true);
-        terminalSolverEnabled = bool(p, "dungeon.m7.terminalSolver", true);
+        Properties source = p == null ? new Properties() : p;
+        boolean legacyFallback = !source.isEmpty();
+        overlayEnabled = bool(source, "dungeon.m7.overlay", legacyFallback);
+        maxorEnabled = bool(source, "dungeon.m7.boss.maxor", legacyFallback);
+        stormEnabled = bool(source, "dungeon.m7.boss.storm", legacyFallback);
+        goldorEnabled = bool(source, "dungeon.m7.boss.goldor", legacyFallback);
+        necronEnabled = bool(source, "dungeon.m7.boss.necron", legacyFallback);
+        powerDragonEnabled = bool(source, "dungeon.m7.dragon.power", legacyFallback);
+        apexDragonEnabled = bool(source, "dungeon.m7.dragon.apex", legacyFallback);
+        soulDragonEnabled = bool(source, "dungeon.m7.dragon.soul", legacyFallback);
+        iceDragonEnabled = bool(source, "dungeon.m7.dragon.ice", legacyFallback);
+        flameDragonEnabled = bool(source, "dungeon.m7.dragon.flame", legacyFallback);
+        statueZonesEnabled = bool(source, "dungeon.m7.statueZones", legacyFallback);
+        areasPersistAfterDragonSpawn = bool(source, "dungeon.m7.areasPersist", legacyFallback);
+        dragonKillAlertEnabled = bool(source, "dungeon.m7.dragonKillAlert", legacyFallback);
+        terminalSolverEnabled = bool(source, "dungeon.m7.terminalSolver", legacyFallback);
     }
 
     public static void save(Properties p) {

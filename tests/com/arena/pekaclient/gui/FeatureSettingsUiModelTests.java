@@ -1,5 +1,8 @@
 package com.arena.pekaclient.gui;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -19,6 +22,7 @@ public final class FeatureSettingsUiModelTests {
         advancedGateHidesOnlyAdvancedPresentation();
         catalogHasNoDuplicateSettingIds();
         legacyPrototypeOnlyEntriesStayAbsent();
+        homeIsLiveAndHasNoSetupPresetWorkflow();
         responsiveGeometryStaysBounded();
         done();
     }
@@ -30,6 +34,8 @@ public final class FeatureSettingsUiModelTests {
         check("catalog tabs are in reference order", ReferenceSettingsCatalog.TABS.length == 5
                 && ReferenceSettingsCatalog.TABS[0] == ReferenceSettingsCatalog.Tab.HOME
                 && ReferenceSettingsCatalog.TABS[4] == ReferenceSettingsCatalog.Tab.SYSTEM);
+        check("Home catalog describes live performance rather than presets", ReferenceSettingsCatalog.Tab.HOME.caption
+                .contains("Live performance") && !ReferenceSettingsCatalog.Tab.HOME.caption.contains("Preset"));
         check("main shell is a rail, not the retired expandable Hub", AppleSettingsScreen.mainNavigationDepth() == 0);
     }
 
@@ -101,6 +107,18 @@ public final class FeatureSettingsUiModelTests {
         check("current Hurt Camera Shake is retained", ReferenceSettingsCatalog.find("hurt-camera-shake") != null);
     }
 
+    private static void homeIsLiveAndHasNoSetupPresetWorkflow() {
+        String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
+        check("Home uses the cached live performance reader", screen.contains("LIVE PERFORMANCE")
+                && screen.contains("ClientMetrics$Reader") && screen.contains("SERVER PING"));
+        check("Home has no retired setup preset workflow", !screen.contains("Vanilla+")
+                && !screen.contains("Quality of Life") && !screen.contains("applyPreset") && !screen.contains("HIT_PRESET"));
+        check("window controls and profile credits remain part of the native shell", screen.contains("window-green")
+                && screen.contains("window-yellow") && screen.contains("window-red")
+                && "pekadeco".equals(AppleSettingsScreen.PROFILE_CREATOR)
+                && Arrays.equals(new String[]{"ii88w", "whiteShadow"}, AppleSettingsScreen.PROFILE_CONTRIBUTORS));
+    }
+
     private static void responsiveGeometryStaysBounded() {
         float[] widths = {1f, 80f, 160f, 320f, 640f, 1280f};
         for (float width : widths) {
@@ -129,6 +147,23 @@ public final class FeatureSettingsUiModelTests {
     private static boolean contains(List<ReferenceSettingsCatalog.Match> values, String id) {
         for (ReferenceSettingsCatalog.Match match : values) if (id.equals(match.setting.id)) return true;
         return false;
+    }
+
+    private static String classText(String binaryName) {
+        InputStream input = FeatureSettingsUiModelTests.class.getClassLoader()
+                .getResourceAsStream(binaryName.replace('.', '/') + ".class");
+        if (input == null) return "";
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = input.read(buffer)) != -1) out.write(buffer, 0, read);
+            return new String(out.toByteArray(), "ISO-8859-1");
+        } catch (IOException ignored) {
+            return "";
+        } finally {
+            try { input.close(); } catch (IOException ignored) { }
+        }
     }
 
     private static void check(String name, boolean okay) {

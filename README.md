@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.9.3v
+# Sky VeLor — Beta-0.10.8.9.4v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -14,16 +14,17 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Item Animation: live first-person X/Y/Z position, size and equip-animation controls, exact-value entry, clamped persistence and reset actions.
 - Item Lock and Item Swap: persistent player-inventory position locks, safe paired-slot swaps, configurable badges and cooldown, plus packet-before-send protection for GUI clicks and Q/Ctrl+Q drops.
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
-- Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; all gameplay-affecting controls are off by default.
+- Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; network, automated-click, and input/gameplay assists remain explicit opt-ins.
 
-## Beta-0.10.8.9.3v update — reference settings shell and Stats Display
+## Beta-0.10.8.9.4v update — refined native settings desktop
 
-- The native settings surface now ports the supplied `analyze-sky-velor-mod-code.zip` React/Vite design proposal without adding a browser or GUI-framework dependency. Its visible architecture is the exact five-destination rail: **Home**, **Gameplay**, **Dungeon**, **Visuals**, and **System**.
-- The toolbar contains global search, an **Advanced** gate, and **Done**; the content area is one clipped/smoothed scroll viewport with compact bordered cards, inline child disclosure, switches, sliders, choices, focused-editor actions, responsive rail behavior, and Home presets/quick controls.
-- Existing ownership is preserved: Gameplay contains Comfort, Inventory, Chat, Skills and Shortcuts; Dungeon contains Run tools, Floor VII, Highlights and Party sync; Visuals contains HUD and Item Animation; System contains Appearance, Performance, General, Diagnostics and About. Existing configuration keys, direct focused editors, Dungeon ESP, chat, inventory, HUD systems, and commands remain the runtime owners.
-- Diagnostics retains read-only Frame Rate/Ping/Memory telemetry inside the settings screen only. The in-game **Stats Display** remains the one restored three-card **FRAME RATE**, **MINING**, and **MEMORY** renderer: dark beveled cards, cyan frame-rate/BPS values, white memory, 172 × 102 card proportions, 9 px gaps, 8 px cuts, and centered top placement. The middle metric is the existing mining tracker (`BPS`), not ping.
-- Stats Display remains opt-in for a fresh configuration. If an older independently positioned FPS/Ping/Memory HUD was enabled, it migrates once to the consolidated display unless an explicit modern Stats choice already exists; retired metric keys are removed so no duplicate metrics renderer can draw.
-- Dungeon ESP's 0.10.8.9.2 reliability/display improvements, Hurt Camera Shake, Player Dollars removal, Inventory Search removal, and Chat-tab close behavior remain unchanged.
+- Refined the existing native Forge five-destination shell (**Home**, **Gameplay**, **Dungeon**, **Visuals**, **System**) without adding a browser runtime, React dependency, GUI library, or a second configuration schema.
+- The settings surface is now a centered desktop window: normal mode targets 85% of usable width and 82% of usable height before fixed sensible maxima, preserves a visible world border, and uses the existing clipped scroll viewport instead of shrinking controls unreadably at low GUI scales. Green toggles normal/larger layout, yellow minimizes/restores a compact strip, and red closes to the game.
+- Removed the visible **Done** button and its reserved toolbar gap. Search uses that recovered space; Escape, red close, and all established close paths retain save-on-close persistence.
+- Replaced Home setup presets with a compact cached **LIVE PERFORMANCE** panel for actual client FPS, Java used/max heap in MB, and local player tab-list ping. It refreshes from the existing 500 ms `ClientMetrics` snapshot and reports disconnected ping as `-- ms`; it does not replace or duplicate the in-game Stats Display.
+- Added a clickable sidebar **Profile** control and compact themed popover with creator **pekadeco** and contributors **ii88w** and **whiteShadow**. The popover has a clear X, Escape, and outside-click dismissal.
+- Fresh configuration defaults now enable only ordinary local inventory presentation conveniences (Roman numerals, tooltip scrolling, rarity highlighting). Existing files retain their saved/legacy behavior; network sync, automatic clicks, input/gameplay assists, specialized M7 tools, and Dungeon ESP remain opt-in for a fresh configuration.
+- Item Animation, HUD Editor/HUD Hub Editor, all focused routes, Dungeon ESP/settings, search, Advanced, persistence, and retained HUDs remain accessible. The separate in-game **Stats Display** remains the restored three-card **FRAME RATE**, **MINING**, and **MEMORY** HUD.
 
 This source update is **NOT tested in-game**. Build/distribution remains gated on the Java 8 Forge build and release verifiers below; generated artifacts are valid only when produced by that workflow.
 
@@ -69,7 +70,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.3v.jar --version Beta-0.10.8.9.3v --mcmod-version 0.10.8.9.3
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.4v.jar --version Beta-0.10.8.9.4v --mcmod-version 0.10.8.9.4
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -77,15 +78,15 @@ file or nested archive was packaged, and — decisively — that the classes ref
 by SRG name with no development names left. The generated `build/` and `.gradle/` directories are
 temporary and should not be included in source ZIPs.
 
-The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.3v-source.zip`. It is generated with a
-curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.3v-source/` root prefix;
-use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.3v` to verify its contents.
+The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.4v-source.zip`. It is generated with a
+curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.4v-source/` root prefix;
+use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.4v` to verify its contents.
 The only JAR allowed in that source archive is the required Gradle wrapper.
 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.3v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.4v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap

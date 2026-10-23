@@ -21,6 +21,7 @@ fi
 javac -nowarn -encoding UTF-8 -cp "$CP" -d "$OUT" $(find "$HERE/tests" -name '*.java')
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.PureLogicTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.GuiLayoutToolkitTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HudEditorSelectionPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.FeatureSettingsUiModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ReleaseClaimsTests
@@ -85,6 +86,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.hud.StatsTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.startup.StartupTimingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.fishing.FishingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.DragonKillTests
+java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.M7SettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.PuzzleRoomMemoryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.slayer.SlayerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.widget.SearchFieldTests

@@ -27,6 +27,7 @@ if errorlevel 1 goto fail
 set "CP=%OUT%;%CLASSES%;%TEST_CP%"
 call :run com.arena.pekaclient.gui.PureLogicTests || goto fail
 call :run com.arena.pekaclient.gui.GuiLayoutToolkitTests || goto fail
+call :run com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
 call :run com.arena.pekaclient.gui.FeatureSettingsUiModelTests || goto fail
 call :run com.arena.pekaclient.gui.ReleaseClaimsTests || goto fail
@@ -92,6 +93,7 @@ call :run com.arena.pekaclient.hud.StatsTextTests || goto fail
 call :run com.arena.pekaclient.startup.StartupTimingTests || goto fail
 call :run com.arena.pekaclient.fishing.FishingTests || goto fail
 call :run com.arena.pekaclient.dungeon.DragonKillTests || goto fail
+call :run com.arena.pekaclient.dungeon.M7SettingsTests || goto fail
 call :run com.arena.pekaclient.dungeon.PuzzleRoomMemoryTests || goto fail
 call :run com.arena.pekaclient.slayer.SlayerTests || goto fail
 call :run com.arena.pekaclient.widget.SearchFieldTests || goto fail

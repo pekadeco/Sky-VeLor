@@ -5,9 +5,9 @@ import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
 
 /**
- * Bounded-cadence client metric reader shared by retained HUD/UI consumers. The restored Stats Display uses only
- * its FPS and heap values; local tab-list ping remains available to existing non-HUD diagnostics without creating
- * another on-screen metric renderer.
+ * Bounded-cadence client metric reader shared by retained HUD/UI consumers. The restored Stats Display uses FPS
+ * and heap values, while the settings Home summary reads the same cached snapshot (including local tab-list ping)
+ * without becoming a second in-game HUD renderer.
  */
 public final class ClientMetrics {
     public static final long REFRESH_MILLIS = 500L;

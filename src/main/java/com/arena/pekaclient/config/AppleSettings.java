@@ -18,9 +18,9 @@ public final class AppleSettings {
 
     public static final String FILE_NAME = "skyvelor.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient.properties";
-    /** Schema v2 is the Beta-0.10.8.6.1 one-time default upgrade. */
+    /** Schema v3 records the Beta-0.10.8.9.4v fresh-default audit without mutating saved choices. */
     static final String CONFIG_VERSION_KEY = "config.version";
-    static final int CURRENT_CONFIG_VERSION = 2;
+    static final int CURRENT_CONFIG_VERSION = 3;
 
     public static final String[] ACCENT_NAMES = {"Blue", "Purple", "Pink", "Green", "Orange", "Teal"};
     public static final int[] ACCENT_COLORS = {
@@ -203,7 +203,7 @@ public final class AppleSettings {
     };
     /** Set when target-local Chat QoL scrolling is promoted into the one global viewport policy. */
     private static boolean globalScrollMigrationPending;
-    /** Set while the Beta-0.10.8.6.1 default upgrade needs its schema marker written. */
+    /** Set while an older schema marker needs to be rewritten without changing loaded values. */
     private static boolean configVersionMigrationPending;
 
     private AppleSettings() {
@@ -314,7 +314,10 @@ public final class AppleSettings {
 
     static void loadParticleSettings(Properties settings) {
         Properties p = settings == null ? new Properties() : settings;
-        noBlockParticles = readBool(p, "particles.noBlockParticles", DEFAULT_NO_BLOCK_PARTICLES);
+        // A truly new config receives the local visual QoL default. A populated legacy file with no key keeps
+        // vanilla particles instead of silently changing an established player's appearance.
+        boolean fallback = p.isEmpty() ? DEFAULT_NO_BLOCK_PARTICLES : false;
+        noBlockParticles = readBool(p, "particles.noBlockParticles", fallback);
     }
 
     static void saveParticleSettings(Properties p) {
@@ -324,22 +327,17 @@ public final class AppleSettings {
     }
 
     /**
-     * Applies the one-time Beta-0.10.8.6.1 default upgrade after both affected values have loaded. Older files have
-     * no schema marker, so their explicit old defaults are deliberately promoted once; later saved choices win.
+     * Records a schema upgrade after values load, but never rewrites a saved choice. Fresh-install defaults are
+     * applied only while a configuration is empty; an older player file is normalized and marked, not promoted.
      */
     static boolean applyConfigurationVersionUpgrade(Properties settings) {
         Properties p = settings == null ? new Properties() : settings;
         int version = readInt(p, CONFIG_VERSION_KEY, 0, 0, CURRENT_CONFIG_VERSION);
         configVersionMigrationPending = version < CURRENT_CONFIG_VERSION;
-        if (!configVersionMigrationPending) {
-            return false;
-        }
-        noBlockParticles = true;
-        ChatQolSettings.compactMessages = true;
-        return true;
+        return configVersionMigrationPending;
     }
 
-    /** Writes the schema marker used to make the Beta-0.10.8.6.1 default upgrade one-time. */
+    /** Writes the schema marker used by the non-destructive fresh-default audit. */
     static void saveConfigurationVersion(Properties p) {
         if (p != null) {
             p.setProperty(CONFIG_VERSION_KEY, Integer.toString(CURRENT_CONFIG_VERSION));

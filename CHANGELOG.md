@@ -1,5 +1,16 @@
 # Changelog
 
+## Beta-0.10.8.9.4v — 2026-10-23
+
+- Refined the native five-destination settings shell rather than replacing it: normal mode is a centered 85% × 82% desktop window before fixed maximums, expanded mode is larger, small GUI scales remain scrollable/readable, and a world border stays visible.
+- Made the top-left desktop circles functional: red closes to the game, yellow minimizes/restores a compact strip, and green toggles normal/larger layout. The compact profile popup identifies creator `pekadeco` and contributors `ii88w`, `whiteShadow`, with X/Escape/outside-click dismissal.
+- Removed Home's Vanilla+, Quality of Life, Dungeon, and Minimal setup cards and their application workflow. Removed the visible Done button and reclaimed its search-toolbar space; close, Escape, and red retain save-on-close persistence.
+- Added Home's cached Live Performance panel for actual FPS, Java used/max heap MB, and local tab-list ping. It reuses the 500 ms `ClientMetrics.Reader` snapshot, shows disconnected ping as `-- ms`, and remains separate from the in-game three-card Stats HUD.
+- Audited fresh defaults without overwriting old files: local inventory presentation conveniences default on only for an empty configuration; sync, automation, gameplay/input assists, M7 overlays/solvers, and fresh Dungeon ESP stay opt-in. Schema v3 marks upgrades without rewriting explicit saved choices.
+- Added headless contracts for normal/larger/minimized geometry, Home preset removal, profile credits, fresh/legacy defaults, M7 persistence, and retained disconnected metric handling.
+- Updated display metadata, generated Forge metadata, verifier examples, documentation, and build contract to `Beta-0.10.8.9.4v` / numeric `0.10.8.9.4`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input pass remains required for visual confirmation.
+
 ## Beta-0.10.8.9.3v — 2026-10-23
 
 - Ported the supplied `analyze-sky-velor-mod-code.zip` React/Vite GUI proposal into native Forge 1.8.9 rendering/input code. No browser runtime, React dependency, or replacement configuration schema was added.

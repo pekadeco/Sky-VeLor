@@ -11,13 +11,13 @@ import java.util.Locale;
  *
  * <p>The catalog deliberately describes presentation only: ids resolve to the existing Sky VeLor configuration
  * owners and focused editors in {@link AppleSettingsScreen}. It never introduces a second persistence schema.
- * Home is an aggregate/preset surface; the four real destination sections are Gameplay, Dungeon, Visuals and
+ * Home is an aggregate/live-summary surface; the four real destination sections are Gameplay, Dungeon, Visuals and
  * System. Cards, inline detail rows, the Advanced gate and search wording mirror the reference implementation.</p>
  */
 public final class ReferenceSettingsCatalog {
 
     public enum Tab {
-        HOME("Home", "Presets and the handful of switches you touch most."),
+        HOME("Home", "Live performance and the handful of switches you touch most."),
         GAMEPLAY("Gameplay", "Comfort, inventory, chat and skill trackers — the everyday surface."),
         DUNGEON("Dungeon", "Everything that should only be alive inside Catacombs."),
         VISUALS("Visuals", "Your HUD and first-person hand. All rendering, no server state."),

@@ -27,6 +27,11 @@ public final class ClientMetricsTests {
                 && refreshed.usedBytes() == 460L && refreshed.maxBytes() == 512L);
         check("labels refresh with values", "FPS 37".equals(refreshed.fpsText())
                 && "Ping 180 ms".equals(refreshed.pingText()) && "Memory 0 / 0 MB".equals(refreshed.memoryText()));
+        provider.set(-1, -1, -1L, -1L);
+        ClientMetrics.Snapshot disconnected = reader.snapshot(1000L);
+        check("disconnected data remains explicit rather than fabricated", "FPS --".equals(disconnected.fpsText())
+                && "Ping -- ms".equals(disconnected.pingText())
+                && "Memory -- / -- MB".equals(disconnected.memoryText()));
     }
 
     private static void memoryAndNetworkPresentationUsesThresholds() {

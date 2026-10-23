@@ -53,8 +53,8 @@ public final class DungeonEspSettings {
             0xFF453A, 0x8B1E1E, 0xFF7EB6, 0xF2F2F7, 0x0A84FF, 0xA6E22E
     };
 
-    /** Master switch; star and door cache work both stop immediately when it is false. */
-    public static boolean enabled = true;
+    /** Master switch; star and door cache work both stop immediately when it is false. New installs opt in. */
+    public static boolean enabled = false;
     public static final Style starred = new Style(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
     public static final Style miniboss = new Style(true, 0xFFD166, MODE_BOTH, true, 3, 100, 24);
     /** Named special starred enemies get a separate, quieter violet category rather than being folded into normal mobs. */
@@ -188,13 +188,18 @@ public final class DungeonEspSettings {
         applyDefaultPreset();
     }
 
-    /** Reads only dungeonEsp.* keys. The removed mobHighlights key is consumed once as the master migration. */
+    /**
+     * Reads only dungeonEsp.* keys. A new empty configuration leaves the specialized visual overlay off; an
+     * established file that predates its master key retains the historic enabled default. The removed mobHighlights
+     * key is consumed once as the master migration.
+     */
     public static void load(Properties p) {
         Properties source = p == null ? new Properties() : p;
+        boolean freshInstall = source.isEmpty();
         applyDefaultPreset();
         boolean migratedLegacyMobToggle = !source.containsKey(PREFIX + "enabled") && source.containsKey("mobHighlights");
         enabled = migratedLegacyMobToggle ? readBool(source, "mobHighlights", enabled)
-                : readBool(source, PREFIX + "enabled", enabled);
+                : readBool(source, PREFIX + "enabled", freshInstall ? false : enabled);
         loadStyle(source, "starred", starred);
         loadStyle(source, "miniboss", miniboss);
         loadStyle(source, "special", special);

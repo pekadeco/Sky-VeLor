@@ -40,16 +40,15 @@ import java.util.function.Supplier;
  * Native Minecraft 1.8.9 port of the supplied DeepSeek settings reference.
  *
  * <p>The reference is a React/Vite design proposal, not runnable Forge code.  This screen deliberately keeps its
- * five-destination rail, global search, Advanced gate, card hierarchy, inline details, Home presets and the one
- * clipped scroll pane, while every control reads and writes the existing Sky VeLor configuration owners.  It does
+ * five-destination rail, global search, Advanced gate, card hierarchy, inline details, Home live performance panel
+ * and the one clipped scroll pane, while every control reads and writes the existing Sky VeLor configuration owners. It does
  * not create a web dependency or a second persistence schema.</p>
  */
 public class AppleSettingsScreen extends AppleScreen {
 
     static final String[] DESTINATION_NAMES = {"Home", "Gameplay", "Dungeon", "Visuals", "System"};
-    private static final float OUTER_PAD = 8f;
-    private static final float WINDOW_MAX_W = 900f;
-    private static final float WINDOW_MAX_H = 620f;
+    static final String PROFILE_CREATOR = "pekadeco";
+    static final String[] PROFILE_CONTRIBUTORS = {"ii88w", "whiteShadow"};
     private static final float CHROME_H = 17f;
     private static final float NORMAL_TOOLBAR_H = 43f;
     private static final float NARROW_TOOLBAR_H = 65f;
@@ -64,15 +63,18 @@ public class AppleSettingsScreen extends AppleScreen {
 
     private static final int HIT_NAV = 1;
     private static final int HIT_ADVANCED = 2;
-    private static final int HIT_DONE = 3;
-    private static final int HIT_SEARCH_CLEAR = 4;
-    private static final int HIT_CONTROL = 5;
-    private static final int HIT_DISCLOSURE = 6;
-    private static final int HIT_ROUTE = 7;
-    private static final int HIT_CHOICE = 8;
-    private static final int HIT_PRESET = 9;
-    private static final int HIT_HOME_TOGGLE = 10;
-    private static final int HIT_HOME_GAMEPLAY = 11;
+    private static final int HIT_SEARCH_CLEAR = 3;
+    private static final int HIT_CONTROL = 4;
+    private static final int HIT_DISCLOSURE = 5;
+    private static final int HIT_ROUTE = 6;
+    private static final int HIT_CHOICE = 7;
+    private static final int HIT_HOME_TOGGLE = 8;
+    private static final int HIT_HOME_GAMEPLAY = 9;
+    private static final int HIT_WINDOW_GREEN = 10;
+    private static final int HIT_WINDOW_YELLOW = 11;
+    private static final int HIT_WINDOW_RED = 12;
+    private static final int HIT_PROFILE = 13;
+    private static final int HIT_PROFILE_CLOSE = 14;
 
     private final GuiScreen parent;
     private final SearchField search = new SearchField("Search settings...");
@@ -87,10 +89,15 @@ public class AppleSettingsScreen extends AppleScreen {
     private final Map<String, TextMeasure> textMeasures = new HashMap<String, TextMeasure>();
     private final GuiLayoutToolkit.Rect panel = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect viewport = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect profilePopup = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect profileClose = new GuiLayoutToolkit.Rect();
 
     private ReferenceSettingsCatalog.Tab activeTab;
     private boolean showAdvanced;
     private boolean compactRail;
+    private boolean expandedWindow;
+    private boolean minimizedWindow;
+    private boolean profileOpen;
     private boolean narrowRows;
     private float sf = 1f;
     private float toolbarH;
@@ -107,7 +114,6 @@ public class AppleSettingsScreen extends AppleScreen {
     private Hit pendingHit;
     private boolean gestureActive;
     private boolean sliderEngaged;
-    private String selectedPreset = "";
     private String toast = "";
     private long toastUntilNs;
 
@@ -182,9 +188,19 @@ public class AppleSettingsScreen extends AppleScreen {
     private void refreshLayout() {
         Minecraft mc = Minecraft.getMinecraft();
         sf = new ScaledResolution(mc).getScaleFactor();
-        float wantedW = Math.min(WINDOW_MAX_W, Math.max(1f, width - OUTER_PAD * 2f));
-        float wantedH = Math.min(WINDOW_MAX_H, Math.max(1f, height - OUTER_PAD * 2f));
-        panel.set((width - wantedW) * .5f, (height - wantedH) * .5f, wantedW, wantedH);
+        // This single pure layout policy is shared by rendering and hit testing, so larger/minimized controls never
+        // leave stale click rectangles behind at a different GUI scale.
+        ReferenceSettingsWindowLayout.layout(panel, width, height, expandedWindow, minimizedWindow);
+        if (minimizedWindow) {
+            compactRail = false;
+            toolbarH = 0f;
+            railX = railY = railW = railH = 0f;
+            contentX = contentY = contentW = contentH = 0f;
+            viewport.set(panel.x, panel.y, 0f, 0f);
+            narrowRows = true;
+            return;
+        }
+
         compactRail = panel.w < 540f;
         toolbarH = panel.w < 520f ? NARROW_TOOLBAR_H : NORMAL_TOOLBAR_H;
         float bodyY = panel.y + CHROME_H + toolbarH;
@@ -194,7 +210,8 @@ public class AppleSettingsScreen extends AppleScreen {
             railX = panel.x + 7f;
             railY = bodyY + 5f;
             railW = Math.max(1f, panel.w - 14f);
-            railH = Math.min(35f, Math.max(25f, bodyH * .22f));
+            // A second compact row keeps the profile control reachable instead of overloading tiny tab labels.
+            railH = Math.min(57f, Math.max(48f, bodyH * .30f));
             contentX = panel.x + 8f;
             contentY = railY + railH + 7f;
             contentW = Math.max(1f, panel.w - 16f);
@@ -220,16 +237,16 @@ public class AppleSettingsScreen extends AppleScreen {
             search.x = panel.x + 9f;
             search.y = panel.y + CHROME_H + 34f;
         } else {
-            search.x = panel.x + 113f;
-            search.y = panel.y + CHROME_H + 10f;
+            search.x = panel.x + 116f;
+            search.y = panel.y + CHROME_H + (toolbarH - search.h) * .5f;
         }
     }
 
     private float searchWidth() {
-        float buttonW = panel.w < 360f ? 33f : 69f;
-        float doneW = 51f;
-        if (toolbarH > NORMAL_TOOLBAR_H) return panel.w - 18f;
-        return Math.max(52f, panel.right() - 10f - doneW - 6f - buttonW - 6f - (panel.x + 113f));
+        float advancedW = panel.w < 360f ? 33f : 69f;
+        if (toolbarH > NORMAL_TOOLBAR_H) return Math.max(50f, panel.w - 18f);
+        // Removing the confirmation button lets Search use the reclaimed toolbar width; this exact right edge also places Advanced.
+        return Math.max(52f, panel.right() - 9f - advancedW - 6f - (panel.x + 116f));
     }
 
     private void updateSearchAndWidgets(float dt) {
@@ -246,26 +263,54 @@ public class AppleSettingsScreen extends AppleScreen {
         UIRender.roundRectBorder(panel.x, panel.y, panel.w, panel.h, outerRadius,
                 Theme.windowBottom, Theme.windowBottom, Theme.border);
         drawChrome();
+        if (minimizedWindow) {
+            drawMinimizedShell();
+            return;
+        }
         drawToolbar(mouseX, mouseY);
         drawRail(mouseX, mouseY);
         drawContent(mouseX, mouseY);
         drawToast();
+        drawProfilePopup();
     }
 
+    /** The three desktop circles are real controls: red closes, yellow minimizes/restores, green toggles size. */
     private void drawChrome() {
         float y = panel.y;
         UIRender.rect(panel.x + 1f, y + 1f, panel.w - 2f, CHROME_H, 0xCC0A110D);
         UIRender.line(panel.x + 1f, y + CHROME_H, panel.right() - 1f, y + CHROME_H, 1f, 0xFF233129);
         float dotY = y + CHROME_H * .5f;
-        for (int i = 0; i < 3; i++) {
-            UIRender.circle(panel.x + 10f + i * 7f, dotY, 1.7f, 0xFF1B2B20);
-            UIRender.ring(panel.x + 10f + i * 7f, dotY, 2.1f, 1.4f, 0xFF3A5142);
+        drawWindowCircle(panel.x + 12f, dotY, 0xFFFF6B6B, "window-red", HIT_WINDOW_RED);
+        drawWindowCircle(panel.x + 22f, dotY, 0xFFF0B45E, "window-yellow", HIT_WINDOW_YELLOW);
+        drawWindowCircle(panel.x + 32f, dotY, 0xFF5EDC87, "window-green", HIT_WINDOW_GREEN);
+        if (panel.w > 170f) {
+            UIRender.text(fr(), "MINECRAFT 1.8.9  ·  SKY VE LOR", panel.x + 44f,
+                    centeredTextY(y, CHROME_H, .68f), 0xFF8DA697, .68f, false);
         }
-        UIRender.text(fr(), "MINECRAFT 1.8.9  ·  SKY VE LOR", panel.x + 34f, y + 5f,
-                0xFF6F8979, .68f, false);
-        String hint = "RIGHT SHIFT";
-        UIRender.text(fr(), hint, panel.right() - fr().getStringWidth(hint) * .68f - 9f, y + 5f,
-                0xFF8DA697, .68f, false);
+        if (panel.w > 250f) {
+            String hint = minimizedWindow ? "YELLOW RESTORES" : "ESC CLOSES";
+            UIRender.text(fr(), hint, panel.right() - fr().getStringWidth(hint) * .62f - 9f,
+                    centeredTextY(y, CHROME_H, .62f), 0xFF8DA697, .62f, false);
+        }
+    }
+
+    private void drawWindowCircle(float x, float y, int color, String key, int hitType) {
+        UIRender.circle(x, y, 3.2f, color);
+        UIRender.ring(x, y, 3.7f, 2.8f, UIRender.mix(color, 0xFF07100A, .35f));
+        registerHit(key, hitType, x - 5f, y - 5f, 10f, 10f, null, "");
+    }
+
+    private void drawMinimizedShell() {
+        float y = panel.y + CHROME_H;
+        float h = Math.max(1f, panel.bottom() - y - 1f);
+        UIRender.rect(panel.x + 1f, y, panel.w - 2f, h, Theme.windowTop);
+        String title = "Sky VeLor minimized";
+        UIRender.text(fr(), title, panel.x + 10f, centeredTextY(y, h, .76f), Theme.textPrimary, .76f, false);
+        if (panel.w > 225f) {
+            String restore = "click yellow to restore";
+            UIRender.text(fr(), restore, panel.right() - fr().getStringWidth(restore) * .59f - 10f,
+                    centeredTextY(y, h, .59f), Theme.textSecondary, .59f, false);
+        }
     }
 
     private void drawToolbar(int mouseX, int mouseY) {
@@ -273,12 +318,16 @@ public class AppleSettingsScreen extends AppleScreen {
         UIRender.rect(panel.x + 1f, y, panel.w - 2f, toolbarH, Theme.windowTop);
         UIRender.line(panel.x + 1f, y + toolbarH, panel.right() - 1f, y + toolbarH, 1f, Theme.divider);
 
-        drawCube(panel.x + 12f, y + 10f, 17f, Theme.accent);
         if (toolbarH > NORMAL_TOOLBAR_H && panel.w < 360f) {
-            UIRender.text(fr(), "SV", panel.x + 34f, y + 9f, Theme.textPrimary, .9f, false);
+            drawCube(panel.x + 12f, y + 8f, 17f, Theme.accent);
+            UIRender.text(fr(), "SV", panel.x + 34f, centeredTextY(y + 4f, 21f, .9f), Theme.textPrimary, .9f, false);
         } else {
-            UIRender.text(fr(), PekaVersion.DISPLAY_NAME, panel.x + 35f, y + 7f, Theme.textPrimary, .94f, false);
-            UIRender.text(fr(), "SETTINGS · " + compactVersion(), panel.x + 35f, y + 20f, Theme.textSecondary, .58f, false);
+            float titleBlockH = fr().FONT_HEIGHT * .94f + 2f + fr().FONT_HEIGHT * .58f;
+            float titleY = y + (toolbarH - titleBlockH) * .5f;
+            drawCube(panel.x + 12f, y + (toolbarH - 17f) * .5f, 17f, Theme.accent);
+            UIRender.text(fr(), PekaVersion.DISPLAY_NAME, panel.x + 35f, titleY, Theme.textPrimary, .94f, false);
+            UIRender.text(fr(), "SETTINGS · " + compactVersion(), panel.x + 35f,
+                    titleY + fr().FONT_HEIGHT * .94f + 2f, Theme.textSecondary, .58f, false);
         }
 
         search.draw(mouseX, mouseY);
@@ -286,28 +335,22 @@ public class AppleSettingsScreen extends AppleScreen {
             registerHit("search-clear", HIT_SEARCH_CLEAR, search.x + search.w - 20f, search.y, 20f, search.h, null, "");
             drawCloseGlyph(search.x + search.w - 11f, search.y + search.h * .5f, Theme.textTertiary);
         } else {
-            UIRender.text(fr(), "/", search.x + search.w - 10f, search.y + 7f, Theme.textTertiary, .75f, false);
+            UIRender.text(fr(), "/", search.x + search.w - 10f, centeredTextY(search.y, search.h, .75f),
+                    Theme.textTertiary, .75f, false);
         }
 
-        float buttonY = y + 9f;
-        float doneW = 51f;
+        float buttonY = toolbarH > NORMAL_TOOLBAR_H ? y + 8f : y + (toolbarH - 23f) * .5f;
         float advancedW = panel.w < 360f ? 33f : 69f;
-        float doneX = panel.right() - doneW - 9f;
-        float advancedX = doneX - advancedW - 6f;
+        float advancedX = panel.right() - advancedW - 9f;
         int advanceFill = showAdvanced ? UIRender.withAlpha(Theme.accent, .15f) : Theme.card;
         int advanceBorder = showAdvanced ? UIRender.withAlpha(Theme.accent, .65f) : Theme.border;
         UIRender.roundRectBorder(advancedX, buttonY, advancedW, 23f, 5f, advanceFill, advanceFill, advanceBorder);
         drawFilterGlyph(advancedX + 7f, buttonY + 11.5f, showAdvanced ? Theme.accent : Theme.textSecondary);
         if (advancedW > 40f) {
-            UIRender.text(fr(), showAdvanced ? "Advanced on" : "Advanced", advancedX + 19f, buttonY + 7f,
-                    showAdvanced ? Theme.accent : Theme.textSecondary, .72f, false);
+            UIRender.text(fr(), showAdvanced ? "Advanced on" : "Advanced", advancedX + 19f,
+                    centeredTextY(buttonY, 23f, .72f), showAdvanced ? Theme.accent : Theme.textSecondary, .72f, false);
         }
         registerHit("advanced", HIT_ADVANCED, advancedX, buttonY, advancedW, 23f, null, "");
-
-        UIRender.roundRect(doneX, buttonY, doneW, 23f, 5f, Theme.accent, Theme.accent, .4f);
-        drawCheckGlyph(doneX + 9f, buttonY + 11f, 0xFF07100A);
-        UIRender.text(fr(), "Done", doneX + 18f, buttonY + 7f, 0xFF07100A, .75f, false);
-        registerHit("done", HIT_DONE, doneX, buttonY, doneW, 23f, null, "");
     }
 
     private void drawRail(int mouseX, int mouseY) {
@@ -320,6 +363,11 @@ public class AppleSettingsScreen extends AppleScreen {
             UIRender.roundRectRing(railX, railY, railW, railH, 5f, 1f, Theme.border);
         }
         int tabCount = ReferenceSettingsCatalog.TABS.length;
+        float footerReserve = compactRail ? 21f : 58f;
+        float navTop = railY + (compactRail ? 3f : 7f);
+        float navBottom = railY + railH - footerReserve;
+        float slotH = compactRail ? Math.max(20f, navBottom - navTop)
+                : Math.max(19f, (navBottom - navTop) / Math.max(1, tabCount));
         for (int i = 0; i < tabCount; i++) {
             ReferenceSettingsCatalog.Tab tab = ReferenceSettingsCatalog.TABS[i];
             float x;
@@ -328,28 +376,29 @@ public class AppleSettingsScreen extends AppleScreen {
             float h;
             if (compactRail) {
                 w = railW / tabCount - 2f;
-                h = railH - 8f;
+                h = Math.min(25f, slotH);
                 x = railX + i * railW / tabCount + 1f;
-                y = railY + 4f;
+                y = navTop;
             } else {
                 x = railX + 8f;
-                y = railY + 9f + i * 32f;
+                y = navTop + i * slotH;
                 w = railW - 16f;
-                h = 26f;
+                h = Math.max(18f, Math.min(26f, slotH - 3f));
             }
             boolean active = activeTab == tab;
             int fill = active ? UIRender.withAlpha(Theme.accent, .13f) : 0x00000000;
             if (active || inside(mouseX, mouseY, x, y, w, h)) {
                 UIRender.roundRect(x, y, w, h, 5f, fill == 0 ? Theme.card : fill, fill == 0 ? Theme.card : fill, .25f);
             }
-            float iconX = compactRail ? x + Math.max(3f, (w - 14f) * .5f) : x + 5f;
+            boolean showLabel = !compactRail || w > 68f;
+            float iconX = compactRail && showLabel ? x + 5f
+                    : compactRail ? x + Math.max(3f, (w - 14f) * .5f) : x + 5f;
             float iconY = y + (h - 14f) * .5f;
             drawRailGlyph(i, iconX, iconY, active ? Theme.accent : Theme.textTertiary);
-            if (!compactRail || w > 70f) {
-                float labelX = compactRail ? x + 2f : x + 24f;
-                float labelY = compactRail ? y + h - 9f : y + 9f;
-                float labelW = compactRail ? w - 4f : w - 33f;
-                UIRender.text(fr(), fit(fr(), tab.label, labelW / .78f), labelX, labelY,
+            if (showLabel) {
+                float labelX = compactRail ? iconX + 16f : x + 24f;
+                float labelW = compactRail ? Math.max(1f, x + w - labelX - 3f) : w - 33f;
+                UIRender.text(fr(), fit(fr(), tab.label, labelW / .78f), labelX, centeredTextY(y, h, .78f),
                         active ? Theme.textPrimary : Theme.textSecondary, .78f, false);
             }
             if (active && !compactRail) {
@@ -358,13 +407,44 @@ public class AppleSettingsScreen extends AppleScreen {
             registerHit("nav-" + tab.name(), HIT_NAV, x, y, w, h, null, tab.name());
         }
 
-        if (!compactRail) {
-            float footerY = railY + railH - 51f;
-            UIRender.line(railX + 9f, footerY - 7f, railX + railW - 9f, footerY - 7f, 1f, Theme.divider);
-            UIRender.text(fr(), "PROFILE", railX + 11f, footerY, Theme.textTertiary, .62f, false);
-            UIRender.text(fr(), selectedPreset.length() == 0 ? "Custom" : presetName(selectedPreset),
-                    railX + 11f, footerY + 12f, Theme.textPrimary, .76f, false);
+        if (compactRail) {
+            drawCompactProfileControl(mouseX, mouseY);
+        } else {
+            drawSidebarProfileControl(mouseX, mouseY);
         }
+    }
+
+    private void drawSidebarProfileControl(int mouseX, int mouseY) {
+        float h = 36f;
+        float y = railY + railH - h - 8f;
+        float x = railX + 8f;
+        float w = railW - 16f;
+        UIRender.line(railX + 9f, y - 7f, railX + railW - 9f, y - 7f, 1f, Theme.divider);
+        boolean hovered = inside(mouseX, mouseY, x, y, w, h);
+        UIRender.roundRectBorder(x, y, w, h, 5f, hovered ? Theme.cardHover : Theme.card,
+                hovered ? Theme.cardHover : Theme.card, profileOpen ? Theme.accent : Theme.border);
+        drawProfileGlyph(x + 8f, y + 11f, profileOpen ? Theme.accent : Theme.textSecondary);
+        UIRender.text(fr(), "PROFILE", x + 25f, y + 7f, Theme.textTertiary, .58f, false);
+        UIRender.text(fr(), "About Sky VeLor", x + 25f, y + 18f, Theme.textPrimary, .70f, false);
+        registerHit("profile", HIT_PROFILE, x, y, w, h, null, "");
+    }
+
+    private void drawCompactProfileControl(int mouseX, int mouseY) {
+        float x = railX + 4f;
+        float y = railY + railH - 19f;
+        float w = railW - 8f;
+        float h = 15f;
+        boolean hovered = inside(mouseX, mouseY, x, y, w, h);
+        UIRender.roundRect(x, y, w, h, 4f, hovered ? Theme.cardHover : Theme.buttonFill,
+                hovered ? Theme.cardHover : Theme.buttonFill, .2f);
+        drawProfileGlyph(x + 7f, y + 3f, profileOpen ? Theme.accent : Theme.textTertiary);
+        UIRender.text(fr(), "PROFILE", x + 18f, centeredTextY(y, h, .57f),
+                profileOpen ? Theme.accent : Theme.textSecondary, .57f, false);
+        registerHit("profile", HIT_PROFILE, x, y, w, h, null, "");
+    }
+
+    private float centeredTextY(float top, float height, float scale) {
+        return top + Math.max(0f, (height - fr().FONT_HEIGHT * scale) * .5f);
     }
 
     private void drawContent(int mouseX, int mouseY) {
@@ -420,7 +500,7 @@ public class AppleSettingsScreen extends AppleScreen {
             y += 65f;
         }
         y += 4f;
-        UIRender.text(fr(), "changes save when you press Done", contentX + 2f, y, Theme.textTertiary, .63f, false);
+        UIRender.text(fr(), "changes save when you close settings", contentX + 2f, y, Theme.textTertiary, .63f, false);
         String advanced = showAdvanced ? "hide advanced" : "show advanced";
         UIRender.text(fr(), advanced, contentX + contentW - fr().getStringWidth(advanced) * .63f - 2f, y, Theme.textTertiary, .63f, false);
         return y + 16f;
@@ -466,15 +546,17 @@ public class AppleSettingsScreen extends AppleScreen {
         float iconY = y + CARD_PAD;
         UIRender.roundRect(iconX, iconY, 23f, 23f, 5f, Theme.buttonFill, Theme.buttonFill, .25f);
         drawCardGlyph(card.id, iconX + 6f, iconY + 6f, Theme.accent);
-        UIRender.text(fr(), card.title, iconX + 31f, y + CARD_PAD + 1f, Theme.textPrimary, .88f, false);
+        float cardTextBlockH = fr().FONT_HEIGHT * .88f + 3f + fr().FONT_HEIGHT * .72f;
+        float cardTextY = y + (46f - cardTextBlockH) * .5f;
+        UIRender.text(fr(), card.title, iconX + 31f, cardTextY, Theme.textPrimary, .88f, false);
         if (card.advanced) {
             String tag = "ADVANCED";
             float tagX = Math.min(contentX + contentW - 54f, iconX + 31f + fr().getStringWidth(card.title) * .88f + 4f);
-            UIRender.roundRectRing(tagX, y + CARD_PAD - 1f, 49f, 10f, 2f, 1f, Theme.border);
-            UIRender.text(fr(), tag, tagX + 3f, y + CARD_PAD + 1f, Theme.textTertiary, .51f, false);
+            UIRender.roundRectRing(tagX, cardTextY - 1f, 49f, 10f, 2f, 1f, Theme.border);
+            UIRender.text(fr(), tag, tagX + 3f, centeredTextY(cardTextY - 1f, 10f, .51f), Theme.textTertiary, .51f, false);
         }
         UIRender.text(fr(), fit(fr(), card.subtitle, (contentW - 54f) / .72f), iconX + 31f,
-                y + CARD_PAD + 13f, Theme.textSecondary, .72f, false);
+                cardTextY + fr().FONT_HEIGHT * .88f + 3f, Theme.textSecondary, .72f, false);
         float rowY = y + 46f;
         List<ReferenceSettingsCatalog.Setting> settings = card.settings;
         for (ReferenceSettingsCatalog.Setting setting : settings) {
@@ -632,9 +714,10 @@ public class AppleSettingsScreen extends AppleScreen {
             if ("gui-metrics".equals(setting.id)) {
                 ClientMetrics.Snapshot snapshot = clientMetrics.snapshot(System.currentTimeMillis());
                 String values = snapshot.fpsText() + "  ·  " + snapshot.pingText() + "  ·  " + snapshot.memoryText();
-                UIRender.text(fr(), fit(fr(), values, Math.max(1f, w / .62f)), x, y + 6f, Theme.textTertiary, .62f, false);
+                UIRender.text(fr(), fit(fr(), values, Math.max(1f, w / .62f)), x,
+                        centeredTextY(y, controlHeight(setting), .62f), Theme.textTertiary, .62f, false);
             } else {
-                UIRender.text(fr(), "—", x, y + 6f, Theme.textTertiary, .9f, false);
+                UIRender.text(fr(), "—", x, centeredTextY(y, controlHeight(setting), .9f), Theme.textTertiary, .9f, false);
             }
             return;
         }
@@ -669,7 +752,7 @@ public class AppleSettingsScreen extends AppleScreen {
     private void drawRouteButton(ReferenceSettingsCatalog.Setting setting, float x, float y, float w, float h) {
         UIRender.roundRectBorder(x, y, w, h, 4f, Theme.buttonFill, Theme.buttonFill, Theme.border);
         String label = fit(fr(), setting.actionLabel, Math.max(1f, (w - 8f) / .68f));
-        UIRender.text(fr(), label, x + 5f, y + 6f, Theme.textSecondary, .68f, false);
+        UIRender.text(fr(), label, x + 5f, centeredTextY(y, h, .68f), Theme.textSecondary, .68f, false);
     }
 
     private void drawChoiceControl(ReferenceSettingsCatalog.Setting setting, float x, float y, float w) {
@@ -684,7 +767,7 @@ public class AppleSettingsScreen extends AppleScreen {
             if (i == selected) {
                 UIRender.roundRect(cursor, y + 2f, optionW - 1f, 17f, 3f, Theme.cardHover, Theme.cardHover, .2f);
             }
-            UIRender.text(fr(), choice, cursor + 5f, y + 7f,
+            UIRender.text(fr(), choice, cursor + 5f, centeredTextY(y, 21f, .67f),
                     i == selected ? Theme.textPrimary : Theme.textSecondary, .67f, false);
             registerHit("choice:" + setting.id + ":" + i, HIT_CHOICE, cursor, y, optionW, 21f, setting, Integer.toString(i));
             cursor += optionW;
@@ -844,57 +927,36 @@ public class AppleSettingsScreen extends AppleScreen {
         return version.startsWith("Beta-") ? version.substring(5) : version;
     }
 
-    private static String presetName(String id) {
-        if ("vanilla-plus".equals(id)) return "Vanilla+";
-        if ("quality".equals(id)) return "Quality of Life";
-        if ("dungeon".equals(id)) return "Dungeon";
-        if ("minimal".equals(id)) return "Minimal";
-        return "Custom";
-    }
-
     // ------------------------------------------------------------------ Home and search
 
+    /**
+     * Home is an at-a-glance surface, not a setup wizard. The reused reader refreshes its strings at most twice a
+     * second, so drawing the panel does not poll networking or format new values every frame.
+     */
     private float drawHome(float y, int mouseX, int mouseY) {
-        UIRender.text(fr(), "Set up once.", contentX, y + 1f, Theme.textPrimary, 1.34f, false);
-        UIRender.text(fr(), "Presets are starting points, not permanent modes. Change anything afterwards.",
+        UIRender.text(fr(), "Sky VeLor, ready.", contentX, y + 1f, Theme.textPrimary, 1.34f, false);
+        UIRender.text(fr(), "Live local performance and quick controls. Changes save when this window closes.",
                 contentX, y + 18f, Theme.textSecondary, .72f, false);
-        String on = enabledSwitchCount() + " switches on";
-        float pillW = fr().getStringWidth(on) * .64f + 12f;
-        UIRender.roundRect(contentX + Math.max(0f, contentW - pillW), y + 3f, pillW, 15f, 7f,
+        String saved = "SAVES ON CLOSE";
+        float pillW = fr().getStringWidth(saved) * .58f + 12f;
+        float pillX = contentX + Math.max(0f, contentW - pillW);
+        UIRender.roundRect(pillX, y + 3f, pillW, 15f, 7f,
                 UIRender.withAlpha(Theme.accent, .12f), UIRender.withAlpha(Theme.accent, .12f), .2f);
-        UIRender.text(fr(), on, contentX + Math.max(0f, contentW - pillW) + 6f, y + 8f, Theme.accent, .64f, false);
+        UIRender.text(fr(), saved, pillX + 6f, centeredTextY(y + 3f, 15f, .58f), Theme.accent, .58f, false);
         y += 37f;
 
-        float gap = 6f;
-        float cardW = (contentW - gap) * .5f;
-        float cardH = narrowRows ? 47f : 44f;
-        for (int i = 0; i < 4; i++) {
-            int row = i / 2;
-            int col = i % 2;
-            String id = presetId(i);
-            float x = contentX + col * (cardW + gap);
-            float py = y + row * (cardH + gap);
-            boolean active = id.equals(selectedPreset);
-            int fill = active ? UIRender.withAlpha(Theme.accent, .10f) : Theme.card;
-            int border = active ? UIRender.withAlpha(Theme.accent, .62f) : Theme.border;
-            UIRender.roundRectBorder(x, py, cardW, cardH, 6f, fill, fill, border);
-            drawPresetGlyph(i, x + 8f, py + 8f, active ? Theme.accent : Theme.textTertiary);
-            UIRender.text(fr(), presetName(id), x + 23f, py + 7f, Theme.textPrimary, .78f, false);
-            String tagline = presetTagline(i);
-            UIRender.text(fr(), fit(fr(), tagline, (cardW - 14f) / .64f), x + 8f, py + 23f, Theme.textSecondary, .64f, false);
-            if (active) drawCheckGlyph(x + cardW - 11f, py + 11f, Theme.accent);
-            registerHit("preset:" + id, HIT_PRESET, x, py, cardW, cardH, null, id);
-        }
-        y += cardH * 2f + gap + 13f;
+        y = drawHomePerformance(y);
+        y += 10f;
 
-        UIRender.text(fr(), "QUICK CONTROLS", contentX, y, Theme.textTertiary, .61f, false);
+        UIRender.text(fr(), "QUICK CONTROLS", contentX, centeredTextY(y, 12f, .61f), Theme.textTertiary, .61f, false);
         String allGameplay = "all gameplay ->";
         float allX = contentX + contentW - fr().getStringWidth(allGameplay) * .61f;
-        UIRender.text(fr(), allGameplay, allX, y, Theme.accent, .61f, false);
-        registerHit("home-gameplay", HIT_HOME_GAMEPLAY, allX - 2f, y - 3f,
-                fr().getStringWidth(allGameplay) * .61f + 4f, 12f, null, "");
+        UIRender.text(fr(), allGameplay, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
+        registerHit("home-gameplay", HIT_HOME_GAMEPLAY, allX - 2f, y - 1f,
+                fr().getStringWidth(allGameplay) * .61f + 4f, 14f, null, "");
         y += 13f;
 
+        float gap = 6f;
         String[] ids = {"auto-sprint", "terminal-assist", "chat-qol", "item-animation"};
         String[] labels = {"Sprint", "Terminal", "Chat", "Hand"};
         String[] details = {"Only while forward is held", "Passive slot outline", "Attached filter tabs", "First-person animation"};
@@ -907,12 +969,13 @@ public class AppleSettingsScreen extends AppleScreen {
             float py = y + row * (quickH + gap);
             boolean checked = booleanValue(ids[i]);
             UIRender.roundRectBorder(x, py, quickW, quickH, 6f, Theme.card, Theme.card, Theme.border);
-            UIRender.roundRect(x + 7f, py + 8f, 20f, 20f, 4f, Theme.buttonFill, Theme.buttonFill, .2f);
-            drawQuickGlyph(i, x + 12f, py + 13f, checked ? Theme.accent : Theme.textTertiary);
+            UIRender.roundRect(x + 7f, py + (quickH - 20f) * .5f, 20f, 20f, 4f,
+                    Theme.buttonFill, Theme.buttonFill, .2f);
+            drawQuickGlyph(i, x + 12f, py + (quickH - 10f) * .5f, checked ? Theme.accent : Theme.textTertiary);
             float labelX = x + 33f;
             float toggleX = x + quickW - 43f;
-            UIRender.text(fr(), fit(fr(), labels[i], Math.max(1f, (toggleX - labelX - 3f) / .75f)), labelX, py + 8f,
-                    Theme.textPrimary, .75f, false);
+            UIRender.text(fr(), fit(fr(), labels[i], Math.max(1f, (toggleX - labelX - 3f) / .75f)), labelX,
+                    py + 7f, Theme.textPrimary, .75f, false);
             UIRender.text(fr(), fit(fr(), details[i], Math.max(1f, (quickW - 40f) / .58f)), labelX, py + 20f,
                     Theme.textSecondary, .58f, false);
             drawMiniToggle(toggleX, py + (quickH - 17f) * .5f, checked);
@@ -924,42 +987,55 @@ public class AppleSettingsScreen extends AppleScreen {
         UIRender.roundRectBorder(contentX, y, contentW, noticeH, 6f, Theme.card, Theme.card, Theme.border);
         drawShieldGlyph(contentX + 10f, y + 11f, Theme.accent);
         UIRender.text(fr(), "Safe by default", contentX + 27f, y + 9f, Theme.textPrimary, .76f, false);
-        drawWrapped("Network sync and automation stay off until you explicitly choose them. Presets cannot turn a safe action into a click.",
+        drawWrapped("Network sync, automated clicks, and opt-in assists stay off until you explicitly choose them.",
                 contentX + 10f, y + 22f, contentW - 20f, Theme.textSecondary, .63f, 2);
         return y + noticeH + 10f;
     }
 
+    private float drawHomePerformance(float y) {
+        ClientMetrics.Snapshot snapshot = clientMetrics.snapshot(System.currentTimeMillis());
+        float h = homePerformanceHeight();
+        UIRender.roundRectBorder(contentX, y, contentW, h, 7f, Theme.card, Theme.card, Theme.border);
+        UIRender.text(fr(), "LIVE PERFORMANCE", contentX + 10f, y + 8f, Theme.textTertiary, .61f, false);
+        String cadence = "LOCAL · 0.5 s";
+        UIRender.text(fr(), cadence, contentX + contentW - fr().getStringWidth(cadence) * .54f - 10f, y + 8f,
+                Theme.textTertiary, .54f, false);
+
+        if (contentW < 405f) {
+            float metricH = 28f;
+            float metricX = contentX + 7f;
+            float metricW = Math.max(1f, contentW - 14f);
+            float firstY = y + 22f;
+            drawHomeMetric(metricX, firstY, metricW, metricH, "FRAME RATE", snapshot.fpsText(), snapshot.fpsColor());
+            drawHomeMetric(metricX, firstY + 31f, metricW, metricH, "JAVA MEMORY", snapshot.memoryText(), snapshot.memoryColor());
+            drawHomeMetric(metricX, firstY + 62f, metricW, metricH, "SERVER PING", snapshot.pingText(), snapshot.pingColor());
+        } else {
+            float gap = 5f;
+            float metricX = contentX + 7f;
+            float metricY = y + 22f;
+            float metricW = Math.max(1f, (contentW - 14f - gap * 2f) / 3f);
+            drawHomeMetric(metricX, metricY, metricW, 48f, "FRAME RATE", snapshot.fpsText(), snapshot.fpsColor());
+            drawHomeMetric(metricX + metricW + gap, metricY, metricW, 48f, "JAVA MEMORY", snapshot.memoryText(), snapshot.memoryColor());
+            drawHomeMetric(metricX + (metricW + gap) * 2f, metricY, metricW, 48f, "SERVER PING", snapshot.pingText(), snapshot.pingColor());
+        }
+        return y + h;
+    }
+
+    /** Uses the cached strings from ClientMetrics.Snapshot; unknown/disconnected ping remains the honest -- ms. */
+    private void drawHomeMetric(float x, float y, float w, float h, String label, String value, int valueColor) {
+        UIRender.roundRect(x, y, w, h, 4f, Theme.buttonFill, Theme.buttonFill, .22f);
+        UIRender.text(fr(), label, x + 7f, y + 5f, Theme.textTertiary, .52f, false);
+        float valueScale = h < 34f ? .68f : .74f;
+        UIRender.text(fr(), value, x + 7f, y + h - fr().FONT_HEIGHT * valueScale - 4f, valueColor, valueScale, false);
+    }
+
+    private float homePerformanceHeight() {
+        return contentW < 405f ? 116f : 78f;
+    }
+
     private float measureHome() {
-        float cardH = narrowRows ? 47f : 44f;
         float quickH = narrowRows ? 42f : 39f;
-        return 37f + cardH * 2f + 6f + 13f + 13f + quickH * 2f + 6f + 12f + 48f + 10f;
-    }
-
-    private String presetId(int index) {
-        switch (index) {
-            case 0: return "vanilla-plus";
-            case 1: return "quality";
-            case 2: return "dungeon";
-            default: return "minimal";
-        }
-    }
-
-    private String presetTagline(int index) {
-        switch (index) {
-            case 0: return "Clean screen, no automation.";
-            case 1: return "Everything local, nothing automated.";
-            case 2: return "Map, leap and highlights.";
-            default: return "Leave the screen alone.";
-        }
-    }
-
-    private int enabledSwitchCount() {
-        String[] ids = {"no-block-particles", "disable-hotbar-scrolling", "auto-sprint", "item-lock-swap",
-                "chat-qol", "terminal-assist", "dungeon-map", "spirit-leap", "m7-overlay", "hud-stats",
-                "item-animation", "performance-boost"};
-        int count = 0;
-        for (String id : ids) if (booleanValue(id)) count++;
-        return count;
+        return 37f + homePerformanceHeight() + 10f + 13f + quickH * 2f + 6f + 12f + 48f + 10f;
     }
 
     private float drawSearchResults(float y, int mouseX, int mouseY) {
@@ -1007,18 +1083,40 @@ public class AppleSettingsScreen extends AppleScreen {
     protected void mouseClicked(int mouseX, int mouseY, int button) throws IOException {
         if (button != 0) return;
         if (handleOpenDropdownClick(mouseX, mouseY)) return;
-        if (!panel.contains(mouseX, mouseY)) {
-            close();
+        Hit hit = hitAt(mouseX, mouseY);
+
+        // The compact profile popover owns its entire z-layer: its X and an outside click are the two clear exits.
+        if (profileOpen) {
+            if (hit != null && hit.type == HIT_PROFILE_CLOSE) {
+                profileOpen = false;
+                return;
+            }
+            if (!profilePopup.contains(mouseX, mouseY)) profileOpen = false;
             return;
         }
+        if (!panel.contains(mouseX, mouseY)) {
+            // A minimized strip deliberately ignores outside clicks so yellow remains a reliable restore action.
+            if (!minimizedWindow) close();
+            return;
+        }
+        if (hit != null && (hit.type == HIT_WINDOW_RED || hit.type == HIT_WINDOW_YELLOW
+                || hit.type == HIT_WINDOW_GREEN)) {
+            activateWindowControl(hit.type);
+            return;
+        }
+        if (minimizedWindow) return;
         if (search.contains(mouseX, mouseY)) {
             search.setFocused(true);
             return;
         }
-        Hit hit = hitAt(mouseX, mouseY);
         if (hit != null && hit.type == HIT_SEARCH_CLEAR) {
             search.clear();
             search.setFocused(true);
+            return;
+        }
+        if (hit != null && hit.type == HIT_PROFILE) {
+            profileOpen = true;
+            search.setFocused(false);
             return;
         }
         if (hit != null && hit.type == HIT_NAV) {
@@ -1031,10 +1129,6 @@ public class AppleSettingsScreen extends AppleScreen {
             showToast(showAdvanced ? "Advanced settings shown" : "Advanced settings hidden");
             return;
         }
-        if (hit != null && hit.type == HIT_DONE) {
-            close();
-            return;
-        }
         search.setFocused(false);
         if (!viewport.contains(mouseX, mouseY)) return;
         pendingHit = hit;
@@ -1044,6 +1138,32 @@ public class AppleSettingsScreen extends AppleScreen {
         gesture.begin(activeWidget, mouseX, mouseY, scroll.value());
         if (activeWidget != null && !(activeWidget instanceof AppleSlider)) {
             activeWidget.onPress(mouseX, mouseY);
+        }
+    }
+
+    private void activateWindowControl(int type) {
+        if (type == HIT_WINDOW_RED) {
+            close();
+            return;
+        }
+        if (type == HIT_WINDOW_YELLOW) {
+            minimizedWindow = !minimizedWindow;
+            profileOpen = false;
+            search.setFocused(false);
+            openDropdown = null;
+            if (!minimizedWindow) showToast("Settings restored");
+            return;
+        }
+        if (type == HIT_WINDOW_GREEN) {
+            // Green is useful from either state: clicking it while minimized restores directly into the larger view.
+            if (minimizedWindow) {
+                minimizedWindow = false;
+                expandedWindow = true;
+                showToast("Expanded layout restored");
+            } else {
+                expandedWindow = !expandedWindow;
+                showToast(expandedWindow ? "Expanded layout" : "Standard layout");
+            }
         }
     }
 
@@ -1104,6 +1224,10 @@ public class AppleSettingsScreen extends AppleScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (profileOpen && keyCode == Keyboard.KEY_ESCAPE) {
+            profileOpen = false;
+            return;
+        }
         if (search.isFocused()) {
             if (keyCode == Keyboard.KEY_ESCAPE) {
                 if (!search.isEmpty()) search.clear();
@@ -1121,6 +1245,13 @@ public class AppleSettingsScreen extends AppleScreen {
                 return;
             }
             close();
+            return;
+        }
+        if (minimizedWindow) {
+            if (keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER || keyCode == Keyboard.KEY_SPACE) {
+                minimizedWindow = false;
+                showToast("Settings restored");
+            }
             return;
         }
         if (isCtrlKeyDown() && keyCode == Keyboard.KEY_F) {
@@ -1196,10 +1327,6 @@ public class AppleSettingsScreen extends AppleScreen {
             }
             return;
         }
-        if (hit.type == HIT_PRESET) {
-            applyPreset(hit.data);
-            return;
-        }
         if (hit.type == HIT_HOME_TOGGLE) {
             setBoolean(hit.data, !booleanValue(hit.data));
             afterSettingChanged();
@@ -1238,7 +1365,6 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private void afterSettingChanged() {
-        selectedPreset = "";
         refreshReferenceTheme();
     }
 
@@ -1255,7 +1381,33 @@ public class AppleSettingsScreen extends AppleScreen {
         UIRender.shadow(x, y, w, 19f, 5f);
         UIRender.roundRectBorder(x, y, w, 19f, 5f, Theme.popup, Theme.popup, Theme.border);
         drawCheckGlyph(x + 9f, y + 10f, Theme.accent);
-        UIRender.text(fr(), fit(fr(), toast, (w - 24f) / .72f), x + 16f, y + 6f, Theme.textPrimary, .72f, false);
+        UIRender.text(fr(), fit(fr(), toast, (w - 24f) / .72f), x + 16f, centeredTextY(y, 19f, .72f),
+                Theme.textPrimary, .72f, false);
+    }
+
+    /** Compact profile information popover; it is intentionally not a sixth navigation destination. */
+    private void drawProfilePopup() {
+        if (!profileOpen || minimizedWindow) return;
+        float popupW = Math.min(278f, Math.max(210f, panel.w - 24f));
+        float popupH = 84f;
+        float popupX = panel.x + (panel.w - popupW) * .5f;
+        float popupY = panel.y + Math.max(CHROME_H + 12f, (panel.h - popupH) * .5f);
+        profilePopup.set(popupX, popupY, popupW, popupH);
+        UIRender.shadow(popupX, popupY, popupW, popupH, 7f);
+        UIRender.roundRectBorder(popupX, popupY, popupW, popupH, 7f, Theme.popup, Theme.popup,
+                UIRender.withAlpha(Theme.accent, .60f));
+        UIRender.text(fr(), "SKY VELOR PROFILE", popupX + 12f, popupY + 9f, Theme.textTertiary, .61f, false);
+        profileClose.set(popupX + popupW - 24f, popupY + 5f, 19f, 17f);
+        drawCloseGlyph(profileClose.x + profileClose.w * .5f, profileClose.y + profileClose.h * .5f, Theme.textSecondary);
+        registerHit("profile-close", HIT_PROFILE_CLOSE, profileClose.x, profileClose.y, profileClose.w, profileClose.h, null, "");
+        UIRender.line(popupX + 10f, popupY + 25f, popupX + popupW - 10f, popupY + 25f, 1f, Theme.divider);
+        UIRender.text(fr(), "CREATOR", popupX + 13f, popupY + 35f, Theme.textTertiary, .53f, false);
+        UIRender.text(fr(), PROFILE_CREATOR, popupX + 13f, popupY + 46f, Theme.textPrimary, .76f, false);
+        float contributorsX = popupX + popupW * .48f;
+        UIRender.text(fr(), "CONTRIBUTORS", contributorsX, popupY + 35f, Theme.textTertiary, .53f, false);
+        String contributors = PROFILE_CONTRIBUTORS[0] + "  ·  " + PROFILE_CONTRIBUTORS[1];
+        UIRender.text(fr(), contributors, contributorsX, popupY + 46f, Theme.textPrimary, .68f, false);
+        UIRender.text(fr(), "Click outside to close", popupX + 13f, popupY + 66f, Theme.textTertiary, .52f, false);
     }
 
     // ------------------------------------------------------------------ Existing setting owners
@@ -1388,7 +1540,6 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private void setInt(String id, int value) {
-        selectedPreset = "";
         if ("hurt-camera-shake".equals(id)) AssistSettings.hurtCameraShake = clamp(value, 0, 100);
         else if ("item-animation-size".equals(id)) AppleSettings.itemAnimationSize = clamp(value,
                 AppleSettings.ITEM_ANIMATION_SIZE_MIN_PERCENT, AppleSettings.ITEM_ANIMATION_SIZE_MAX_PERCENT);
@@ -1488,57 +1639,6 @@ public class AppleSettingsScreen extends AppleScreen {
         }
     }
 
-    private void applyPreset(String id) {
-        if ("vanilla-plus".equals(id)) {
-            AppleSettings.noBlockParticles = true;
-            AppleSettings.disableHotbarScrolling = true;
-            AssistSettings.hurtCameraShake = 0;
-            AssistSettings.autoSprint = false;
-            ItemLockSwapSettings.enabled = true;
-            ChatQolSettings.enabled = false;
-            AssistSettings.terminalHints = false;
-            AssistSettings.terminalAutoClick = false;
-            DungeonEspSettings.enabled = false;
-            DungeonEspSettings.doorsEnabled = false;
-            AssistSettings.dungeonSync = false;
-            AppleSettings.itemAnimationEnabled = true;
-        } else if ("quality".equals(id)) {
-            AppleSettings.noBlockParticles = true;
-            AppleSettings.disableHotbarScrolling = true;
-            AssistSettings.hurtCameraShake = 0;
-            AssistSettings.autoSprint = true;
-            ItemLockSwapSettings.enabled = true;
-            ChatQolSettings.enabled = true;
-            AppleSettings.itemAnimationEnabled = true;
-            HudManager.DOLL.enabled = true;
-            HudManager.INVENTORY.enabled = true;
-            AssistSettings.dungeonSync = false;
-        } else if ("dungeon".equals(id)) {
-            AppleSettings.dungeonMap = true;
-            AssistSettings.terminalHints = true;
-            AssistSettings.terminalAutoClick = false;
-            AppleSettings.leapMenu = true;
-            HudManager.DUNGEON_BOSS_HP.enabled = true;
-            M7Settings.setOverlayEnabled(true);
-            DungeonEspSettings.enabled = true;
-            DungeonEspSettings.doorsEnabled = true;
-            AssistSettings.dungeonSync = false;
-        } else if ("minimal".equals(id)) {
-            ItemLockSwapSettings.enabled = true;
-            HudManager.DOLL.enabled = false;
-            HudManager.INVENTORY.enabled = false;
-            DungeonEspSettings.enabled = false;
-            DungeonEspSettings.doorsEnabled = false;
-            M7Settings.setOverlayEnabled(false);
-            AppleSettings.dungeonMap = false;
-        } else {
-            return;
-        }
-        selectedPreset = id;
-        refreshReferenceTheme();
-        showToast(presetName(id) + " preset applied");
-    }
-
     private static int clamp(int value, int minimum, int maximum) {
         return Math.max(minimum, Math.min(maximum, value));
     }
@@ -1610,19 +1710,9 @@ public class AppleSettingsScreen extends AppleScreen {
         }
     }
 
-    private void drawPresetGlyph(int index, float x, float y, int color) {
-        if (index == 0) drawShieldGlyph(x, y, color);
-        else if (index == 1) {
-            UIRender.line(x + 5f, y, x + 5f, y + 10f, 1.3f, color);
-            UIRender.line(x, y + 5f, x + 10f, y + 5f, 1.3f, color);
-            UIRender.line(x + 1f, y + 1f, x + 9f, y + 9f, 1f, color);
-        } else if (index == 2) {
-            UIRender.rect(x + 1f, y + 2f, 9f, 7f, UIRender.withAlpha(color, .3f));
-            UIRender.roundRectRing(x + 1f, y + 2f, 9f, 7f, 1f, 1f, color);
-        } else {
-            UIRender.ring(x + 5f, y + 5f, 5f, 3.8f, color);
-            UIRender.line(x + 2f, y + 8f, x + 8f, y + 2f, 1f, color);
-        }
+    private void drawProfileGlyph(float x, float y, int color) {
+        UIRender.ring(x + 5f, y + 3f, 2.5f, 1.7f, color);
+        UIRender.roundRectRing(x + 1f, y + 7f, 8f, 5f, 2f, 1f, color);
     }
 
     private void drawQuickGlyph(int index, float x, float y, int color) {

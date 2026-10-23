@@ -18,7 +18,7 @@ public final class DungeonEspSettingsTests {
 
     private static void defaultsAreUsable() {
         DungeonEspSettings.load(new Properties());
-        check("master defaults on", DungeonEspSettings.enabled);
+        check("fresh install keeps specialized ESP opt-in", !DungeonEspSettings.enabled);
         check("five tick update default", DungeonEspSettings.updateIntervalTicks == 5);
         check("distance and box defaults", DungeonEspSettings.maxDistance == 60 && DungeonEspSettings.maxBoxes == 64);
         check("compact mob labels default on with a bounded budget", DungeonEspSettings.mobLabels
@@ -32,8 +32,12 @@ public final class DungeonEspSettingsTests {
         check("Skeletor begins with starred style", DungeonEspSettings.skeletor.color == DungeonEspSettings.starred.color
                 && DungeonEspSettings.skeletor.mode == DungeonEspSettings.starred.mode
                 && DungeonEspSettings.skeletor.outlineWidth == DungeonEspSettings.starred.outlineWidth);
-        check("door cache defaults on", DungeonEspSettings.doorsEnabled
+        check("door style is ready when the user opts in", DungeonEspSettings.doorsEnabled
                 && DungeonEspSettings.doorScope == DungeonEspSettings.DOORS_NEAREST);
+        Properties established = new Properties();
+        established.setProperty("config.version", "2");
+        DungeonEspSettings.load(established);
+        check("legacy file without master key keeps historic ESP choice", DungeonEspSettings.enabled);
     }
 
     private static void legacyMobToggleMigrates() {
