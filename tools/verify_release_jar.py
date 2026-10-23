@@ -495,8 +495,10 @@ def main():
                 and b'No Hurt Camera' not in feature_editors_raw
                 and all(value in visual_transformer_raw for value in
                         (b'hurtCameraEffect', b'func_78482_e', b'suppressHurtCamera'))
+                # reobfJar maps Minecraft's hurtTime field, so prove the fallback through Sky VeLor-owned
+                # method/class references instead of requiring its MCP field spelling in the packed bytecode.
                 and all(value in visual_hooks_raw for value in
-                        (b'zeroFallbackVisualTilt', b'shouldUseVisualFallback', b'hurtTime'))
+                        (b'zeroFallbackVisualTilt', b'shouldUseVisualFallback', b'VisualAssistHookStatus', b'AssistSettings'))
                 and b'zeroFallbackVisualTilt' in client_mod_raw and b'FALLBACK' in visual_status_raw
                 and b'no hurt cam' in selftest_raw,
             'No Hurt Cam is default-off, visual-only, hook-first with local-tilt fallback and selftest status')
@@ -505,10 +507,12 @@ def main():
     r.check(b'assist.movement.autoSprint' in assist_settings_raw and b'Auto Sprint' in assist_hub_raw
                 and b'Sprints automatically while you hold forward.' in raw_of('gui/QualityOfLifeUiModel')
                 and b'Auto Sprint' not in feature_editors_raw
+                # Minecraft members are SRG-renamed by reobfJar. The static KeyBinding setter is func_74510_a;
+                # the policy and controller ownership names remain stable in the packed mod classes.
                 and all(value in auto_sprint_raw for value in
-                        (b'setKeyBindState', b'keyBindForward', b'keyBindSprint', b'releaseSprintKey'))
+                        (b'AutoSprintPolicy', b'holdSprintKey', b'releaseSprintKey', b'ownedSprintKeyCode', b'func_74510_a'))
                 and b'setSprinting' not in auto_sprint_raw and b'C0BPacketEntityAction' not in auto_sprint_raw
-                and b'shouldHoldSprintKey' in auto_sprint_policy_raw,
+                and all(value in auto_sprint_policy_raw for value in (b'shouldHoldSprintKey', b'mayStart')),
             'Auto Sprint owns only vanilla sprint-key state, releases on forward loss, and sends no custom packets')
 
     # --- Cached Dungeon ESP proof --------------------------------------------
