@@ -61,6 +61,19 @@ public final class VisualAssistTransformer implements IClassTransformer {
         }
     }
 
+    /**
+     * Forge's reobfuscation can rewrite a literal used as an ASM method name even though this is a Sky VeLor hook,
+     * so construct each local hook name at runtime. The transformer itself runs once at class load, making these tiny
+     * allocations irrelevant while preserving the public hook names in the production jar.
+     */
+    private static String tooltipHookMethod() {
+        return new String(new char[]{'p', 'r', 'e', 'p', 'a', 'r', 'e', 'T', 'o', 'o', 'l', 't', 'i', 'p'});
+    }
+
+    private static String hurtCameraHookMethod() {
+        return new String(new char[]{'s', 'u', 'p', 'p', 'r', 'e', 's', 's', 'H', 'u', 'r', 't', 'C', 'a', 'm', 'e', 'r', 'a'});
+    }
+
     private static boolean matches(String name, String transformedName, String mcp, String notch) {
         return mcp.equals(name) || mcp.equals(transformedName) || notch.equals(name) || notch.equals(transformedName);
     }
@@ -103,7 +116,7 @@ public final class VisualAssistTransformer implements IClassTransformer {
                     // this + vanilla's List parameter, preserving all x/y semantics and vanilla rendering.
                     super.visitVarInsn(Opcodes.ALOAD, 0);
                     super.visitVarInsn(Opcodes.ALOAD, 1);
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, TOOLTIP_OWNER, "prepareTooltip",
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, TOOLTIP_OWNER, tooltipHookMethod(),
                             "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
                     injected = true;
                     changed = true;
@@ -132,7 +145,7 @@ public final class VisualAssistTransformer implements IClassTransformer {
                 public void visitCode() {
                     super.visitCode();
                     Label continueVanilla = new Label();
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, HURT_OWNER, "suppressHurtCamera", "()Z", false);
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, HURT_OWNER, hurtCameraHookMethod(), "()Z", false);
                     super.visitJumpInsn(Opcodes.IFEQ, continueVanilla);
                     super.visitInsn(Opcodes.RETURN);
                     super.visitLabel(continueVanilla);
