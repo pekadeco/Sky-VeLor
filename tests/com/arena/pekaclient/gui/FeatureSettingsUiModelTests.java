@@ -72,8 +72,8 @@ public final class FeatureSettingsUiModelTests {
                 FeatureSettingsUiModel.feature("disable-hotbar-scrolling").title)
                 && "Dungeon Sync".equals(FeatureSettingsUiModel.feature("dungeon-sync-enabled").title)
                 && "Sync Details".equals(FeatureSettingsUiModel.feature("dungeon-sync-debug").title));
-        check("Auto Sprint is not nested in Movement and Shortcuts",  FeatureSettingsUiModel.option("auto-sprint") == null);
-        check("No Hurt Cam is not nested in Inventory Assist", FeatureSettingsUiModel.option("no-hurt-camera") == null);
+        check("Auto Sprint owns only its simple toggle", ownsOnlySimpleToggle("auto-sprint", "auto-sprint"));
+        check("No Hurt Cam owns only its simple toggle", ownsOnlySimpleToggle("no-hurt-cam", "no-hurt-cam"));
         check("Sync Details is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
     }
 
@@ -90,6 +90,13 @@ public final class FeatureSettingsUiModelTests {
     private static boolean isDropdownEditor(String featureId, String editorId) {
         FeatureSettingsUiModel.Feature feature = FeatureSettingsUiModel.feature(featureId);
         return feature != null && feature.isDropdown() && editorId.equals(feature.editorId);
+    }
+
+    private static boolean ownsOnlySimpleToggle(String featureId, String optionId) {
+        FeatureSettingsUiModel.Feature feature = FeatureSettingsUiModel.feature(featureId);
+        return feature != null && feature.isSimple() && optionId.equals(feature.toggleOptionId)
+                && feature.optionIds.size() == 1 && optionId.equals(feature.optionIds.get(0))
+                && FeatureSettingsUiModel.option(optionId) != null;
     }
 
     private static void everyDungeonEspControlStillHasARoute() {
