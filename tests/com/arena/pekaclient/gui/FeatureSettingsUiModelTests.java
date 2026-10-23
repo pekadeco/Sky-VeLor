@@ -13,7 +13,7 @@ public final class FeatureSettingsUiModelTests {
         preservesOldConfigurationAndEditorState();
         flatRowsUseOnlyTheTwoAllowedForms();
         everyOldSurfaceHasOneRoute();
-        dungeonsUseRequestedUsageOrder();
+        categoryNamesAndDungeonOrderRemainExact();
         everyDungeonEspControlStillHasARoute();
         editorButtonsTargetTheRightEditors();
         mobCategoriesKeepTogglesAndSharedThumbnails();
@@ -77,14 +77,22 @@ public final class FeatureSettingsUiModelTests {
         check("Sync Details is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
     }
 
-    private static void dungeonsUseRequestedUsageOrder() {
+    private static void categoryNamesAndDungeonOrderRemainExact() {
+        String[] categories = {"General", "Quality of Life", "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
+        check("Hub category names match the requested table", Arrays.equals(AppleHubScreen.PAGE_NAMES, categories));
+        for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
+            check("feature uses an existing category: " + feature.id, Arrays.asList(categories).contains(feature.tab));
+        }
+        for (AssistUiModel.Entry entry : AssistUiModel.entries()) {
+            check("assist catalog uses an existing category: " + entry.name, Arrays.asList(categories).contains(entry.tab));
+        }
         List<String> actual = new ArrayList<String>();
         for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
             if ("Dungeon".equals(feature.tab)) actual.add(feature.id);
         }
         List<String> expected = Arrays.asList("door-esp", "mob-esp", "dungeon-sync-enabled", "m7-overlay",
                 "spirit-leap", "terminal-assist", "dungeon-boss-hud", "dungeon-map", "dungeon-sync-debug");
-        check("Dungeons use ESP, helpers, then information order", expected.equals(actual));
+        check("Dungeon uses ESP, helpers, then information order", expected.equals(actual));
     }
 
     private static boolean isDropdownEditor(String featureId, String editorId) {

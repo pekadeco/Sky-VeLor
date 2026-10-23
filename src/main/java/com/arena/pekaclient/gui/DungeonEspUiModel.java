@@ -21,7 +21,7 @@ public final class DungeonEspUiModel {
             MOB_ESP_TITLE, DOOR_ESP_TITLE, PERFORMANCE_TITLE, PRESETS_TITLE
     };
 
-    /** Human-facing options in the same order as the real Dungeons page. */
+    /** Human-facing options in the same order as the real Dungeon page. */
     private static final Option[] OPTIONS = buildOptions();
     private static final int[] ROW_COUNTS = countRows();
 

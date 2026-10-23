@@ -5,14 +5,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Minecraft-free catalog of every Beta-0.10.8.8 control. The Hub uses these exact labels/descriptions so tests can
+ * Minecraft-free catalog of retained assist controls. The Hub uses these exact labels/descriptions so tests can
  * prove each option has a one-line explanation and belongs to exactly one matching tab/channel.
  */
 public final class AssistUiModel {
 
     public static final String TAB_QUALITY_OF_LIFE = "Quality of Life";
-    public static final String TAB_MINING = "Mining";
-    public static final String TAB_DUNGEONS = "Dungeons";
+    public static final String TAB_FARMING = "Farming";
+    public static final String TAB_DUNGEON = "Dungeon";
 
     public static final class Entry {
         public final String tab;
@@ -63,28 +63,28 @@ public final class AssistUiModel {
         add(entries, TAB_QUALITY_OF_LIFE, "Movement and shortcuts", "Pets shortcut",
                 "Allow the unbound Pets key to send its command on Fakepixel");
 
-        add(entries, TAB_MINING, "Mining assistant", "Pickaxe ability ready alert",
+        add(entries, TAB_FARMING, "Mining assistant", "Pickaxe ability ready alert",
                 "Show a local title for supported Fakepixel pickaxe cooldowns");
-        add(entries, TAB_MINING, "Mining assistant", "Puzzler direction helper",
+        add(entries, TAB_FARMING, "Mining assistant", "Puzzler direction helper",
                 "Outline the decoded Dwarven Mines target block; never clicks it");
-        add(entries, TAB_MINING, "Mining assistant", "Mining Assistant HUD",
+        add(entries, TAB_FARMING, "Mining assistant", "Mining Assistant HUD",
                 "Show mining rate, session blocks, and ability status in the HUD editor");
 
-        add(entries, TAB_DUNGEONS, "Boss HP HUD", "Boss HP HUD",
+        add(entries, TAB_DUNGEON, "Boss HP HUD", "Boss HP HUD",
                 "Show detected F7/M7 boss and dragon health in the HUD editor");
-        add(entries, TAB_DUNGEONS, "Solvers and helpers", "Dungeon Sync",
+        add(entries, TAB_DUNGEON, "Solvers and helpers", "Dungeon Sync",
                 "Opt in to encrypted puzzle sync; player names are hashed locally and never uploaded");
-        add(entries, TAB_DUNGEONS, "Info and other", "Sync Details",
+        add(entries, TAB_DUNGEON, "Info and other", "Sync Details",
                 "Show local diagnostics without printing player names or session hashes");
-        add(entries, TAB_DUNGEONS, "Terminal assist", "Terminal visual helpers",
+        add(entries, TAB_DUNGEON, "Terminal assist", "Terminal visual helpers",
                 "Highlight parsed terminal choices while preserving normal input");
-        add(entries, TAB_DUNGEONS, "Terminal assist", "Terminal auto click",
+        add(entries, TAB_DUNGEON, "Terminal assist", "Terminal auto click",
                 "Explicitly allow automatic clicks for unambiguous parsed terminal choices");
-        add(entries, TAB_DUNGEONS, "Terminal assist", "Hide incorrect terminal choices",
+        add(entries, TAB_DUNGEON, "Terminal assist", "Hide incorrect terminal choices",
                 "Dim known wrong choices in supported parsed terminal menus");
-        add(entries, TAB_DUNGEONS, "Terminal assist", "Prevent wrong terminal clicks",
+        add(entries, TAB_DUNGEON, "Terminal assist", "Prevent wrong terminal clicks",
                 "Block clicks on known wrong parsed choices without guessing");
-        add(entries, TAB_DUNGEONS, "Terminal assist", "Terminal waypoints",
+        add(entries, TAB_DUNGEON, "Terminal assist", "Terminal waypoints",
                 "Show local terminal/device waypoints during supported dungeon phases");
         return Collections.unmodifiableList(entries);
     }

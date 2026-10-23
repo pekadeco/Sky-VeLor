@@ -1,6 +1,6 @@
 # Dungeon Sync privacy and safety
 
-Dungeon Sync is disabled by default. It starts only after you enable **Dungeons → Dungeon Sync** and Sky VeLor can locally validate a Catacombs scoreboard, a temporary server-instance identifier, and a 2–5 player dungeon roster.
+Dungeon Sync is disabled by default. It starts only after you enable **Dungeon → Dungeon Sync** and Sky VeLor can locally validate a Catacombs scoreboard, a temporary server-instance identifier, and a 2–5 player dungeon roster.
 
 ## What leaves the client
 
