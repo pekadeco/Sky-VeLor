@@ -7,7 +7,7 @@ import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.config.DungeonEspSettings;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.dungeon.M7Settings;
-import com.arena.pekaclient.feature.MiningTracker;
+import com.arena.pekaclient.hud.ClientMetrics;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
@@ -88,12 +88,6 @@ public class AppleHubScreen extends AppleScreen {
     private static final int PAGE_FISHING = 6;
     private static final int PAGE_DUNGEON = 4;
 
-    // Indexes into statValues.
-    private static final int S_FPS = 0;
-    private static final int S_MEM = 1;
-    private static final int S_FRAME = 2;
-    private static final int S_MINE = 3;
-
     private final GuiScreen parent;
     private final List<List<Row>> pages = new ArrayList<List<Row>>();
     private int pageIndex;
@@ -140,14 +134,12 @@ public class AppleHubScreen extends AppleScreen {
 
     // Timing and stats.
     private long lastNs;
-    private final float[] frameHistory = new float[90];
-    private int histIdx;
-    private float dtEma = 1f / 60f;
     private int slowFrames;
     private int fastFrames;
     private boolean autoLow;
-    private float statTimer;
-    private final String[] statValues = {"--", "--", "--", "--"};
+    /** GUI-only telemetry; this is deliberately not a HUD element or a persisted feature toggle. */
+    private final ClientMetrics.Reader clientMetrics = ClientMetrics.liveReader();
+    private final GeneralMetricsLayout.Layout generalMetrics = new GeneralMetricsLayout.Layout();
     private int scaleKey = -1;
     private float sf = 2f;
 
@@ -226,16 +218,9 @@ public class AppleHubScreen extends AppleScreen {
         return rows;
     }
 
-    /** General keeps display visibility as simple rows and sends multi-option settings to flat editors. */
+    /** General begins with GUI-only live telemetry and routes multi-option controls to focused editors. */
     private List<Row> generalPage() {
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.section("Display HUD"));
-        simpleFeature(rows, "FPS Display", "Show the game's current frame rate as an independently placed HUD element.",
-                () -> HudManager.FPS_DISPLAY.enabled, value -> HudManager.FPS_DISPLAY.enabled = value);
-        simpleFeature(rows, "Ping Display", "Show your local player's tab-list response time as an independently placed HUD element.",
-                () -> HudManager.PING_DISPLAY.enabled, value -> HudManager.PING_DISPLAY.enabled = value);
-        simpleFeature(rows, "Memory Display", "Show used and maximum Java heap memory in MB as an independently placed HUD element.",
-                () -> HudManager.MEMORY_DISPLAY.enabled, value -> HudManager.MEMORY_DISPLAY.enabled = value);
         rows.add(Row.section("Feature editors"));
         editorFeature(rows, "Appearance", "Dark/light theme, accent, corners and panel opacity.", () -> AppleSettings.darkMode,
                 value -> { AppleSettings.darkMode = value; Theme.refresh(); },
@@ -428,7 +413,6 @@ public class AppleHubScreen extends AppleScreen {
         refreshScale(mc);
         trackFrame(dt);
         syncSearch();
-        updateStats(dt);
         updateAnims(dt);
         computeLayout();
 
@@ -475,10 +459,6 @@ public class AppleHubScreen extends AppleScreen {
 
     /** Tracks frame times and drops detail when the client is struggling (adaptive quality). */
     private void trackFrame(float dt) {
-        frameHistory[histIdx] = dt * 1000f;
-        histIdx = (histIdx + 1) % frameHistory.length;
-        dtEma += (dt - dtEma) * 0.1f;
-
         if (!AppleSettings.adaptive) {
             autoLow = false;
             slowFrames = 0;
@@ -523,20 +503,6 @@ public class AppleHubScreen extends AppleScreen {
         searching = !query.isEmpty();
         scroll.reset();
         openDropdown = null;
-    }
-
-    private void updateStats(float dt) {
-        statTimer -= dt;
-        if (statTimer > 0f) {
-            return;
-        }
-        // The experimental performance mode refreshes these stats half as often.
-        statTimer = AppleSettings.experimentalPerformance ? 1.0f : 0.5f;
-        Runtime rt = Runtime.getRuntime();
-        statValues[S_FPS] = Minecraft.getDebugFPS() + " fps";
-        statValues[S_MEM] = ((rt.totalMemory() - rt.freeMemory()) >> 20) + " MB";
-        statValues[S_FRAME] = String.format(Locale.ROOT, "%.1f ms", dtEma * 1000f);
-        statValues[S_MINE] = String.format(Locale.ROOT, "%.2f BPS", MiningTracker.rate());
     }
 
     private void updateAnims(float dt) {
@@ -612,6 +578,19 @@ public class AppleHubScreen extends AppleScreen {
         float candidateViewY = tall ? headY + 68f : headY + 26f;
         vy = Math.min(candidateViewY, Math.max(wy + TITLE_H + 2f, bodyBottom - 20f));
         vh = Math.max(1f, bodyBottom - vy);
+        if (showsGeneralMetrics()) {
+            GeneralMetricsLayout.update(generalMetrics, vx, vy, vw);
+            if (generalMetrics.height + ROW_GAP + 1f <= vh) {
+                float settingsTop = Math.min(bodyBottom - 1f, generalMetrics.cards[0].y + generalMetrics.height + ROW_GAP);
+                vy = Math.max(vy, settingsTop);
+                vh = Math.max(1f, bodyBottom - vy);
+            } else {
+                // At an extreme GUI scale, clip the optional dashboard rather than overlap editor rows.
+                generalMetrics.height = 0f;
+            }
+        } else {
+            generalMetrics.height = 0f;
+        }
 
         if (!searching) {
             applyGroups(pages.get(pageIndex));
@@ -809,8 +788,47 @@ public class AppleHubScreen extends AppleScreen {
         }
     }
 
+    private boolean showsGeneralMetrics() {
+        return !searching && pageIndex == 0;
+    }
+
+    /** Top-of-General GUI telemetry: refreshed by ClientMetrics at a bounded 500 ms cadence. */
+    private void drawGeneralMetrics(FontRenderer font) {
+        ClientMetrics.Snapshot snapshot = clientMetrics.snapshot(System.currentTimeMillis());
+        drawMetricCard(font, generalMetrics.cards[GeneralMetricsLayout.FPS], "FPS", snapshot.fpsText(),
+                snapshot.fpsColor(), 1f);
+        drawMetricCard(font, generalMetrics.cards[GeneralMetricsLayout.PING], "PING", snapshot.pingText(),
+                snapshot.pingColor(), 1f);
+        drawMetricCard(font, generalMetrics.cards[GeneralMetricsLayout.MEMORY], "MEMORY", snapshot.memoryText(),
+                snapshot.memoryColor(), snapshot.memoryRatio());
+    }
+
+    private void drawMetricCard(FontRenderer font, GuiLayoutToolkit.Rect card, String title, String value,
+                                int color, float barProgress) {
+        if (card == null || card.w <= 0f || card.h <= 0f) return;
+        UIRender.roundRectBorder(card.x, card.y, card.w, card.h, Math.max(3f, Theme.radius - 5f),
+                Theme.card, Theme.card, Theme.border);
+        if (generalMetrics.stacked) {
+            UIRender.text(font, title, card.x + 7f, card.y + 8f, Theme.textTertiary, .70f, false);
+            UIRender.text(font, fit(font, value, Math.max(1f, card.w - 54f)), card.x + 48f, card.y + 7f,
+                    color, .78f, false);
+        } else {
+            UIRender.text(font, title, card.x + 7f, card.y + 7f, Theme.textTertiary, .68f, false);
+            UIRender.text(font, fit(font, value, Math.max(1f, card.w - 14f)), card.x + 7f, card.y + 19f,
+                    color, .82f, false);
+        }
+        float barX = card.x + 6f;
+        float barW = Math.max(1f, card.w - 12f);
+        float barY = card.bottom() - 5f;
+        UIRender.roundRect(barX, barY, barW, 2f, 1f, Theme.track, Theme.track, 0f);
+        float amount = "MEMORY".equals(title) ? barProgress : 1f;
+        UIRender.roundRect(barX, barY, Math.max(1f, barW * Math.max(0f, Math.min(1f, amount))), 2f,
+                1f, color, color, 0f);
+    }
+
     private void drawContent(int mx, int my) {
         FontRenderer fr = fr();
+        if (generalMetrics.height > 0f) drawGeneralMetrics(fr);
         List<Row> rows = currentRows();
         UIRender.scissorBegin(vx, vy, vw, vh, sf);
 

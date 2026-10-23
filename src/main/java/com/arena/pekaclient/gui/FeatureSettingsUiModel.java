@@ -86,13 +86,7 @@ public final class FeatureSettingsUiModel {
     private static boolean duplicateOptionId;
 
     static {
-        // General: independently placed client metrics are simple visibility rows; rich settings use one editor.
-        simple("fps-display", "General", "FPS Display", "Show the game's current frame rate as an independently placed HUD element.",
-                "fps-display-visible", "FPS Display");
-        simple("ping-display", "General", "Ping Display", "Show your local player's tab-list response time as an independently placed HUD element.",
-                "ping-display-visible", "Ping Display");
-        simple("memory-display", "General", "Memory Display", "Show used and maximum Java heap memory in MB as an independently placed HUD element.",
-                "memory-display-visible", "Memory Display");
+        // General: FPS, local tab-list Ping and heap use are read-only GUI telemetry, not configurable HUD features.
         dropdown("appearance", "General", "Appearance", "Theme, accent, corners and panel opacity.",
                 "appearance", "dark-mode", "Appearance", options("Dark mode", "dark-mode", "Accent color", "accent-color",
                 "Corner radius switch", "corner-radius-on", "Corner radius", "corner-radius", "Panel opacity switch",

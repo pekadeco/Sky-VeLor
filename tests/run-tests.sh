@@ -73,6 +73,8 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.ItemAnimationReachabilityTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPaletteTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPreviewDataTests
+java -cp "$OUT:$CP" com.arena.pekaclient.hud.ClientMetricsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.GeneralMetricsLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.StatsTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.startup.StartupTimingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.fishing.FishingTests

@@ -60,9 +60,9 @@ public final class FeatureSettingsUiModelTests {
         check("no per-child tab rows are modeled", FeatureSettingsUiModel.maximumDropdownDepth() == 1);
         check("Mob ESP is a dropdown feature", isDropdownEditor("mob-esp", "mob-esp"));
         check("Door ESP is a dropdown feature", isDropdownEditor("door-esp", "door-esp"));
-        check("FPS Display is a simple General row", FeatureSettingsUiModel.feature("fps-display").isSimple());
-        check("Ping Display is a simple General row", FeatureSettingsUiModel.feature("ping-display").isSimple());
-        check("Memory Display is a simple General row", FeatureSettingsUiModel.feature("memory-display").isSimple());
+        check("FPS is General GUI telemetry, not a feature row", FeatureSettingsUiModel.feature("fps-display") == null);
+        check("Ping is General GUI telemetry, not a feature row", FeatureSettingsUiModel.feature("ping-display") == null);
+        check("Memory is General GUI telemetry, not a feature row", FeatureSettingsUiModel.feature("memory-display") == null);
         check("Hotbar customization is not a HUD row", FeatureSettingsUiModel.feature("hud-hotbar") == null);
         check("Item Protection is not a Quality of Life row", FeatureSettingsUiModel.feature("item-protection") == null);
         check("No Block Particles is a simple row",  FeatureSettingsUiModel.feature("no-block-particles").isSimple());

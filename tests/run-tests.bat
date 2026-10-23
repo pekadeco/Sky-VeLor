@@ -80,6 +80,8 @@ call :run com.arena.pekaclient.gui.ItemAnimationReachabilityTests || goto fail
 call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPaletteTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPreviewDataTests || goto fail
+call :run com.arena.pekaclient.hud.ClientMetricsTests || goto fail
+call :run com.arena.pekaclient.gui.GeneralMetricsLayoutTests || goto fail
 call :run com.arena.pekaclient.hud.StatsTextTests || goto fail
 call :run com.arena.pekaclient.startup.StartupTimingTests || goto fail
 call :run com.arena.pekaclient.fishing.FishingTests || goto fail

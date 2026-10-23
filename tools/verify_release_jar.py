@@ -45,6 +45,8 @@ REQUIRED_CLASSES = [
     'PekaVersion',
     'config/AppleSettings',
     'config/ChatQolSettings',
+    'hud/ClientMetrics',
+    'hud/HudConfigCompatibility',
     'config/DungeonEspSettings',
     'feature/ItemAnimation',
     'feature/VisualSwingStateMachine',
@@ -77,6 +79,7 @@ REQUIRED_CLASSES = [
     'gui/ChatEditorScreen',
     'gui/ChatEditorPreview',
     'gui/GuiLayoutToolkit',
+    'gui/GeneralMetricsLayout',
     'gui/ModSettingsScreen',
     'notes/QuickNoteLayout',
     'chat/CapturedChatMenu',
@@ -611,9 +614,22 @@ def main():
                         (b'Item Animation Settings', b'Dungeon Map Settings', b'Player Doll Settings',
                          b'Inventory HUD Settings', b'Fishing HUD Settings', b'Slayer HUD Settings'))
                 and b'Item Animation \xe2\x80\x94 Renderer' not in hud_editor_titles_raw
-                and b'Mod Settings' in mod_settings_titles_raw,
+                and b'Mod Settings' in mod_settings_titles_raw and b'Mod Settings' in feature_editor_titles_raw,
             'every focused editor uses its Feature Settings title and has no retired Editor title')
+    metric_raw = raw_of('hud/ClientMetrics')
+    metric_compat_raw = raw_of('hud/HudConfigCompatibility')
+    metric_layout_raw = raw_of('gui/GeneralMetricsLayout')
     hud_manager_raw = raw_of('hud/HudManager')
+    r.check(all(value in hub_raw for value in (b'ClientMetrics', b'GeneralMetricsLayout', b'FPS', b'PING', b'MEMORY'))
+                and all(value in metric_raw for value in (b'REFRESH_MILLIS', b'ownTabPingMs', b'usedMemoryBytes', b'maxMemoryBytes'))
+                and b'REFRESH_MILLIS' in metric_raw and b'COLOR_GOOD' in metric_raw and b'memoryRatio' in metric_raw
+                and b'fps-display.' in metric_compat_raw and b'ping-display.' in metric_compat_raw
+                and b'memory-display.' in metric_compat_raw and b'stats.' in metric_compat_raw
+                and MOD_PACKAGE + 'hud/ClientMetricHud.class' not in names
+                and b'ClientMetricHud' not in hud_manager_raw and b'FPS_DISPLAY' not in hud_manager_raw
+                and b'PING_DISPLAY' not in hud_manager_raw and b'MEMORY_DISPLAY' not in hud_manager_raw
+                and len(metric_layout_raw) > 0,
+            'General GUI owns cached local FPS/tab-list Ping/used-max Memory telemetry while retired metric HUD keys are ignored')
     r.check(MOD_PACKAGE + 'hud/HotbarHud.class' not in names and b'HotbarHud' not in hud_manager_raw
                 and b'HOTBAR' not in hub_raw and b'hud-hotbar' not in flat_model_raw
                 and b'hotbar' not in raw_of('gui/GuiSettingsAuditModel'),

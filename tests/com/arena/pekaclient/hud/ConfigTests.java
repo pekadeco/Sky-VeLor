@@ -23,7 +23,7 @@ public final class ConfigTests {
         outOfRangeIsClamped();
         legacyFileLoads();
         retiredHotbarIsNotRegistered();
-        metricDisplaysDefaultOffAndIgnoreRemovedStatsKeys();
+        metricHudElementsAreRemovedAndOldStatsKeysAreIgnored();
         saveLoadRoundTrip();
 
         System.out.println();
@@ -107,16 +107,22 @@ public final class ConfigTests {
         check("retired hotbar HUD is not registered", !registered, "registered=" + registered);
     }
 
-    private static void metricDisplaysDefaultOffAndIgnoreRemovedStatsKeys() throws IOException {
-        ClientMetricHud display = new ClientMetricHud("fps-display", "FPS Display",
-                new HudPlacement(Anchor.END, 6, Anchor.START, 40), ClientMetricHud.Metric.FPS);
-        check("metric default off", !display.enabled, "enabled");
-        display.load(parse("stats.enabled=true\nstats.fps=true\nstats.ping=true\n"));
-        check("removed stats keys ignored", !display.enabled, "enabled");
-        display.load(parse("hotbar.enabled=true\nhotbar.bg=false\nhotbar.border=false\n"));
-        check("removed hotbar HUD keys ignored", !display.enabled, "enabled");
-        display.load(parse("fps-display.enabled=true\n"));
-        check("metric own key loads", display.enabled, "enabled");
+    private static void metricHudElementsAreRemovedAndOldStatsKeysAreIgnored() throws IOException {
+        boolean hasMetricElement = false;
+        for (HudElement element : HudManager.ELEMENTS) {
+            if ("fps-display".equals(element.id) || "ping-display".equals(element.id)
+                    || "memory-display".equals(element.id)) hasMetricElement = true;
+        }
+        check("metric HUD elements are no longer registered", !hasMetricElement, "registered=" + hasMetricElement);
+        Properties old = parse("stats.enabled=true\nstats.fps=true\nstats.ping=true\n"
+                + "fps-display.enabled=true\nping-display.enabled=true\nmemory-display.enabled=true\n"
+                + "mining.enabled=false\n");
+        HudConfigCompatibility.ignoreRetiredMetricKeys(old);
+        check("retired stats keys ignored", !old.containsKey("stats.enabled") && !old.containsKey("stats.fps")
+                && !old.containsKey("stats.ping"), old.toString());
+        check("retired metric HUD keys ignored", !old.containsKey("fps-display.enabled")
+                && !old.containsKey("ping-display.enabled") && !old.containsKey("memory-display.enabled"), old.toString());
+        check("unrelated HUD keys remain loadable", "false".equals(old.getProperty("mining.enabled")), old.toString());
     }
 
     private static void saveLoadRoundTrip() throws IOException {
