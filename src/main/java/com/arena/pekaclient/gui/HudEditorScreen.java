@@ -994,11 +994,22 @@ public final class HudEditorScreen extends AppleScreen {
         layout();
     }
 
+    /** Uses the feature names shown in the hub where a HUD implementation uses a shorter internal caption. */
+    private String selectedSettingsTitle() {
+        if (target == EditorTarget.DUNGEON_MAP) return "Dungeon Map Settings";
+        if (target == EditorTarget.ITEM_ANIMATION) return "Item Animation Settings";
+        if (selected == null) return "HUD Settings";
+        if ("doll".equals(selected.id)) return "Player Doll Settings";
+        if ("inventory".equals(selected.id)) return "Inventory HUD Settings";
+        if ("fishing".equals(selected.id)) return "Fishing HUD Settings";
+        if ("slayer".equals(selected.id)) return "Slayer HUD Settings";
+        return selected.name + " Settings";
+    }
+
     /** Title on the left, Hide or Show on the right. Drag the header to move the card. */
     private void drawCardHeader(int mx, int my) {
         FontRenderer fr = fr();
-        String title = target == EditorTarget.DUNGEON_MAP ? "Dungeon Map"
-                : target == EditorTarget.ITEM_ANIMATION ? "Item Animation — Renderer" : selected.name;
+        String title = selectedSettingsTitle();
         title = fit(fr, title, Math.max(0f, hideX() - cardX - CARD_PAD - 8f));
         UIRender.text(fr, title, cardX + CARD_PAD, cardY + (HEAD_H - 9f) * 0.5f + 1f,
                 Theme.textPrimary, 1f, false);

@@ -107,7 +107,7 @@ can be set to **Always**, **On hover**, or **Off** (default: Always), with indep
 fail-closed hook status. If the window-click hook is unavailable, selection and manual swaps intentionally do nothing
 rather than implying protection.
 
-## Item Animation — Renderer
+## Item Animation Settings
 
 **Item Animation** lives exclusively in the HUD editor as a clearly labelled, non-draggable renderer panel.
 It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -75 through 75), Size and

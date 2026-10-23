@@ -112,7 +112,7 @@ public class PekaClientMod {
     public static final KeyBinding CHAT_TAB_KEY =
             new KeyBinding("key.pekaclient.chatTab", Keyboard.KEY_NONE, "key.categories.pekaclient");
 
-    /** Optional direct route to the Chat Editor; unbound on fresh installs. */
+    /** Optional direct route to Chat Settings; unbound on fresh installs. */
     public static final KeyBinding CHAT_EDITOR_KEY =
             new KeyBinding("key.pekaclient.chatEditor", Keyboard.KEY_NONE, "key.categories.pekaclient");
 

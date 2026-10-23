@@ -21,9 +21,9 @@ and labels remain white. Custom tab colours are thin accent underlines. The real
 no in-box channel/mode label; the selected tab still supplies its send prefix. Its reserved message boundary keeps
 the strip out of message rows.
 
-## Chat Editor
+## Chat Settings
 
-The native-Minecraft-font **Chat Editor** intentionally contains only:
+The native-Minecraft-font **Chat Settings** intentionally contains only:
 
 1. **Background** — colour, open/closed opacity, 0–12 px corner radius, **Fit to messages / Full area** for open
    chat, and optional **Fit width to text**.

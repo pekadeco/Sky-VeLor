@@ -44,18 +44,18 @@ public final class FeatureSettingsEditors {
     }
 
     public static FeatureSettingsEditorScreen movementShortcuts(GuiScreen parent) {
-        return editor(parent, "movement-shortcuts", "Movement and Shortcuts", "Optional client-side shortcuts.",
+        return editor(parent, "movement-shortcuts", "Movement and Shortcuts Settings", "Optional client-side shortcuts.",
                 FeatureSettingsEditors::movementEntries, FeatureSettingsEditors::resetMovement);
     }
 
     public static FeatureSettingsEditorScreen itemLockSwap(GuiScreen parent) {
-        return editor(parent, "item-lock-swap", "Item Lock & Swap Settings",
+        return editor(parent, "item-lock-swap", "Item Lock and Swap Settings",
                 "Locks, pairs, badges and persistent pair-center lines.",
                 (category, entries) -> itemLockEntries(parent, entries), FeatureSettingsEditors::resetItemLockSwap);
     }
 
     public static FeatureSettingsEditorScreen commands(GuiScreen parent) {
-        return editor(parent, "commands", "Command Settings", "Optional chat command routes and diagnostics.",
+        return editor(parent, "commands", "Commands Settings", "Optional chat command routes and diagnostics.",
                 FeatureSettingsEditors::commandEntries, FeatureSettingsEditors::resetCommands);
     }
 
@@ -65,7 +65,7 @@ public final class FeatureSettingsEditors {
     }
 
     public static FeatureSettingsEditorScreen spiritLeap(GuiScreen parent) {
-        return editor(parent, "spirit-leap", "Spirit Leap Settings", "Menu replacement, key shortcut and isolated preview.",
+        return editor(parent, "spirit-leap", "Spirit Leap GUI Settings", "Menu replacement, key shortcut and isolated preview.",
                 (category, entries) -> spiritLeapEntries(parent, entries), FeatureSettingsEditors::resetSpiritLeap);
     }
 
@@ -79,7 +79,7 @@ public final class FeatureSettingsEditors {
         categories.add(category("global", "Overlay", "Areas and alert"));
         categories.add(category("bosses", "Boss Hitboxes", "Maxor, Storm, Goldor and Necron"));
         categories.add(category("dragons", "Dragon Hitboxes", "Five Floor VII dragons"));
-        return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec("m7-overlay", "Floor VII Overlay Settings",
+        return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec("m7-overlay", "Floor VII (M7) Overlay Settings",
                 "Choose an overlay category on the left.", categories, FeatureSettingsEditors::m7Entries, null,
                 FeatureSettingsEditors::resetM7));
     }
@@ -93,8 +93,8 @@ public final class FeatureSettingsEditors {
         List<FeatureSettingsEditorScreen.Category> categories = new ArrayList<FeatureSettingsEditorScreen.Category>();
         categories.add(category("settings", "Settings", "Timer and pricing"));
         categories.add(category("history", "Clear History", "Individual Slayer histories"));
-        return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec("slayer-simple", "Slayer Settings",
-                "Tracker HUD styling remains in the HUD Editor.", categories, FeatureSettingsEditors::slayerEntries, null,
+        return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec("slayer-simple", "Slayer Tracker Settings",
+                "Tracker HUD styling remains in Slayer HUD Settings.", categories, FeatureSettingsEditors::slayerEntries, null,
                 FeatureSettingsEditors::resetSlayer));
     }
 
@@ -235,8 +235,8 @@ public final class FeatureSettingsEditors {
                 value -> AssistSettings.miningPuzzlerMarker = value));
         entries.add(toggle("Show Mining Assistant", assist("Mining Assistant HUD"), () -> HudManager.MINING_ASSIST.enabled,
                 value -> HudManager.MINING_ASSIST.enabled = value));
-        entries.add(FeatureSettingsEditorScreen.Entry.action("Open Mining Assistant Editor",
-                "Position, scale, border and panel style stay in the HUD Editor.", "Open HUD Editor",
+        entries.add(FeatureSettingsEditorScreen.Entry.action("Mining Assistant HUD Settings",
+                "Position, scale, border and panel style stay in the HUD editor.", "Settings",
                 () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(parent, HudManager.MINING_ASSIST))));
     }
 

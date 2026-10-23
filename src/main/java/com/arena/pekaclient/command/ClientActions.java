@@ -35,7 +35,7 @@ public final class ClientActions {
         itemAnimationPending = true;
     }
 
-    /** Opens the native Chat Editor after GuiChat has closed. */
+    /** Opens native Chat Settings after GuiChat has closed. */
     public static void requestChatEditor() {
         chatEditorPending = true;
     }

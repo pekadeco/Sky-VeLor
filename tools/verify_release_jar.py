@@ -556,13 +556,13 @@ def main():
     # the Hub must use its one-level dropdown, and customization may not be duplicated in a GUI tab.
     ui_constants = constants_of('gui/ItemAnimationUiModel')
     r.check(all(value in ui_constants for value in
-                ('Item Animation', 'Open Item Animation Editor', 'Scale', 'Position',
+                ('Item Animation', 'On/Off', 'Settings', 'Scale', 'Position',
                  'Animation', 'Options', 'X', 'Y', 'Z', 'Reset Position', 'Remove Haste Effect',
                  'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth swing', 'Smoothness',
                  'Swing blur unavailable (no safe translucent ghosts)', 'Preview Swing', 'Reset to Defaults')),
             'ItemAnimationUiModel packages the required compact HUD/editor labels and controls')
     forbidden_item_animation_terms = ('transparency', 'opacity', 'background')
-    r.check('Open Item Animation Settings' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
+    r.check('Open Item Animation Editor' not in ui_constants and 'Auto Fix Hit/Slash' not in ui_constants
                 and 'Swing blur' not in ui_constants and 'Blur intensity' not in ui_constants
                 and not any(term in value.lower() for value in ui_constants
                             for term in forbidden_item_animation_terms),
@@ -576,11 +576,29 @@ def main():
     r.check(b'HudEditorScreen' in hub_raw and b'AppleToggle' in hub_raw and b'AppleButton' in hub_raw
                 and audit_ref in hub_raw and model_ref in raw_of('gui/HudEditorScreen')
                 and all(value in flat_model_raw for value in (b'simple', b'dropdown', b'editor-button',
-                                                               b'Mob ESP', b'Door ESP', b'Open ', b' Editor'))
+                                                               b'Mob ESP', b'Door ESP', b'On/Off', b'Settings'))
                 and b'FeatureRowControl' not in hub_raw and b'FeatureTreeLayout' not in hub_raw,
-            'flat Hub keeps one-level Item Animation and ESP routes without tree or child-row controls')
+            'flat Hub keeps one-level Item Animation and ESP routes with only On/Off and Settings controls')
     r.check(b'HudSettingsBuilder' not in hub_raw,
             'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
+    feature_editor_titles_raw = raw_of('gui/FeatureSettingsEditors')
+    hud_editor_titles_raw = raw_of('gui/HudEditorScreen')
+    chat_editor_titles_raw = raw_of('gui/ChatEditorScreen')
+    esp_editor_titles_raw = raw_of('gui/DungeonEspEditorSpecs')
+    mod_settings_titles_raw = raw_of('gui/ModSettingsScreen')
+    r.check(all(value in feature_editor_titles_raw for value in
+                (b'Appearance Settings', b'Performance Settings', b'Inventory Assist Settings',
+                 b'Movement and Shortcuts Settings', b'Item Lock and Swap Settings', b'Commands Settings',
+                 b'Mining Assistant Settings', b'Spirit Leap GUI Settings', b'Terminal Assist Settings',
+                 b'Floor VII (M7) Overlay Settings', b'Catch Counter Settings', b'Slayer Tracker Settings'))
+                and all(value in esp_editor_titles_raw for value in (b'Mob ESP Settings', b'Door ESP Settings'))
+                and b'Chat Settings' in chat_editor_titles_raw and b'Chat Editor' not in chat_editor_titles_raw
+                and all(value in hud_editor_titles_raw for value in
+                        (b'Item Animation Settings', b'Dungeon Map Settings', b'Player Doll Settings',
+                         b'Inventory HUD Settings', b'Fishing HUD Settings', b'Slayer HUD Settings'))
+                and b'Item Animation \xe2\x80\x94 Renderer' not in hud_editor_titles_raw
+                and b'Mod Settings' in mod_settings_titles_raw,
+            'every focused editor uses its Feature Settings title and has no retired Editor title')
     hud_manager_raw = raw_of('hud/HudManager')
     r.check(MOD_PACKAGE + 'hud/HotbarHud.class' not in names and b'HotbarHud' not in hud_manager_raw
                 and b'HOTBAR' not in hub_raw and b'hud-hotbar' not in flat_model_raw
@@ -604,10 +622,11 @@ def main():
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
-    r.check(all(value in chat_ui_constants for value in ('Chat QoL', 'Open Chat Editor'))
+    r.check(all(value in chat_ui_constants for value in ('On/Off', 'Settings'))
                 and all(value not in chat_ui_constants for value in ('Chat Tabs', 'Smooth Messages', 'Hover Highlight',
-                                                                      'Separate Chats', 'Global Font', 'Open Font Settings')),
-            'ChatUiModel keeps exactly its Hub master toggle and editor route')
+                                                                      'Separate Chats', 'Global Font', 'Open Font Settings',
+                                                                      'Open Chat Editor')),
+            'ChatUiModel keeps exactly its Hub On/Off toggle and Settings route')
     chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
     r.check(all(value in chat_editor_raw for value in
                 (b'Background', b'Messages', b'Tabs', b'Menu and Highlight', b'Reset', b'Invalid regex',
@@ -699,10 +718,10 @@ def main():
             'Compact Messages packages exact unique-group replacement, closed/open visibility audit, and editor colour')
     r.check(all(value not in hub_raw and value not in chat_editor_raw for value in
                 (b'FontsScreen', b'FontSettings', b'GlobalFontManager', b'custom font')),
-            'Hub and Chat Editor have no custom-font route or renderer hook')
+            'Hub and Chat Settings have no custom-font route or renderer hook')
     r.check(b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw
                 and b'Enable Chat QoL' in chat_editor_raw and b'Use chat tabs' in chat_editor_raw,
-            'compact Hub routes Chat QoL through Chat Editor including its feature-level switches')
+            'compact Hub routes Chat QoL through Chat Settings including its feature-level switches')
     r.check(all(value not in hub_raw for value in
                 (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
             'AppleHubScreen has no retired external animation or duplicate chat customization controls')
@@ -727,7 +746,7 @@ def main():
     apple_constants = constants_of('config/AppleSettings')
     r.check(b'HotbarScrollPolicy' in client_raw and 'shouldCancel' in members_of('PekaClientMod')
                 and all(value in quality_ui_constants for value in
-                        ('Quality of Life', 'Disable hotbar scrolling', 'No block particles'))
+                        ('Quality of Life', 'No Hotbar Scrolling', 'No block particles'))
                 and 'mouse.disableHotbarScrolling' in apple_constants,
             'Quality of Life owns the default-off gameplay hotbar wheel guard and default-on block-particle filter')
     r.check(all(value in mod_ui_constants for value in ('Scroll speed', 'Smooth scrolling'))
@@ -736,7 +755,7 @@ def main():
                 and b'ChatQolSettings' not in mod_settings_raw and b'itemAnimationEnabled' not in mod_settings_raw,
             'Mod Settings is scroll-only and carries neither duplicate Item Animation nor Chat QoL master control')
     r.check(b'com/arena/pekaclient/gui/QualityOfLifeUiModel' in hub_raw
-                and b'Disable hotbar scrolling' not in mod_settings_raw
+                and b'No Hotbar Scrolling' in quality_ui_raw and b'Disable Hotbar Scrolling' not in quality_ui_raw
                 and b'No block particles' not in mod_settings_raw
                 and all(value in quality_ui_constants for value in
                         ('Simple features', 'Feature editors'))

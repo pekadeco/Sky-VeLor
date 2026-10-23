@@ -443,7 +443,7 @@ public final class ChatEditorScreen extends AppleScreen {
         UIRender.shadow(x, y, w, h, Math.min(Theme.radius, 12f));
         UIRender.roundRect(x, y, w, h, Theme.radius, Theme.windowTop, Theme.windowBottom, .6f);
         UIRender.roundRectRing(x, y, w, h, Theme.radius, 1f, Theme.border);
-        UIRender.text(fr(), "Chat Editor", x + 9f, y + 10f, Theme.textPrimary, 1f, false);
+        UIRender.text(fr(), "Chat Settings", x + 9f, y + 10f, Theme.textPrimary, 1f, false);
         UIRender.text(fr(), "Done", x + w - 37f, y + 10f, Theme.accent, .82f, false);
         if (tabStatus.length() > 0) {
             UIRender.text(fr(), fitActive(tabStatus, Math.max(1f, w - 90f), .64f), x + 9f, y + 23f,
@@ -466,7 +466,7 @@ public final class ChatEditorScreen extends AppleScreen {
     private void drawSectionsAndEntries(int mx, int my) {
         for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
             ChatEditorLayout.Rect header = layout.headers[section];
-            GuiDebugOverlay.recordControl("Chat Editor section: " + SECTION_NAMES[section], header.x, header.y,
+            GuiDebugOverlay.recordControl("Chat Settings section: " + SECTION_NAMES[section], header.x, header.y,
                     header.w, header.h);
             boolean hot = inside(mx, my, header.x, header.y, header.w, header.h);
             UIRender.roundRectBorder(header.x, header.y, header.w, header.h, 5f,
@@ -480,7 +480,7 @@ public final class ChatEditorScreen extends AppleScreen {
             int row = next[entry.section]++;
             if (!entryVisible(entry)) continue;
             ChatEditorLayout.Rect bounds = layout.rows[entry.section][row];
-            GuiDebugOverlay.recordRow("Chat Editor: " + entry.label.text(), bounds.x, bounds.y, bounds.w, bounds.h);
+            GuiDebugOverlay.recordRow("Chat Settings: " + entry.label.text(), bounds.x, bounds.y, bounds.w, bounds.h);
             float labelW = Math.max(1f, entry.widget.x - bounds.x - 7f);
             UIRender.text(fr(), fitActive(entry.label.text(), labelW, .76f), bounds.x,
                     entry.widget.y + (entry.widget.h - fontHeight * .76f) * .5f, Theme.textSecondary, .76f, false);

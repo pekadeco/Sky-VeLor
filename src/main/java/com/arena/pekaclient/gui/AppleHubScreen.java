@@ -183,19 +183,16 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     /**
-     * Adds one flat, one-level dropdown. Its two and only two body rows are the existing feature toggle and the
-     * feature's established editor route. The header status dot reads the very same toggle, so it cannot drift.
+     * Adds one flat, one-level dropdown. Its two and only two body rows are On/Off and Settings; the header status
+     * dot reads the same toggle, so it cannot drift from the control below it.
      */
     private static void editorFeature(List<Row> rows, String title, String description,
-                                      String toggleTitle, String toggleDescription,
                                       java.util.function.Supplier<Boolean> getter,
-                                      java.util.function.Consumer<Boolean> setter,
-                                      String editorName, Runnable open) {
+                                      java.util.function.Consumer<Boolean> setter, Runnable open) {
         rows.add(Row.dropdown(title, description, getter));
-        rows.add(Row.item(toggleTitle, toggleDescription, new AppleToggle(getter, setter)));
-        String editorLabel = "Open " + editorName + " Editor";
-        rows.add(Row.item(editorLabel, "Open the complete settings editor for this feature.",
-                new AppleButton(editorLabel, 172f, 24f, true, open)));
+        rows.add(Row.item("On/Off", "Turn this feature on or off.", new AppleToggle(getter, setter)));
+        rows.add(Row.item("Settings", "Open " + title + " settings.",
+                new AppleButton("Settings", 172f, 24f, true, open)));
     }
 
     /** One flat Quality of Life page: simple switches first, then one-level editor dropdowns. */
@@ -204,7 +201,7 @@ public class AppleHubScreen extends AppleScreen {
         rows.add(Row.section("Simple features"));
         simpleFeature(rows, "No Block Particles", QualityOfLifeUiModel.buildToggleModel().get(0).getDescription(),
                 () -> AppleSettings.noBlockParticles, value -> AppleSettings.noBlockParticles = value);
-        simpleFeature(rows, "Disable Hotbar Scrolling", QualityOfLifeUiModel.buildToggleModel().get(1).getDescription(),
+        simpleFeature(rows, "No Hotbar Scrolling", QualityOfLifeUiModel.buildToggleModel().get(1).getDescription(),
                 () -> AppleSettings.disableHotbarScrolling, value -> AppleSettings.disableHotbarScrolling = value);
         simpleFeature(rows, "No Hurt Cam", QualityOfLifeUiModel.buildToggleModel().get(2).getDescription(),
                 () -> AssistSettings.noHurtCamera, value -> AssistSettings.noHurtCamera = value);
@@ -213,25 +210,18 @@ public class AppleHubScreen extends AppleScreen {
 
         rows.add(Row.section("Feature editors"));
         editorFeature(rows, "Inventory Assist", "Search, tooltip and inventory visual helpers.",
-                "Inventory Search and Filter", assistDescription("Inventory search and filter"),
-                () -> AssistSettings.inventorySearch, value -> AssistSettings.inventorySearch = value,
-                "Inventory Assist", () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this)));
-        editorFeature(rows, "Movement and Shortcuts", "Wardrobe and pets shortcuts.",
-                "Wardrobe Shortcut", assistDescription("Wardrobe shortcut"), () -> AssistSettings.wardrobeShortcut,
-                value -> AssistSettings.wardrobeShortcut = value, "Movement and Shortcuts",
+                () -> AssistSettings.inventorySearch, value -> AssistSettings.inventorySearch = value, () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this)));
+        editorFeature(rows, "Movement and Shortcuts", "Wardrobe and pets shortcuts.", () -> AssistSettings.wardrobeShortcut,
+                value -> AssistSettings.wardrobeShortcut = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.movementShortcuts(this)));
         editorFeature(rows, "Item Lock and Swap", "Pair locks, indicators and persistent pair-center lines.",
-                "Item Lock and Swap", "Enable the existing persistent inventory lock and pair controls.",
-                () -> ItemLockSwapSettings.enabled, value -> ItemLockSwapSettings.enabled = value,
-                "Item Lock and Swap", () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemLockSwap(this)));
-        editorFeature(rows, "Chat QoL", "Attached tabs, message animation and highlighting.",
-                "Chat QoL", "Enable the existing Default Chat improvements.", () -> ChatQolSettings.enabled, value -> {
+                () -> ItemLockSwapSettings.enabled, value -> ItemLockSwapSettings.enabled = value, () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemLockSwap(this)));
+        editorFeature(rows, "Chat QoL", "Attached tabs, message animation and highlighting.", () -> ChatQolSettings.enabled, value -> {
                     ChatQolSettings.enabled = value;
                     if (!value) ChatChannelTabs.disableAndRestoreAll();
-                }, "Chat", () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)));
-        editorFeature(rows, "Commands", "Optional /sv and /qn routes plus diagnostics.",
-                "/sv Command", "Allow /sv to open the Sky VeLor hub.", () -> AppleSettings.svCommand,
-                value -> AppleSettings.svCommand = value, "Command Settings",
+                }, () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)));
+        editorFeature(rows, "Commands", "Optional /sv and /qn routes plus diagnostics.", () -> AppleSettings.svCommand,
+                value -> AppleSettings.svCommand = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.commands(this)));
         return rows;
     }
@@ -247,17 +237,14 @@ public class AppleHubScreen extends AppleScreen {
         simpleFeature(rows, "Memory Display", "Show used and maximum Java heap memory in MB as an independently placed HUD element.",
                 () -> HudManager.MEMORY_DISPLAY.enabled, value -> HudManager.MEMORY_DISPLAY.enabled = value);
         rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Appearance", "Dark/light theme, accent, corners and panel opacity.",
-                "Dark Mode", "Use the established dark or light interface setting.", () -> AppleSettings.darkMode,
-                value -> { AppleSettings.darkMode = value; Theme.refresh(); }, "Appearance",
+        editorFeature(rows, "Appearance", "Dark/light theme, accent, corners and panel opacity.", () -> AppleSettings.darkMode,
+                value -> { AppleSettings.darkMode = value; Theme.refresh(); },
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.appearance(this)));
-        editorFeature(rows, "Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling.",
-                "Smooth Scrolling", "Animate normal settings-list scrolling.", () -> AppleSettings.smoothScrolling,
-                value -> AppleSettings.smoothScrolling = value, "Mod Settings",
+        editorFeature(rows, "Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling.", () -> AppleSettings.smoothScrolling,
+                value -> AppleSettings.smoothScrolling = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(new ModSettingsScreen(this)));
-        editorFeature(rows, "Performance", "Curve, shadows, animation and adaptive GUI quality.",
-                "Performance Boost Beta", "Use the existing lower-cost GUI/HUD mode.", () -> AppleSettings.experimentalPerformance,
-                value -> AppleSettings.experimentalPerformance = value, "Performance",
+        editorFeature(rows, "Performance", "Curve, shadows, animation and adaptive GUI quality.", () -> AppleSettings.experimentalPerformance,
+                value -> AppleSettings.experimentalPerformance = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.performance(this)));
         return rows;
     }
@@ -273,17 +260,16 @@ public class AppleHubScreen extends AppleScreen {
         final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Item Animation", "Visual first-person transforms only; never changes packets, attacks or gameplay.",
-                "Item Animation", "Enable visual first-person transforms.", () -> AppleSettings.itemAnimationEnabled, value -> {
+        editorFeature(rows, "Item Animation", "Visual first-person transforms only; never changes packets, attacks or gameplay.", () -> AppleSettings.itemAnimationEnabled, value -> {
                     AppleSettings.itemAnimationEnabled = value;
                     AppleSettings.save();
-                }, "Item Animation", () -> mc.displayGuiScreen(HudEditorScreen.openItemAnimation(this)));
+                }, () -> mc.displayGuiScreen(HudEditorScreen.openItemAnimation(this)));
         for (final HudElement element : HUD_TAB_ELEMENTS) {
             GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find(element.id);
             final String title = feature == null ? element.name : feature.getTitle();
             final String description = feature == null ? "Shown on screen." : feature.getDescription();
-            editorFeature(rows, title, description, "Show " + title, "Show this HUD element on screen.",
-                    () -> element.enabled, value -> element.enabled = value, title,
+            editorFeature(rows, title, description,
+                    () -> element.enabled, value -> element.enabled = value,
                     () -> mc.displayGuiScreen(HudEditorScreen.openElement(this, element)));
         }
         return rows;
@@ -300,12 +286,10 @@ public class AppleHubScreen extends AppleScreen {
         GuiSettingsAuditModel.Feature mining = GuiSettingsAuditModel.find("mining");
         GuiSettingsAuditModel.Feature assistant = GuiSettingsAuditModel.find("mining-assistant");
         rows.add(Row.section("Feature editors"));
-        editorFeature(rows, mining.getTitle(), mining.getDescription(), "Show Mining BPS",
-                "Show mining block-break speed in the HUD.", () -> HudManager.MINING.enabled,
-                value -> HudManager.MINING.enabled = value, mining.getTitle(), () -> openHud(HUD_MINING));
-        editorFeature(rows, assistant.getTitle(), assistant.getDescription(), "Show Mining Assistant",
-                "Show the existing Mining Assistant HUD element.", () -> HudManager.MINING_ASSIST.enabled,
-                value -> HudManager.MINING_ASSIST.enabled = value, "Mining Assistant",
+        editorFeature(rows, mining.getTitle(), mining.getDescription(), () -> HudManager.MINING.enabled,
+                value -> HudManager.MINING.enabled = value, () -> openHud(HUD_MINING));
+        editorFeature(rows, assistant.getTitle(), assistant.getDescription(), () -> HudManager.MINING_ASSIST.enabled,
+                value -> HudManager.MINING_ASSIST.enabled = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.miningAssistant(this)));
         return rows;
     }
@@ -317,39 +301,32 @@ public class AppleHubScreen extends AppleScreen {
         GuiSettingsAuditModel.Feature bossHud = GuiSettingsAuditModel.find("dungeon-boss-hp");
 
         // Flat usage order: ESP, solvers/helpers, then information/other. No group exceeds eight rows.
-        editorFeature(rows, "Door ESP", "Wither and blood door filters, shared style and closed-prism preview.",
-                "Show Closed Doors", "Enable cached closed wither and blood door ESP.", () -> DungeonEspSettings.doorsEnabled,
-                value -> DungeonEspSettings.doorsEnabled = value, "Door ESP",
+        editorFeature(rows, "Door ESP", "Wither and blood door filters, shared style and closed-prism preview.", () -> DungeonEspSettings.doorsEnabled,
+                value -> DungeonEspSettings.doorsEnabled = value,
                 () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this)));
-        editorFeature(rows, "Mob ESP", "Per-mob styles, live hitbox preview, scan controls and presets.",
-                "Enable Dungeon ESP", "Master switch for cached dungeon Mob ESP.", () -> DungeonEspSettings.enabled,
-                value -> DungeonEspSettings.enabled = value, "Mob ESP",
+        editorFeature(rows, "Mob ESP", "Per-mob styles, live hitbox preview, scan controls and presets.", () -> DungeonEspSettings.enabled,
+                value -> DungeonEspSettings.enabled = value,
                 () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this)));
 
-        simpleFeature(rows, "Enable Dungeon Sync", assistDescription("Enable Dungeon Sync"),
+        simpleFeature(rows, "Dungeon Sync", assistDescription("Dungeon Sync"),
                 () -> AssistSettings.dungeonSync, value -> AssistSettings.dungeonSync = value);
-        editorFeature(rows, "Floor VII (M7) Overlay", "Areas, alerts, terminal solver, boss and dragon hitboxes.",
-                "Enable M7 Overlay", "Show Floor VII areas, alerts and hitboxes.", M7Settings::isOverlayEnabled,
-                M7Settings::setOverlayEnabled, "Floor VII Overlay",
+        editorFeature(rows, "Floor VII (M7) Overlay", "Areas, alerts, terminal solver, boss and dragon hitboxes.", M7Settings::isOverlayEnabled,
+                M7Settings::setOverlayEnabled,
                 () -> mc.displayGuiScreen(FeatureSettingsEditors.m7Overlay(this)));
         editorFeature(rows, "Spirit Leap GUI", "Dungeon-only teammate picker, shortcut and safe preview.",
-                "Spirit Leap GUI", "Replace the Spirit Leap teammate selector when a dungeon menu opens.",
-                () -> AppleSettings.leapMenu, value -> AppleSettings.leapMenu = value, "Spirit Leap",
+                () -> AppleSettings.leapMenu, value -> AppleSettings.leapMenu = value,
                 () -> mc.displayGuiScreen(FeatureSettingsEditors.spiritLeap(this)));
-        editorFeature(rows, "Terminal Assist", "Visual helpers, explicit automation and waypoints.",
-                "Terminal Visual Helpers", assistDescription("Terminal visual helpers"), () -> AssistSettings.terminalHints,
-                value -> AssistSettings.terminalHints = value, "Terminal Assist",
+        editorFeature(rows, "Terminal Assist", "Visual helpers, explicit automation and waypoints.", () -> AssistSettings.terminalHints,
+                value -> AssistSettings.terminalHints = value,
                 () -> mc.displayGuiScreen(FeatureSettingsEditors.terminalAssist(this)));
 
-        editorFeature(rows, bossHud.getTitle(), assistDescription("Boss HP HUD"), "Show Boss HP HUD",
-                "Show the existing dungeon boss-health HUD.", () -> HudManager.DUNGEON_BOSS_HP.enabled,
-                value -> HudManager.DUNGEON_BOSS_HP.enabled = value, bossHud.getTitle(),
+        editorFeature(rows, bossHud.getTitle(), assistDescription("Boss HP HUD"), () -> HudManager.DUNGEON_BOSS_HP.enabled,
+                value -> HudManager.DUNGEON_BOSS_HP.enabled = value,
                 () -> openHud(HUD_DUNGEON_BOSS_HP));
-        editorFeature(rows, dungeonMap.getTitle(), dungeonMap.getDescription(), "Show Dungeon Map",
-                "Show the existing dungeon map overlay.", () -> AppleSettings.dungeonMap,
-                value -> AppleSettings.dungeonMap = value, dungeonMap.getTitle(),
+        editorFeature(rows, dungeonMap.getTitle(), dungeonMap.getDescription(), () -> AppleSettings.dungeonMap,
+                value -> AppleSettings.dungeonMap = value,
                 () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)));
-        simpleFeature(rows, "Dungeon Sync Debug", assistDescription("Dungeon Sync Debug"),
+        simpleFeature(rows, "Sync Details", assistDescription("Sync Details"),
                 () -> AssistSettings.dungeonSyncDebug, value -> AssistSettings.dungeonSyncDebug = value);
         return rows;
     }
@@ -365,17 +342,14 @@ public class AppleHubScreen extends AppleScreen {
                 () -> AppleSettings.fishingNearbyEncounterAlert, value -> AppleSettings.fishingNearbyEncounterAlert = value);
 
         rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Catch Counter", "Catch counts, Festival best and counter reset.",
-                "Catch Counter", "Count sea-creature pulls and catch totals.", () -> AppleSettings.fishingCounter,
-                value -> AppleSettings.fishingCounter = value, "Catch Counter",
+        editorFeature(rows, "Catch Counter", "Catch counts, Festival best and counter reset.", () -> AppleSettings.fishingCounter,
+                value -> AppleSettings.fishingCounter = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.catchCounter(this)));
-        editorFeature(rows, fishingHud.getTitle(), fishingHud.getDescription(), "Show Fishing HUD",
-                "Show the fishing counter HUD.", () -> HudManager.FISHING.enabled,
-                value -> HudManager.FISHING.enabled = value, fishingHud.getTitle(),
+        editorFeature(rows, fishingHud.getTitle(), fishingHud.getDescription(), () -> HudManager.FISHING.enabled,
+                value -> HudManager.FISHING.enabled = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.FISHING)));
-        editorFeature(rows, seaHpHud.getTitle(), seaHpHud.getDescription(), "Show Sea Creature HP",
-                "Show the nearby sea-creature health HUD.", () -> HudManager.SEA_HP.enabled,
-                value -> HudManager.SEA_HP.enabled = value, seaHpHud.getTitle(),
+        editorFeature(rows, seaHpHud.getTitle(), seaHpHud.getDescription(), () -> HudManager.SEA_HP.enabled,
+                value -> HudManager.SEA_HP.enabled = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SEA_HP)));
         return rows;
     }
@@ -391,12 +365,10 @@ public class AppleHubScreen extends AppleScreen {
         GuiSettingsAuditModel.Feature slayerHud = GuiSettingsAuditModel.find("slayer");
         rows.add(Row.section("Feature editors"));
         editorFeature(rows, "Slayer Tracker", "Drop history, timer, prices and clear-history controls.",
-                "Track Slayer Drops", "Record rare Slayer drops from chat until histories are cleared.",
-                () -> AppleSettings.slayerTracker, value -> AppleSettings.slayerTracker = value, "Slayer",
+                () -> AppleSettings.slayerTracker, value -> AppleSettings.slayerTracker = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.slayer(this)));
-        editorFeature(rows, slayerHud.getTitle(), slayerHud.getDescription(), "Show Slayer HUD",
-                "Show the active Slayer tracker HUD.", () -> HudManager.SLAYER.enabled,
-                value -> HudManager.SLAYER.enabled = value, slayerHud.getTitle(),
+        editorFeature(rows, slayerHud.getTitle(), slayerHud.getDescription(), () -> HudManager.SLAYER.enabled,
+                value -> HudManager.SLAYER.enabled = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SLAYER)));
         return rows;
     }

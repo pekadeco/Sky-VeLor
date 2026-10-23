@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * <p>This is a presentation inventory, never a second settings schema. It records every existing option's route
  * while enforcing the two allowed Hub feature forms: one simple toggle row, or one one-level dropdown containing
- * that feature's existing toggle plus exactly one editor button.</p>
+ * that feature's existing toggle plus exactly one Settings button.</p>
  */
 public final class FeatureSettingsUiModel {
     public static final String SIMPLE = "simple";
@@ -108,8 +108,8 @@ public final class FeatureSettingsUiModel {
         // Quality of Life: one-toggle rows first, followed by every detailed feature editor.
         simple("no-block-particles", "Quality of Life", "No Block Particles", "Hide only vanilla block digging and crack particles.",
                 "no-block-particles", "No block particles");
-        simple("disable-hotbar-scrolling", "Quality of Life", "Disable Hotbar Scrolling", "Ignore mouse-wheel hotbar selection during gameplay.",
-                "disable-hotbar-scrolling", "Disable hotbar scrolling");
+        simple("disable-hotbar-scrolling", "Quality of Life", "No Hotbar Scrolling", "Ignore mouse-wheel hotbar selection during gameplay.",
+                "disable-hotbar-scrolling", "No Hotbar Scrolling");
         simple("no-hurt-cam", "Quality of Life", "No Hurt Cam",
                 "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged.",
                 "no-hurt-cam", "No Hurt Cam");
@@ -131,74 +131,74 @@ public final class FeatureSettingsUiModel {
                 "Clear pairs", "item-swap-clear"));
         dropdown("chat-qol", "Quality of Life", "Chat QoL", "Attached tabs, message animation and highlighting.",
                 "chat", "chat-master", "Chat", options("Chat QoL master", "chat-master", "Chat tabs", "chat-tabs",
-                "Smooth messages", "chat-smooth", "Hover highlight", "chat-hover", "Chat editor", "chat-editor"));
+                "Smooth messages", "chat-smooth", "Hover highlight", "chat-hover", "Chat Settings", "chat-editor"));
         dropdown("commands", "Quality of Life", "Commands", "Optional /sv and /qn command routes plus diagnostics.",
-                "commands", "command-sv", "Command Settings", options("/sv", "command-sv", "/qn", "command-qn",
+                "commands", "command-sv", "Commands", options("/sv", "command-sv", "/qn", "command-qn",
                 "/velor itemdebug", "command-itemdebug", "/velor lockdebug", "command-lockdebug", "/velor selftest", "command-selftest"));
 
         // HUD/Farming: each visibility toggle opens its existing HUD or focused editor.
         dropdown("item-animation", "HUD", "Item Animation", "Visual first-person transform controls.",
-                "item-animation", "item-animation-enabled", "Item Animation", options("Item Animation", "item-animation-enabled",
-                "Open Item Animation Editor", "item-animation-editor"));
+                "item-animation", "item-animation-enabled", "Item Animation", options("On/Off", "item-animation-enabled",
+                "Settings", "item-animation-editor"));
         hud("hud-player-doll", "Player Doll", "A live model of you, with your armour and held item");
         hud("hud-inventory", "Inventory HUD", "The 27 main inventory slots, optional armour");
         hud("hud-dollars", "Player Dollars", "Purse from the scoreboard, or a typed value");
         dropdown("mining-bps", "Farming", "Mining BPS", "Mining block-break-speed HUD.",
                 "hud", "mining-bps-visible", "Mining BPS", options("Mining BPS visibility", "mining-bps-visible",
-                "Mining BPS editor", "mining-bps-editor"));
+                "Mining BPS Settings", "mining-bps-editor"));
         dropdown("mining-assistant-settings", "Farming", "Mining Assistant", "Alerts, puzzler marker and assistant HUD.",
                 "mining-assistant", "mining-assistant-hud", "Mining Assistant", options("Pickaxe ability ready alert", "mining-ability-alert",
                 "Puzzler direction helper", "mining-puzzler", "Mining Assistant HUD", "mining-assistant-hud",
-                "Mining Assistant editor", "mining-assistant-editor"));
+                "Mining Assistant Settings", "mining-assistant-editor"));
 
         // Dungeon usage order: ESP first, solvers/helpers next, information/other last; each group is alphabetical.
         dropdown("door-esp", "Dungeon", "Door ESP", "Wither and blood door hitbox styles, filters and preview.",
                 "door-esp", "door-esp-master", "Door ESP", doorEspOptions());
         dropdown("mob-esp", "Dungeon", "Mob ESP", "Per-mob hitbox styles, global scan controls and presets.",
                 "mob-esp", "mob-esp-master", "Mob ESP", mobEspOptions());
-        simple("dungeon-sync-enabled", "Dungeon", "Enable Dungeon Sync", "Opt into the existing dungeon-sync connection.",
-                "dungeon-sync-enabled", "Enable Dungeon Sync");
+        simple("dungeon-sync-enabled", "Dungeon", "Dungeon Sync", "Opt into the existing dungeon-sync connection.",
+                "dungeon-sync-enabled", "Dungeon Sync");
         dropdown("m7-overlay", "Dungeon", "Floor VII (M7) Overlay", "Areas, alerts, boss and dragon hitboxes.",
-                "m7-overlay", "m7-overlay", "Floor VII Overlay", options("M7 overlay", "m7-overlay", "Relic kill areas", "m7-relic-areas",
+                "m7-overlay", "m7-overlay", "Floor VII (M7) Overlay", options("M7 overlay", "m7-overlay", "Relic kill areas", "m7-relic-areas",
                 "Keep areas after dragons", "m7-areas-persist", "Dragon kill alert", "m7-dragon-alert", "Boss hitboxes", "m7-boss-hitboxes",
                 "Dragon hitboxes", "m7-dragon-hitboxes"));
         dropdown("spirit-leap", "Dungeon", "Spirit Leap GUI", "Spirit Leap menu, key shortcut and preview.",
-                "spirit-leap", "spirit-leap-menu", "Spirit Leap", options("Spirit Leap menu", "spirit-leap-menu",
+                "spirit-leap", "spirit-leap-menu", "Spirit Leap GUI", options("Spirit Leap menu", "spirit-leap-menu",
                 "Spirit Leap key", "spirit-leap-key", "Spirit Leap preview", "spirit-leap-preview"));
         dropdown("terminal-assist", "Dungeon", "Terminal Assist", "Terminal and Floor VII chest assistance.",
                 "terminal-assist", "terminal-hints", "Terminal Assist", options("Terminal visual helpers", "terminal-hints",
                 "Terminal auto click", "terminal-auto-click", "Hide incorrect terminal choices", "terminal-hide-incorrect",
                 "Prevent wrong terminal clicks", "terminal-prevent-wrong", "Terminal waypoints", "terminal-waypoints",
                 "Terminal scale", "terminal-scale"));
-        dropdown("dungeon-boss-hud", "Dungeon", "Boss HP", "Dungeon boss-health HUD and editor route.",
+        dropdown("dungeon-boss-hud", "Dungeon", "Boss HP", "Dungeon boss-health HUD and settings route.",
                 "hud", "dungeon-boss-hp-visible", "Boss HP", options("Boss HP HUD", "dungeon-boss-hp-visible",
-                "Boss HP editor", "dungeon-boss-hp-editor"));
-        dropdown("dungeon-map", "Dungeon", "Dungeon Map", "Dungeon map visibility and in-world editor.",
-                "hud", "dungeon-map", "Dungeon Map", options("Dungeon map", "dungeon-map", "Dungeon map editor", "dungeon-map-editor"));
-        simple("dungeon-sync-debug", "Dungeon", "Dungeon Sync Debug", "Show the existing local Dungeon Sync diagnostics.",
-                "dungeon-sync-debug", "Dungeon Sync Debug");
+                "Boss HP Settings", "dungeon-boss-hp-editor"));
+        dropdown("dungeon-map", "Dungeon", "Dungeon Map", "Dungeon map visibility and in-world settings.",
+                "hud", "dungeon-map", "Dungeon Map", options("Dungeon map", "dungeon-map", "Dungeon Map Settings", "dungeon-map-editor"));
+        simple("dungeon-sync-debug", "Dungeon", "Sync Details", "Show the existing local Dungeon Sync diagnostics.",
+                "dungeon-sync-debug", "Sync Details");
 
         // Slayer and fishing remain fully reachable without a third Hub row type.
         dropdown("slayer-tracker", "Slayer", "Slayer Tracker", "Drop history, timer, prices and clear-history controls.",
-                "slayer-simple", "slayer-tracker", "Slayer", options("Track slayer drops", "slayer-tracker", "Boss timer", "slayer-boss-timer",
+                "slayer-simple", "slayer-tracker", "Slayer Tracker", options("Track slayer drops", "slayer-tracker", "Boss timer", "slayer-boss-timer",
                 "Price drops", "slayer-prices", "Set a price", "slayer-set-price", "Clear Revenant history", "slayer-clear-revenant",
                 "Clear Tarantula history", "slayer-clear-tarantula", "Clear Sven history", "slayer-clear-sven",
                 "Clear Voidgloom history", "slayer-clear-voidgloom", "Clear Blaze history", "slayer-clear-blaze"));
-        dropdown("slayer-hud-route", "Slayer", "Slayer HUD", "Active Slayer tracker HUD and editor route.",
+        dropdown("slayer-hud-route", "Slayer", "Slayer HUD", "Active Slayer tracker HUD and settings route.",
                 "hud", "slayer-hud-visible", "Slayer HUD", options("Slayer HUD", "slayer-hud-visible",
-                "Slayer HUD editor", "slayer-hud-editor"));
+                "Slayer HUD Settings", "slayer-hud-editor"));
         simple("jawbus", "Fishing", "Lord Jawbus", "Arrival title alert.", "jawbus-alert", "Jawbus arrival alert");
         simple("nearby-encounters", "Fishing", "Nearby Encounters", "Local compatible encounter title alert.",
                 "nearby-encounter-alert", "Nearby encounter alert");
         dropdown("catch-counter", "Fishing", "Catch Counter", "Catch counts, Festival best and reset.",
                 "catch-counter", "fishing-counter", "Catch Counter", options("Catch counter", "fishing-counter",
                 "Festival best", "fishing-festival", "Reset counters", "fishing-reset"));
-        dropdown("fishing-hud-route", "Fishing", "Fishing HUD", "Catch counter HUD and editor route.",
+        dropdown("fishing-hud-route", "Fishing", "Fishing HUD", "Catch counter HUD and settings route.",
                 "hud", "fishing-hud-visible", "Fishing HUD", options("Fishing HUD", "fishing-hud-visible",
-                "Fishing HUD editor", "fishing-hud-editor"));
-        dropdown("sea-hp-hud-route", "Fishing", "Sea Creature HP", "Sea creature HP HUD and editor route.",
+                "Fishing HUD Settings", "fishing-hud-editor"));
+        dropdown("sea-hp-hud-route", "Fishing", "Sea Creature HP", "Sea creature HP HUD and settings route.",
                 "hud", "sea-hp-hud-visible", "Sea Creature HP", options("Sea HP HUD", "sea-hp-hud-visible",
-                "Sea HP editor", "sea-hp-editor"));
+                "Sea Creature HP Settings", "sea-hp-editor"));
     }
 
     private FeatureSettingsUiModel() { }
@@ -207,7 +207,7 @@ public final class FeatureSettingsUiModel {
         String visible = id + "-visible";
         String editor = id + "-editor";
         dropdown(id, "HUD", title, description, "hud", visible, title,
-                options(title + " visibility", visible, title + " editor", editor));
+                options(title + " visibility", visible, title + " Settings", editor));
     }
 
     private static String[] options(String... labelIdPairs) { return labelIdPairs; }
@@ -218,8 +218,7 @@ public final class FeatureSettingsUiModel {
 
     private static void dropdown(String id, String tab, String title, String description, String editorId,
                                  String toggleOptionId, String editorName, String... labelIdPairs) {
-        addFeature(id, tab, title, description, DROPDOWN, editorId, toggleOptionId,
-                "Open " + editorName + " Editor", labelIdPairs);
+        addFeature(id, tab, title, description, DROPDOWN, editorId, toggleOptionId, "Settings", labelIdPairs);
     }
 
     private static void addFeature(String id, String tab, String title, String description, String rowType,
@@ -304,7 +303,7 @@ public final class FeatureSettingsUiModel {
             } else if (feature.isDropdown()) {
                 if (feature.dropdownDepth() != 1 || feature.tabControls.size() != 2
                         || !TOGGLE.equals(feature.tabControls.get(0)) || !EDITOR_BUTTON.equals(feature.tabControls.get(1))
-                        || feature.editorId.length() == 0 || !feature.editorButtonLabel.startsWith("Open ")) return false;
+                        || feature.editorId.length() == 0 || !"Settings".equals(feature.editorButtonLabel)) return false;
             } else {
                 return false;
             }

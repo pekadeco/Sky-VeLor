@@ -7,7 +7,7 @@ This release changes presentation only. It does **not** change gameplay behavior
 Every feature in a Hub tab uses one of two flat forms:
 
 1. **Simple** — one row with its existing On/Off toggle, feature name, and one gray description.
-2. **Dropdown** — one non-nesting header with title and accurate green/red status dot. Its body has exactly the feature's existing On/Off toggle and one **Open _Name_ Editor** button.
+2. **Dropdown** — one non-nesting header with title and accurate green/red status dot. Its body has exactly **On/Off** and one **Settings** button.
 
 Simple rows come before dropdowns in each tab. There are no tree arrows, connector lines, indentation, tab-level per-mob/per-door rows, nested dropdowns, or child-row settings buttons. Section captions only separate the two permitted forms; they are not controls.
 
@@ -17,36 +17,36 @@ Simple rows come before dropdowns in each tab. There are no tree arrows, connect
 | --- | --- | --- | --- |
 | General | Appearance | Dropdown | Appearance Settings editor |
 | General | Mod Settings | Dropdown | existing Mod Settings screen |
-| General | Performance | Dropdown | Performance Settings editor |
+| General | Performance | Dropdown | Performance Settings |
 | Quality of Life | No Block Particles | Simple | this tab's toggle |
-| Quality of Life | Disable Hotbar Scrolling | Simple | this tab's toggle |
-| Quality of Life | Inventory Assist | Dropdown | Inventory Assist Settings editor |
-| Quality of Life | Movement and Shortcuts | Dropdown | Movement and Shortcuts editor |
-| Quality of Life | Item Lock and Swap | Dropdown | Item Lock & Swap Settings editor |
-| Quality of Life | Chat QoL | Dropdown | existing Chat Editor |
-| Quality of Life | Commands | Dropdown | Command Settings editor |
-| HUD | Item Animation | Dropdown | existing HUD Editor, Item Animation panel |
-| HUD | Player Doll | Dropdown | existing HUD Editor, Player Doll inspector |
-| HUD | Inventory HUD | Dropdown | existing HUD Editor, Inventory inspector |
-| HUD | Player Dollars | Dropdown | existing HUD Editor, Player Dollars inspector |
-| Farming | Mining BPS | Dropdown | existing HUD Editor, Mining BPS inspector |
-| Farming | Mining Assistant | Dropdown | Mining Assistant Settings editor; its HUD route remains there |
-| Dungeon | Door ESP | Dropdown | Door ESP Settings editor |
-| Dungeon | Mob ESP | Dropdown | Mob ESP Settings editor |
-| Dungeon | Enable Dungeon Sync | Simple | this tab's toggle |
-| Dungeon | Floor VII (M7) Overlay | Dropdown | Floor VII Overlay Settings editor |
-| Dungeon | Spirit Leap GUI | Dropdown | Spirit Leap Settings editor |
-| Dungeon | Terminal Assist | Dropdown | Terminal Assist Settings editor |
-| Dungeon | Boss HP | Dropdown | existing HUD Editor, Boss HP inspector |
-| Dungeon | Dungeon Map | Dropdown | existing HUD Editor, Dungeon Map inspector |
-| Dungeon | Dungeon Sync Debug | Simple | this tab's toggle |
-| Slayer | Slayer Tracker | Dropdown | Slayer Settings editor |
-| Slayer | Slayer HUD | Dropdown | existing HUD Editor, Slayer inspector |
+| Quality of Life | No Hotbar Scrolling | Simple | this tab's toggle |
+| Quality of Life | Inventory Assist | Dropdown | Inventory Assist Settings |
+| Quality of Life | Movement and Shortcuts | Dropdown | Movement and Shortcuts Settings |
+| Quality of Life | Item Lock and Swap | Dropdown | Item Lock and Swap Settings |
+| Quality of Life | Chat QoL | Dropdown | Chat Settings |
+| Quality of Life | Commands | Dropdown | Commands Settings |
+| HUD | Item Animation | Dropdown | Item Animation Settings |
+| HUD | Player Doll | Dropdown | Player Doll Settings |
+| HUD | Inventory HUD | Dropdown | Inventory HUD Settings |
+| HUD | Player Dollars | Dropdown | Player Dollars Settings |
+| Farming | Mining BPS | Dropdown | Mining BPS Settings |
+| Farming | Mining Assistant | Dropdown | Mining Assistant Settings; its HUD route remains there |
+| Dungeon | Door ESP | Dropdown | Door ESP Settings |
+| Dungeon | Mob ESP | Dropdown | Mob ESP Settings |
+| Dungeon | Dungeon Sync | Simple | this tab's toggle |
+| Dungeon | Floor VII (M7) Overlay | Dropdown | Floor VII (M7) Overlay Settings |
+| Dungeon | Spirit Leap GUI | Dropdown | Spirit Leap GUI Settings |
+| Dungeon | Terminal Assist | Dropdown | Terminal Assist Settings |
+| Dungeon | Boss HP | Dropdown | Boss HP Settings |
+| Dungeon | Dungeon Map | Dropdown | Dungeon Map Settings |
+| Dungeon | Sync Details | Simple | this tab's toggle |
+| Slayer | Slayer Tracker | Dropdown | Slayer Tracker Settings |
+| Slayer | Slayer HUD | Dropdown | Slayer HUD Settings |
 | Fishing | Lord Jawbus | Simple | this tab's toggle |
 | Fishing | Nearby Encounters | Simple | this tab's toggle |
-| Fishing | Catch Counter | Dropdown | Catch Counter Settings editor |
-| Fishing | Fishing HUD | Dropdown | existing HUD Editor, Fishing inspector |
-| Fishing | Sea Creature HP | Dropdown | existing HUD Editor, Sea Creature HP inspector |
+| Fishing | Catch Counter | Dropdown | Catch Counter Settings |
+| Fishing | Fishing HUD | Dropdown | Fishing HUD Settings |
+| Fishing | Sea Creature HP | Dropdown | Sea Creature HP Settings |
 
 `FeatureSettingsUiModel` is the source-level audit inventory for the visible features and their existing option labels. It proves one-level dropdown depth, the exact two-control dropdown body, editor route ownership, simple-row ownership, status-dot colors, and no duplicate option identifiers. `DungeonEspUiModel` remains a non-rendered 67-control legacy option inventory so each former Dungeon ESP option is still checked against the editor route.
 

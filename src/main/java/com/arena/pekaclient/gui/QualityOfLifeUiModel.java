@@ -32,7 +32,7 @@ public final class QualityOfLifeUiModel {
         return Collections.unmodifiableList(Arrays.asList(
                 new Entry("no-block-particles", "No block particles",
                         "Hide only vanilla block digging and crack particles"),
-                new Entry("disable-hotbar-scrolling", "Disable hotbar scrolling",
+                new Entry("disable-hotbar-scrolling", "No Hotbar Scrolling",
                         "Ignore mouse-wheel hotbar selection during gameplay"),
                 new Entry("no-hurt-cam", "No Hurt Cam",
                         "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged"),

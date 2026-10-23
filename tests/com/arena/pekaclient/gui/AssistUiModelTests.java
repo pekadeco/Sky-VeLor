@@ -24,7 +24,7 @@ public final class AssistUiModelTests {
         }
         AssistUiModel.Entry noHurtCam = AssistUiModel.find("No Hurt Cam");
         AssistUiModel.Entry autoSprint = AssistUiModel.find("Auto Sprint");
-        check("new areas are represented", AssistUiModel.find("Enable Dungeon Sync") != null
+        check("new areas are represented", AssistUiModel.find("Dungeon Sync") != null
                 && AssistUiModel.find("Mining Assistant HUD") != null && AssistUiModel.find("Item Protection") == null
                 && noHurtCam != null && "Simple features".equals(noHurtCam.group)
                 && autoSprint != null && "Simple features".equals(autoSprint.group)

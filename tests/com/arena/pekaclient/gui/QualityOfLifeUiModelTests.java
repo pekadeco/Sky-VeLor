@@ -22,6 +22,7 @@ public final class QualityOfLifeUiModelTests {
         check("Quality of Life starts with its four simple toggles", quality.size() == 4
                 && "no-block-particles".equals(quality.get(0).getId())
                 && "disable-hotbar-scrolling".equals(quality.get(1).getId())
+                && "No Hotbar Scrolling".equals(quality.get(1).getLabel())
                 && "no-hurt-cam".equals(quality.get(2).getId())
                 && "No Hurt Cam".equals(quality.get(2).getLabel())
                 && "auto-sprint".equals(quality.get(3).getId())
@@ -51,8 +52,9 @@ public final class QualityOfLifeUiModelTests {
                 !containsMod(mod, "item-animation") && !containsMod(mod, "chat-qol-master"));
         check("simple QoL and Mod Settings do not duplicate controls", noCrossSurfaceDuplicates(quality, mod));
 
-        check("Chat QoL Hub dropdown has master plus editor only", chat.size() == 2
-                && containsChatMaster(chat, "chat-qol-master") && containsEditor(chat, "open-chat-editor"));
+        check("Chat QoL Hub dropdown has On/Off plus Settings only", chat.size() == 2
+                && containsChatMaster(chat, "chat-qol-master") && containsEditor(chat, "open-chat-editor")
+                && "On/Off".equals(chat.get(0).getLabel()) && "Settings".equals(chat.get(1).getLabel()));
         check("Item Animation Hub dropdown has its two controls", hud.size() == 2 && containsItemAnimationToggle(hud)
                 && containsItemAnimationEditor(hud));
 

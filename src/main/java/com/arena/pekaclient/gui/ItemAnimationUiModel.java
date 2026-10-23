@@ -8,8 +8,8 @@ import java.util.List;
 public final class ItemAnimationUiModel {
 
     private static final String HUD_ITEM_ANIMATION_DROPDOWN = "Item Animation";
-    private static final String HUD_TOGGLE = "Item Animation";
-    private static final String HUD_OPEN_EDITOR = "Open Item Animation Editor";
+    private static final String HUD_TOGGLE = "On/Off";
+    private static final String HUD_OPEN_EDITOR = "Settings";
 
     /** One discoverability or panel-control entry. */
     public static final class Entry {

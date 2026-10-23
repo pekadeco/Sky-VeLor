@@ -34,8 +34,8 @@ public final class ChatUiModel {
     /** Exactly the two controls permitted below the flat Chat QoL dropdown. */
     public static List<Entry> buildQolModel() {
         List<Entry> entries = new ArrayList<Entry>();
-        entries.add(new Entry("chat-qol-master", "Chat QoL", MASTER));
-        entries.add(new Entry("open-chat-editor", "Open Chat Editor", EDITOR));
+        entries.add(new Entry("chat-qol-master", "On/Off", MASTER));
+        entries.add(new Entry("open-chat-editor", "Settings", EDITOR));
         return Collections.unmodifiableList(entries);
     }
 

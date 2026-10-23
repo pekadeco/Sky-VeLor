@@ -17,15 +17,16 @@ public final class ItemAnimationReachabilityTests {
         check("HUD tab has no separate nested HUD-editor launcher", hudTab.size() == 1
                 && !contains(hudTab, "hud-editor-open"));
         check("Item Animation dropdown contains exactly two rows", itemAnimationDropdown.size() == 2);
-        check("dropdown starts with Item Animation ON/OFF", hasIdAt(itemAnimationDropdown, 0, "item-animation-toggle"));
-        check("dropdown ends with Open Item Animation Editor",
-                hasIdAt(itemAnimationDropdown, 1, "item-animation-open-editor"));
+        check("dropdown starts with On/Off", hasIdAt(itemAnimationDropdown, 0, "item-animation-toggle")
+                && "On/Off".equals(find(itemAnimationDropdown, "item-animation-toggle").getLabel()));
+        check("dropdown ends with Settings", hasIdAt(itemAnimationDropdown, 1, "item-animation-open-editor")
+                && "Settings".equals(find(itemAnimationDropdown, "item-animation-open-editor").getLabel()));
         requireInteractive(itemAnimationDropdown, "item-animation-toggle", "HUD-tab ON/OFF toggle is registered");
         requireInteractive(itemAnimationDropdown, "item-animation-open-editor",
                 "HUD-tab Item Animation editor button is registered");
-        check("old Open Item Animation Settings label is absent from HUD model",
-                !hasLabel(hudTab, "Open Item Animation Settings")
-                        && !hasLabel(itemAnimationDropdown, "Open Item Animation Settings"));
+        check("old editor-launch labels are absent from HUD model",
+                !hasLabel(hudTab, "Open Item Animation Editor")
+                        && !hasLabel(itemAnimationDropdown, "Open Item Animation Editor"));
 
         check("Item Animation remains reachable through its direct editor route",
                 contains(itemAnimationDropdown, "item-animation-open-editor"));

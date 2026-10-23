@@ -48,8 +48,8 @@ public final class FeatureSettingsUiModelTests {
                         feature.tabControls.size() == 2 && FeatureSettingsUiModel.TOGGLE.equals(feature.tabControls.get(0))
                                 && FeatureSettingsUiModel.EDITOR_BUTTON.equals(feature.tabControls.get(1)));
                 check("dropdown is one level: " + feature.id, feature.dropdownDepth() == 1);
-                check("dropdown editor button has its feature name: " + feature.id,
-                        feature.editorButtonLabel.startsWith("Open ") && feature.editorButtonLabel.endsWith(" Editor"));
+                check("dropdown editor button is Settings: " + feature.id,
+                        "Settings".equals(feature.editorButtonLabel));
             }
         }
     }
@@ -68,9 +68,13 @@ public final class FeatureSettingsUiModelTests {
         check("No Block Particles is a simple row",  FeatureSettingsUiModel.feature("no-block-particles").isSimple());
         check("No Hurt Cam is a simple row", FeatureSettingsUiModel.feature("no-hurt-cam").isSimple());
         check("Auto Sprint is a simple row", FeatureSettingsUiModel.feature("auto-sprint").isSimple());
-        check("Auto Sprint is not nested in Movement and Shortcuts", FeatureSettingsUiModel.option("auto-sprint") == null);
+        check("renamed simple labels are plain", "No Hotbar Scrolling".equals(
+                FeatureSettingsUiModel.feature("disable-hotbar-scrolling").title)
+                && "Dungeon Sync".equals(FeatureSettingsUiModel.feature("dungeon-sync-enabled").title)
+                && "Sync Details".equals(FeatureSettingsUiModel.feature("dungeon-sync-debug").title));
+        check("Auto Sprint is not nested in Movement and Shortcuts",  FeatureSettingsUiModel.option("auto-sprint") == null);
         check("No Hurt Cam is not nested in Inventory Assist", FeatureSettingsUiModel.option("no-hurt-camera") == null);
-        check("Dungeon Sync Debug is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
+        check("Sync Details is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
     }
 
     private static void dungeonsUseRequestedUsageOrder() {
@@ -95,10 +99,10 @@ public final class FeatureSettingsUiModelTests {
     }
 
     private static void editorButtonsTargetTheRightEditors() {
-        check("Mob button opens Mob ESP Editor", "Open Mob ESP Editor".equals(FeatureSettingsUiModel.feature("mob-esp").editorButtonLabel));
-        check("Door button opens Door ESP Editor", "Open Door ESP Editor".equals(FeatureSettingsUiModel.feature("door-esp").editorButtonLabel));
-        check("Item Lock button opens its editor", isDropdownEditor("item-lock-swap", "item-lock-swap"));
-        check("Chat button opens Chat Editor", isDropdownEditor("chat-qol", "chat"));
+        check("Mob ESP button is Settings", "Settings".equals(FeatureSettingsUiModel.feature("mob-esp").editorButtonLabel));
+        check("Door ESP button is Settings", "Settings".equals(FeatureSettingsUiModel.feature("door-esp").editorButtonLabel));
+        check("Item Lock button keeps its editor", isDropdownEditor("item-lock-swap", "item-lock-swap"));
+        check("Chat button keeps Chat settings route", isDropdownEditor("chat-qol", "chat"));
         check("Item Animation keeps its existing editor", isDropdownEditor("item-animation", "item-animation"));
         check("M7 keeps its focused editor", isDropdownEditor("m7-overlay", "m7-overlay"));
     }
