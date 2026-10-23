@@ -3,7 +3,6 @@ package com.arena.pekaclient.notes;
 import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.gui.GuiLayoutToolkit;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.UIRender;
 
 import java.io.IOException;
@@ -81,11 +80,11 @@ public final class QuickNoteScreen extends GuiScreen {
         buttonList.add(new AppleGuiButton(BUTTON_DELETE_PAGE, 0, 0, 1, 18, "Delete"));
         buttonList.add(new AppleGuiButton(BUTTON_DONE, 0, 0, 1, 18, "Done"));
         buttonList.add(new AppleGuiButton(BUTTON_NEW_PAGE, 0, 0, 1, 16, "+ New page"));
-        headingField = new GuiTextField(0, GlobalFontManager.rendererFor(fontRendererObj), headingFieldX(), headingLabelY(),
+        headingField = new GuiTextField(0, fontRendererObj, headingFieldX(), headingLabelY(),
                 headingFieldWidth(), 14);
         headingField.setMaxStringLength(QuickNoteStore.MAX_HEADING_LENGTH);
         headingField.setText(store.getHeading(page));
-        searchField = new GuiTextField(1, GlobalFontManager.rendererFor(fontRendererObj), sidebarX() + 4, panelY() + 25,
+        searchField = new GuiTextField(1, fontRendererObj, sidebarX() + 4, panelY() + 25,
                 Math.max(1, sidebarWidth() - 8), 14);
         searchField.setMaxStringLength(40);
         searchField.setText(lastQuery == null ? "" : lastQuery);
@@ -164,7 +163,7 @@ public final class QuickNoteScreen extends GuiScreen {
     }
 
     // ---------------------------------------------------------------- geometry
-    private net.minecraft.client.gui.FontRenderer font() { return GlobalFontManager.rendererFor(fontRendererObj); }
+    private net.minecraft.client.gui.FontRenderer font() { return fontRendererObj; }
 
     private void measurePanel() {
         QuickNoteLayout.update(layout, width, height);

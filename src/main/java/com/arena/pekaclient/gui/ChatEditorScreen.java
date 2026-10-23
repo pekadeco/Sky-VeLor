@@ -5,7 +5,6 @@ import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.feature.ChatTabs;
 import com.arena.pekaclient.feature.ChatChannelTabs;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
@@ -24,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Smaller active-font-measured editor for one Default Chat. There are no target selectors, Link all controls, split
+ * Smaller native-Minecraft-metric editor for one Default Chat. There are no target selectors, Link all controls, split
  * windows, classifier rules, or pattern destinations: Background, Messages, Tabs, Menu and Highlight, and Reset
  * are the complete ownership surface.
  */
@@ -377,8 +376,7 @@ public final class ChatEditorScreen extends AppleScreen {
         h = Math.max(120f, Math.min(height - 12f, 390f));
         x = Math.max(6f, (width - w) * .5f);
         y = Math.max(6f, (height - h) * .5f);
-        float active = GlobalFontManager.height(GlobalFontManager.Area.EDITOR);
-        if (active < 0f) active = fr().FONT_HEIGHT;
+        float active = fr().FONT_HEIGHT;
         fontHeight = Math.max(1f, active);
         rowHeight = GuiLayoutToolkit.rowHeight(fontHeight * .82f, 1, Math.max(22f, fontHeight + 7f), 5f);
         headerHeight = Math.max(ChatEditorLayout.HEADER_H, fontHeight + 12f);
@@ -445,13 +443,11 @@ public final class ChatEditorScreen extends AppleScreen {
         UIRender.shadow(x, y, w, h, Math.min(Theme.radius, 12f));
         UIRender.roundRect(x, y, w, h, Theme.radius, Theme.windowTop, Theme.windowBottom, .6f);
         UIRender.roundRectRing(x, y, w, h, Theme.radius, 1f, Theme.border);
-        UIRender.text(fr(), "Chat Editor", x + 9f, y + 10f, Theme.textPrimary, 1f, false,
-                GlobalFontManager.Area.EDITOR);
-        UIRender.text(fr(), "Done", x + w - 37f, y + 10f, Theme.accent, .82f, false,
-                GlobalFontManager.Area.EDITOR);
+        UIRender.text(fr(), "Chat Editor", x + 9f, y + 10f, Theme.textPrimary, 1f, false);
+        UIRender.text(fr(), "Done", x + w - 37f, y + 10f, Theme.accent, .82f, false);
         if (tabStatus.length() > 0) {
             UIRender.text(fr(), fitActive(tabStatus, Math.max(1f, w - 90f), .64f), x + 9f, y + 23f,
-                    tabStatusError ? 0xFFFF453A : Theme.textTertiary, .64f, false, GlobalFontManager.Area.EDITOR);
+                    tabStatusError ? 0xFFFF453A : Theme.textTertiary, .64f, false);
         }
         UIRender.rect(x + 1f, y + 34f, w - 2f, 1f, Theme.divider);
         UIRender.scissorBegin(viewX, viewY, viewW, viewH, Minecraft.getMinecraft().gameSettings.guiScale == 0
@@ -477,7 +473,7 @@ public final class ChatEditorScreen extends AppleScreen {
                     hot ? Theme.cardHover : Theme.card, hot ? Theme.cardHover : Theme.card, Theme.border);
             UIRender.text(fr(), (expanded[section] ? "▾  " : "▸  ") + SECTION_NAMES[section], header.x + 8f,
                     header.y + (header.h - fontHeight * .85f) * .5f, expanded[section] ? Theme.textPrimary : Theme.textSecondary,
-                    .85f, false, GlobalFontManager.Area.EDITOR);
+                    .85f, false);
         }
         int[] next = new int[ChatEditorLayout.SECTION_COUNT];
         for (Entry entry : entries) {
@@ -487,8 +483,7 @@ public final class ChatEditorScreen extends AppleScreen {
             GuiDebugOverlay.recordRow("Chat Editor: " + entry.label.text(), bounds.x, bounds.y, bounds.w, bounds.h);
             float labelW = Math.max(1f, entry.widget.x - bounds.x - 7f);
             UIRender.text(fr(), fitActive(entry.label.text(), labelW, .76f), bounds.x,
-                    entry.widget.y + (entry.widget.h - fontHeight * .76f) * .5f, Theme.textSecondary, .76f, false,
-                    GlobalFontManager.Area.EDITOR);
+                    entry.widget.y + (entry.widget.h - fontHeight * .76f) * .5f, Theme.textSecondary, .76f, false);
             entry.widget.draw(mx, my);
         }
     }
@@ -502,8 +497,7 @@ public final class ChatEditorScreen extends AppleScreen {
     private String fitActive(String value, float max, final float scale) {
         return GuiLayoutToolkit.ellipsize(value, max, new GuiLayoutToolkit.TextMetrics() {
             @Override public float width(String text) {
-                float width = GlobalFontManager.width(text, GlobalFontManager.Area.EDITOR);
-                return (width < 0f ? fr().getStringWidth(text) : width) * scale;
+                return fr().getStringWidth(text) * scale;
             }
             @Override public float height() { return fontHeight * scale; }
         });

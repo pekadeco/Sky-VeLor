@@ -11,7 +11,6 @@ import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapHookStatus;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.render.blockparticles.BlockParticleHookStatus;
-import com.arena.pekaclient.render.GlobalFontManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
@@ -63,7 +62,6 @@ public final class SvCommand extends CommandBase {
         if (mc == null || mc.thePlayer == null) return;
         mc.thePlayer.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fselftest"));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7chat hook: §f" + ChatChannelTabs.selfTestStatus()));
-        mc.thePlayer.addChatMessage(new ChatComponentText("§7font hook: §f" + GlobalFontManager.selfTestStatus()));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7clipboard: §f" + ChatClipboard.selfTestStatus()));
         DungeonContext.Result dungeon = DungeonContext.evaluateNow(mc);
         String matched = dungeon.matchedScoreboardLine.length() == 0 ? "<none>" : dungeon.matchedScoreboardLine;

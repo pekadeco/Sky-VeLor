@@ -140,8 +140,6 @@ public final class ItemAnimationReachabilityTests {
         check("Chat QoL leaves Chat Tabs, smooth messages and hover controls in its editor", findChat(chat, "chat-tabs") == null
                 && findChat(chat, "smooth-messages") == null && findChat(chat, "hover-highlight") == null);
         check("Chat QoL keeps context-menu policy in its detailed editor", findChat(chat, "right-click-menu") == null);
-        check("Chat QoL does not duplicate global Font controls", findChat(chat, "global-font") == null
-                && findChat(chat, "open-font-settings") == null);
         check("Chat QoL has exactly toggle plus editor route", chat.size() == 2
                 && findChat(chat, "open-chat-editor") != null && findChat(chat, "open-chat-editor").isEditorRoute());
 

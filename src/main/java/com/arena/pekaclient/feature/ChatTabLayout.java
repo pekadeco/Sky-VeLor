@@ -51,7 +51,7 @@ public final class ChatTabLayout {
 
     /**
      * Uses compact even widths instead of text-dependent raw widths so eight custom labels cannot run past a small
-     * screen. The renderer ellipsizes labels inside each returned rectangle using the active font.
+     * screen. The renderer ellipsizes labels inside each returned rectangle using Minecraft's native font.
      */
     public static void update(Layout out, float screenWidth, float inputTop, List<ChatTabs.Tab> tabs) {
         if (out == null) return;

@@ -17,7 +17,6 @@ Simple rows come before dropdowns in each tab. There are no tree arrows, connect
 | --- | --- | --- | --- |
 | General | Appearance | Dropdown | Appearance Settings editor |
 | General | Mod Settings | Dropdown | existing Mod Settings screen |
-| General | Fonts | Dropdown | existing Font Settings screen |
 | General | Performance | Dropdown | Performance Settings editor |
 | Quality of Life | No Block Particles | Simple | this tab's toggle |
 | Quality of Life | Disable Hotbar Scrolling | Simple | this tab's toggle |

@@ -1,7 +1,6 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -13,7 +12,7 @@ public abstract class GuiLayoutScreen extends AppleScreen {
     protected final GuiLayoutToolkit.Rect panel=new GuiLayoutToolkit.Rect(), content=new GuiLayoutToolkit.Rect();
     protected final GuiLayoutToolkit.Scroll scroll=new GuiLayoutToolkit.Scroll();
     protected float contentHeight; protected int titleHeight=28; protected boolean dragging; protected float dragDX,dragDY; private long lastNanos=System.nanoTime();
-    protected FontRenderer uiFont(){return GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);}
+    protected FontRenderer uiFont(){return Minecraft.getMinecraft().fontRendererObj;}
     protected void placePanel(float wantedW,float wantedH){GuiLayoutToolkit.clampPanel(panel,(width-wantedW)*.5f,(height-wantedH)*.5f,wantedW,wantedH,width,height);content.set(panel.x+10,panel.y+titleHeight+7,Math.max(1,panel.w-20),Math.max(1,panel.h-titleHeight-17));}
     protected void beginPanel(String title,int mouseX,int mouseY){long n=System.nanoTime();float dt=Math.min(.1f,Math.max(0,(n-lastNanos)/1000000000f));lastNanos=n;scroll.update(dt,AppleSettings.smoothScrolling);UIRender.beginFrame();UIRender.shadow(panel.x,panel.y,panel.w,panel.h,7);UIRender.roundRectBorder(panel.x,panel.y,panel.w,panel.h,7,0xF0181B21,0xF0181B21,0xFF4C5563);UIRender.text(uiFont(),GuiLayoutToolkit.ellipsize(title,panel.w-48,metrics()),panel.x+11,panel.y+10,0xFFFFFFFF,1f,true);UIRender.scissorBegin(content.x,content.y,content.w,content.h,new net.minecraft.client.gui.ScaledResolution(Minecraft.getMinecraft()).getScaleFactor());}
     protected void endPanel(){UIRender.scissorEnd();if(scroll.maximum()>0){float rail=content.h,thumb=Math.max(18,rail*Math.min(1f,content.h/(content.h+scroll.maximum()))),y=content.y+(rail-thumb)*(scroll.value()/scroll.maximum());UIRender.roundRect(panel.x+panel.w-6,y,2,thumb,1,0x99AAB2BE,0x99AAB2BE,1f);}UIRender.endFrame();}

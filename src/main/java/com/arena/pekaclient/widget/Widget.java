@@ -1,7 +1,6 @@
 package com.arena.pekaclient.widget;
 
 import com.arena.pekaclient.gui.GuiDebugOverlay;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
@@ -125,19 +124,16 @@ public abstract class Widget {
         return Minecraft.getMinecraft().fontRendererObj;
     }
 
-    /** Actual UIRender width, including an enabled Sky VeLor font and its global UI scale. */
+    /** Width in Minecraft's native font, matching the renderer used by all Sky VeLor controls. */
     protected static float textWidth(String value) {
-        String text = value == null ? "" : value;
-        float measured = GlobalFontManager.width(text, GlobalFontManager.Area.UI);
-        return measured < 0f ? font().getStringWidth(text) : measured;
+        return font().getStringWidth(value == null ? "" : value);
     }
 
     protected static float textHeight() {
-        float measured = GlobalFontManager.height(GlobalFontManager.Area.UI);
-        return measured < 0f ? font().FONT_HEIGHT : measured;
+        return font().FONT_HEIGHT;
     }
 
-    /** Ellipsizes against the renderer's active font rather than Minecraft Default's unrelated glyph widths. */
+    /** Ellipsizes against Minecraft's native font metrics. */
     protected static String fitText(String value, float maxWidth) {
         String text = value == null ? "" : value;
         if (maxWidth <= 0f) return "";

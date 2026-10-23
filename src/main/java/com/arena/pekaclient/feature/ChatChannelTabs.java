@@ -16,7 +16,6 @@ import com.arena.pekaclient.chat.ChatVisibilityAudit;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.gui.GuiLayoutToolkit;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
@@ -572,8 +571,7 @@ public final class ChatChannelTabs {
             if (alpha <= .001f) continue;
             float slide = row.group.slide;
             int colour = withAlpha(row.rgb, alpha);
-            UIRender.text(font, row.formatted, row.x, row.y + 1f + slide, colour, scale, true,
-                    GlobalFontManager.Area.CHAT);
+            UIRender.text(font, row.formatted, row.x, row.y + 1f + slide, colour, scale, true);
         }
         if (debug) drawGroupOutlines(viewportTop, messageBottom);
         UIRender.scissorEnd();
@@ -767,8 +765,7 @@ public final class ChatChannelTabs {
             int border = withAlpha(lighter(surface, .18f), Math.min(1f, alpha + .18f));
             UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, 3f, fill, fill, border);
             String label = fit(font, tab.name(), Math.max(1f, rect.w - 12f), .70f);
-            UIRender.text(font, label, rect.x + 5f, rect.y + 5f, 0xFFFFFFFF, .70f, false,
-                    GlobalFontManager.Area.TAB);
+            UIRender.text(font, label, rect.x + 5f, rect.y + 5f, 0xFFFFFFFF, .70f, false);
             // Custom colours are accents, not competing tab backgrounds, so the strip remains a coherent blue.
             if (!tab.builtIn() && rect.w > 8f) {
                 UIRender.rect(rect.x + 3f, rect.y + rect.h - 2f, rect.w - 6f, 1.2f, withAlpha(tab.colour(), .95f));
@@ -1043,7 +1040,7 @@ public final class ChatChannelTabs {
                 if (hot > .002f) UIRender.roundRect(geometry.x + 2f, rowY + 1f, geometry.w - 4f, 18f,
                         3f, UIRender.withAlpha(Theme.cardHover, hot), UIRender.withAlpha(Theme.cardHover, hot), 0f);
                 UIRender.text(font, fit(font, state.labelAt(i), geometry.w - 14f, .78f), geometry.x + 7f, rowY + 6f,
-                        hot > .5f ? Theme.textPrimary : Theme.textSecondary, .78f, false, GlobalFontManager.Area.CHAT);
+                        hot > .5f ? Theme.textPrimary : Theme.textSecondary, .78f, false);
             }
         }
 
@@ -1063,8 +1060,7 @@ public final class ChatChannelTabs {
         FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
         float width = Math.max(104f, Math.min(screenW - 8f, font.getStringWidth(toast) + 14f));
         UIRender.roundRectBorder(4f, 4f, width, 18f, 4f, Theme.popup, Theme.popup, Theme.border);
-        UIRender.text(font, fit(font, toast, width - 8f, .72f), 9f, 9f, Theme.textPrimary, .72f, false,
-                GlobalFontManager.Area.CHAT);
+        UIRender.text(font, fit(font, toast, width - 8f, .72f), 9f, 9f, Theme.textPrimary, .72f, false);
     }
 
     /** Result of the fail-open incoming replacement path, retained for bounded debug history. */

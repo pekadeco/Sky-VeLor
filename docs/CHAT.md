@@ -1,4 +1,4 @@
-# Chat, fonts, and global scrolling
+# Chat and global scrolling
 
 ## One Default Chat implementation
 
@@ -23,7 +23,7 @@ the strip out of message rows.
 
 ## Chat Editor
 
-The active-font-measured **Chat Editor** intentionally contains only:
+The native-Minecraft-font **Chat Editor** intentionally contains only:
 
 1. **Background** — colour, open/closed opacity, 0–12 px corner radius, **Fit to messages / Full area** for open
    chat, and optional **Fit width to text**.
@@ -64,15 +64,7 @@ layout and marks overlap evidence without changing saved settings.
 last tab-strip geometry/drawn state, tab count, group under the mouse with its detected player name, and the
 open/closed `ChatMenuState` (group, clean payload, recipient, and armed mouse action).
 
-## Mod Settings and Fonts
+## Mod Settings
 
 **Mod Settings** owns the one global scroll speed (50%–300%) and one global Smooth Scrolling choice. Shift + wheel
-is fine scrolling; one hovered viewport consumes an event once.
-
-**Fonts** remains independent of Chat QoL. `Minecraft Default` leaves the native `FontRenderer` untouched. Smooth,
-Doodle, Rounded, and Mono use Sky VeLor’s lazy private glyph atlas on Sky VeLor UI paths; resource or texture
-failure falls back safely to Minecraft’s renderer. Optional external fonts are limited to plain `.ttf`/`.otf`
-basenames in `config/skyvelor/fonts/`.
-
-Bundled OFL licenses and attribution are packaged under `assets/skyvelor/fonts/` and documented in
-`THIRD_PARTY_LICENSES.md` and `THIRD_PARTY_NOTICES.md`.
+is fine scrolling; one hovered viewport consumes an event once. Sky VeLor uses Minecraft's native font renderer.

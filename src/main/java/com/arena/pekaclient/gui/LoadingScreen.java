@@ -2,7 +2,6 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.render.Anim;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.startup.StartupTasks;
@@ -79,7 +78,7 @@ public final class LoadingScreen extends GuiScreen {
 
     @Override
     public void drawScreen(int mx, int my, float partialTicks) {
-        FontRenderer fr = GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);
+        FontRenderer fr = Minecraft.getMinecraft().fontRendererObj;
         float a = fade.get();
         GuiLayoutToolkit.clampPanel(safeViewport, 0f, 0f, width, height, width, height);
         float cx = safeViewport.x + safeViewport.w * 0.5f;

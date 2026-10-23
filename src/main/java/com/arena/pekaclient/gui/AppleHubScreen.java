@@ -62,7 +62,7 @@ public class AppleHubScreen extends AppleScreen {
 
     static final String[] PAGE_NAMES = {"General", QualityOfLifeUiModel.TAB_LABEL, "HUD", "Farming", "Dungeon", "Slayer", "Fishing"};
     private static final String[] PAGE_SUBS = {
-            "Appearance, global settings, fonts and performance",
+            "Appearance, global settings and performance",
             "Simple gameplay toggles and focused feature editors",
             "General HUD elements and first-person renderer settings",
             "Mining BPS and Mining Assistant editors",
@@ -255,10 +255,6 @@ public class AppleHubScreen extends AppleScreen {
                 "Smooth Scrolling", "Animate normal settings-list scrolling.", () -> AppleSettings.smoothScrolling,
                 value -> AppleSettings.smoothScrolling = value, "Mod Settings",
                 () -> Minecraft.getMinecraft().displayGuiScreen(new ModSettingsScreen(this)));
-        editorFeature(rows, "Fonts", "Global font selection, preview, bundled licenses and safe fallback.",
-                "Enable Fonts", "Enable the selected Sky VeLor font settings.", () -> com.arena.pekaclient.config.FontSettings.enabled,
-                value -> com.arena.pekaclient.config.FontSettings.enabled = value, "Font Settings",
-                () -> Minecraft.getMinecraft().displayGuiScreen(new FontsScreen(this)));
         editorFeature(rows, "Performance", "Curve, shadows, animation and adaptive GUI quality.",
                 "Performance Boost Beta", "Use the existing lower-cost GUI/HUD mode.", () -> AppleSettings.experimentalPerformance,
                 value -> AppleSettings.experimentalPerformance = value, "Performance",

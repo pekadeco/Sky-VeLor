@@ -278,12 +278,13 @@ public final class AppleSettings {
         // Editor navigation is presentation state only; it never changes existing feature schemas or defaults.
         FeatureUiPreferences.load(p);
         applyConfigurationVersionUpgrade(p);
-        FontSettings.load(p);
+        // Retired fonts.* and chat.qol.*font* keys deliberately have no reader. Unknown Properties are harmless,
+        // and the next save writes only supported settings, preserving the vanilla Minecraft font path.
         M7Settings.load(p);
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
         // atomic writer preserves a valid file even if the client is interrupted while migrating.
         if (itemAnimationMigrationPending || globalScrollMigrationPending || configVersionMigrationPending
-                || ChatQolSettings.isMigrationPending() || FontSettings.isMigrationPending()) {
+                || ChatQolSettings.isMigrationPending()) {
             save();
         }
     }
@@ -504,7 +505,6 @@ public final class AppleSettings {
         p.setProperty("cmd.qn", Boolean.toString(qnCommand));
         saveFishingSettings(p);
         saveChatSettings(p);
-        FontSettings.save(p);
         M7Settings.save(p);
         // Add only ui.feature.* presentation keys; every gameplay/config key above stays owned by its prior schema.
         FeatureUiPreferences.save(p);

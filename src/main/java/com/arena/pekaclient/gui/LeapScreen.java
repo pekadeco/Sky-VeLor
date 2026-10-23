@@ -7,7 +7,6 @@ import com.arena.pekaclient.feature.LeapIdentity;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.render.SkinHead;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.UIRender;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
@@ -885,7 +884,7 @@ public final class LeapScreen extends GuiScreen {
     }
 
     private static FontRenderer fr() {
-        return GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);
+        return Minecraft.getMinecraft().fontRendererObj;
     }
 
     /** One-pixel square border retained for the fallback head tile. */

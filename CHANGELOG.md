@@ -4,7 +4,7 @@
 
 - Replaced Hub feature trees with a flat two-form surface: **Simple** rows contain only the existing On/Off switch, name, and gray description; one-level **Dropdowns** contain a title, accurate green/red status dot, that same existing switch, and one correctly named editor button.
 - Removed tree arrows, connector lines, indentation, nested dropdowns, per-mob/per-door tab rows, and every child-row settings button. Simple rows are ordered before dropdowns in every tab.
-- Kept detailed controls in their established focused owners: HUD/Item Animation, Chat, Fonts, Mod Settings, the shared Feature Settings Editor, and Mob/Door ESP editors. No feature behavior or configuration schema was changed.
+- Kept detailed controls in their established focused owners: HUD/Item Animation, Chat, Mod Settings, the shared Feature Settings Editor, and Mob/Door ESP editors. No feature behavior or configuration schema was changed.
 - Simplified the shared editor left pane to a flat list. Mob/Door category entries expose their existing individual toggles and compact previews; Mob style pages add **Apply This Style to All** while Global retains performance and preset controls.
 - Added flat-Hub model/audit tests for body shape, depth, routes, legacy-option reachability, status dots, category toggles/thumbnails, GUI-scale geometry, and old-config loading. Updated the release-JAR verifier for the flat architecture.
 - Added the complete feature / row type / option-location audit in `docs/FEATURE-SETTINGS-EDITOR.md`.
@@ -17,7 +17,7 @@
 - Added the reusable **Feature Settings Editor** framework with Back/Reset, remembered category selection, scrollable left navigation/tree and settings pane, shared responsive geometry, and the existing dropdown palette style.
 - Moved Mob ESP and Door ESP into focused editors. Mob ESP lists Global plus Starred Mob, Miniboss, Special Starred Mob, Enderman, Skeletor and Other Mobs; Door ESP covers global filters plus Wither/Blood doors. Both retain all prior options, Default/Subtle/Reset and session-only copy/apply style actions.
 - Added an in-editor safe named hitbox/prism preview. Preview and live Dungeon ESP both emit style geometry through `DungeonEspRenderBatch.drawStyledBox`; no dummy world/entity is constructed.
-- Routed detailed Appearance, Performance, assist, Item Lock & Swap, Spirit Leap, Terminal, M7, Catch Counter and Slayer controls through the framework. Existing HUD Editor, Item Animation editor, Chat Editor, Fonts and Mod Settings remain their focused owners.
+- Routed detailed Appearance, Performance, assist, Item Lock & Swap, Spirit Leap, Terminal, M7, Catch Counter and Slayer controls through the framework. Existing HUD Editor, Item Animation editor, Chat Editor and Mod Settings remain their focused owners.
 - Added headless persisted-tree, connector/indentation, reachability and Dungeon ESP control-route coverage; updated release-jar audit checks for the compact editor architecture.
 - Updated display version to `Beta-0.10.8.8v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.8`.
 - **NOT tested in-game.**
@@ -29,7 +29,7 @@
 - Added Mining Assistant and Boss HP HUD elements, pickaxe-ready alerts, a read-only Dwarven Mines Puzzler marker, protected boss-health parsing, and HUD-editor registration without moving existing HUD positions.
 - Added guarded F7/M7 terminal visual helpers, known-wrong dim/block behavior, optional constrained auto-click, and local terminal/device waypoints. Unknown, malformed, duplicate, or stale containers deliberately do nothing.
 - Added opt-in Dungeon Sync: a local SHA-256 session derivation, WSS-only Java 8 transport with verified handshake/client masking/bounded frames, allow-listed inbound puzzle data, bounded map-memory integration, reconnect limits, debug-safe status, and the privacy disclosure in `docs/DUNGEON_SYNC.md`.
-- Added clean-room visual hook support for inventory tooltip filtering/rarity rendering and local hurt-camera suppression, with transformer status in `/velor selftest`; existing Item Animation, Chat QoL, Fonts, settings, item lock/swap, Dungeon ESP/doors, HUD editor, sea-creature counters, and CorruptedHP behavior remain in place.
+- Added clean-room visual hook support for inventory tooltip filtering/rarity rendering and local hurt-camera suppression, with transformer status in `/velor selftest`; existing Item Animation, Chat QoL, settings, item lock/swap, Dungeon ESP/doors, HUD editor, sea-creature counters, and CorruptedHP behavior remain in place.
 - Added headless policy/config/parser/identity/reconnect/transformer tests for the new code. Runtime behavior still needs a real Minecraft 1.8.9 Forge pass.
 - The friend archive was compared only against its declared `Beta-0.10.6v` base. No archive is retained in the release tip; NotEnoughFakepixel/Better-NEF notice-derived solvers were independently recreated only where safely supportable, with no LGPL source copied.
 - Updated display version to `Beta-0.10.8.7v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.7`.
@@ -131,13 +131,13 @@
 - Replaced the fragile split-chat runtime with one guarded Forge renderer for the real Default Chat. Chat 1/Chat 2 windows, classifier and pattern routing, target/link-all editor state, and their persisted output are removed; retired keys are harmlessly ignored and omitted on save.
 - Added Default Chat’s rounded configurable background, open/closed opacity, smooth fade/slide arrivals, eased scrolling, full wrapped-group highlight, safe native component forwarding, and a captured-at-open two-action copy menu.
 - Reworked attached All/Party/Reply/custom tabs with a reserved message boundary, unread dots, active channel label/prefix, open-only/always visibility, up to eight total tabs, and a focused editor for custom filter validation/testing, colour, sound, order, visibility, and deletion.
-- Reduced Chat Editor to **Background**, **Messages**, **Tabs**, **Menu and Highlight**, and **Reset** with active-font-measured, clipped non-overlapping flow. `/velor chatdebug` now reports the one renderer’s live tab/group/menu state; `/velor layoutdebug` covers its shared layout.
+- Reduced Chat Editor to **Background**, **Messages**, **Tabs**, **Menu and Highlight**, and **Reset** with native-metric, clipped non-overlapping flow. `/velor chatdebug` now reports the one renderer’s live tab/group/menu state; `/velor layoutdebug` covers its shared layout.
 - Added headless coverage for custom filtering/invalid regex/All membership, retired-key omission, captured menu payloads, grouped highlight bounds, tab geometry, and editor flow at compact scales.
 - Updated display version to `Beta-0.10.8.5.2v` and numeric Forge `mcmod.info` version to `0.10.8.5.2`.
 
 ## Beta-0.10.8.5.1v — 2026-10-18
 
-- Fixed Chat Editor section/card placement through the active selected font’s measured metrics, with a collision resolver for small windows, GUI scales, and expanded controls.
+- Fixed Chat Editor section/card placement through native Minecraft text metrics, with a collision resolver for small windows, GUI scales, and expanded controls.
 - Made Separate Chats a single opt-in ownership mode: off is fully native Default Chat; on exclusively routes new classified traffic to Chat 1 or Chat 2, leaves pre-toggle vanilla history untouched, and clears the opt-in mirror on exit. Unknown, system, command, and server-result traffic now safely belongs only to Chat 2.
 - Repaired the production chat input insertion path for **Copy to chat box**: clean text is inserted at the focused cursor or appended, capped at 256 characters, while the chat field stays open and focused. The existing clipboard action and copied confirmation remain available.
 - Replaced recursive menu hover smoothing with a real elapsed-time ease-out that reaches its configured default 100 ms target; the Chat Editor exposes **Open menu with** (Right click / Left click / Both) and **Menu animation**, including Off.
@@ -150,8 +150,7 @@
 - Reworked all Sky VeLor-owned screens around the shared `GuiLayoutToolkit`: clamped shells, measured compact rows, ellipsis, clipping, common scrollbar semantics, Shift fine scrolling, and responsive small-scale layouts. Quick Note now switches to a non-overlapping compact editor instead of retaining a fixed sidebar.
 - Routed Default Chat, Chat 1, and Chat 2 through the production `ChatPipeline` for message wrapping, layout, full-row hit targets, hover/fade, shared scrolling, context-copy selection, and component-forwarding bridges. Vanilla chat remains unchanged when Chat QoL is off or its reflection bridge is unavailable.
 - Consolidated scroll speed and smoothing into top-level **Mod Settings**. Retired per-target Chat QoL scroll keys are read once as a compatibility migration and omitted on the next save; one hovered viewport consumes each wheel event, with Shift fine scrolling.
-- Moved global font ownership fully to top-level **Fonts** and added bundled OFL-licensed Rounded (Nunito) and Mono (JetBrains Mono) alongside Smooth and Doodle. Added packaged notices/licenses, preview, safe external-file validation, and fail-closed vanilla fallback for unavailable native-font bridges.
-- Updated release metadata and verification for display version `Beta-0.10.8.5v` with numeric Forge `mcmod.info` version `0.10.8.5`, and strengthened the release-JAR audit for the shared layout, chat pipeline, global settings, and bundled font resources.
+- Updated release metadata and verification for display version `Beta-0.10.8.5v` with numeric Forge `mcmod.info` version `0.10.8.5`, and strengthened the release-JAR audit for the shared layout, chat pipeline, and global settings.
 
 ## Beta-0.10.8.4v — 2026-10-18
 
@@ -160,18 +159,17 @@
 - Restored native component behavior in Chat 1/Chat 2: wrapped/moved/scaled rows resolve the clicked component and forward left clicks through vanilla-compatible `run_command`, `suggest_command`, and `open_url` handling; native hover events show a safe tooltip.
 - Added independent Default Chat / Chat 1 / Chat 2 appearance and scrolling profiles, Link all, Copy settings from, per-target resets, and a real customized Default Chat draw pass that keeps its cached vanilla wrapped lines and vanilla-compatible scroll/component lookup.
 - Added draggable, screen-clamped, GUI-scale-persisted Chat Editor panel state with title double-click reset and persisted collapse state; the editor now exposes target selection, per-target colors/scale/background/border/spacing/shadow/appearance/fade/hover/scroll controls.
-- Replaced the chat-only font preference with global Sky VeLor font settings and an **Open Font Settings** route. Added Minecraft Default, bundled OFL-licensed Smooth (Abel) and Doodle (Architects Daughter) fonts, external config-folder `.ttf`/`.otf` discovery, cached bilinear glyph atlases, safe fallback, per-area scales, and an optional fail-closed all-Minecraft-text switch.
-- Added headless checks for all three interaction surfaces, exactly two menu labels, moved/scaled hit coordinates, one wheel application, draggable/clamped/resettable panel state, independent/linked/copied target settings, target persistence, and font migration/fallback.
+- Added headless checks for all three interaction surfaces, exactly two menu labels, moved/scaled hit coordinates, one wheel application, draggable/clamped/resettable panel state, independent/linked/copied target settings, and target persistence.
 
 ## Beta-0.10.8.3v — 2026-10-17
 
-- Replaced the previous separate chat pages with one compact **QoL → Chat QoL** dropdown: a safe master switch, **Chat Tabs**, **Separate Chats**, **Smooth Messages**, **Hover Highlight**, **Right Click Menu**, **Custom Font**, and **Open Chat Editor**. All customization now belongs only to the editor.
-- Added a native Apple-style **Chat Editor** (also `/velor chateditor` and an unbound keybind) with clipped, non-overlapping **Windows**, **Background**, **Messages**, **Font**, **Tabs**, and **Hover / menu** sections, per-section resets, per-GUI-scale draggable/resizable snapped windows, editable names/limits/fade, pattern testing, font fallback, and tab visibility/order controls.
+- Replaced the previous separate chat pages with one compact **QoL → Chat QoL** dropdown: a safe master switch, **Chat Tabs**, **Separate Chats**, **Smooth Messages**, **Hover Highlight**, **Right Click Menu**, and **Open Chat Editor**. All customization now belongs only to the editor.
+- Added a native Apple-style **Chat Editor** (also `/velor chateditor` and an unbound keybind) with clipped, non-overlapping **Windows**, **Background**, **Messages**, **Tabs**, and **Hover / menu** sections, per-section resets, per-GUI-scale draggable/resizable snapped windows, editable names/limits/fade, pattern testing, and tab visibility/order controls.
 - Reworked chat tabs to attached **All / Party / Reply** controls with unread markers, safe All fallback, typed-text-preserving switches, Ctrl+Tab plus a configurable cycle key, and `/reply` routing for Reply. Removed unsupported channel controls.
 - Added optional native split windows: Chat 1 receives player/party/reply traffic; Chat 2 receives system and unknown lines. Classification has bounded editable rules, debug evidence through `/velor chatdebug`, and unknown traffic fails safely to Chat 2 and All.
 - Added native separate-window hover highlighting and a safe right-click text menu for clean copy, copy-to-input, and optional formatted copy. Link/click/hover component actions are never replayed by the menu.
 - Retired the old external Chatting animation configuration path. Legacy chat settings migrate to `chat.qol.*`; optional external-runtime detection remains silent and fail-closed, while existing packaged attribution notices remain intact.
-- Added headless tests for Chat QoL ownership, migration/clamps, classification/routing, copy text, font fallback, attached-tab non-overlay geometry, editor layout, and per-scale window bounds.
+- Added headless tests for Chat QoL ownership, migration/clamps, classification/routing, copy text, attached-tab non-overlay geometry, editor layout, and per-scale window bounds.
 
 ## Beta-0.10.8.2v — 2026-10-17
 

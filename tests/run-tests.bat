@@ -34,9 +34,7 @@ call :run com.arena.pekaclient.chat.ChatCompactMessagesTests || goto fail
 call :run com.arena.pekaclient.chat.ChatMessageHistoryTests || goto fail
 call :run com.arena.pekaclient.chat.ChatMenuInputRouterTests || goto fail
 call :run com.arena.pekaclient.chat.ChatVisibilityAuditTests || goto fail
-java -Djava.awt.headless=true -cp "%CP%" com.arena.pekaclient.render.FontAtlasGeneratorTests
 if errorlevel 1 goto fail
-call :run com.arena.pekaclient.config.FontSettingsTests || goto fail
 call :run com.arena.pekaclient.hud.ConfigTests || goto fail
 call :run com.arena.pekaclient.feature.LeapTextTests || goto fail
 call :run com.arena.pekaclient.feature.LeapIdentityTests || goto fail

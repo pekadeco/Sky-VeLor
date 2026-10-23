@@ -21,9 +21,6 @@ import java.util.Set;
 public final class ChatQolSettings {
 
     public static final String PREFIX = "chat.qol.";
-    public static final String FONT_MINECRAFT_DEFAULT = "Minecraft Default";
-    public static final String FONT_SMOOTH = "Smooth";
-    public static final String FONT_DOODLE = "Doodle";
 
     /** Master switch remains opt-in: false means Minecraft's chat is not intercepted at all. */
     public static boolean enabled;

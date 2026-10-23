@@ -409,19 +409,10 @@ public final class UIRender {
     // ------------------------------------------------------------------ text
 
     /**
-     * Draws vanilla font text. Positions are rounded for crisp pixels at scale 1.
-     * Non-1 scales are applied with a matrix push/pop so the font's own quads stay sharp.
+     * Draws vanilla Minecraft font text. Positions are rounded for crisp pixels at scale 1.
+     * Non-1 scales are applied with a matrix push/pop so the native font's own quads stay sharp.
      */
     public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow) {
-        text(fr, s, x, y, color, scale, shadow, GlobalFontManager.Area.UI);
-    }
-
-    /**
-     * Sky VeLor-owned typography path. GlobalFontManager returns false on every unsafe/missing-font path, leaving
-     * Minecraft's renderer untouched; this is why vanilla text is never globally replaced by this helper.
-     */
-    public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow,
-                            GlobalFontManager.Area area) {
         if (s == null || s.isEmpty()) {
             return;
         }
@@ -429,27 +420,19 @@ public final class UIRender {
         if ((c >>> 24) == 0) {
             return;
         }
-        // The debug overlay observes the exact draw call, including the active custom-font width where available.
-        // It is inert unless /velor layoutdebug has started a GuiScreen frame.
-        float measuredWidth = GlobalFontManager.width(s, area);
-        if (measuredWidth < 0f) measuredWidth = fr.getStringWidth(s);
-        float measuredHeight = GlobalFontManager.height(area);
-        if (measuredHeight < 0f) measuredHeight = fr.FONT_HEIGHT;
-        GuiDebugOverlay.recordLabel(s, x, y, measuredWidth * scale,
-                Math.max(1f, measuredHeight * scale));
+        GuiDebugOverlay.recordLabel(s, x, y, fr.getStringWidth(s) * scale,
+                Math.max(1f, fr.FONT_HEIGHT * scale));
         flush();
         GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();
-        if (!GlobalFontManager.draw(s, x, y, c, scale, shadow, area)) {
-            if (scale == 1f) {
-                fr.drawString(s, (float) Math.round(x), (float) Math.round(y), c, shadow);
-            } else {
-                GlStateManager.pushMatrix();
-                GlStateManager.translate(x, y, 0f);
-                GlStateManager.scale(scale, scale, 1f);
-                fr.drawString(s, 0f, 0f, c, shadow);
-                GlStateManager.popMatrix();
-            }
+        if (scale == 1f) {
+            fr.drawString(s, (float) Math.round(x), (float) Math.round(y), c, shadow);
+        } else {
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x, y, 0f);
+            GlStateManager.scale(scale, scale, 1f);
+            fr.drawString(s, 0f, 0f, c, shadow);
+            GlStateManager.popMatrix();
         }
         GlStateManager.disableAlpha();
         GlStateManager.disableTexture2D();

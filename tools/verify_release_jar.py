@@ -55,7 +55,6 @@ REQUIRED_CLASSES = [
     'feature/SpiritLeap',
     'feature/ChatTabs',
     'feature/ChatTabLayout',
-    'feature/ChatFontPolicy',
     'feature/ChatInteractionModel',
     'feature/ChatChannelTabs',
     'command/ItemDebugCommand',
@@ -77,7 +76,6 @@ REQUIRED_CLASSES = [
     'gui/ChatEditorScreen',
     'gui/GuiLayoutToolkit',
     'gui/ModSettingsScreen',
-    'gui/FontsScreen',
     'notes/QuickNoteLayout',
     'chat/CapturedChatMenu',
     'chat/ChatMenuState',
@@ -107,7 +105,6 @@ REQUIRED_CLASSES = [
     'dungeonesp/DungeonEspMatchReason',
     'dungeonesp/WitherDoorCache',
     'dungeonesp/DungeonEspRenderBatch',
-    'render/GlobalFontManager',
     'render/itemanimation/ItemAnimationHooks',
     'render/itemanimation/ItemAnimationHookStatus',
     'render/itemanimation/ItemAnimationLoadingPlugin',
@@ -191,6 +188,12 @@ FORBIDDEN_CLASSES = [
     'feature/ChattingAnimationBridge',
     'gui/ChatEditorPanelLayout',
     'chat/ChatPipeline',
+    # The optional font system was removed entirely; all Sky VeLor text uses Minecraft's native FontRenderer.
+    'config/FontSettings',
+    'feature/ChatFontPolicy',
+    'gui/FontsScreen',
+    'render/FontAtlasGenerator',
+    'render/GlobalFontManager',
 ]
 
 # Minecraft members this mod really calls or overrides. Reobfuscation must have
@@ -396,19 +399,12 @@ def main():
             'dungeon puzzle-room templates packaged')
     for resource in ('META-INF/LICENSE-CHATTING-GPL-3.0.txt',
                      'META-INF/LICENSE-SKYTILS-AGPL-3.0.txt',
-                     'META-INF/THIRD_PARTY_NOTICES-CHAT.txt',
-                     'THIRD_PARTY_LICENSES.md',
-                     'THIRD_PARTY_NOTICES.md',
-                     'assets/skyvelor/fonts/NOTICE.txt',
-                     'assets/skyvelor/fonts/OFL-Abel.txt',
-                     'assets/skyvelor/fonts/OFL-ArchitectsDaughter.txt',
-                     'assets/skyvelor/fonts/OFL-Nunito.txt',
-                     'assets/skyvelor/fonts/OFL-JetBrainsMono.txt',
-                     'assets/skyvelor/fonts/smooth-abel-regular.ttf',
-                     'assets/skyvelor/fonts/doodle-architects-daughter.ttf',
-                     'assets/skyvelor/fonts/rounded-nunito.ttf',
-                     'assets/skyvelor/fonts/mono-jetbrains-mono.ttf'):
+                     'META-INF/THIRD_PARTY_NOTICES-CHAT.txt'):
         r.check(resource in names, 'packaged legal resource: %s' % resource)
+    r.check(not any(name.startswith('assets/skyvelor/fonts/') for name in names),
+            'no bundled custom-font asset or license remains')
+    r.check('THIRD_PARTY_LICENSES.md' not in names and 'THIRD_PARTY_NOTICES.md' not in names,
+            'no removed-font third-party notice remains')
 
     # --- the decisive mapping check --------------------------------------
     srg, mcp_hits, parsed, unparsed = set(), [], 0, []
@@ -657,11 +653,9 @@ def main():
                 and b'COUNTER_LINE_ID' not in compact_raw
                 and any('(x' in value for value in compact_constants),
             'Compact Messages packages exact unique-group replacement, closed/open visibility audit, and editor colour')
-    font_raw = raw_of('render/GlobalFontManager')
-    r.check(all(value in font_raw for value in
-                (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'rounded-nunito.ttf',
-                 b'mono-jetbrains-mono.ttf', b'skyvelor/fonts')),
-            'GlobalFontManager packages all bundled/config-folder font paths with cached atlas fallback')
+    r.check(all(value not in hub_raw and value not in chat_editor_raw for value in
+                (b'FontsScreen', b'FontSettings', b'GlobalFontManager', b'custom font')),
+            'Hub and Chat Editor have no custom-font route or renderer hook')
     r.check(b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw
                 and b'Enable Chat QoL' in chat_editor_raw and b'Use chat tabs' in chat_editor_raw,
             'compact Hub routes Chat QoL through Chat Editor including its feature-level switches')
@@ -669,8 +663,8 @@ def main():
                 (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
             'AppleHubScreen has no retired external animation or duplicate chat customization controls')
     r.check(all(value in hub_raw for value in
-                (b'GuiLayoutToolkit', b'ModSettingsScreen', b'FontsScreen')),
-            'AppleHubScreen uses shared clamped geometry and top-level global settings/font routes')
+                (b'GuiLayoutToolkit', b'ModSettingsScreen')),
+            'AppleHubScreen uses shared clamped geometry and retained global settings routes')
     r.check(all(b'GuiLayoutToolkit' in raw_of(cls) for cls in
                 ('gui/AppleHubScreen', 'gui/HudEditorScreen', 'gui/ChatEditorScreen',
                  'gui/LoadingScreen', 'notes/QuickNoteScreen')),

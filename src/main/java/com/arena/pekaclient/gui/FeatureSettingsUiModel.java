@@ -100,9 +100,6 @@ public final class FeatureSettingsUiModel {
         dropdown("mod-settings", "General", "Mod Settings", "Global scroll speed and smoothing.",
                 "mod-settings", "smooth-scroll", "Mod Settings", options("Global scroll speed", "global-scroll",
                 "Smooth scrolling", "smooth-scroll"));
-        dropdown("fonts", "General", "Fonts", "Font selection, preview, licenses and safe fallback.",
-                "fonts", "fonts-enabled", "Font Settings", options("Enable Fonts", "fonts-enabled", "Font selection", "font-selection",
-                "Font preview", "font-preview", "Font licenses", "font-licenses"));
         dropdown("performance", "General", "Performance", "Curve, shadows, animation and adaptive GUI quality.",
                 "performance", "performance-boost", "Performance", options("Curve quality", "curve-quality", "Soft shadows", "soft-shadows",
                 "Animations", "animations", "Animation speed switch", "animation-speed-on", "Animation speed", "animation-speed",

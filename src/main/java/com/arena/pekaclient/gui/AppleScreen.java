@@ -1,7 +1,6 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.widget.AppleButton;
-import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.widget.AppleDropdown;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -18,7 +17,7 @@ public abstract class AppleScreen extends GuiScreen {
     protected AppleDropdown openDropdown;
 
     protected static FontRenderer fr() {
-        return GlobalFontManager.rendererFor(Minecraft.getMinecraft().fontRendererObj);
+        return Minecraft.getMinecraft().fontRendererObj;
     }
 
     protected static boolean inside(float px, float py, float x, float y, float w, float h) {
