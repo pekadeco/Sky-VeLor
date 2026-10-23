@@ -206,6 +206,8 @@ public class AppleHubScreen extends AppleScreen {
                 () -> AppleSettings.noBlockParticles, value -> AppleSettings.noBlockParticles = value);
         simpleFeature(rows, "Disable Hotbar Scrolling", QualityOfLifeUiModel.buildToggleModel().get(1).getDescription(),
                 () -> AppleSettings.disableHotbarScrolling, value -> AppleSettings.disableHotbarScrolling = value);
+        simpleFeature(rows, "No Hurt Cam", QualityOfLifeUiModel.buildToggleModel().get(2).getDescription(),
+                () -> AssistSettings.noHurtCamera, value -> AssistSettings.noHurtCamera = value);
 
         rows.add(Row.section("Feature editors"));
         editorFeature(rows, "Inventory Assist", "Search, tooltip and inventory visual helpers.",

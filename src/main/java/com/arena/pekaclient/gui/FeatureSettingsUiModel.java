@@ -110,10 +110,13 @@ public final class FeatureSettingsUiModel {
                 "no-block-particles", "No block particles");
         simple("disable-hotbar-scrolling", "Quality of Life", "Disable Hotbar Scrolling", "Ignore mouse-wheel hotbar selection during gameplay.",
                 "disable-hotbar-scrolling", "Disable hotbar scrolling");
+        simple("no-hurt-cam", "Quality of Life", "No Hurt Cam",
+                "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged.",
+                "no-hurt-cam", "No Hurt Cam");
         dropdown("inventory-assist", "Quality of Life", "Inventory Assist", "Search, tooltip and inventory visual helpers.",
                 "inventory-assist", "inventory-search", "Inventory Assist", options("Inventory search and filter", "inventory-search",
                 "Hide potion effects in inventory", "hide-potions", "Roman numerals in tooltips", "roman-numerals",
-                "Scrollable item tooltips", "tooltip-scroll", "Item rarity highlight", "rarity-highlight", "No hurt camera", "no-hurt-camera"));
+                "Scrollable item tooltips", "tooltip-scroll", "Item rarity highlight", "rarity-highlight"));
         dropdown("item-protection", "Quality of Life", "Item Protection", "Protect selected UUID items and show status.",
                 "item-protection", "item-guard", "Item Protection", options("Item Protection", "item-guard",
                 "Item Protection notifications", "item-guard-notifications", "Item Protection status", "item-guard-status"));

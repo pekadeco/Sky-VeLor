@@ -477,6 +477,20 @@ def main():
     r.check(b'lastAutoFingerprint' in terminal_raw and b'lastAutoSlot' in terminal_raw
                 and b'TerminalParsePolicy' in terminal_raw and b'sendChatMessage' not in mining_raw,
             'terminal automation remains fingerprint-guarded and the Puzzler helper remains read-only')
+    visual_hooks_raw = raw_of('assist/visual/VisualAssistHooks')
+    visual_transformer_raw = raw_of('assist/visual/VisualAssistTransformer')
+    visual_status_raw = raw_of('assist/visual/VisualAssistHookStatus')
+    client_mod_raw = raw_of('PekaClientMod')
+    selftest_raw = raw_of('command/SvCommand')
+    r.check(b'assist.visual.noHurtCamera' in assist_settings_raw and b'No Hurt Cam' in assist_hub_raw
+                and b'No Hurt Camera' not in feature_editors_raw
+                and all(value in visual_transformer_raw for value in
+                        (b'hurtCameraEffect', b'func_78482_e', b'suppressHurtCamera'))
+                and all(value in visual_hooks_raw for value in
+                        (b'zeroFallbackVisualTilt', b'shouldUseVisualFallback', b'hurtTime'))
+                and b'zeroFallbackVisualTilt' in client_mod_raw and b'FALLBACK' in visual_status_raw
+                and b'no hurt cam' in selftest_raw,
+            'No Hurt Cam is default-off, visual-only, hook-first with local-tilt fallback and selftest status')
 
     # --- Cached Dungeon ESP proof --------------------------------------------
     # This release must not silently fall back to the retired per-frame MobHighlight path. The packaged controller,

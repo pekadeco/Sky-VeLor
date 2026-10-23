@@ -39,6 +39,7 @@ public final class AssistSettingsTests {
     private static void roundTripAndBounds() {
         AssistSettings.resetDefaults();
         AssistSettings.tooltipScroll = true;
+        AssistSettings.noHurtCamera = true;
         AssistSettings.dungeonSync = true;
         AssistSettings.dungeonSyncEndpoint = "wss://sync.example.org/ws";
         AssistSettings.terminalHints = true;
@@ -47,10 +48,11 @@ public final class AssistSettingsTests {
         Properties saved = new Properties();
         AssistSettings.save(saved);
         check("new keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
+                && saved.containsKey("assist.visual.noHurtCamera")
                 && saved.containsKey("assist.dungeon.sync.enabled") && saved.containsKey("assist.dungeon.terminal.autoClick"));
         AssistSettings.load(saved);
-        check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.dungeonSync
-                && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint)
+        check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.noHurtCamera
+                && AssistSettings.dungeonSync && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint)
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222);
         saved.setProperty("assist.dungeon.sync.endpoint", "http://not-secure.invalid");
         saved.setProperty("assist.dungeon.terminal.scale", "9999");

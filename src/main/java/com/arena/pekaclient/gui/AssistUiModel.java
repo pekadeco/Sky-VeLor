@@ -54,8 +54,8 @@ public final class AssistUiModel {
                 "Use the wheel to read long lore without changing the hotbar");
         add(entries, TAB_QUALITY_OF_LIFE, "Inventory assist", "Item rarity highlight",
                 "Draw a static rarity tint behind supported inventory items");
-        add(entries, TAB_QUALITY_OF_LIFE, "Visual safety", "No hurt camera",
-                "Disable only the local damage camera roll and shake");
+        add(entries, TAB_QUALITY_OF_LIFE, "Simple features", "No Hurt Cam",
+                "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged");
         add(entries, TAB_QUALITY_OF_LIFE, "Item safety", "Item Protection",
                 "Guard UUID-tagged SkyBlock items against destructive drops");
         add(entries, TAB_QUALITY_OF_LIFE, "Item safety", "Item Protection notifications",

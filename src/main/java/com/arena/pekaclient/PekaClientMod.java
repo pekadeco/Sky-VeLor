@@ -8,6 +8,7 @@ import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonWaypointController;
 import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.movement.AutoSprintController;
+import com.arena.pekaclient.assist.visual.VisualAssistHooks;
 import com.arena.pekaclient.command.ClientActions;
 import com.arena.pekaclient.command.ItemDebugCommand;
 import com.arena.pekaclient.command.PriceSetCommand;
@@ -242,6 +243,9 @@ public class PekaClientMod {
                 mc.displayGuiScreen(new LoadingScreen(mc.currentScreen));
             }
             // Before the world moves. Also resets mining counts on world change, respawn and disconnect.
+            // If the fail-closed EntityRenderer hook was unavailable, this can only clear the local visual tilt;
+            // it never touches health, movement, knockback, or packets.
+            VisualAssistHooks.zeroFallbackVisualTilt(mc);
             // Item Animation is woven into Minecraft's authoritative hand/equip methods at class-load time; it has
             // no per-tick installation retry and its live settings are read only from those renderer callbacks.
             HudManager.tick(mc);

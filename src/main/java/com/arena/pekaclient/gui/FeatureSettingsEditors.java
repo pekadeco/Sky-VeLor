@@ -171,8 +171,6 @@ public final class FeatureSettingsEditors {
                 value -> AssistSettings.tooltipScroll = value));
         entries.add(toggle("Item Rarity Highlight", assist("Item rarity highlight"), () -> AssistSettings.rarityHighlight,
                 value -> AssistSettings.rarityHighlight = value));
-        entries.add(toggle("No Hurt Camera", assist("No hurt camera"), () -> AssistSettings.noHurtCamera,
-                value -> AssistSettings.noHurtCamera = value));
     }
 
     private static void itemProtectionEntries(FeatureSettingsEditorScreen.Category ignored,
@@ -401,7 +399,6 @@ public final class FeatureSettingsEditors {
         AssistSettings.romanNumerals = false;
         AssistSettings.tooltipScroll = false;
         AssistSettings.rarityHighlight = false;
-        AssistSettings.noHurtCamera = false;
     }
 
     private static void resetItemProtection() {

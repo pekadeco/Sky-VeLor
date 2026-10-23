@@ -28,6 +28,21 @@ public final class VisualAssistTransformerTests {
         check("hurt-camera predicate emitted", calls(hurt, "com/arena/pekaclient/assist/visual/VisualAssistHooks",
                 "suppressHurtCamera") == 1);
         check("hurt-camera status active", VisualAssistHookStatus.isHurtCameraActive());
+        byte[] hurtSrg = transformer.transform("net.minecraft.client.renderer.EntityRenderer",
+                "net.minecraft.client.renderer.EntityRenderer",
+                simpleClass("net/minecraft/client/renderer/EntityRenderer", "func_78482_e", "(F)V"));
+        byte[] hurtNotch = transformer.transform("bfk", "bfk", simpleClass("bfk", "e", "(F)V"));
+        check("hurt-camera SRG and notch hooks emitted",
+                calls(hurtSrg, "com/arena/pekaclient/assist/visual/VisualAssistHooks", "suppressHurtCamera") == 1
+                        && calls(hurtNotch, "com/arena/pekaclient/assist/visual/VisualAssistHooks", "suppressHurtCamera") == 1);
+        byte[] unsupportedHurt = simpleClass("net/minecraft/client/renderer/EntityRenderer", "other", "(F)V");
+        check("unknown hurt-camera shape stays untouched", transformer.transform(
+                "net.minecraft.client.renderer.EntityRenderer", "net.minecraft.client.renderer.EntityRenderer", unsupportedHurt)
+                == unsupportedHurt);
+        check("fallback only opens when enabled and hook is unavailable",
+                VisualAssistHooks.shouldUseVisualFallback(true, false)
+                        && !VisualAssistHooks.shouldUseVisualFallback(false, false)
+                        && !VisualAssistHooks.shouldUseVisualFallback(true, true));
 
         System.out.println("visual assist transformer: passed " + passed + ", failed " + failed);
         if (failed != 0) throw new AssertionError(failed + " visual-assist transformer checks failed");
