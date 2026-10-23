@@ -1,5 +1,19 @@
 # Changelog
 
+## Beta-0.10.8.8.2v — 2026-10-23
+
+- Restored independent default-off **FPS Display**, **Ping Display**, and **Memory Display** HUD elements with cached, roughly once-per-second text updates.
+- Removed the optional custom-font system, generated font texture, font resource-pack/reload path, bundled font assets/licenses, font settings, and all custom font-renderer hooks; Sky VeLor now uses Minecraft's vanilla font only.
+- Simplified HUD editing to direct canvas selection: click an enabled or dimmed disabled element to select it, cycle overlaps by clicking again, and drag the selected element to move it.
+- Added default-off visual-only **No Hurt Cam** and default-off **Auto Sprint**; Auto Sprint only owns the normal vanilla sprint key while forward/sprint conditions hold and sends no custom packets.
+- Removed the retired Hotbar HUD customization (nine-slot renderer, selected-slot highlight, panel styling, controls and route) while retaining normal gameplay hotbar behavior and Item Lock and Swap hotbar icons.
+- Removed only the distinct UUID/persistent-store **Item Protection** feature; **Item Lock and Swap** remains intact.
+- Ordered Dungeon rows by usage: Door ESP and Mob ESP; Dungeon Sync, Floor VII (M7) Overlay, Spirit Leap GUI, and Terminal Assist; then Boss HP, Dungeon Map, and Sync Details.
+- Standardized every Hub dropdown body to **On/Off** plus **Settings**, gave focused screens `<Feature> Settings` titles, and simplified labels to **No Hotbar Scrolling**, **Dungeon Sync**, and **Sync Details** without changing config keys.
+- Removed-feature and former-presentation config keys continue to load harmlessly and are ignored where their owners no longer exist.
+- Updated display version to `Beta-0.10.8.8.2v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.8.2`.
+- **NOT tested in-game.**
+
 ## Beta-0.10.8.8.1v — 2026-10-23
 
 - Replaced Hub feature trees with a flat two-form surface: **Simple** rows contain only the existing On/Off switch, name, and gray description; one-level **Dropdowns** contain a title, accurate green/red status dot, that same existing switch, and one correctly named editor button.
