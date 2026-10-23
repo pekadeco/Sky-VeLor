@@ -10,7 +10,6 @@ public final class ItemAnimationUiModel {
     private static final String HUD_ITEM_ANIMATION_DROPDOWN = "Item Animation";
     private static final String HUD_TOGGLE = "Item Animation";
     private static final String HUD_OPEN_EDITOR = "Open Item Animation Editor";
-    private static final String EDITOR_ENTRY = "Item Animation";
 
     /** One discoverability or panel-control entry. */
     public static final class Entry {
@@ -77,10 +76,6 @@ public final class ItemAnimationUiModel {
     private ItemAnimationUiModel() {
     }
 
-    public static String editorEntryLabel() {
-        return EDITOR_ENTRY;
-    }
-
     /** Item Animation is one flat HUD dropdown; its target-specific HUD editor route is its second body row. */
     public static List<Entry> buildHudTabModel() {
         List<Entry> entries = new ArrayList<Entry>();
@@ -93,13 +88,6 @@ public final class ItemAnimationUiModel {
         List<Entry> entries = new ArrayList<Entry>();
         entries.add(new Entry("item-animation-toggle", HUD_TOGGLE, true, true));
         entries.add(new Entry("item-animation-open-editor", HUD_OPEN_EDITOR, true, true));
-        return Collections.unmodifiableList(entries);
-    }
-
-    /** Item Animation remains a normal choice in the HUD editor's target/element list. */
-    public static List<Entry> buildHudEditorTargetList() {
-        List<Entry> entries = new ArrayList<Entry>();
-        entries.add(new Entry("item-animation", editorEntryLabel(), true, true));
         return Collections.unmodifiableList(entries);
     }
 

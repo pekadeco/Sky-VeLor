@@ -93,6 +93,7 @@ REQUIRED_CLASSES = [
     'gui/AppleGuiButton',
     'gui/HudEditorScreen',
     'gui/HudEditorLayout',
+    'gui/HudEditorSelectionPolicy',
     'gui/ItemAnimationUiModel',
     'gui/GuiSettingsAuditModel',
     'dungeon/TerminalSolver',
@@ -549,9 +550,14 @@ def main():
             'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
     editor_members = members_of('gui/HudEditorScreen')
     editor_raw = raw_of('gui/HudEditorScreen')
+    selection_raw = raw_of('gui/HudEditorSelectionPolicy')
     r.check(model_ref in editor_raw and layout_ref in editor_raw
-                and all(name in editor_members for name in ('buildHudEditorTargetList', 'panelControlLabel')),
-            'HudEditorScreen bytecode keeps Item Animation in the target list and builds its compact shared layout')
+                and 'panelControlLabel' in editor_members
+                and b'HudEditorSelectionPolicy' in editor_raw
+                and b'Click an on-screen HUD element to select it; drag to move it.' in editor_raw
+                and b'Choose HUD target' not in editor_raw and b'buildHudEditorTargetList' not in editor_raw
+                and b'nextIndex' in selection_raw,
+            'HudEditorScreen uses direct canvas selection with overlap cycling and no target sidebar/list')
     r.check(b'Open Item Animation Settings' not in editor_raw,
             'HudEditorScreen has no redundant Item Animation settings launcher')
 

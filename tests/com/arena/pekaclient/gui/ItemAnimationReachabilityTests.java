@@ -12,7 +12,6 @@ public final class ItemAnimationReachabilityTests {
         List<ItemAnimationUiModel.Entry> hudTab = ItemAnimationUiModel.buildHudTabModel();
         List<ItemAnimationUiModel.Entry> itemAnimationDropdown =
                 ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
-        List<ItemAnimationUiModel.Entry> editorTargets = ItemAnimationUiModel.buildHudEditorTargetList();
 
         check("HUD tab starts with the flat Item Animation dropdown", hasIdAt(hudTab, 0, "item-animation-dropdown"));
         check("HUD tab has no separate nested HUD-editor launcher", hudTab.size() == 1
@@ -28,13 +27,8 @@ public final class ItemAnimationReachabilityTests {
                 !hasLabel(hudTab, "Open Item Animation Settings")
                         && !hasLabel(itemAnimationDropdown, "Open Item Animation Settings"));
 
-        check("HUD editor keeps Item Animation in its target list",
-                !editorTargets.isEmpty() && "item-animation".equals(editorTargets.get(0).getId())
-                        && editorTargets.get(0).isVisibleWithoutScrolling()
-                        && editorTargets.get(0).isControlRegistered());
-        check("HUD editor target list has no redundant settings launcher",
-                !contains(editorTargets, "item-animation-open-settings")
-                        && !hasLabel(editorTargets, "Open Item Animation Settings"));
+        check("Item Animation remains reachable through its direct editor route",
+                contains(itemAnimationDropdown, "item-animation-open-editor"));
 
         ItemAnimationUiModel.PanelState panel = new ItemAnimationUiModel.PanelState();
         List<ItemAnimationUiModel.Entry> collapsed = ItemAnimationUiModel.buildPanelControlModel(panel);
@@ -75,7 +69,7 @@ public final class ItemAnimationReachabilityTests {
         check("HUD dropdown has no Item Animation background transparency duplicate",
                 !contains(itemAnimationDropdown, "background-transparency")
                         && !hasLabel(itemAnimationDropdown, "Background transparency"));
-        verifyNoForbiddenItemAnimationTerms(hudTab, itemAnimationDropdown, editorTargets);
+        verifyNoForbiddenItemAnimationTerms(hudTab, itemAnimationDropdown);
 
         verifyNoCustomizationDuplicates();
         verifyFriendFeatureGuiOwnership();
@@ -89,14 +83,13 @@ public final class ItemAnimationReachabilityTests {
     }
 
     /**
-     * Covers the HUD-tab dropdown, editor target route, and every expandable Item Animation panel state. No label or
-     * control id may reintroduce generic HUD background/transparency/opacity controls into this renderer-only route.
+     * Covers the HUD-tab dropdown/direct route and every expandable Item Animation panel state. No label or control
+     * id may reintroduce generic HUD background/transparency/opacity controls into this renderer-only route.
      */
     private static void verifyNoForbiddenItemAnimationTerms(List<ItemAnimationUiModel.Entry> hudTab,
-                                                             List<ItemAnimationUiModel.Entry> dropdown,
-                                                             List<ItemAnimationUiModel.Entry> targets) {
+                                                             List<ItemAnimationUiModel.Entry> dropdown) {
         check("HUD-tab Item Animation routes contain no background/opacity/transparency terms",
-                noForbiddenTerms(hudTab) && noForbiddenTerms(dropdown) && noForbiddenTerms(targets));
+                noForbiddenTerms(hudTab) && noForbiddenTerms(dropdown));
         for (int mask = 0; mask < 8; mask++) {
             ItemAnimationUiModel.PanelState state = new ItemAnimationUiModel.PanelState();
             if ((mask & 1) != 0) state.togglePosition();

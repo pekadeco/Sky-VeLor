@@ -4,7 +4,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 
 ## Features
 
-- Settings hub and movable HUD editor with dark and light themes.
+- Settings hub and movable HUD editor with dark and light themes; click an on-screen HUD element to select it, including dimmed disabled placeholders.
 - Smooth, frame-rate-independent UI motion: soft hover and press feedback, animated toggles and sliders, a sliding segmented selector, a gently appearing dropdown, and responsive search-field focus.
 - Rounded animated buttons in the main/pause menu and Quick Note screen, with distinct primary, secondary and destructive styles.
 - Spirit Leap teammate picker, class labels, player heads and isolated preview.
