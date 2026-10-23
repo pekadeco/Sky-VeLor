@@ -275,6 +275,8 @@ public final class AppleSettings {
         qnCommand = readBool(p, "cmd.qn", qnCommand);
         loadFishingSettings(p);
         loadChatSettings(p);
+        // Tree/editor navigation is presentation state only; it never changes existing feature schemas or defaults.
+        FeatureUiPreferences.load(p);
         applyConfigurationVersionUpgrade(p);
         FontSettings.load(p);
         M7Settings.load(p);
@@ -504,6 +506,8 @@ public final class AppleSettings {
         saveChatSettings(p);
         FontSettings.save(p);
         M7Settings.save(p);
+        // Add only ui.feature.* presentation keys; every gameplay/config key above stays owned by its prior schema.
+        FeatureUiPreferences.save(p);
         ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor settings");
     }
 
