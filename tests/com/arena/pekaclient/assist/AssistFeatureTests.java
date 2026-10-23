@@ -2,9 +2,6 @@ package com.arena.pekaclient.assist;
 
 import com.arena.pekaclient.assist.dungeon.BossHealthParser;
 import com.arena.pekaclient.assist.dungeon.TerminalAssistPolicy;
-import com.arena.pekaclient.assist.guard.ItemGuardPolicy;
-import com.arena.pekaclient.assist.guard.ItemGuardStore;
-import com.arena.pekaclient.assist.guard.ItemIdentity;
 import com.arena.pekaclient.assist.inventory.InventorySearchPolicy;
 import com.arena.pekaclient.assist.inventory.RarityPalette;
 import com.arena.pekaclient.assist.inventory.RomanNumeralPolicy;
@@ -18,9 +15,7 @@ import com.arena.pekaclient.assist.sync.DungeonSyncMessages;
 import com.arena.pekaclient.assist.sync.DungeonSyncProtocol;
 import com.arena.pekaclient.assist.sync.DungeonSyncReconnectPolicy;
 
-import java.io.File;
 import java.util.Arrays;
-import java.util.UUID;
 
 /** Headless behavioral regression suite for all clean-room assist policies. */
 public final class AssistFeatureTests {
@@ -31,7 +26,7 @@ public final class AssistFeatureTests {
         miningPolicies();
         inventoryPolicies();
         bossAndTerminalPolicies();
-        guardAndMovementPolicies();
+        movementPolicies();
         syncPolicies();
         done();
     }
@@ -69,40 +64,12 @@ public final class AssistFeatureTests {
                 && TerminalAssistPolicy.allowAutoClick(true, true, "maze", 500L, 0L));
     }
 
-    private static void guardAndMovementPolicies() {
-        check("strict UUID identity", ItemIdentity.parse("550e8400-e29b-41d4-a716-446655440000") != null
-                && ItemIdentity.parse("not-a-uuid") == null);
-        check("guard protects throw/outside only", ItemGuardPolicy.shouldBlockWindowAction(true, true, true, -999, 0)
-                && ItemGuardPolicy.shouldBlockWindowAction(true, true, true, 4, 4)
-                && !ItemGuardPolicy.shouldBlockWindowAction(true, true, true, 4, 0));
+    private static void movementPolicies() {
         check("auto sprint requires vanilla-safe movement", AutoSprintPolicy.mayStart(1F, false, false, false, false, true, false)
                 && !AutoSprintPolicy.mayStart(.5F, false, false, false, false, true, false));
         check("auto sprint releases when forward is not held", AutoSprintPolicy.shouldHoldSprintKey(true, 1F,
                 false, false, false, false, true, false)
                 && !AutoSprintPolicy.shouldHoldSprintKey(false, 1F, false, false, false, false, true, false));
-        guardStoreRoundTrip();
-    }
-
-    private static void guardStoreRoundTrip() {
-        File folder = new File(System.getProperty("java.io.tmpdir"), "skyvelor-guard-test-" + System.nanoTime());
-        File file = new File(folder, "guard.properties");
-        ItemGuardStore first = new ItemGuardStore();
-        first.load(file);
-        UUID id = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
-        boolean added = first.isHealthy() && first.toggle(id) == ItemGuardStore.Toggle.ADDED;
-        ItemGuardStore second = new ItemGuardStore();
-        second.load(file);
-        check("guard store atomically round-trips UUIDs", added && second.isHealthy() && second.contains(id));
-        delete(folder);
-    }
-
-    private static void delete(File file) {
-        if (file == null || !file.exists()) return;
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children != null) for (File child : children) delete(child);
-        }
-        file.delete();
     }
 
     private static void syncPolicies() {

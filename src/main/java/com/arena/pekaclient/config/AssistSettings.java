@@ -25,8 +25,6 @@ public final class AssistSettings {
     public static boolean rarityHighlight;
     public static boolean noHurtCamera;
 
-    public static boolean itemGuard;
-    public static boolean itemGuardNotifications;
     public static boolean autoSprint;
     public static boolean wardrobeShortcut;
     public static boolean petsShortcut;
@@ -55,8 +53,6 @@ public final class AssistSettings {
         tooltipScroll = false;
         rarityHighlight = false;
         noHurtCamera = false;
-        itemGuard = false;
-        itemGuardNotifications = true;
         autoSprint = false;
         wardrobeShortcut = false;
         petsShortcut = false;
@@ -83,8 +79,7 @@ public final class AssistSettings {
         tooltipScroll = bool(p, "inventory.tooltipScroll", "scrollableTooltipsEnabled", false);
         rarityHighlight = bool(p, "inventory.rarityHighlight", "itemRarityBordersEnabled", false);
         noHurtCamera = bool(p, "visual.noHurtCamera", "noHurtCamEnabled", false);
-        itemGuard = bool(p, "itemGuard.enabled", "itemProtectionEnabled", false);
-        itemGuardNotifications = bool(p, "itemGuard.notifications", "itemProtectionNotifications", true);
+        // Retired Item Protection keys (assist.itemGuard.* and old itemProtection*) are deliberately unread.
         autoSprint = bool(p, "movement.autoSprint", "autoSprintEnabled", false);
         wardrobeShortcut = bool(p, "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
         petsShortcut = bool(p, "shortcuts.pets", "petsShortcutEnabled", false);
@@ -112,8 +107,6 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "inventory.tooltipScroll", Boolean.toString(tooltipScroll));
         p.setProperty(PREFIX + "inventory.rarityHighlight", Boolean.toString(rarityHighlight));
         p.setProperty(PREFIX + "visual.noHurtCamera", Boolean.toString(noHurtCamera));
-        p.setProperty(PREFIX + "itemGuard.enabled", Boolean.toString(itemGuard));
-        p.setProperty(PREFIX + "itemGuard.notifications", Boolean.toString(itemGuardNotifications));
         p.setProperty(PREFIX + "movement.autoSprint", Boolean.toString(autoSprint));
         p.setProperty(PREFIX + "shortcuts.wardrobe", Boolean.toString(wardrobeShortcut));
         p.setProperty(PREFIX + "shortcuts.pets", Boolean.toString(petsShortcut));

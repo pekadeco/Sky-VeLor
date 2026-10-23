@@ -139,9 +139,6 @@ REQUIRED_CLASSES = [
     'assist/inventory/InventorySearchPolicy',
     'assist/inventory/RomanNumeralPolicy',
     'assist/inventory/TooltipWindow',
-    'assist/guard/ItemGuardController',
-    'assist/guard/ItemGuardPolicy',
-    'assist/guard/ItemGuardStore',
     'assist/movement/AutoSprintController',
     'assist/movement/AutoSprintPolicy',
     'assist/mining/MiningAssistController',
@@ -195,6 +192,11 @@ FORBIDDEN_CLASSES = [
     'gui/FontsScreen',
     'render/FontAtlasGenerator',
     'render/GlobalFontManager',
+    # Item Protection was retired; Item Lock / Swap remains in its separate package.
+    'assist/guard/ItemGuardController',
+    'assist/guard/ItemGuardPolicy',
+    'assist/guard/ItemGuardStore',
+    'assist/guard/ItemIdentity',
 ]
 
 # Minecraft members this mod really calls or overrides. Reobfuscation must have
@@ -460,15 +462,16 @@ def main():
     terminal_raw = raw_of('assist/dungeon/DungeonTerminalAssistController')
     mining_raw = raw_of('assist/mining/MiningAssistController')
     r.check(all(value in assist_settings_raw for value in
-                (b'assist.inventory.search', b'assist.itemGuard.enabled', b'assist.movement.autoSprint',
-                 b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
-                 b'assist.dungeon.terminal.autoClick')),
-            'AssistSettings packages namespaced inventory, safety, movement, terminal, and sync controls')
+                (b'assist.inventory.search', b'assist.movement.autoSprint', b'assist.dungeon.sync.enabled',
+                 b'assist.dungeon.sync.endpoint', b'assist.dungeon.terminal.autoClick'))
+                and b'itemGuard' not in assist_settings_raw,
+            'AssistSettings packages retained namespaced inventory, movement, terminal, and sync controls only')
     r.check(b'FeatureSettingsEditors' in assist_hub_raw and b'Dungeon Sync' in assist_hub_raw
                 and b'Auto Sprint' in assist_hub_raw and b'Auto Sprint' not in feature_editors_raw
+                and b'Item Protection' not in assist_hub_raw and b'Item Protection' not in feature_editors_raw
                 and all(value in feature_editors_raw for value in
-                        (b'Item Protection', b'Pickaxe Ability Ready Alert', b'Terminal Auto Click', b'Terminal Waypoints')),
-            'compact Hub keeps Auto Sprint simple while routing the remaining detailed assists through editors')
+                        (b'Pickaxe Ability Ready Alert', b'Terminal Auto Click', b'Terminal Waypoints')),
+            'compact Hub keeps Auto Sprint simple and has no retired Item Protection route')
     r.check(all(value in sync_client_raw for value in
                 (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
@@ -477,6 +480,12 @@ def main():
     r.check(b'lastAutoFingerprint' in terminal_raw and b'lastAutoSlot' in terminal_raw
                 and b'TerminalParsePolicy' in terminal_raw and b'sendChatMessage' not in mining_raw,
             'terminal automation remains fingerprint-guarded and the Puzzler helper remains read-only')
+    item_lock_hooks_raw = raw_of('itemlockswap/ItemLockSwapHooks')
+    lang_raw = zf.read('assets/pekaclient/lang/en_US.lang') if 'assets/pekaclient/lang/en_US.lang' in names else b''
+    r.check(b'ItemGuard' not in item_lock_hooks_raw and b'ITEM_GUARD_KEY' not in raw_of('PekaClientMod')
+                and b'itemGuard' not in lang_raw and b'ItemLockSwapProtection' in item_lock_hooks_raw
+                and b'ItemLockSwapController' in item_lock_hooks_raw,
+            'retired Item Protection has no runtime/keybind route while independent Item Lock / Swap remains active')
     visual_hooks_raw = raw_of('assist/visual/VisualAssistHooks')
     visual_transformer_raw = raw_of('assist/visual/VisualAssistTransformer')
     visual_status_raw = raw_of('assist/visual/VisualAssistHookStatus')

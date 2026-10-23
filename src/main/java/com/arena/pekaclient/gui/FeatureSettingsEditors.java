@@ -1,6 +1,5 @@
 package com.arena.pekaclient.gui;
 
-import com.arena.pekaclient.assist.guard.ItemGuardController;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
@@ -17,7 +16,6 @@ import com.arena.pekaclient.widget.AppleToggle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiControls;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.ChatComponentText;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,11 +41,6 @@ public final class FeatureSettingsEditors {
     public static FeatureSettingsEditorScreen inventoryAssist(GuiScreen parent) {
         return editor(parent, "inventory-assist", "Inventory Assist Settings", "Optional inventory and tooltip helpers.",
                 FeatureSettingsEditors::inventoryEntries, FeatureSettingsEditors::resetInventory);
-    }
-
-    public static FeatureSettingsEditorScreen itemProtection(GuiScreen parent) {
-        return editor(parent, "item-protection", "Item Protection Settings", "Local protection for selected UUID items only.",
-                FeatureSettingsEditors::itemProtectionEntries, FeatureSettingsEditors::resetItemProtection);
     }
 
     public static FeatureSettingsEditorScreen movementShortcuts(GuiScreen parent) {
@@ -173,20 +166,6 @@ public final class FeatureSettingsEditors {
                 value -> AssistSettings.rarityHighlight = value));
     }
 
-    private static void itemProtectionEntries(FeatureSettingsEditorScreen.Category ignored,
-                                              List<FeatureSettingsEditorScreen.Entry> entries) {
-        entries.add(toggle("Item Protection", assist("Item Protection"), () -> AssistSettings.itemGuard,
-                value -> AssistSettings.itemGuard = value));
-        entries.add(toggle("Item Protection Notifications", assist("Item Protection notifications"),
-                () -> AssistSettings.itemGuardNotifications, value -> AssistSettings.itemGuardNotifications = value));
-        entries.add(FeatureSettingsEditorScreen.Entry.action("Item Protection Status",
-                "Shows the current local selected UUID item-protection state in chat.", "Show Status", () -> {
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc != null && mc.thePlayer != null) mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b[Sky VeLor] \u00a7fItem Guard: "
-                    + ItemGuardController.statusText()));
-        }));
-    }
-
     private static void movementEntries(FeatureSettingsEditorScreen.Category ignored,
                                         List<FeatureSettingsEditorScreen.Entry> entries) {
         entries.add(toggle("Wardrobe Shortcut", assist("Wardrobe shortcut"), () -> AssistSettings.wardrobeShortcut,
@@ -246,7 +225,7 @@ public final class FeatureSettingsEditors {
                 value -> AppleSettings.qnCommand = value));
         entries.add(new FeatureSettingsEditorScreen.Entry("/velor itemdebug", "Shows live Item Animation values used by the renderer.", null));
         entries.add(new FeatureSettingsEditorScreen.Entry("/velor lockdebug", "Shows Item Lock/Swap settings and hook state.", null));
-        entries.add(new FeatureSettingsEditorScreen.Entry("/velor selftest", "Shows active core-hook, tooltip, camera and item-guard status.", null));
+        entries.add(new FeatureSettingsEditorScreen.Entry("/velor selftest", "Shows active core-hook, tooltip, camera, terminal and sync status.", null));
     }
 
     private static void miningEntries(GuiScreen parent, List<FeatureSettingsEditorScreen.Entry> entries) {
@@ -397,11 +376,6 @@ public final class FeatureSettingsEditors {
         AssistSettings.romanNumerals = false;
         AssistSettings.tooltipScroll = false;
         AssistSettings.rarityHighlight = false;
-    }
-
-    private static void resetItemProtection() {
-        AssistSettings.itemGuard = false;
-        AssistSettings.itemGuardNotifications = true;
     }
 
     private static void resetMovement() {

@@ -56,10 +56,6 @@ public final class AssistUiModel {
                 "Draw a static rarity tint behind supported inventory items");
         add(entries, TAB_QUALITY_OF_LIFE, "Simple features", "No Hurt Cam",
                 "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged");
-        add(entries, TAB_QUALITY_OF_LIFE, "Item safety", "Item Protection",
-                "Guard UUID-tagged SkyBlock items against destructive drops");
-        add(entries, TAB_QUALITY_OF_LIFE, "Item safety", "Item Protection notifications",
-                "Show local feedback when the item guard blocks an action");
         add(entries, TAB_QUALITY_OF_LIFE, "Simple features", "Auto Sprint",
                 "Sprints automatically while you hold forward.");
         add(entries, TAB_QUALITY_OF_LIFE, "Movement and shortcuts", "Wardrobe shortcut",

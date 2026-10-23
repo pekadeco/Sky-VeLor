@@ -119,9 +119,6 @@ public final class FeatureSettingsUiModel {
                 "inventory-assist", "inventory-search", "Inventory Assist", options("Inventory search and filter", "inventory-search",
                 "Hide potion effects in inventory", "hide-potions", "Roman numerals in tooltips", "roman-numerals",
                 "Scrollable item tooltips", "tooltip-scroll", "Item rarity highlight", "rarity-highlight"));
-        dropdown("item-protection", "Quality of Life", "Item Protection", "Protect selected UUID items and show status.",
-                "item-protection", "item-guard", "Item Protection", options("Item Protection", "item-guard",
-                "Item Protection notifications", "item-guard-notifications", "Item Protection status", "item-guard-status"));
         dropdown("movement-shortcuts", "Quality of Life", "Movement and Shortcuts", "Wardrobe and pets shortcuts.",
                 "movement-shortcuts", "wardrobe-shortcut", "Movement and Shortcuts", options("Wardrobe shortcut", "wardrobe-shortcut",
                 "Pets shortcut", "pets-shortcut"));

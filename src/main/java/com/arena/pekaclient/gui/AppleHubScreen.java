@@ -216,10 +216,6 @@ public class AppleHubScreen extends AppleScreen {
                 "Inventory Search and Filter", assistDescription("Inventory search and filter"),
                 () -> AssistSettings.inventorySearch, value -> AssistSettings.inventorySearch = value,
                 "Inventory Assist", () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this)));
-        editorFeature(rows, "Item Protection", "Protect selected UUID items locally and view status.",
-                "Item Protection", assistDescription("Item Protection"), () -> AssistSettings.itemGuard,
-                value -> AssistSettings.itemGuard = value, "Item Protection",
-                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemProtection(this)));
         editorFeature(rows, "Movement and Shortcuts", "Wardrobe and pets shortcuts.",
                 "Wardrobe Shortcut", assistDescription("Wardrobe shortcut"), () -> AssistSettings.wardrobeShortcut,
                 value -> AssistSettings.wardrobeShortcut = value, "Movement and Shortcuts",

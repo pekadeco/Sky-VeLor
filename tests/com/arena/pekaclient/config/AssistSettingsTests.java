@@ -17,10 +17,9 @@ public final class AssistSettingsTests {
     private static void defaultsAreSafe() {
         AssistSettings.load(new Properties());
         check("all intrusive controls default off", !AssistSettings.autoSprint && !AssistSettings.dungeonSync
-                && !AssistSettings.terminalAutoClick && !AssistSettings.itemGuard && !AssistSettings.inventorySearch
-                && !AssistSettings.noHurtCamera && !AssistSettings.miningAbilityAlert);
-        check("notification and endpoint defaults are usable", AssistSettings.itemGuardNotifications
-                && AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
+                && !AssistSettings.terminalAutoClick && !AssistSettings.inventorySearch && !AssistSettings.noHurtCamera
+                && !AssistSettings.miningAbilityAlert);
+        check("endpoint default is usable", AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
     }
 
     private static void legacyInputLoadsWithoutOverwritingOldFeatures() {
@@ -29,12 +28,13 @@ public final class AssistSettingsTests {
         old.setProperty("inventorySearchEnabled", "true");
         old.setProperty("autoSprintEnabled", "true");
         old.setProperty("itemProtectionEnabled", "true");
+        old.setProperty("assist.itemGuard.enabled", "true");
         old.setProperty("terminalGuiScale", "1.5");
         AssistSettings.load(old);
-        check("old friend aliases load", AssistSettings.miningAbilityAlert && AssistSettings.inventorySearch
-                && AssistSettings.autoSprint && AssistSettings.itemGuard && AssistSettings.terminalScale == 150);
-        check("old shared keys remain untouched", old.containsKey("itemProtectionEnabled")
-                && old.containsKey("inventorySearchEnabled"));
+        check("retained old aliases load", AssistSettings.miningAbilityAlert && AssistSettings.inventorySearch
+                && AssistSettings.autoSprint && AssistSettings.terminalScale == 150);
+        check("removed Item Protection keys are harmlessly ignored", old.containsKey("itemProtectionEnabled")
+                && old.containsKey("assist.itemGuard.enabled") && old.containsKey("inventorySearchEnabled"));
     }
 
     private static void roundTripAndBounds() {
@@ -49,9 +49,10 @@ public final class AssistSettingsTests {
         AssistSettings.terminalScale = 222;
         Properties saved = new Properties();
         AssistSettings.save(saved);
-        check("new keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
+        check("retained keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
                 && saved.containsKey("assist.visual.noHurtCamera") && saved.containsKey("assist.movement.autoSprint")
-                && saved.containsKey("assist.dungeon.sync.enabled") && saved.containsKey("assist.dungeon.terminal.autoClick"));
+                && saved.containsKey("assist.dungeon.sync.enabled") && saved.containsKey("assist.dungeon.terminal.autoClick")
+                && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.noHurtCamera
                 && AssistSettings.autoSprint && AssistSettings.dungeonSync

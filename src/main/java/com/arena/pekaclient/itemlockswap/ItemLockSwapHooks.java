@@ -1,6 +1,5 @@
 package com.arena.pekaclient.itemlockswap;
 
-import com.arena.pekaclient.assist.guard.ItemGuardController;
 import net.minecraft.entity.player.EntityPlayer;
 
 /** Static entry points woven into vanilla methods. Object bridge parameters keep the injected descriptors stable. */
@@ -18,7 +17,7 @@ public final class ItemLockSwapHooks {
             ItemLockSwapController.notifyBlocked("Item action blocked by Item Lock / Item Swap");
             return true;
         }
-        return ItemGuardController.shouldBlockWindowClick(slotId, mode, entity);
+        return false;
     }
 
     /** Called at EntityPlayerSP.dropOneItem(boolean)'s entry, covering Q and Ctrl+Q on selected hotbar positions. */
@@ -32,6 +31,6 @@ public final class ItemLockSwapHooks {
                     : "Item drop blocked by Item Lock / Item Swap (Q)");
             return true;
         }
-        return ItemGuardController.shouldBlockHeldDrop(entity);
+        return false;
     }
 }

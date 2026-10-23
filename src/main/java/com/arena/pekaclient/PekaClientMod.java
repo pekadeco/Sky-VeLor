@@ -1,7 +1,6 @@
 package com.arena.pekaclient;
 
 import com.arena.pekaclient.assist.ShortcutController;
-import com.arena.pekaclient.assist.guard.ItemGuardController;
 import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonBossTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
@@ -126,10 +125,6 @@ public class PekaClientMod {
             new KeyBinding("key.pekaclient.wardrobeShortcut", Keyboard.KEY_NONE, "key.categories.pekaclient");
     public static final KeyBinding PETS_SHORTCUT_KEY =
             new KeyBinding("key.pekaclient.petsShortcut", Keyboard.KEY_NONE, "key.categories.pekaclient");
-    /** Default-unbound local toggle for the held item's exact SkyBlock UUID. */
-    public static final KeyBinding ITEM_GUARD_KEY =
-            new KeyBinding("key.pekaclient.itemGuard", Keyboard.KEY_NONE, "key.categories.pekaclient");
-
     private boolean loadingShown;
     /** The world identity already given the explicit Item Animation launcher/hook diagnosis. */
     private Object itemAnimationReportedWorld;
@@ -149,7 +144,6 @@ public class PekaClientMod {
     private final AutoSprintController autoSprintController = new AutoSprintController();
     private final ShortcutController shortcutController = new ShortcutController();
     private final InventoryAssistController inventoryAssistController = new InventoryAssistController();
-    private final ItemGuardController itemGuardController = new ItemGuardController();
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
@@ -164,7 +158,6 @@ public class PekaClientMod {
         ClientRegistry.registerKeyBinding(ITEM_LOCK_SWAP_KEY);
         ClientRegistry.registerKeyBinding(WARDROBE_SHORTCUT_KEY);
         ClientRegistry.registerKeyBinding(PETS_SHORTCUT_KEY);
-        ClientRegistry.registerKeyBinding(ITEM_GUARD_KEY);
         // The Controls screen owns vanilla's options.txt copy; the feature config is authoritative on first load.
         if (ItemLockSwapKeybind.canBind(ItemLockSwapSettings.keyCode)) {
             ITEM_LOCK_SWAP_KEY.setKeyCode(ItemLockSwapSettings.keyCode);
@@ -199,7 +192,6 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(autoSprintController);
         MinecraftForge.EVENT_BUS.register(shortcutController);
         MinecraftForge.EVENT_BUS.register(inventoryAssistController);
-        MinecraftForge.EVENT_BUS.register(itemGuardController);
     }
 
     /**

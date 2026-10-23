@@ -21,7 +21,6 @@ Simple rows come before dropdowns in each tab. There are no tree arrows, connect
 | Quality of Life | No Block Particles | Simple | this tab's toggle |
 | Quality of Life | Disable Hotbar Scrolling | Simple | this tab's toggle |
 | Quality of Life | Inventory Assist | Dropdown | Inventory Assist Settings editor |
-| Quality of Life | Item Protection | Dropdown | Item Protection Settings editor |
 | Quality of Life | Movement and Shortcuts | Dropdown | Movement and Shortcuts editor |
 | Quality of Life | Item Lock and Swap | Dropdown | Item Lock & Swap Settings editor |
 | Quality of Life | Chat QoL | Dropdown | existing Chat Editor |
