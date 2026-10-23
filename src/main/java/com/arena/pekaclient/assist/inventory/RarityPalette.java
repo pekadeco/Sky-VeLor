@@ -1,7 +1,6 @@
 package com.arena.pekaclient.assist.inventory;
 
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Local, read-only SkyBlock rarity parsing for the optional inventory tint. It purposefully accepts only explicit
@@ -24,7 +23,7 @@ public final class RarityPalette {
 
     public static int colorForText(String text) {
         if (text == null || text.length() == 0) return 0;
-        String normalized = InventorySearchPolicy.normalize(text).replace(" ", "").toUpperCase(Locale.ROOT);
+        String normalized = rarityWords(text);
         // Test the compound phrase before SPECIAL, which it contains.
         if (normalized.indexOf("VERYSPECIAL") >= 0) return 0xFFFF5555;
         if (normalized.indexOf("SUPREME") >= 0) return 0xFFAA0000;
@@ -37,6 +36,23 @@ public final class RarityPalette {
         if (normalized.indexOf("COMMON") >= 0) return 0xFFAAAAAA;
         if (normalized.indexOf("SPECIAL") >= 0) return 0xFFFF5555;
         return 0;
+    }
+
+    /**
+     * Rarity parsing only needs formatted-text cleanup, kept local so it does not retain an Inventory Search runtime
+     * dependency or any filter/query surface. Spaces and punctuation are deliberately omitted for compound words.
+     */
+    private static String rarityWords(String value) {
+        StringBuilder out = new StringBuilder(Math.min(value.length(), 512));
+        for (int index = 0; index < value.length() && out.length() < 512; index++) {
+            char c = value.charAt(index);
+            if (c == '\u00a7' && index + 1 < value.length()) {
+                index++;
+            } else if (Character.isLetterOrDigit(c)) {
+                out.append(Character.toUpperCase(c));
+            }
+        }
+        return out.toString();
     }
 
     /** Static lower-weighted alpha: never animated, so it has no time-based cost or visual flicker. */

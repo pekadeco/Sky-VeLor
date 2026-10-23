@@ -38,6 +38,8 @@ call :run com.arena.pekaclient.chat.ChatMenuInputRouterTests || goto fail
 call :run com.arena.pekaclient.chat.ChatVisibilityAuditTests || goto fail
 if errorlevel 1 goto fail
 call :run com.arena.pekaclient.hud.ConfigTests || goto fail
+call :run com.arena.pekaclient.hud.StatsHudTextTests || goto fail
+call :run com.arena.pekaclient.compat.RemovedFeatureSurfaceTests || goto fail
 call :run com.arena.pekaclient.feature.LeapTextTests || goto fail
 call :run com.arena.pekaclient.feature.LeapIdentityTests || goto fail
 call :run com.arena.pekaclient.feature.LeapClassCacheTests || goto fail
@@ -72,6 +74,7 @@ call :run com.arena.pekaclient.feature.ItemAnimationTests || goto fail
 call :run com.arena.pekaclient.feature.VisualSwingStateMachineTests || goto fail
 call :run com.arena.pekaclient.feature.SwingEasingTests || goto fail
 call :run com.arena.pekaclient.feature.ChatTabsTests || goto fail
+call :run com.arena.pekaclient.feature.ChatTabClosePolicyTests || goto fail
 call :run com.arena.pekaclient.feature.ChatInteractionModelTests || goto fail
 call :run com.arena.pekaclient.gui.ChatQolLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.LivePreviewEditorTests || goto fail

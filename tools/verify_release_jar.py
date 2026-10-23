@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9v] [--mcmod-version 0.10.8.9]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.1v] [--mcmod-version 0.10.8.9.1]
 """
 
 import argparse
@@ -59,6 +59,7 @@ REQUIRED_CLASSES = [
     'feature/ChatTabLayout',
     'feature/ChatInteractionModel',
     'feature/ChatChannelTabs',
+    'feature/ChatTabClosePolicy',
     'feature/ChatSurfaceRenderer',
     'command/ItemDebugCommand',
     'command/SvCommand',
@@ -136,12 +137,11 @@ REQUIRED_CLASSES = [
     'itemlockswap/ItemLockSwapTransformer',
     'itemlockswap/ItemLockSwapController',
     'widget/AppleKeybindButton',
-    # Beta-0.10.8.8 clean-room assist runtime: requiring these keeps a release from claiming
+    # Assist runtime: requiring these keeps a release from claiming
     # the feature catalogue while accidentally packaging only its settings/UI surface.
     'config/AssistSettings',
     'assist/ShortcutController',
     'assist/inventory/InventoryAssistController',
-    'assist/inventory/InventorySearchPolicy',
     'assist/inventory/RomanNumeralPolicy',
     'assist/inventory/TooltipWindow',
     'assist/movement/AutoSprintController',
@@ -164,6 +164,8 @@ REQUIRED_CLASSES = [
     'assist/visual/VisualAssistTransformer',
     'hud/MiningAssistantHud',
     'hud/DungeonBossHud',
+    'hud/StatsHud',
+    'hud/StatsHudText',
 ]
 
 # Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
@@ -181,7 +183,7 @@ FORBIDDEN_CLASSES = [
     # The per-frame level-tag renderer was replaced by the cached yellow-star Dungeon ESP.
     'render/MobHighlight',
     'feature/MobMarkers',
-    # Beta-0.10.8.8 retains the one-default-chat implementation and no split-chat classes.
+    # The one-default-chat implementation retains no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -202,6 +204,10 @@ FORBIDDEN_CLASSES = [
     'assist/guard/ItemGuardPolicy',
     'assist/guard/ItemGuardStore',
     'assist/guard/ItemIdentity',
+    # Beta-0.10.8.9.1 retires only the Player Dollars and Inventory Search implementations.
+    'hud/DollarsHud',
+    'hud/BalanceSource',
+    'assist/inventory/InventorySearchPolicy',
 ]
 
 # Minecraft members this mod really calls or overrides. Reobfuscation must have
@@ -322,8 +328,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.1v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.1')
     args = ap.parse_args()
 
     path = args.jar
@@ -455,7 +461,7 @@ def main():
         path = MOD_PACKAGE + cls + '.class'
         return zf.read(path) if path in names else b''
 
-    # --- Beta-0.10.8.8 clean-room assist proof --------------------------------
+    # --- Assist and Beta-0.10.8.9.1 migration proof --------------------------
     # Presence alone is not enough: these checks tie the persisted safe-default controls, Hub labels,
     # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
     assist_settings_raw = raw_of('config/AssistSettings')
@@ -467,16 +473,17 @@ def main():
     terminal_raw = raw_of('assist/dungeon/DungeonTerminalAssistController')
     mining_raw = raw_of('assist/mining/MiningAssistController')
     r.check(all(value in assist_settings_raw for value in
-                (b'assist.inventory.search', b'assist.movement.autoSprint', b'assist.dungeon.sync.enabled',
-                 b'assist.dungeon.sync.endpoint', b'assist.dungeon.terminal.autoClick'))
+                (b'assist.visual.hurtCameraShake', b'assist.movement.autoSprint', b'assist.dungeon.sync.enabled',
+                 b'assist.dungeon.sync.endpoint', b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier'))
                 and b'itemGuard' not in assist_settings_raw,
-            'AssistSettings packages retained namespaced inventory, movement, terminal, and sync controls only')
+            'AssistSettings packages bounded Hurt Camera Shake plus retained inventory, movement, terminal, and sync controls')
     r.check(b'FeatureSettingsEditors' in assist_hub_raw and b'Dungeon Sync' in assist_hub_raw
-                and b'Auto Sprint' in assist_hub_raw and b'Auto Sprint' not in feature_editors_raw
+                and b'Hurt Camera Shake' in assist_hub_raw and b'Auto Sprint' in assist_hub_raw
+                and b'Auto Sprint' not in feature_editors_raw
                 and b'Item Protection' not in assist_hub_raw and b'Item Protection' not in feature_editors_raw
                 and all(value in feature_editors_raw for value in
                         (b'Pickaxe Ability Ready Alert', b'Terminal Auto Click', b'Terminal Waypoints')),
-            'compact Hub keeps Auto Sprint simple and has no retired Item Protection route')
+            'compact Hub exposes the direct shake slider/Auto Sprint and has no retired Item Protection route')
     r.check(all(value in sync_client_raw for value in
                 (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
@@ -496,25 +503,22 @@ def main():
     visual_status_raw = raw_of('assist/visual/VisualAssistHookStatus')
     client_mod_raw = raw_of('PekaClientMod')
     selftest_raw = raw_of('command/SvCommand')
-    no_hurt_ui = (b'assist.visual.noHurtCamera' in assist_settings_raw and b'No Hurt Cam' in assist_hub_raw
-                  and b'No Hurt Camera' not in feature_editors_raw)
-    # The transformer builds its local hook method name at runtime so reobfJar cannot rewrite it as an MCP literal.
-    # The packed transformer still carries its explicit notch EntityRenderer target, float descriptor, and hook owner;
-    # headless transformer tests exercise all MCP/SRG/notch aliases and the exact generated method name.
-    no_hurt_hook_tokens = tuple(value in visual_transformer_raw for value in
-                                (b'bfk', b'(F)V', b'VisualAssistHooks'))
-    no_hurt_hook = all(no_hurt_hook_tokens)
-    # reobfJar maps Minecraft's hurtTime field, so prove the fallback through Sky VeLor-owned
-    # method/class references instead of requiring its MCP field spelling in the packed bytecode.
-    no_hurt_fallback = (all(value in visual_hooks_raw for value in
-                            (b'zeroFallbackVisualTilt', b'shouldUseVisualFallback', b'VisualAssistHookStatus',
-                             b'AssistSettings'))
-                        and b'zeroFallbackVisualTilt' in client_mod_raw and b'FALLBACK' in visual_status_raw)
-    no_hurt_selftest = b'no hurt cam' in selftest_raw
-    r.check(no_hurt_ui and no_hurt_hook and no_hurt_fallback and no_hurt_selftest,
-            'No Hurt Cam is default-off, visual-only, hook-first with local-tilt fallback and selftest status',
-            'ui=%s hook=%s tokens=%s fallback=%s selftest=%s' %
-            (no_hurt_ui, no_hurt_hook, no_hurt_hook_tokens, no_hurt_fallback, no_hurt_selftest))
+    # The narrow transformer carries the explicit EntityRenderer aliases/float descriptor and calls one owned
+    # amplitude helper. The persisted percentage stays in AssistSettings; no player hurt-time fallback is allowed.
+    shake_ui = (b'assist.visual.hurtCameraShake' in assist_settings_raw and b'Hurt Camera Shake' in assist_hub_raw
+                and b'No Hurt Cam' not in assist_hub_raw and b'No Hurt Camera' not in feature_editors_raw)
+    shake_hook_tokens = tuple(value in visual_transformer_raw for value in
+                              (b'bfk', b'(F)V', b'VisualAssistHooks'))
+    shake_hook = all(shake_hook_tokens) and all(value in visual_hooks_raw for value in
+                                                (b'scaleHurtCameraTilt', b'hurtCameraShakeMultiplier'))
+    shake_no_fallback = (b'zeroFallbackVisualTilt' not in visual_hooks_raw
+                         and b'zeroFallbackVisualTilt' not in client_mod_raw
+                         and b'shouldUseVisualFallback' not in visual_hooks_raw)
+    shake_status = (b'hurt camera shake' in selftest_raw and b'hurtCameraInjected' in visual_status_raw)
+    r.check(shake_ui and shake_hook and shake_no_fallback and shake_status,
+            'Hurt Camera Shake persists 0-100% and scales only the narrow hurt-camera amplitude without a fallback',
+            'ui=%s hook=%s tokens=%s noFallback=%s status=%s' %
+            (shake_ui, shake_hook, shake_hook_tokens, shake_no_fallback, shake_status))
     auto_sprint_raw = raw_of('assist/movement/AutoSprintController')
     auto_sprint_policy_raw = raw_of('assist/movement/AutoSprintPolicy')
     r.check(b'assist.movement.autoSprint' in assist_settings_raw and b'Auto Sprint' in assist_hub_raw
@@ -591,11 +595,12 @@ def main():
     hub_members = members_of('gui/AppleHubScreen')
     flat_model_raw = raw_of('gui/FeatureSettingsUiModel')
     r.check(b'HudEditorScreen' in hub_raw and b'AppleToggle' in hub_raw and b'AppleButton' in hub_raw
-                and audit_ref in hub_raw and model_ref in raw_of('gui/HudEditorScreen')
-                and all(value in flat_model_raw for value in (b'simple', b'dropdown', b'editor-button',
-                                                               b'Mob ESP', b'Door ESP', b'On/Off', b'Settings'))
+                and b'AppleSlider' in hub_raw and audit_ref in hub_raw and model_ref in raw_of('gui/HudEditorScreen')
+                and all(value in flat_model_raw for value in (b'simple', b'slider', b'dropdown', b'editor-button',
+                                                               b'Hurt Camera Shake', b'Mob ESP', b'Door ESP',
+                                                               b'On/Off', b'Settings'))
                 and b'FeatureRowControl' not in hub_raw and b'FeatureTreeLayout' not in hub_raw,
-            'flat Hub keeps one-level Item Animation and ESP routes with only On/Off and Settings controls')
+            'flat Hub keeps direct shake slider/settings routes and one-level Item Animation/ESP dropdowns')
     r.check(b'HudSettingsBuilder' not in hub_raw,
             'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
     feature_editor_titles_raw = raw_of('gui/FeatureSettingsEditors')
@@ -620,12 +625,20 @@ def main():
     metric_compat_raw = raw_of('hud/HudConfigCompatibility')
     metric_layout_raw = raw_of('gui/GeneralMetricsLayout')
     hud_manager_raw = raw_of('hud/HudManager')
+    stats_hud_raw = raw_of('hud/StatsHud')
+    stats_text_raw = raw_of('hud/StatsHudText')
     r.check(b'ClientMetrics' in hub_raw and b'GeneralMetricsLayout' in hub_raw
                 and len(metric_raw) > 0 and len(metric_compat_raw) > 0 and len(metric_layout_raw) > 0
                 and MOD_PACKAGE + 'hud/ClientMetricHud.class' not in names
                 and b'ClientMetricHud' not in hud_manager_raw and b'FPS_DISPLAY' not in hud_manager_raw
-                and b'PING_DISPLAY' not in hud_manager_raw and b'MEMORY_DISPLAY' not in hud_manager_raw,
-            'General GUI owns cached local FPS/tab-list Ping/used-max Memory telemetry while retired metric HUD keys are ignored')
+                and b'PING_DISPLAY' not in hud_manager_raw and b'MEMORY_DISPLAY' not in hud_manager_raw
+                and b'StatsHud' in hud_manager_raw and all(value in stats_hud_raw for value in
+                        (b'FRAME RATE', b'MINING', b'MEMORY', b'bevelRect', b'ClientMetrics', b'MiningTracker'))
+                and all(value in stats_text_raw for value in (b' fps', b' BPS', b' MB')),
+            'General keeps cached FPS/Ping/heap telemetry while restored Stats Display packages Frame Rate, Mining and Memory cards')
+    r.check(MOD_PACKAGE + 'hud/DollarsHud.class' not in names and MOD_PACKAGE + 'hud/BalanceSource.class' not in names
+                and b'DollarsHud' not in hud_manager_raw and b'BalanceSource' not in hud_manager_raw,
+            'Player Dollars HUD and manual balance source have no packaged runtime route')
     r.check(MOD_PACKAGE + 'hud/HotbarHud.class' not in names and b'HotbarHud' not in hud_manager_raw
                 and b'HOTBAR' not in hub_raw and b'hud-hotbar' not in flat_model_raw
                 and b'hotbar' not in raw_of('gui/GuiSettingsAuditModel'),
@@ -683,6 +696,12 @@ def main():
     menu_router_raw = raw_of('chat/ChatMenuInputRouter')
     visibility_reason_raw = raw_of('chat/ChatVisibilityAudit$Reason')
     tabs_members = members_of('feature/ChatChannelTabs')
+    chat_close_policy_raw = raw_of('feature/ChatTabClosePolicy')
+    r.check(b'guiChatWasOpen' in tabs_raw and b'shouldResetToAll' in tabs_raw
+                and b'resetSelectedTabAfterChatClose' in tabs_raw
+                and b'shouldResetToAll' in chat_close_policy_raw
+                and b'wasGuiChatOpen' in chat_close_policy_raw,
+            'Chat QoL resets the selected tab only on a GuiChat open-to-closed transition')
     r.check(b'ChatMessageHistory' in tabs_raw and b'GuiUtilRenderComponents' in tabs_raw
                 and all(name in tabs_members for name in
                         ('arrivalOrder', 'newestArrivalFirst', 'originalForCompactGroup', 'sequence',
@@ -786,11 +805,12 @@ def main():
             'Mod Settings is scroll-only and carries neither duplicate Item Animation nor Chat QoL master control')
     r.check(b'com/arena/pekaclient/gui/QualityOfLifeUiModel' in hub_raw
                 and b'No Hotbar Scrolling' in quality_ui_raw and b'Disable Hotbar Scrolling' not in quality_ui_raw
+                and b'Hurt Camera Shake' in quality_ui_raw and b'No Hurt Cam' not in quality_ui_raw
                 and b'No block particles' not in mod_settings_raw
                 and all(value in quality_ui_constants for value in
                         ('Simple features', 'Feature editors'))
                 and b'Item Animation' not in quality_ui_raw,
-            'Quality of Life keeps its simple gameplay rows before flat feature-editor dropdowns')
+            'Quality of Life keeps direct toggle/percentage rows before flat feature-editor routes')
 
     # Spirit Leap's sensitive GUI interception reruns the established sidebar detector at the actual open event;
     # the self-test carries the same result, reason, and matched score line to make a fail-closed decision visible.

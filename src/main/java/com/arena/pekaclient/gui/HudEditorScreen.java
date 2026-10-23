@@ -2,7 +2,6 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.feature.ItemAnimation;
-import com.arena.pekaclient.hud.BalanceSource;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.hud.HudPlacement;
@@ -253,7 +252,6 @@ public final class HudEditorScreen extends AppleScreen {
     private final Anim openAnim = new Anim(0f);
     private final List<Entry> entries = new ArrayList<Entry>();
     private final List<Widget> bar = new ArrayList<Widget>();
-    private final SearchField manualField = new SearchField("Enter amount");
     // Exact-value fields deliberately live in the same inspector card as their sliders. Clicking one starts a
     // fresh numeric entry, so touch users do not need cursor-selection support to replace a value exactly.
     private final SearchField itemAnimationXField = new SearchField("Type -150 to 150");
@@ -331,8 +329,6 @@ public final class HudEditorScreen extends AppleScreen {
         this.parent = parent;
         this.resetAllBtn = new AppleButton("Reset all", 74f, 22f, false, this::resetAll);
         this.doneBtn = new AppleButton("Done", 56f, 22f, true, this::close);
-        this.manualField.w = CONTROL_W;
-        this.manualField.h = 22f;
         configureItemAnimationExactField(itemAnimationXField);
         configureItemAnimationExactField(itemAnimationYField);
         configureItemAnimationExactField(itemAnimationZField);
@@ -465,7 +461,6 @@ public final class HudEditorScreen extends AppleScreen {
 
     private void resetInspector() {
         openDropdown = null;
-        manualField.setFocused(false);
         clearItemAnimationExactFields();
         scroll.reset();
         rebuild();
@@ -498,8 +493,7 @@ public final class HudEditorScreen extends AppleScreen {
             buildItemAnimationEntries();
             return;
         }
-        List<HudSettingsBuilder.Item> items = HudSettingsBuilder.build(
-                selected, manualField, this::changed, this::applyManual, true);
+        List<HudSettingsBuilder.Item> items = HudSettingsBuilder.build(selected, this::changed, true);
         for (HudSettingsBuilder.Item item : items) {
             entries.add(new Entry(item.label, item.control));
         }
@@ -775,7 +769,6 @@ public final class HudEditorScreen extends AppleScreen {
         if (previous != null) {
             applyItemAnimationExact(previous);
         }
-        manualField.setFocused(false);
         field.clear();
         field.setFocused(true);
     }
@@ -881,18 +874,6 @@ public final class HudEditorScreen extends AppleScreen {
         ItemAnimationValue value = itemAnimationValue(field);
         return typed == '.' && (value == ItemAnimationValue.X || value == ItemAnimationValue.Y
                 || value == ItemAnimationValue.Z) && field.text().indexOf('.') < 0;
-    }
-
-    private void applyManual() {
-        if (!BalanceSource.applyTyped(manualField.text())) {
-            return;
-        }
-        manualField.clear();
-        manualField.setFocused(false);
-        changed();
-        ItemAnimation.stopPreviewSwingLoop();
-        HudManager.save();
-        AppleSettings.save();
     }
 
     private void resetAll() {
@@ -1497,12 +1478,6 @@ public final class HudEditorScreen extends AppleScreen {
             return;
         }
         applyFocusedItemAnimationExact();
-        if (target == EditorTarget.HUD_ELEMENT && manualField.contains(mx, my) && inCardView(mx, my)) {
-            manualField.setFocused(true);
-            return;
-        }
-        manualField.setFocused(false);
-
         Widget w = widgetAt(mx, my);
         if (w != null) {
             beginWidgetGesture(w, mx, my);
@@ -1626,8 +1601,6 @@ public final class HudEditorScreen extends AppleScreen {
             } else if (exactField != null) {
                 exactField.clear();
                 exactField.setFocused(false);
-            } else if (manualField.isFocused()) {
-                manualField.setFocused(false);
             } else {
                 close();
             }
@@ -1640,17 +1613,6 @@ public final class HudEditorScreen extends AppleScreen {
             }
             if (acceptsItemAnimationKey(exactField, c, code)) {
                 exactField.keyTyped(c, code);
-            }
-            return;
-        }
-        if (manualField.isFocused()) {
-            if (code == Keyboard.KEY_RETURN || code == Keyboard.KEY_NUMPADENTER) {
-                applyManual();
-                return;
-            }
-            // Digits only.
-            if (BalanceSource.acceptsKey(c, code)) {
-                manualField.keyTyped(c, code);
             }
             return;
         }

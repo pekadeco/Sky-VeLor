@@ -13,21 +13,21 @@ public final class QualityOfLifeUiModelTests {
     private static int failed;
 
     public static void main(String[] args) {
-        List<QualityOfLifeUiModel.Entry> quality = QualityOfLifeUiModel.buildToggleModel();
+        List<QualityOfLifeUiModel.Entry> quality = QualityOfLifeUiModel.buildControlModel();
         List<ModSettingsUiModel.Entry> mod = ModSettingsUiModel.buildScrollModel();
         List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
         List<ItemAnimationUiModel.Entry> hud = ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
 
         check("Quality of Life has its dedicated tab label", "Quality of Life".equals(QualityOfLifeUiModel.TAB_LABEL));
-        check("Quality of Life starts with its four simple toggles", quality.size() == 4
-                && "no-block-particles".equals(quality.get(0).getId())
+        check("Quality of Life starts with direct toggle/slider controls", quality.size() == 4
+                && "no-block-particles".equals(quality.get(0).getId()) && quality.get(0).isToggle()
                 && "disable-hotbar-scrolling".equals(quality.get(1).getId())
                 && "No Hotbar Scrolling".equals(quality.get(1).getLabel())
-                && "no-hurt-cam".equals(quality.get(2).getId())
-                && "No Hurt Cam".equals(quality.get(2).getLabel())
-                && "auto-sprint".equals(quality.get(3).getId())
+                && "hurt-camera-shake".equals(quality.get(2).getId()) && quality.get(2).isSlider()
+                && "Hurt Camera Shake".equals(quality.get(2).getLabel())
+                && "auto-sprint".equals(quality.get(3).getId()) && quality.get(3).isToggle()
                 && "Sprints automatically while you hold forward.".equals(quality.get(3).getDescription()));
-        check("Quality of Life simple toggles are not duplicated", uniqueQualityIds(quality));
+        check("Quality of Life direct control ids are not duplicated", uniqueQualityIds(quality));
         check("General is the first hub tab", AppleHubScreen.PAGE_NAMES.length == 7
                 && "General".equals(AppleHubScreen.PAGE_NAMES[0])
                 && "Quality of Life".equals(AppleHubScreen.PAGE_NAMES[1]));

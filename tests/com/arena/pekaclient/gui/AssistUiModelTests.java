@@ -22,11 +22,12 @@ public final class AssistUiModelTests {
             check("has label " + entry.name, entry.name.length() > 0 && names.add(entry.name));
             check("has one-line description " + entry.name, entry.description.length() >= 12 && entry.description.indexOf('\n') < 0);
         }
-        AssistUiModel.Entry noHurtCam = AssistUiModel.find("No Hurt Cam");
+        AssistUiModel.Entry hurtCameraShake = AssistUiModel.find("Hurt Camera Shake");
         AssistUiModel.Entry autoSprint = AssistUiModel.find("Auto Sprint");
-        check("new areas are represented", AssistUiModel.find("Dungeon Sync") != null
+        check("current areas are represented", AssistUiModel.find("Dungeon Sync") != null
                 && AssistUiModel.find("Mining Assistant HUD") != null && AssistUiModel.find("Item Protection") == null
-                && noHurtCam != null && "Simple features".equals(noHurtCam.group)
+                && AssistUiModel.find("Inventory search and filter") == null
+                && hurtCameraShake != null && "Simple features".equals(hurtCameraShake.group)
                 && autoSprint != null && "Simple features".equals(autoSprint.group)
                 && "Sprints automatically while you hold forward.".equals(autoSprint.description));
     }

@@ -4,13 +4,12 @@ import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 /**
- * Two deliberately small, fail-closed 1.8.9 hooks: one local tooltip-list preparation point and one early return in
- * the local hurt-camera method. Every unfamiliar class or method returns untouched vanilla bytecode.
+ * Two deliberately small, fail-closed 1.8.9 hooks: one local tooltip-list preparation point and one multiplier at
+ * vanilla's local hurt-camera tilt amplitude. Every unfamiliar class or method returns untouched vanilla bytecode.
  */
 public final class VisualAssistTransformer implements IClassTransformer {
 
@@ -22,6 +21,8 @@ public final class VisualAssistTransformer implements IClassTransformer {
     private static final String HURT_CAMERA_DESC = "(F)V";
     private static final String TOOLTIP_OWNER = "com/arena/pekaclient/assist/inventory/InventoryAssistHooks";
     private static final String HURT_OWNER = "com/arena/pekaclient/assist/visual/VisualAssistHooks";
+    /** Vanilla 1.8.9 applies this factor only to the normal hurt-camera roll, never to its death roll. */
+    private static final float VANILLA_HURT_TILT_AMPLITUDE = 14.0F;
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -53,7 +54,7 @@ public final class VisualAssistTransformer implements IClassTransformer {
             HurtCameraVisitor visitor = new HurtCameraVisitor(writer);
             reader.accept(visitor, ClassReader.EXPAND_FRAMES);
             if (visitor.injected) VisualAssistHookStatus.hurtCameraInjected(visitor.mapping);
-            else VisualAssistHookStatus.hurtCameraUnavailable("EntityRenderer hurtCameraEffect target not found");
+            else VisualAssistHookStatus.hurtCameraUnavailable("EntityRenderer hurtCameraEffect amplitude target not found");
             return visitor.changed ? writer.toByteArray() : bytes;
         } catch (Throwable failure) {
             VisualAssistHookStatus.hurtCameraUnavailable("EntityRenderer transformer error: " + failure.getClass().getSimpleName());
@@ -71,7 +72,7 @@ public final class VisualAssistTransformer implements IClassTransformer {
     }
 
     private static String hurtCameraHookMethod() {
-        return new String(new char[]{'s', 'u', 'p', 'p', 'r', 'e', 's', 's', 'H', 'u', 'r', 't', 'C', 'a', 'm', 'e', 'r', 'a'});
+        return new String(new char[]{'s', 'c', 'a', 'l', 'e', 'H', 'u', 'r', 't', 'C', 'a', 'm', 'e', 'r', 'a', 'T', 'i', 'l', 't'});
     }
 
     private static boolean matches(String name, String transformedName, String mcp, String notch) {
@@ -142,15 +143,17 @@ public final class VisualAssistTransformer implements IClassTransformer {
             mapping = mapping(name);
             return new MethodVisitor(Opcodes.ASM5, parent) {
                 @Override
-                public void visitCode() {
-                    super.visitCode();
-                    Label continueVanilla = new Label();
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, HURT_OWNER, hurtCameraHookMethod(), "()Z", false);
-                    super.visitJumpInsn(Opcodes.IFEQ, continueVanilla);
-                    super.visitInsn(Opcodes.RETURN);
-                    super.visitLabel(continueVanilla);
-                    injected = true;
-                    changed = true;
+                public void visitLdcInsn(Object value) {
+                    super.visitLdcInsn(value);
+                    // In 1.8.9 this exact literal is multiplied into the regular hurt roll. It is not used by the
+                    // death roll, so multiplying it is narrower than changing EntityLivingBase.hurtTime or returning
+                    // early from hurtCameraEffect.
+                    if (!injected && value instanceof Float
+                            && Float.compare(((Float) value).floatValue(), VANILLA_HURT_TILT_AMPLITUDE) == 0) {
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, HURT_OWNER, hurtCameraHookMethod(), "(F)F", false);
+                        injected = true;
+                        changed = true;
+                    }
                 }
             };
         }

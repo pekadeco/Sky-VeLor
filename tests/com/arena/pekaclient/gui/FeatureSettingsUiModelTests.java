@@ -11,7 +11,7 @@ public final class FeatureSettingsUiModelTests {
 
     public static void main(String[] args) {
         preservesOldConfigurationAndEditorState();
-        flatRowsUseOnlyTheTwoAllowedForms();
+        directRowsAndDropdownsStayFlat();
         everyOldSurfaceHasOneRoute();
         categoryNamesAndDungeonOrderRemainExact();
         everyDungeonEspControlStillHasARoute();
@@ -35,14 +35,22 @@ public final class FeatureSettingsUiModelTests {
         check("old presentation key does not prevent settings loading", "false".equals(p.getProperty("ui.feature.tree.dungeon.mob-esp")));
     }
 
-    private static void flatRowsUseOnlyTheTwoAllowedForms() {
+    private static void directRowsAndDropdownsStayFlat() {
         check("dropdown depth is at most one", FeatureSettingsUiModel.maximumDropdownDepth() <= 1);
         for (FeatureSettingsUiModel.Feature feature : FeatureSettingsUiModel.features()) {
             if (feature.isSimple()) {
-                check("simple row has only a toggle: " + feature.id,
-                        feature.tabControls.size() == 1 && FeatureSettingsUiModel.TOGGLE.equals(feature.tabControls.get(0)));
-                check("simple row has no editor: " + feature.id, feature.editorId.length() == 0
-                        && feature.editorButtonLabel.length() == 0);
+                check("direct row has exactly one control: " + feature.id, feature.tabControls.size() == 1);
+                String control = feature.tabControls.get(0);
+                check("direct row is toggle, slider, or Settings route: " + feature.id,
+                        FeatureSettingsUiModel.TOGGLE.equals(control) || FeatureSettingsUiModel.SLIDER.equals(control)
+                                || FeatureSettingsUiModel.EDITOR_BUTTON.equals(control));
+                if (FeatureSettingsUiModel.EDITOR_BUTTON.equals(control)) {
+                    check("direct Settings route has its editor: " + feature.id,
+                            feature.editorId.length() > 0 && "Settings".equals(feature.editorButtonLabel));
+                } else {
+                    check("direct value control has no editor: " + feature.id, feature.editorId.length() == 0
+                            && feature.editorButtonLabel.length() == 0);
+                }
             } else {
                 check("dropdown has exactly toggle plus editor button: " + feature.id,
                         feature.tabControls.size() == 2 && FeatureSettingsUiModel.TOGGLE.equals(feature.tabControls.get(0))
@@ -66,14 +74,18 @@ public final class FeatureSettingsUiModelTests {
         check("Hotbar customization is not a HUD row", FeatureSettingsUiModel.feature("hud-hotbar") == null);
         check("Item Protection is not a Quality of Life row", FeatureSettingsUiModel.feature("item-protection") == null);
         check("No Block Particles is a simple row",  FeatureSettingsUiModel.feature("no-block-particles").isSimple());
-        check("No Hurt Cam is a simple row", FeatureSettingsUiModel.feature("no-hurt-cam").isSimple());
+        check("Hurt Camera Shake is a direct slider", FeatureSettingsUiModel.feature("hurt-camera-shake").isSlider());
+        check("binary No Hurt Cam has no feature route", FeatureSettingsUiModel.feature("no-hurt-cam") == null);
+        check("Inventory Search has no option route", FeatureSettingsUiModel.option("inventory-search") == null);
+        check("Inventory Assist has a direct Settings route", FeatureSettingsUiModel.feature("inventory-assist").isSettingsRoute());
+        check("Stats Display is a HUD editor route", isDropdownEditor("hud-stats", "hud"));
         check("Auto Sprint is a simple row", FeatureSettingsUiModel.feature("auto-sprint").isSimple());
-        check("renamed simple labels are plain", "No Hotbar Scrolling".equals(
+        check("renamed direct labels are plain", "No Hotbar Scrolling".equals(
                 FeatureSettingsUiModel.feature("disable-hotbar-scrolling").title)
                 && "Dungeon Sync".equals(FeatureSettingsUiModel.feature("dungeon-sync-enabled").title)
                 && "Sync Details".equals(FeatureSettingsUiModel.feature("dungeon-sync-debug").title));
         check("Auto Sprint owns only its simple toggle", ownsOnlySimpleToggle("auto-sprint", "auto-sprint"));
-        check("No Hurt Cam owns only its simple toggle", ownsOnlySimpleToggle("no-hurt-cam", "no-hurt-cam"));
+        check("Hurt Camera Shake owns only its direct slider", ownsOnlySlider("hurt-camera-shake", "hurt-camera-shake"));
         check("Sync Details is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
     }
 
@@ -102,7 +114,15 @@ public final class FeatureSettingsUiModelTests {
 
     private static boolean ownsOnlySimpleToggle(String featureId, String optionId) {
         FeatureSettingsUiModel.Feature feature = FeatureSettingsUiModel.feature(featureId);
-        return feature != null && feature.isSimple() && optionId.equals(feature.toggleOptionId)
+        return feature != null && feature.isSimple() && feature.tabControls.equals(
+                java.util.Collections.singletonList(FeatureSettingsUiModel.TOGGLE)) && optionId.equals(feature.toggleOptionId)
+                && feature.optionIds.size() == 1 && optionId.equals(feature.optionIds.get(0))
+                && FeatureSettingsUiModel.option(optionId) != null;
+    }
+
+    private static boolean ownsOnlySlider(String featureId, String optionId) {
+        FeatureSettingsUiModel.Feature feature = FeatureSettingsUiModel.feature(featureId);
+        return feature != null && feature.isSlider() && optionId.equals(feature.toggleOptionId)
                 && feature.optionIds.size() == 1 && optionId.equals(feature.optionIds.get(0))
                 && FeatureSettingsUiModel.option(optionId) != null;
     }

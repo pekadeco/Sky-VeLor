@@ -44,8 +44,6 @@ public final class AssistUiModel {
 
     private static List<Entry> build() {
         List<Entry> entries = new ArrayList<Entry>();
-        add(entries, TAB_QUALITY_OF_LIFE, "Inventory assist", "Inventory search and filter",
-                "Search item names and lore; non-matches are only dimmed");
         add(entries, TAB_QUALITY_OF_LIFE, "Inventory assist", "Hide potion effects in inventory",
                 "Hide only the potion panel and recenter the player inventory");
         add(entries, TAB_QUALITY_OF_LIFE, "Inventory assist", "Roman numerals in tooltips",
@@ -54,8 +52,8 @@ public final class AssistUiModel {
                 "Use the wheel to read long lore without changing the hotbar");
         add(entries, TAB_QUALITY_OF_LIFE, "Inventory assist", "Item rarity highlight",
                 "Draw a static rarity tint behind supported inventory items");
-        add(entries, TAB_QUALITY_OF_LIFE, "Simple features", "No Hurt Cam",
-                "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged");
+        add(entries, TAB_QUALITY_OF_LIFE, "Simple features", "Hurt Camera Shake",
+                "Scale only the local vanilla hurt-camera tilt from 0% to 100%");
         add(entries, TAB_QUALITY_OF_LIFE, "Simple features", "Auto Sprint",
                 "Sprints automatically while you hold forward.");
         add(entries, TAB_QUALITY_OF_LIFE, "Movement and shortcuts", "Wardrobe shortcut",

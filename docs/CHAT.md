@@ -21,6 +21,10 @@ and labels remain white. Custom tab colours are thin accent underlines. The real
 no in-box channel/mode label; the selected tab still supplies its send prefix. Its reserved message boundary keeps
 the strip out of message rows.
 
+When `GuiChat` transitions from open to closed—Escape, sending normal text, sending a command, or another normal
+close/replacement route—the selected tab resets to **All**. It does not reset while the chat remains open, and it does
+not clear retained messages, typed input/history, unread state, or saved tab configuration.
+
 ## Chat Settings
 
 The native-Minecraft-font **Chat Settings** intentionally contains only:

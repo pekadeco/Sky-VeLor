@@ -14,6 +14,7 @@ public final class ChatQolSettingsTests {
         defaults();
         retiredSeparateKeysAreIgnored();
         customTabPersistence();
+        chatCloseResetsSelectionWithoutChangingTabs();
         invalidRegexAndBounds();
         done();
     }
@@ -94,6 +95,19 @@ public final class ChatQolSettingsTests {
                 && ChatQolSettings.tabBackgroundColor == 0x1555AA && ChatQolSettings.tabOpacity == 31
                 && ChatQolSettings.tabActiveOpacity == 49 && ChatQolSettings.compactMessages
                 && ChatQolSettings.compactCounterColor == 0x708090);
+    }
+
+    private static void chatCloseResetsSelectionWithoutChangingTabs() {
+        ChatQolSettings.resetDefaults();
+        ChatQolSettings.Result custom = ChatQolSettings.addCustomTab("Trade");
+        ChatQolSettings.Result configured = ChatQolSettings.updateCustomTab(custom.id, "Trade", ChatTabs.CONTAINS,
+                "selling", "/pc", 0x224466, true, true);
+        ChatQolSettings.setSelectedTab(configured.id);
+        ChatQolSettings.resetSelectedTabAfterChatClose();
+        ChatTabs.Tab retained = ChatQolSettings.tab(configured.id);
+        check("chat close returns selection to All only", ChatTabs.ALL.equals(ChatQolSettings.selectedTabId()));
+        check("chat close preserves custom tab configuration", retained != null && retained.matches("selling sword")
+                && "/pc".equals(retained.sendPrefix()) && retained.colour() == 0x224466);
     }
 
     private static void invalidRegexAndBounds() {

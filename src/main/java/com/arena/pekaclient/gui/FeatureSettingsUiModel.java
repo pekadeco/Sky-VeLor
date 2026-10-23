@@ -11,13 +11,14 @@ import java.util.Map;
  * Minecraft-free audit of the intentionally flat Hub presentation.
  *
  * <p>This is a presentation inventory, never a second settings schema. It records every existing option's route
- * while enforcing the two allowed Hub feature forms: one simple toggle row, or one one-level dropdown containing
- * that feature's existing toggle plus exactly one Settings button.</p>
+ * while enforcing direct one-control rows (toggle, slider, or Settings route) and one-level dropdowns containing
+ * an existing toggle plus exactly one Settings button.</p>
  */
 public final class FeatureSettingsUiModel {
     public static final String SIMPLE = "simple";
     public static final String DROPDOWN = "dropdown";
     public static final String TOGGLE = "toggle";
+    public static final String SLIDER = "slider";
     public static final String EDITOR_BUTTON = "editor-button";
     public static final int STATUS_DOT_ON = 0xFF30D158;
     public static final int STATUS_DOT_OFF = 0xFFFF453A;
@@ -47,7 +48,8 @@ public final class FeatureSettingsUiModel {
         public final List<String> tabControls;
 
         private Feature(String id, String tab, String title, String description, String rowType,
-                        String editorId, String toggleOptionId, String editorButtonLabel, String... optionIds) {
+                        String editorId, String toggleOptionId, String editorButtonLabel, String directControl,
+                        String... optionIds) {
             this.id = id;
             this.tab = tab;
             this.title = title;
@@ -58,12 +60,14 @@ public final class FeatureSettingsUiModel {
             this.editorButtonLabel = editorButtonLabel;
             this.optionIds = Collections.unmodifiableList(Arrays.asList(optionIds));
             this.tabControls = SIMPLE.equals(rowType)
-                    ? Collections.singletonList(TOGGLE)
+                    ? Collections.singletonList(directControl)
                     : Collections.unmodifiableList(Arrays.asList(TOGGLE, EDITOR_BUTTON));
         }
 
         public boolean isSimple() { return SIMPLE.equals(rowType); }
         public boolean isDropdown() { return DROPDOWN.equals(rowType); }
+        public boolean isSlider() { return isSimple() && tabControls.equals(Collections.singletonList(SLIDER)); }
+        public boolean isSettingsRoute() { return isSimple() && tabControls.equals(Collections.singletonList(EDITOR_BUTTON)); }
         public int dropdownDepth() { return isDropdown() ? 1 : 0; }
     }
 
@@ -104,13 +108,13 @@ public final class FeatureSettingsUiModel {
                 "no-block-particles", "No block particles");
         simple("disable-hotbar-scrolling", "Quality of Life", "No Hotbar Scrolling", "Ignore mouse-wheel hotbar selection during gameplay.",
                 "disable-hotbar-scrolling", "No Hotbar Scrolling");
-        simple("no-hurt-cam", "Quality of Life", "No Hurt Cam",
-                "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged.",
-                "no-hurt-cam", "No Hurt Cam");
+        slider("hurt-camera-shake", "Quality of Life", "Hurt Camera Shake",
+                "Scale only the local vanilla hurt-camera tilt from 0% to 100%.",
+                "hurt-camera-shake", "Hurt Camera Shake");
         simple("auto-sprint", "Quality of Life", "Auto Sprint", "Sprints automatically while you hold forward.",
                 "auto-sprint", "Auto Sprint");
-        dropdown("inventory-assist", "Quality of Life", "Inventory Assist", "Search, tooltip and inventory visual helpers.",
-                "inventory-assist", "inventory-search", "Inventory Assist", options("Inventory search and filter", "inventory-search",
+        action("inventory-assist", "Quality of Life", "Inventory Assist", "Tooltip and inventory visual helpers.",
+                "inventory-assist", "Inventory Assist", options("Inventory Assist Settings", "inventory-assist-settings",
                 "Hide potion effects in inventory", "hide-potions", "Roman numerals in tooltips", "roman-numerals",
                 "Scrollable item tooltips", "tooltip-scroll", "Item rarity highlight", "rarity-highlight"));
         dropdown("movement-shortcuts", "Quality of Life", "Movement and Shortcuts", "Wardrobe and pets shortcuts.",
@@ -136,7 +140,7 @@ public final class FeatureSettingsUiModel {
                 "Settings", "item-animation-editor"));
         hud("hud-player-doll", "Player Doll", "A live model of you, with your armour and held item");
         hud("hud-inventory", "Inventory HUD", "The 27 main inventory slots, optional armour");
-        hud("hud-dollars", "Player Dollars", "Purse from the scoreboard, or a typed value");
+        hud("hud-stats", "Stats Display", "Frame rate, mining BPS and memory cards matching the classic HUD.");
         dropdown("mining-bps", "Farming", "Mining BPS", "Mining block-break-speed HUD.",
                 "hud", "mining-bps-visible", "Mining BPS", options("Mining BPS visibility", "mining-bps-visible",
                 "Mining BPS Settings", "mining-bps-editor"));
@@ -207,16 +211,26 @@ public final class FeatureSettingsUiModel {
     private static String[] options(String... labelIdPairs) { return labelIdPairs; }
 
     private static void simple(String id, String tab, String title, String description, String optionId, String optionLabel) {
-        addFeature(id, tab, title, description, SIMPLE, "", optionId, "", options(optionLabel, optionId));
+        addFeature(id, tab, title, description, SIMPLE, "", optionId, "", TOGGLE, options(optionLabel, optionId));
+    }
+
+    private static void slider(String id, String tab, String title, String description, String optionId, String optionLabel) {
+        addFeature(id, tab, title, description, SIMPLE, "", optionId, "", SLIDER, options(optionLabel, optionId));
+    }
+
+    private static void action(String id, String tab, String title, String description, String editorId,
+                               String editorName, String... labelIdPairs) {
+        String primary = labelIdPairs.length > 1 ? labelIdPairs[1] : id + "-settings";
+        addFeature(id, tab, title, description, SIMPLE, editorId, primary, "Settings", EDITOR_BUTTON, labelIdPairs);
     }
 
     private static void dropdown(String id, String tab, String title, String description, String editorId,
                                  String toggleOptionId, String editorName, String... labelIdPairs) {
-        addFeature(id, tab, title, description, DROPDOWN, editorId, toggleOptionId, "Settings", labelIdPairs);
+        addFeature(id, tab, title, description, DROPDOWN, editorId, toggleOptionId, "Settings", "", labelIdPairs);
     }
 
     private static void addFeature(String id, String tab, String title, String description, String rowType,
-                                   String editorId, String toggleOptionId, String editorButtonLabel,
+                                   String editorId, String toggleOptionId, String editorButtonLabel, String directControl,
                                    String... labelIdPairs) {
         List<String> ids = new ArrayList<String>();
         for (int i = 0; i + 1 < labelIdPairs.length; i += 2) {
@@ -227,7 +241,7 @@ public final class FeatureSettingsUiModel {
             ids.add(optionId);
         }
         FEATURES.add(new Feature(id, tab, title, description, rowType, editorId, toggleOptionId, editorButtonLabel,
-                ids.toArray(new String[ids.size()])));
+                directControl, ids.toArray(new String[ids.size()])));
     }
 
     private static String[] mobEspOptions() {
@@ -270,8 +284,12 @@ public final class FeatureSettingsUiModel {
     public static List<AuditRow> auditRows() {
         List<AuditRow> rows = new ArrayList<AuditRow>();
         for (Feature feature : FEATURES) {
-            String type = feature.isSimple() ? "Simple" : "Dropdown";
-            String where = feature.isSimple() ? "This tab's toggle" : feature.editorButtonLabel + " -> " + feature.editorId;
+            String direct = feature.isSimple() ? feature.tabControls.get(0) : "";
+            String type = feature.isDropdown() ? "Dropdown" : SLIDER.equals(direct) ? "Slider"
+                    : EDITOR_BUTTON.equals(direct) ? "Settings" : "Simple";
+            String where = feature.isDropdown() || EDITOR_BUTTON.equals(direct)
+                    ? feature.editorButtonLabel + " -> " + feature.editorId
+                    : SLIDER.equals(direct) ? "This tab's percentage slider" : "This tab's toggle";
             rows.add(new AuditRow(feature.tab, feature.title, type, where));
         }
         return Collections.unmodifiableList(rows);
@@ -285,22 +303,25 @@ public final class FeatureSettingsUiModel {
 
     public static int statusDotColor(boolean enabled) { return enabled ? STATUS_DOT_ON : STATUS_DOT_OFF; }
 
-    /** Static proof of the Hub's two row forms and complete option ownership. */
+    /** Static proof of direct-control/dropdown ownership and complete option reachability. */
     public static boolean isReachabilityValid() {
         if (duplicateOptionId || FEATURES.isEmpty() || OPTIONS.size() <= 90) return false;
         for (Feature feature : FEATURES) {
             if (feature.id == null || feature.id.length() == 0 || feature.optionIds.isEmpty()
                     || feature.toggleOptionId == null || !OPTIONS.containsKey(feature.toggleOptionId)) return false;
             if (feature.isSimple()) {
-                if (feature.tabControls.size() != 1 || !TOGGLE.equals(feature.tabControls.get(0))
-                        || feature.editorId.length() != 0 || feature.editorButtonLabel.length() != 0) return false;
+                if (feature.tabControls.size() != 1) return false;
+                String control = feature.tabControls.get(0);
+                if (TOGGLE.equals(control) || SLIDER.equals(control)) {
+                    if (feature.editorId.length() != 0 || feature.editorButtonLabel.length() != 0) return false;
+                } else if (EDITOR_BUTTON.equals(control)) {
+                    if (feature.editorId.length() == 0 || !"Settings".equals(feature.editorButtonLabel)) return false;
+                } else return false;
             } else if (feature.isDropdown()) {
                 if (feature.dropdownDepth() != 1 || feature.tabControls.size() != 2
                         || !TOGGLE.equals(feature.tabControls.get(0)) || !EDITOR_BUTTON.equals(feature.tabControls.get(1))
                         || feature.editorId.length() == 0 || !"Settings".equals(feature.editorButtonLabel)) return false;
-            } else {
-                return false;
-            }
+            } else return false;
             for (String id : feature.optionIds) if (!OPTIONS.containsKey(id)) return false;
         }
         return maximumDropdownDepth() == 1;

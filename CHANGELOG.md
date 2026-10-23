@@ -1,5 +1,15 @@
 # Changelog
 
+## Beta-0.10.8.9.1v — 2026-10-23 (source update; build pending)
+
+- Replaced binary **No Hurt Cam** with persisted whole-number **Hurt Camera Shake** from 0–100%, default 100%. The narrow EntityRenderer hook now scales only vanilla's regular hurt-camera tilt amplitude once; 0% suppresses that tilt, intermediate values scale it proportionally, and 100% retains vanilla amplitude. Damage tint, indicators, hit animation, knockback, health, and packets are untouched.
+- Removed only **Player Dollars** and its manual balance source: the HUD element, HUD/editor routes, settings, and obsolete keys are retired without changing remaining HUD placement, inventory, price, or unrelated currency paths.
+- Removed only **Inventory Search** input/filter rendering and configuration. Normal inventory/chest screens plus potion-panel, Roman-tooltip, tooltip scrolling, and rarity-overlay helpers remain.
+- Restored the supplied three-card **Stats Display** HUD with hard-beveled **FRAME RATE**, **MINING**, and **MEMORY** cards. It reuses existing FPS/heap/BPS sources, is default-off, and is configured in the HUD editor.
+- Reset the selected Chat QoL tab to **All** only after a `GuiChat` open-to-closed transition, covering Escape, sending, commands, and ordinary close routes without clearing messages, typing/history, or tab configuration.
+- Added persistence/bounds, transformer, removal-surface, chat-close, and Stats formatting/layout test coverage; updated release verification metadata and documentation for `Beta-0.10.8.9.1v` / numeric Forge metadata `0.10.8.9.1`.
+- **NOT tested in-game.** No new JAR, ZIP, GitHub release, or generated `dist/` artifact is claimed by this source update until the Java 8 Forge build and verifier complete.
+
 ## Beta-0.10.8.9v — 2026-10-23
 
 - Rebuilt the focused settings editors around a responsive scrollable settings pane and scissored Live Preview surface; previews update the real shared state immediately.

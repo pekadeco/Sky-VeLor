@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Regression proof for the Beta-0.10.8.8.2 cleanup claims retained by the next release.
+ * Regression proof for the Beta-0.10.8.9.1 cleanup and migration claims.
  *
  * <p>The release-JAR verifier repeats the packaged-artifact side of these checks. This suite keeps the
  * user-visible models and the intentionally absent implementation surfaces honest before packaging.</p>
@@ -23,7 +23,7 @@ public final class ReleaseClaimsTests {
     public static void main(String[] args) throws Exception {
         vanillaFontSurfaceHasNoCustomFontSubsystem();
         hudEditorHasNoTargetSidebar();
-        noHurtCamAndAutoSprintAreSimpleToggles();
+        hurtCameraShakeAndAutoSprintUseDirectControls();
         hotbarAndItemProtectionStayRetiredWhileItemLockSwapRemains();
         categoryNamesAndDungeonOrderStayExact();
         done();
@@ -59,10 +59,13 @@ public final class ReleaseClaimsTests {
                 && HudEditorSelectionPolicy.nextIndex(1, overlap) == 0);
     }
 
-    private static void noHurtCamAndAutoSprintAreSimpleToggles() {
-        FeatureSettingsUiModel.Feature hurt = FeatureSettingsUiModel.feature("no-hurt-cam");
+    private static void hurtCameraShakeAndAutoSprintUseDirectControls() {
+        FeatureSettingsUiModel.Feature shake = FeatureSettingsUiModel.feature("hurt-camera-shake");
         FeatureSettingsUiModel.Feature sprint = FeatureSettingsUiModel.feature("auto-sprint");
-        check("No Hurt Cam is a one-toggle Quality of Life row", isSimpleToggle(hurt, "Quality of Life", "No Hurt Cam"));
+        check("Hurt Camera Shake is a one-slider Quality of Life row", shake != null && shake.isSlider()
+                && "Quality of Life".equals(shake.tab) && "Hurt Camera Shake".equals(shake.title)
+                && shake.optionIds.size() == 1 && shake.editorId.length() == 0);
+        check("binary No Hurt Cam route is retired", FeatureSettingsUiModel.feature("no-hurt-cam") == null);
         check("Auto Sprint is a one-toggle Quality of Life row", isSimpleToggle(sprint, "Quality of Life", "Auto Sprint"));
         check("Auto Sprint text preserves normal-key-state behavior",
                 sprint != null && "Sprints automatically while you hold forward.".equals(sprint.description));

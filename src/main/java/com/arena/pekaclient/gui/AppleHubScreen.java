@@ -40,8 +40,8 @@ import java.util.Set;
  * screens), a search field and scrollable grouped cards.
  *
  * Tabs, in order: General, Quality of Life, HUD, Farming, Dungeon, Slayer, Fishing. General is the first overview
- * page; every tab uses simple one-toggle rows followed by flat one-level editor dropdowns. HUD routes visual
- * customization to the HUD editor, while focused editors own rich feature settings without nested tab controls.
+ * page; every tab uses direct controls or flat one-level editor dropdowns. HUD routes visual customization to the
+ * HUD editor, while focused editors own rich feature settings without nested tab controls.
  *
  * Window buttons: red closes the hub, yellow collapses it to the title bar, green zooms it to the
  * full screen. Input: mouse wheel and touch swipe scroll the list, with the speed set in Mod Settings. Keys scroll by a fixed step. A swipe
@@ -72,12 +72,12 @@ public class AppleHubScreen extends AppleScreen {
     };
     /** HUD targets in editor order; contextual tabs route their own specialised HUD features. */
     private static final HudElement[] HUD_OVERVIEW = {
-            HudManager.DOLL, HudManager.INVENTORY, HudManager.MINING, HudManager.DOLLARS,
+            HudManager.DOLL, HudManager.INVENTORY, HudManager.STATS, HudManager.MINING,
             HudManager.FISHING, HudManager.SEA_HP, HudManager.SLAYER, HudManager.MINING_ASSIST, HudManager.DUNGEON_BOSS_HP};
     /** The HUD tab keeps only general-purpose elements; specialised HUDs live in their feature tab. */
     private static final HudElement[] HUD_TAB_ELEMENTS = {
-            HudManager.DOLL, HudManager.INVENTORY, HudManager.DOLLARS};
-    private static final int HUD_MINING = 2; // index into HUD_OVERVIEW
+            HudManager.STATS, HudManager.DOLL, HudManager.INVENTORY};
+    private static final int HUD_MINING = 3; // index into HUD_OVERVIEW
     private static final int HUD_MINING_ASSIST = 7;
     private static final int HUD_DUNGEON_BOSS_HP = 8;
     private static final int[] PAGE_ICONS = {
@@ -167,11 +167,24 @@ public class AppleHubScreen extends AppleScreen {
         pages.add(fishingPage());
     }
 
-    /** Adds a simple one-toggle feature. Simple features never open a dropdown. */
+    /** Adds one direct Boolean control. It never opens a dropdown. */
     private static void simpleFeature(List<Row> rows, String title, String description,
                                       java.util.function.Supplier<Boolean> getter,
                                       java.util.function.Consumer<Boolean> setter) {
         rows.add(Row.item(title, description, new AppleToggle(getter, setter)));
+    }
+
+    /** Adds one direct whole-percent camera-tilt control without recreating the retired binary switch. */
+    private static void percentSliderFeature(List<Row> rows, String title, String description,
+                                             java.util.function.IntSupplier getter,
+                                             java.util.function.IntConsumer setter) {
+        rows.add(Row.item(title, description, new AppleSlider(0, 100, 1, "%", 172f, getter, setter)
+                .valueLabel(value -> value + "%")));
+    }
+
+    /** Opens a detailed surface that has no meaningful all-or-nothing master toggle. */
+    private static void settingsFeature(List<Row> rows, String title, String description, Runnable open) {
+        rows.add(Row.item(title, description, new AppleButton("Settings", 172f, 24f, true, open)));
     }
 
     /**
@@ -191,18 +204,19 @@ public class AppleHubScreen extends AppleScreen {
     private List<Row> qualityOfLifePage() {
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Simple features"));
-        simpleFeature(rows, "No Block Particles", QualityOfLifeUiModel.buildToggleModel().get(0).getDescription(),
+        List<QualityOfLifeUiModel.Entry> controls = QualityOfLifeUiModel.buildControlModel();
+        simpleFeature(rows, "No Block Particles", controls.get(0).getDescription(),
                 () -> AppleSettings.noBlockParticles, value -> AppleSettings.noBlockParticles = value);
-        simpleFeature(rows, "No Hotbar Scrolling", QualityOfLifeUiModel.buildToggleModel().get(1).getDescription(),
+        simpleFeature(rows, "No Hotbar Scrolling", controls.get(1).getDescription(),
                 () -> AppleSettings.disableHotbarScrolling, value -> AppleSettings.disableHotbarScrolling = value);
-        simpleFeature(rows, "No Hurt Cam", QualityOfLifeUiModel.buildToggleModel().get(2).getDescription(),
-                () -> AssistSettings.noHurtCamera, value -> AssistSettings.noHurtCamera = value);
-        simpleFeature(rows, "Auto Sprint", QualityOfLifeUiModel.buildToggleModel().get(3).getDescription(),
+        percentSliderFeature(rows, "Hurt Camera Shake", controls.get(2).getDescription(),
+                () -> AssistSettings.hurtCameraShake, value -> AssistSettings.hurtCameraShake = value);
+        simpleFeature(rows, "Auto Sprint", controls.get(3).getDescription(),
                 () -> AssistSettings.autoSprint, value -> AssistSettings.autoSprint = value);
 
         rows.add(Row.section("Feature editors"));
-        editorFeature(rows, "Inventory Assist", "Search, tooltip and inventory visual helpers.",
-                () -> AssistSettings.inventorySearch, value -> AssistSettings.inventorySearch = value, () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this)));
+        settingsFeature(rows, "Inventory Assist", "Tooltip, potion-panel and inventory visual helpers.",
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this)));
         editorFeature(rows, "Movement and Shortcuts", "Wardrobe and pets shortcuts.", () -> AssistSettings.wardrobeShortcut,
                 value -> AssistSettings.wardrobeShortcut = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.movementShortcuts(this)));

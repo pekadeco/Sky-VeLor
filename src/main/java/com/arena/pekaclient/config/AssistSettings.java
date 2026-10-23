@@ -4,9 +4,9 @@ import java.util.Locale;
 import java.util.Properties;
 
 /**
- * Isolated, safe-by-default schema for the Beta-0.10.8.8 optional client assists. Keeping this schema separate
- * from the older shared AppleSettings fields means the new modules cannot repurpose a historic key or move an
- * existing HUD position. Every value is normalized on both load and save.
+ * Isolated, safe-by-default schema for the optional client assists. Keeping this schema separate from the older
+ * shared AppleSettings fields means these modules cannot repurpose a historic key or move an existing HUD position.
+ * Every value is normalized on both load and save.
  */
 public final class AssistSettings {
 
@@ -14,16 +14,19 @@ public final class AssistSettings {
     public static final String DEFAULT_SYNC_ENDPOINT = "wss://skyvelor-dungeon-sync.bombadzalge.workers.dev/ws";
     public static final int MIN_TERMINAL_SCALE = 70;
     public static final int MAX_TERMINAL_SCALE = 250;
+    public static final int MIN_HURT_CAMERA_SHAKE = 0;
+    public static final int MAX_HURT_CAMERA_SHAKE = 100;
+    public static final int DEFAULT_HURT_CAMERA_SHAKE = 100;
 
     public static boolean miningAbilityAlert;
     public static boolean miningPuzzlerMarker;
 
-    public static boolean inventorySearch;
     public static boolean hidePotionEffects;
     public static boolean romanNumerals;
     public static boolean tooltipScroll;
     public static boolean rarityHighlight;
-    public static boolean noHurtCamera;
+    /** Whole-number percentage of vanilla's local hurt-camera tilt. Zero removes only that tilt. */
+    public static int hurtCameraShake;
 
     public static boolean autoSprint;
     public static boolean wardrobeShortcut;
@@ -44,15 +47,14 @@ public final class AssistSettings {
     }
 
     public static void resetDefaults() {
-        // All new gameplay, network, input and rendering changes deliberately start opt-in.
+        // Gameplay, network and input assists deliberately start opt-in. The hurt camera remains vanilla at 100%.
         miningAbilityAlert = false;
         miningPuzzlerMarker = false;
-        inventorySearch = false;
         hidePotionEffects = false;
         romanNumerals = false;
         tooltipScroll = false;
         rarityHighlight = false;
-        noHurtCamera = false;
+        hurtCameraShake = DEFAULT_HURT_CAMERA_SHAKE;
         autoSprint = false;
         wardrobeShortcut = false;
         petsShortcut = false;
@@ -67,18 +69,18 @@ public final class AssistSettings {
         terminalScale = 100;
     }
 
-    /** Reads only explicit assist keys, with harmless one-time aliases for a compatible older local friend config. */
+    /** Reads only explicit assist keys, with harmless one-time aliases for a compatible older local config. */
     public static void load(Properties source) {
         Properties p = source == null ? new Properties() : source;
         resetDefaults();
         miningAbilityAlert = bool(p, "mining.abilityAlert", "miningAbilityNotifier", false);
         miningPuzzlerMarker = bool(p, "mining.puzzlerMarker", "miningPuzzlerSolver", false);
-        inventorySearch = bool(p, "inventory.search", "inventorySearchEnabled", false);
+        // Retired Inventory Search keys are deliberately unread. The other inventory conveniences remain independent.
         hidePotionEffects = bool(p, "inventory.hidePotionEffects", "hideInventoryPotionEffects", false);
         romanNumerals = bool(p, "inventory.romanNumerals", "romanNumeralsInTooltips", false);
         tooltipScroll = bool(p, "inventory.tooltipScroll", "scrollableTooltipsEnabled", false);
         rarityHighlight = bool(p, "inventory.rarityHighlight", "itemRarityBordersEnabled", false);
-        noHurtCamera = bool(p, "visual.noHurtCamera", "noHurtCamEnabled", false);
+        hurtCameraShake = hurtCameraShake(p);
         // Retired Item Protection keys (assist.itemGuard.* and old itemProtection*) are deliberately unread.
         autoSprint = bool(p, "movement.autoSprint", "autoSprintEnabled", false);
         wardrobeShortcut = bool(p, "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
@@ -99,14 +101,18 @@ public final class AssistSettings {
     public static void save(Properties p) {
         if (p == null) return;
         normalize();
+        // Do not carry retired controls forward when callers save into a pre-existing Properties object.
+        p.remove(PREFIX + "inventory.search");
+        p.remove("inventorySearchEnabled");
+        p.remove(PREFIX + "visual.noHurtCamera");
+        p.remove("noHurtCamEnabled");
         p.setProperty(PREFIX + "mining.abilityAlert", Boolean.toString(miningAbilityAlert));
         p.setProperty(PREFIX + "mining.puzzlerMarker", Boolean.toString(miningPuzzlerMarker));
-        p.setProperty(PREFIX + "inventory.search", Boolean.toString(inventorySearch));
         p.setProperty(PREFIX + "inventory.hidePotionEffects", Boolean.toString(hidePotionEffects));
         p.setProperty(PREFIX + "inventory.romanNumerals", Boolean.toString(romanNumerals));
         p.setProperty(PREFIX + "inventory.tooltipScroll", Boolean.toString(tooltipScroll));
         p.setProperty(PREFIX + "inventory.rarityHighlight", Boolean.toString(rarityHighlight));
-        p.setProperty(PREFIX + "visual.noHurtCamera", Boolean.toString(noHurtCamera));
+        p.setProperty(PREFIX + "visual.hurtCameraShake", Integer.toString(hurtCameraShake));
         p.setProperty(PREFIX + "movement.autoSprint", Boolean.toString(autoSprint));
         p.setProperty(PREFIX + "shortcuts.wardrobe", Boolean.toString(wardrobeShortcut));
         p.setProperty(PREFIX + "shortcuts.pets", Boolean.toString(petsShortcut));
@@ -119,6 +125,11 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "dungeon.terminal.preventWrongClicks", Boolean.toString(terminalPreventWrongClicks));
         p.setProperty(PREFIX + "dungeon.terminal.waypoints", Boolean.toString(terminalWaypoints));
         p.setProperty(PREFIX + "dungeon.terminal.scale", Integer.toString(terminalScale));
+    }
+
+    /** 0.0 through 1.0 multiplier used exactly once at vanilla's hurt-camera tilt amplitude. */
+    public static float hurtCameraShakeMultiplier() {
+        return clamp(hurtCameraShake, MIN_HURT_CAMERA_SHAKE, MAX_HURT_CAMERA_SHAKE) / 100f;
     }
 
     /** Auto clicking is never active unless both the terminal assist and its explicit automation switch are on. */
@@ -139,7 +150,28 @@ public final class AssistSettings {
 
     private static void normalize() {
         dungeonSyncEndpoint = endpoint(dungeonSyncEndpoint);
-        terminalScale = Math.max(MIN_TERMINAL_SCALE, Math.min(MAX_TERMINAL_SCALE, terminalScale));
+        terminalScale = clamp(terminalScale, MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE);
+        hurtCameraShake = clamp(hurtCameraShake, MIN_HURT_CAMERA_SHAKE, MAX_HURT_CAMERA_SHAKE);
+    }
+
+    /** New integer key wins; the retired binary key maps true to 0% and false to vanilla 100%. */
+    private static int hurtCameraShake(Properties p) {
+        String current = p.getProperty(PREFIX + "visual.hurtCameraShake");
+        if (current != null) return wholePercent(current, DEFAULT_HURT_CAMERA_SHAKE);
+        String legacy = p.containsKey(PREFIX + "visual.noHurtCamera")
+                ? p.getProperty(PREFIX + "visual.noHurtCamera")
+                : p.getProperty("noHurtCamEnabled");
+        if (legacy == null) return DEFAULT_HURT_CAMERA_SHAKE;
+        return Boolean.parseBoolean(legacy.trim()) ? MIN_HURT_CAMERA_SHAKE : MAX_HURT_CAMERA_SHAKE;
+    }
+
+    private static int wholePercent(String raw, int fallback) {
+        if (raw == null) return fallback;
+        try {
+            return clamp(Integer.parseInt(raw.trim()), MIN_HURT_CAMERA_SHAKE, MAX_HURT_CAMERA_SHAKE);
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 
     private static String endpoint(String candidate) {
@@ -160,10 +192,14 @@ public final class AssistSettings {
             double parsed = Double.parseDouble(raw.trim());
             if (Double.isNaN(parsed) || Double.isInfinite(parsed)) return fallback;
             if (legacyPercentOrFloat && parsed > 0D && parsed <= 5D && raw.indexOf('.') >= 0) parsed *= 100D;
-            return Math.max(min, Math.min(max, (int) Math.round(parsed)));
+            return clamp((int) Math.round(parsed), min, max);
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private static String value(Properties p, String key, String legacy, String fallback) {

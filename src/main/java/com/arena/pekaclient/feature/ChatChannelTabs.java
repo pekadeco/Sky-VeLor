@@ -115,6 +115,8 @@ public final class ChatChannelTabs {
 
     private GuiChat inputOwner;
     private GuiTextField cachedInput;
+    /** Last END-tick GUI state; lets every normal close route share one safe selection reset. */
+    private boolean guiChatWasOpen;
     private MessageGroup hoveredGroup;
     private MessageGroup pendingLeftGroup;
     /** Set permanently for this client session after an unexpected cache bridge failure; subsequent frames fail open. */
@@ -367,6 +369,7 @@ public final class ChatChannelTabs {
         pendingLeftGroup = null;
         hoveredGroup = null;
         hover.clear();
+        guiChatWasOpen = false;
         historyLayoutDirty = true;
     }
 
@@ -374,7 +377,13 @@ public final class ChatChannelTabs {
     public void onTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc == null || !(mc.currentScreen instanceof GuiChat)) {
+        boolean guiChatOpen = mc != null && mc.currentScreen instanceof GuiChat;
+        if (ChatTabClosePolicy.shouldResetToAll(guiChatWasOpen, guiChatOpen)) {
+            // Escape, sending, commands, and normal GUI replacement all reach this same close transition.
+            ChatQolSettings.resetSelectedTabAfterChatClose();
+        }
+        guiChatWasOpen = guiChatOpen;
+        if (!guiChatOpen) {
             inputOwner = null;
             cachedInput = null;
             pendingLeftGroup = null;

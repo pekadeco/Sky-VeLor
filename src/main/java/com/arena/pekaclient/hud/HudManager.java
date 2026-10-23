@@ -9,6 +9,7 @@ import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
+
 import java.io.File;
 import java.util.Properties;
 
@@ -16,25 +17,22 @@ import java.util.Properties;
  * Owns the HUD elements. Draws the enabled ones every frame, and saves and loads their settings to
  * {@code skyvelor-hud.properties} in the game directory. Older builds wrote {@code pekaclient-hud.properties};
  * that file is read once when the new one does not exist yet, and it is never written again.
- *
- * The file is read once. A corrupt file is logged and the defaults are used, so a bad save cannot stop
- * the game from starting. Save writes to a temporary file and then renames it, so an interrupted save
- * keeps the previous file.
  */
 public final class HudManager {
 
     public static final MiningHud MINING = new MiningHud();
     public static final MiningAssistantHud MINING_ASSIST = new MiningAssistantHud();
     public static final DungeonBossHud DUNGEON_BOSS_HP = new DungeonBossHud();
-    public static final DollarsHud DOLLARS = new DollarsHud();
     public static final InventoryHud INVENTORY = new InventoryHud();
     public static final PlayerDollHud DOLL = new PlayerDollHud();
+    /** Restored reference-style Frame Rate / Mining / Memory card group; off until enabled in the HUD editor. */
+    public static final StatsHud STATS = new StatsHud();
     public static final FishingHud FISHING = new FishingHud();
     public static final SeaCreatureHud SEA_HP = new SeaCreatureHud();
     public static final SlayerHud SLAYER = new SlayerHud();
 
     /** Elements shown in the normal HUD editor, in draw order. */
-    public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DOLLARS, INVENTORY, DOLL,
+    public static final HudElement[] ELEMENTS = {STATS, MINING, MINING_ASSIST, DUNGEON_BOSS_HP, INVENTORY, DOLL,
             FISHING, SEA_HP, SLAYER};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
@@ -51,33 +49,21 @@ public final class HudManager {
 
     /** Loads settings once. Missing or unreadable files keep the defaults. */
     public static void ensureLoaded() {
-        if (!loaded) {
-            load();
-        }
+        if (!loaded) load();
     }
 
     public static void load() {
         Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME));
-        // Old FPS/Ping/Memory HUD keys are benign compatibility input; General owns these GUI-only readouts now.
         HudConfigCompatibility.ignoreRetiredMetricKeys(p);
-        for (HudElement e : ELEMENTS) {
-            e.load(p);
-        }
-        BalanceSource.manualMode = "manual".equalsIgnoreCase(p.getProperty("balance.source", "auto").trim());
-        BalanceSource.manualValue = BalanceSource.parseManual(p.getProperty("balance.manual"));
+        HudConfigCompatibility.ignoreRetiredPlayerDollarsKeys(p);
+        for (HudElement e : ELEMENTS) e.load(p);
         MiningTracker.setWindowSeconds(MINING.windowSeconds());
         loaded = true;
     }
 
     public static void save() {
         Properties p = new Properties();
-        for (HudElement e : ELEMENTS) {
-            e.save(p);
-        }
-        p.setProperty("balance.source", BalanceSource.manualMode ? "manual" : "auto");
-        if (BalanceSource.manualValue != BalanceSource.UNKNOWN) {
-            p.setProperty("balance.manual", Long.toString(BalanceSource.manualValue));
-        }
+        for (HudElement e : ELEMENTS) e.save(p);
         ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor HUD settings");
     }
 
@@ -86,7 +72,6 @@ public final class HudManager {
         ensureLoaded();
         MiningTracker.setWindowSeconds(MINING.windowSeconds());
         MiningTracker.tick(mc);
-        BalanceSource.tick(mc);
     }
 
     /** True when the in-game HUD should draw: a world is loaded, and no GUI is open except chat. */
@@ -99,11 +84,7 @@ public final class HudManager {
     /** Draws the enabled elements in game. */
     public static void render(ScaledResolution sr) {
         UIRender.beginFrame();
-        for (HudElement e : ELEMENTS) {
-            if (e.enabled) {
-                e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
-            }
-        }
+        for (HudElement e : ELEMENTS) if (e.enabled) e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
         UIRender.endFrame();
     }
 
@@ -115,32 +96,22 @@ public final class HudManager {
         for (HudElement e : ELEMENTS) {
             int x = e.leftFor(sw);
             int y = e.topFor(sh);
-            if (mx >= x && mx < x + e.pixelWidth() && my >= y && my < y + e.pixelHeight()) {
-                under = e;
-            }
+            if (mx >= x && mx < x + e.pixelWidth() && my >= y && my < y + e.pixelHeight()) under = e;
         }
         HudElement.backgroundOnHoverOnly = true;
         HudElement.hoveredInEditor = under;
         UIRender.beginFrame();
-        for (HudElement e : ELEMENTS) {
-            e.render(sw, sh, e.enabled ? 1f : 0.35f);
-        }
+        for (HudElement e : ELEMENTS) e.render(sw, sh, e.enabled ? 1f : 0.35f);
         UIRender.endFrame();
         HudElement.backgroundOnHoverOnly = false;
         HudElement.hoveredInEditor = null;
     }
 
     public static void resetPositions() {
-        for (HudElement e : ELEMENTS) {
-            e.resetPosition();
-        }
+        for (HudElement e : ELEMENTS) e.resetPosition();
     }
 
     public static void resetAll() {
-        for (HudElement e : ELEMENTS) {
-            e.resetAll();
-        }
-        BalanceSource.manualMode = false;
-        BalanceSource.manualValue = BalanceSource.UNKNOWN;
+        for (HudElement e : ELEMENTS) e.resetAll();
     }
 }

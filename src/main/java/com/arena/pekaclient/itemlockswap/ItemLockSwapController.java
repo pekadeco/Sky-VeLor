@@ -1,7 +1,6 @@
 package com.arena.pekaclient.itemlockswap;
 
 import com.arena.pekaclient.PekaClientMod;
-import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.config.AppleSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -44,8 +43,7 @@ public final class ItemLockSwapController {
     @SubscribeEvent
     public void onKeyboard(GuiScreenEvent.KeyboardInputEvent.Pre event) {
         if (event == null || !isFeatureKeyEvent() || !ItemLockSwapSettings.enabled
-                || !(event.gui instanceof GuiContainer) || ItemLockSwapGuiAccess.hasFocusedTextField(event.gui)
-                || InventoryAssistController.hasFocusedSearch(event.gui)) {
+                || !(event.gui instanceof GuiContainer) || ItemLockSwapGuiAccess.hasFocusedTextField(event.gui)) {
             return;
         }
         event.setCanceled(true);
@@ -63,9 +61,8 @@ public final class ItemLockSwapController {
         }
         GuiContainer gui = (GuiContainer) event.gui;
         boolean keyDown = isBoundKeyDown();
-        if (!ItemLockSwapSettings.enabled || ItemLockSwapGuiAccess.hasFocusedTextField(gui)
-                || InventoryAssistController.hasFocusedSearch(gui)) {
-            // Keep the physical edge consumed while a search/chat field owns the keyboard; fail closed on reflection.
+        if (!ItemLockSwapSettings.enabled || ItemLockSwapGuiAccess.hasFocusedTextField(gui)) {
+            // Keep the physical edge consumed while another focused text field owns the keyboard; fail closed on reflection.
             input.ignore(keyDown);
             return;
         }
@@ -93,7 +90,7 @@ public final class ItemLockSwapController {
     public void onMouse(GuiScreenEvent.MouseInputEvent.Pre event) {
         if (event == null || !(event.gui instanceof GuiContainer) || !ItemLockSwapSettings.enabled) return;
         GuiContainer gui = (GuiContainer) event.gui;
-        if (ItemLockSwapGuiAccess.hasFocusedTextField(gui) || InventoryAssistController.hasFocusedSearch(gui)) {
+        if (ItemLockSwapGuiAccess.hasFocusedTextField(gui)) {
             input.ignore(isBoundKeyDown());
             return;
         }

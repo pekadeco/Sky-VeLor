@@ -2,7 +2,6 @@ package com.arena.pekaclient.assist;
 
 import com.arena.pekaclient.assist.dungeon.BossHealthParser;
 import com.arena.pekaclient.assist.dungeon.TerminalAssistPolicy;
-import com.arena.pekaclient.assist.inventory.InventorySearchPolicy;
 import com.arena.pekaclient.assist.inventory.RarityPalette;
 import com.arena.pekaclient.assist.inventory.RomanNumeralPolicy;
 import com.arena.pekaclient.assist.inventory.TooltipWindow;
@@ -43,10 +42,7 @@ public final class AssistFeatureTests {
     }
 
     private static void inventoryPolicies() {
-        check("search strips formatting and matches all terms", InventorySearchPolicy.matches("\u00a76Aspect of the Dragons", "aspect dragons"));
-        check("search requires every term", !InventorySearchPolicy.matches("Aspect of the Dragons", "aspect void"));
-        check("normalized search path agrees", InventorySearchPolicy.matchesNormalized("aspect of the dragons", "aspect dragons")
-                && !InventorySearchPolicy.matchesNormalized("aspect of the dragons", "aspect void"));
+        // Inventory Search is intentionally absent. Remaining inventory behavior is limited to normal tooltip/rarity helpers.
         check("rarity parser rejects unknown and reads explicit lore", RarityPalette.colorForText("plain item") == 0
                 && RarityPalette.colorForText("\u00a76LEGENDARY SWORD") == 0xFFFFAA00);
         check("roman canonical parse", RomanNumeralPolicy.parse("XIV") == 14 && RomanNumeralPolicy.parse("IIX") < 0);

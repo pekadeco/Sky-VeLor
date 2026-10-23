@@ -121,6 +121,11 @@ public final class ChatQolSettings {
         }
     }
 
+    /** Called only after a real GuiChat open-to-closed transition; tabs and their configuration are untouched. */
+    public static void resetSelectedTabAfterChatClose() {
+        setSelectedTab(ChatTabs.ALL);
+    }
+
     public static boolean isTabVisible(String id) {
         ChatTabs.Tab found = tab(id);
         return found != null && found.enabled();

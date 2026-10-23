@@ -1,7 +1,5 @@
 package com.arena.pekaclient.gui;
 
-import com.arena.pekaclient.hud.BalanceSource;
-import com.arena.pekaclient.hud.DollarsHud;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.InventoryHud;
 import com.arena.pekaclient.hud.MiningHud;
@@ -50,38 +48,26 @@ final class HudSettingsBuilder {
     }
 
     /**
-     * @param element      the element to edit
-     * @param amountField  the text field used for a typed balance (only the balance element uses it)
-     * @param changed      called after any value changes (the editor marks the layout dirty; the hub passes a no-op)
-     * @param applyBalance called when "Set balance" is pressed
-     * @param withShow     whether to include a Show toggle at the top
+     * @param element  the element to edit
+     * @param changed  called after any value changes (the editor marks the layout dirty; the hub passes a no-op)
+     * @param withShow whether to include a Show toggle at the top
      */
-    static List<Item> build(HudElement element, Widget amountField, Runnable changed,
-                            Runnable applyBalance, boolean withShow) {
+    static List<Item> build(HudElement element, Runnable changed, boolean withShow) {
         HudSettingsBuilder b = new HudSettingsBuilder(changed);
         if (withShow) {
             b.toggle("Show", () -> element.enabled, v -> element.enabled = v);
         }
-        b.specific(element, amountField, applyBalance);
+        b.specific(element);
         b.common(element);
         return b.items;
     }
 
-    private void specific(HudElement element, Widget amountField, Runnable applyBalance) {
+    private void specific(HudElement element) {
         if (element instanceof MiningHud) {
             final MiningHud m = (MiningHud) element;
             dropdown("Label", MiningHud.LABELS, null, () -> m.label, v -> m.label = v);
             segmented("Window", MiningHud.WINDOW_NAMES, () -> m.windowIndex, v -> m.windowIndex = v);
             segmented("Decimals", MiningHud.DECIMAL_NAMES, () -> m.decimals, v -> m.decimals = v);
-        } else if (element instanceof DollarsHud) {
-            final DollarsHud d = (DollarsHud) element;
-            dropdown("Label", DollarsHud.LABELS, null, () -> d.label, v -> d.label = v);
-            dropdown("Format", DollarsHud.FORMATS, null, () -> d.format, v -> d.format = v);
-            toggle("Coin icon", () -> d.coinIcon, v -> d.coinIcon = v);
-            segmented("Source", new String[]{"Auto", "Manual"},
-                    () -> BalanceSource.manualMode ? 1 : 0, v -> BalanceSource.manualMode = v == 1);
-            items.add(new Item("Amount", amountField));
-            items.add(new Item(null, new AppleButton("Set balance", CONTROL_W, CONTROL_H, true, applyBalance)));
         } else if (element instanceof InventoryHud) {
             final InventoryHud inv = (InventoryHud) element;
             toggle("Armour slots", () -> inv.showArmor, v -> inv.showArmor = v);

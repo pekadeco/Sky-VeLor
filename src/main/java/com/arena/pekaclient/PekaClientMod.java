@@ -7,7 +7,6 @@ import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonWaypointController;
 import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.movement.AutoSprintController;
-import com.arena.pekaclient.assist.visual.VisualAssistHooks;
 import com.arena.pekaclient.command.ClientActions;
 import com.arena.pekaclient.command.ItemDebugCommand;
 import com.arena.pekaclient.command.PriceSetCommand;
@@ -68,7 +67,7 @@ import org.lwjgl.input.Keyboard;
  * Entry point for Sky VeLor. Client-only. Adds:
  *  - a keybind (default Right Shift) that opens the hub from gameplay,
  *  - a "Sky VeLor" button on the main menu and pause menu,
- *  - movable HUD elements (Mining BPS, balance, inventory, player doll) with an editor,
+ *  - movable HUD elements (Stats Display, Mining BPS, inventory, player doll) with an editor,
  *  - the Spirit Leap teammate selector, which replaces only the server-opened Spirit Leap menu when enabled,
  *  - a loading screen that runs Sky VeLor's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,
@@ -235,9 +234,8 @@ public class PekaClientMod {
                 mc.displayGuiScreen(new LoadingScreen(mc.currentScreen));
             }
             // Before the world moves. Also resets mining counts on world change, respawn and disconnect.
-            // If the fail-closed EntityRenderer hook was unavailable, this can only clear the local visual tilt;
-            // it never touches health, movement, knockback, or packets.
-            VisualAssistHooks.zeroFallbackVisualTilt(mc);
+            // Hurt Camera Shake is applied only at vanilla EntityRenderer's tilt amplitude; there is deliberately no
+            // fallback that mutates hurtTime, because that would affect non-camera visuals.
             // Item Animation is woven into Minecraft's authoritative hand/equip methods at class-load time; it has
             // no per-tick installation retry and its live settings are read only from those renderer callbacks.
             HudManager.tick(mc);

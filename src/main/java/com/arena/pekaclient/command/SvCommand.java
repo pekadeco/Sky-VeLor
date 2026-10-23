@@ -74,7 +74,7 @@ public final class SvCommand extends CommandBase {
                 + " (" + ItemLockSwapHookStatus.getReason() + ")"));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7inventory tooltip hook: §f"
                 + VisualAssistHookStatus.tooltipStatus()));
-        mc.thePlayer.addChatMessage(new ChatComponentText("§7no hurt cam: §f"
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7hurt camera shake: §f"
                 + VisualAssistHookStatus.hurtCameraStatus()));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7terminal assist: §f"
                 + DungeonTerminalAssistController.selfTestStatus()));

@@ -196,6 +196,30 @@ public final class UIRender {
     }
 
     /**
+     * Flat octagonal panel with diagonal cut corners. This is intentionally separate from {@link #roundRect}: status
+     * cards use the crisp, pixel-style corners from the original display rather than a rounded approximation.
+     */
+    public static void bevelRect(float x, float y, float w, float h, float cut, int color) {
+        if (w <= 0f || h <= 0f) return;
+        int c = col(color);
+        if ((c >>> 24) == 0) return;
+        float edge = Math.max(0f, Math.min(Math.min(w, h) * .5f, cut));
+        float left = x, top = y, right = x + w, bottom = y + h;
+        float centerX = x + w * .5f, centerY = y + h * .5f;
+        WorldRenderer wr = open();
+        // Clockwise octagon fan; explicit vertices avoid allocating a per-frame point array.
+        vtx(wr, centerX, centerY, c); vtx(wr, left + edge, top, c); vtx(wr, right - edge, top, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right - edge, top, c); vtx(wr, right, top + edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right, top + edge, c); vtx(wr, right, bottom - edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right, bottom - edge, c); vtx(wr, right - edge, bottom, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right - edge, bottom, c); vtx(wr, left + edge, bottom, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, left + edge, bottom, c); vtx(wr, left, bottom - edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, left, bottom - edge, c); vtx(wr, left, top + edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, left, top + edge, c); vtx(wr, left + edge, top, c);
+        close();
+    }
+
+    /**
      * Anti-aliased rounded rectangle with a vertical gradient (top to bottom).
      * @param feather width in pixels of the soft edge; 0 for hard edges. Also used for shadows.
      */

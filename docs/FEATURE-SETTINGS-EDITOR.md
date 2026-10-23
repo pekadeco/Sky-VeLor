@@ -1,54 +1,69 @@
-# Flat Hub and editor reachability — Beta-0.10.8.9v
+# Hub and editor reachability — Beta-0.10.8.9.1v
 
-This release changes presentation only. It does **not** change gameplay behavior, setting keys, values, defaults, HUD placement, or feature ownership.
+This document audits the source UI routes for the Beta 0.10.8.9.1 update. It distinguishes direct controls from the existing one-level dropdown/editor routes. It is source documentation, not a claim that a distributable JAR has been built.
 
 ## Hub contract
 
-Every feature in a Hub tab uses one of two flat forms:
+Each visible Hub feature uses one of these non-nested forms:
 
-1. **Simple** — one row with its existing On/Off toggle, feature name, and one gray description.
-2. **Dropdown** — one non-nesting header with title and accurate green/red status dot. Its body has exactly **On/Off** and one **Settings** button.
+1. **Toggle** — one direct On/Off control.
+2. **Slider** — one direct bounded value control, currently **Hurt Camera Shake** at 0–100%.
+3. **Settings** — one direct **Settings** button for a feature with no meaningful all-or-nothing master switch.
+4. **Dropdown** — one non-nesting header with its accurate green/red status dot; its body has exactly **On/Off** and one **Settings** button.
 
-Simple rows come before dropdowns in each tab. There are no tree arrows, connector lines, indentation, tab-level per-mob/per-door rows, nested dropdowns, or child-row settings buttons. Section captions only separate the two permitted forms; they are not controls.
+There are no nested dropdowns, tree connector lines, or Inventory Search field rows. Section captions separate direct controls from editor routes; they are not controls.
 
 ## Feature / row type / option-location audit
 
-| Tab | Feature | Row type | Existing option location |
+| Tab | Feature | Row type | Current option location |
 | --- | --- | --- | --- |
 | General | Appearance | Dropdown | Appearance Settings editor |
-| General | Mod Settings | Dropdown | existing Mod Settings screen |
+| General | Mod Settings | Dropdown | Mod Settings screen |
 | General | Performance | Dropdown | Performance Settings |
-| Quality of Life | No Block Particles | Simple | this tab's toggle |
-| Quality of Life | No Hotbar Scrolling | Simple | this tab's toggle |
-| Quality of Life | Inventory Assist | Dropdown | Inventory Assist Settings |
+| Quality of Life | No Block Particles | Toggle | this tab's toggle |
+| Quality of Life | No Hotbar Scrolling | Toggle | this tab's toggle |
+| Quality of Life | Hurt Camera Shake | Slider | this tab's 0–100% slider |
+| Quality of Life | Auto Sprint | Toggle | this tab's toggle |
+| Quality of Life | Inventory Assist | Settings | Inventory Assist Settings (tooltips, potion panel, rarity) |
 | Quality of Life | Movement and Shortcuts | Dropdown | Movement and Shortcuts Settings |
 | Quality of Life | Item Lock and Swap | Dropdown | Item Lock and Swap Settings |
 | Quality of Life | Chat QoL | Dropdown | Chat Settings |
 | Quality of Life | Commands | Dropdown | Commands Settings |
 | HUD | Item Animation | Dropdown | Item Animation Settings |
+| HUD | Stats Display | Dropdown | HUD editor (Frame Rate, Mining, Memory cards) |
 | HUD | Player Doll | Dropdown | Player Doll Settings |
 | HUD | Inventory HUD | Dropdown | Inventory HUD Settings |
-| HUD | Player Dollars | Dropdown | Player Dollars Settings |
 | Farming | Mining BPS | Dropdown | Mining BPS Settings |
 | Farming | Mining Assistant | Dropdown | Mining Assistant Settings; its HUD route remains there |
 | Dungeon | Door ESP | Dropdown | Door ESP Settings |
 | Dungeon | Mob ESP | Dropdown | Mob ESP Settings |
-| Dungeon | Dungeon Sync | Simple | this tab's toggle |
+| Dungeon | Dungeon Sync | Toggle | this tab's toggle |
 | Dungeon | Floor VII (M7) Overlay | Dropdown | Floor VII (M7) Overlay Settings |
 | Dungeon | Spirit Leap GUI | Dropdown | Spirit Leap GUI Settings |
 | Dungeon | Terminal Assist | Dropdown | Terminal Assist Settings |
 | Dungeon | Boss HP | Dropdown | Boss HP Settings |
 | Dungeon | Dungeon Map | Dropdown | Dungeon Map Settings |
-| Dungeon | Sync Details | Simple | this tab's toggle |
+| Dungeon | Sync Details | Toggle | this tab's toggle |
 | Slayer | Slayer Tracker | Dropdown | Slayer Tracker Settings |
 | Slayer | Slayer HUD | Dropdown | Slayer HUD Settings |
-| Fishing | Lord Jawbus | Simple | this tab's toggle |
-| Fishing | Nearby Encounters | Simple | this tab's toggle |
+| Fishing | Lord Jawbus | Toggle | this tab's toggle |
+| Fishing | Nearby Encounters | Toggle | this tab's toggle |
 | Fishing | Catch Counter | Dropdown | Catch Counter Settings |
 | Fishing | Fishing HUD | Dropdown | Fishing HUD Settings |
 | Fishing | Sea Creature HP | Dropdown | Sea Creature HP Settings |
 
-`FeatureSettingsUiModel` is the source-level audit inventory for the visible features and their existing option labels. It proves one-level dropdown depth, the exact two-control dropdown body, editor route ownership, simple-row ownership, status-dot colors, and no duplicate option identifiers. `DungeonEspUiModel` remains a non-rendered 67-control legacy option inventory so each former Dungeon ESP option is still checked against the editor route.
+`FeatureSettingsUiModel` is the source-level audit inventory for visible features and existing option labels. It proves one-level dropdown depth, direct slider/settings ownership, editor-route ownership, status-dot colors, and no duplicate option identifiers. `DungeonEspUiModel` remains a non-rendered legacy option inventory so former Dungeon ESP options still resolve to their editor route.
+
+## Retired surfaces and compatibility
+
+- **Hurt Camera Shake** persists under `assist.visual.hurtCameraShake`; old binary No Hurt Cam keys map once to 0%/100% and are omitted on the next save.
+- **Inventory Search** has no feature row, option id, text-input/filter hook, or persisted setting. Tooltip conversion/scrolling, rarity overlays, and optional potion-panel layout remain under Inventory Assist.
+- **Player Dollars** has no HUD element or editor route. Old `dollars.*`, `balance.source`, and `balance.manual` keys are ignored so remaining HUD settings can load normally.
+- The default-off **Stats Display** replaces the retired individually placed FPS/Ping/Memory HUD surface. Old `fps-display.*`, `ping-display.*`, and `memory-display.*` keys are ignored; General-tab Ping telemetry remains independent.
+
+## Verification scope
+
+Headless tests cover shake persistence at 0/intermediate/100%, the one-time hurt-tilt transformer hook, removed class/control surfaces, normal Inventory HUD retention, Stats labels/layout, and the pure GuiChat close transition. They do not start Minecraft; render behavior and the actual Escape/send chat paths still require an in-game Forge 1.8.9 pass.
 
 ## Mob and Door ESP editors
 
@@ -60,5 +75,5 @@ Simple rows come before dropdowns in each tab. There are no tree arrows, connect
 ## Compatibility and verification
 
 - Existing feature/config owners remain unchanged. Old `ui.feature.tree.*` presentation values are accepted and ignored; editor selections continue under `ui.feature.editor.*`.
-- Headless coverage checks dropdown depth/body contract, simple rows, old-option reachability, editor routes, Mob/door categories and toggles, status dots, GUI-scale non-overlap, and old-config loading.
-- This release was **NOT tested in-game**.
+- Headless coverage checks direct slider/settings routes and one-level dropdown bodies, editor routes, Mob/door categories and toggles, status dots, GUI-scale non-overlap, old-config handling, and the Beta 0.10.8.9.1 removal/migration paths.
+- This source update is **NOT tested in-game** and does not represent a built release artifact.

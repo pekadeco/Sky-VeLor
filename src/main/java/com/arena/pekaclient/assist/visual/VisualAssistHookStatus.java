@@ -4,7 +4,6 @@ package com.arena.pekaclient.assist.visual;
 public final class VisualAssistHookStatus {
     private static boolean tooltipInjected;
     private static boolean hurtCameraInjected;
-    private static boolean hurtCameraFallback;
     private static String tooltipReason = "not evaluated";
     private static String hurtCameraReason = "not evaluated";
 
@@ -18,8 +17,7 @@ public final class VisualAssistHookStatus {
 
     public static synchronized void hurtCameraInjected(String mapping) {
         hurtCameraInjected = true;
-        hurtCameraFallback = false;
-        hurtCameraReason = "EntityRenderer hurt-camera hook active (" + mapping + ")";
+        hurtCameraReason = "EntityRenderer hurt-camera amplitude hook active (" + mapping + ")";
     }
 
     public static synchronized void tooltipUnavailable(String reason) {
@@ -28,14 +26,6 @@ public final class VisualAssistHookStatus {
 
     public static synchronized void hurtCameraUnavailable(String reason) {
         if (!hurtCameraInjected) hurtCameraReason = safe(reason);
-    }
-
-    /** The fallback touches only the local visual hurt counter when the preferred core hook was unavailable. */
-    public static synchronized void hurtCameraFallbackReady() {
-        if (!hurtCameraInjected) {
-            hurtCameraFallback = true;
-            hurtCameraReason = "local visual-tilt fallback active";
-        }
     }
 
     public static synchronized boolean isTooltipActive() {
@@ -51,8 +41,7 @@ public final class VisualAssistHookStatus {
     }
 
     public static synchronized String hurtCameraStatus() {
-        String state = hurtCameraInjected ? "ACTIVE" : hurtCameraFallback ? "FALLBACK" : "UNAVAILABLE";
-        return state + " (" + hurtCameraReason + ")";
+        return (hurtCameraInjected ? "ACTIVE" : "UNAVAILABLE") + " (" + hurtCameraReason + ")";
     }
 
     private static String safe(String value) {

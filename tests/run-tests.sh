@@ -31,6 +31,8 @@ java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatMessageHistoryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatMenuInputRouterTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatVisibilityAuditTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ConfigTests
+java -cp "$OUT:$CP" com.arena.pekaclient.hud.StatsHudTextTests
+java -cp "$OUT:$CP" com.arena.pekaclient.compat.RemovedFeatureSurfaceTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapIdentityTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassCacheTests
@@ -65,6 +67,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.ItemAnimationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.VisualSwingStateMachineTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.SwingEasingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabClosePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatInteractionModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatQolLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LivePreviewEditorTests

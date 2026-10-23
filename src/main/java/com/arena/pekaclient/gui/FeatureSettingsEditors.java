@@ -194,8 +194,6 @@ public final class FeatureSettingsEditors {
 
     private static void inventoryEntries(FeatureSettingsEditorScreen.Category ignored,
                                          List<FeatureSettingsEditorScreen.Entry> entries) {
-        entries.add(toggle("Inventory Search and Filter", assist("Inventory search and filter"), () -> AssistSettings.inventorySearch,
-                value -> AssistSettings.inventorySearch = value));
         entries.add(toggle("Hide Potion Effects in Inventory", assist("Hide potion effects in inventory"), () -> AssistSettings.hidePotionEffects,
                 value -> AssistSettings.hidePotionEffects = value));
         entries.add(toggle("Roman Numerals in Tooltips", assist("Roman numerals in tooltips"), () -> AssistSettings.romanNumerals,
@@ -417,7 +415,6 @@ public final class FeatureSettingsEditors {
     }
 
     private static void resetInventory() {
-        AssistSettings.inventorySearch = false;
         AssistSettings.hidePotionEffects = false;
         AssistSettings.romanNumerals = false;
         AssistSettings.tooltipScroll = false;
