@@ -6,6 +6,7 @@
 - Moved cached local FPS, tab-list Ping, and used/max Java heap telemetry into color-coded **General** GUI cards. Retired FPS/Ping/Memory HUD elements and their old keys are safely ignored.
 - Kept the visible Hub category table exactly **General**, **Quality of Life**, **HUD**, **Farming**, **Dungeon**, **Slayer**, and **Fishing**; legacy catalog and documentation references now use those same labels.
 - Added the reproducible `SkyVeLor-1.8.9-Beta-0.10.8.9v-source.zip` source delivery. CI creates it with a rooted `git archive` allow-list, verifies it with `tools/verify_source_zip.py`, uploads it as an artifact, and publishes exactly the JAR, delivery ZIP, and source ZIP in `dist/`.
+- Rechecked the prior cleanup claims with `ReleaseClaimsTests` and the release-JAR verifier: no custom font subsystem or HUD target sidebar remains; No Hurt Cam/Auto Sprint are simple toggles; retired Hotbar customization and Item Protection are absent while Item Lock and Swap remains routed.
 - Updated display version to `Beta-0.10.8.9v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.9`.
 - **NOT tested in-game.**
 
