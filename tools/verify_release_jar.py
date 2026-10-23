@@ -496,8 +496,9 @@ def main():
     # ReobfJar may rewrite MCP-name string constants used by an ASM matcher. The packed transformer still carries
     # its explicit notch EntityRenderer target, float descriptor, and early-return hook owner; headless transformer
     # tests exercise all MCP/SRG/notch aliases before packaging.
-    no_hurt_hook = all(value in visual_transformer_raw for value in
-                       (b'bfk', b'(F)V', b'suppressHurtCamera', b'VisualAssistHooks'))
+    no_hurt_hook_tokens = tuple(value in visual_transformer_raw for value in
+                                (b'bfk', b'(F)V', b'suppressHurtCamera', b'VisualAssistHooks'))
+    no_hurt_hook = all(no_hurt_hook_tokens)
     # reobfJar maps Minecraft's hurtTime field, so prove the fallback through Sky VeLor-owned
     # method/class references instead of requiring its MCP field spelling in the packed bytecode.
     no_hurt_fallback = (all(value in visual_hooks_raw for value in
@@ -507,8 +508,8 @@ def main():
     no_hurt_selftest = b'no hurt cam' in selftest_raw
     r.check(no_hurt_ui and no_hurt_hook and no_hurt_fallback and no_hurt_selftest,
             'No Hurt Cam is default-off, visual-only, hook-first with local-tilt fallback and selftest status',
-            'ui=%s hook=%s fallback=%s selftest=%s' %
-            (no_hurt_ui, no_hurt_hook, no_hurt_fallback, no_hurt_selftest))
+            'ui=%s hook=%s tokens=%s fallback=%s selftest=%s' %
+            (no_hurt_ui, no_hurt_hook, no_hurt_hook_tokens, no_hurt_fallback, no_hurt_selftest))
     auto_sprint_raw = raw_of('assist/movement/AutoSprintController')
     auto_sprint_policy_raw = raw_of('assist/movement/AutoSprintPolicy')
     r.check(b'assist.movement.autoSprint' in assist_settings_raw and b'Auto Sprint' in assist_hub_raw
