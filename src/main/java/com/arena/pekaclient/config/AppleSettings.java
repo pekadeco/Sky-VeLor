@@ -275,7 +275,7 @@ public final class AppleSettings {
         qnCommand = readBool(p, "cmd.qn", qnCommand);
         loadFishingSettings(p);
         loadChatSettings(p);
-        // Tree/editor navigation is presentation state only; it never changes existing feature schemas or defaults.
+        // Editor navigation is presentation state only; it never changes existing feature schemas or defaults.
         FeatureUiPreferences.load(p);
         applyConfigurationVersionUpgrade(p);
         FontSettings.load(p);

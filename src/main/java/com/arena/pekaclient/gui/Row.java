@@ -3,91 +3,57 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.widget.Widget;
 
 import java.util.Locale;
+import java.util.function.Supplier;
 
 /**
- * One entry in a settings list. Rows are laid out in a single vertical flow that the screen scrolls, and every row
- * is plain data, so search can reuse them.
+ * One entry in the Hub's single flat vertical flow.
  *
- * Kinds:
- *  - SECTION: a pinned label. Always visible. Rows after it belong to no group.
- *  - HEADER: a collapsible category. Click it to expand or collapse the rows under it (its group).
- *  - ITEM: a label, optional description and one control.
- *  - CUSTOM: a painter that draws its own content in the given rectangle.
+ * <p>Feature presentation has only two forms: {@link #ITEM} is a simple feature or a dropdown-body control, and
+ * {@link #HEADER} is a one-level feature dropdown. A header owns exactly its toggle and editor-button body rows;
+ * it never nests another group or an option list.</p>
  */
 final class Row {
-
     static final int SECTION = 0;
     static final int ITEM = 1;
-    static final int CUSTOM = 2;
-    static final int HEADER = 3;
-    /** Compact feature tree row: optional arrow/children, indentation/connectors and at most toggle + Open Settings. */
-    static final int TREE = 4;
-
-    /** Paints custom content (charts, stat cards) into the given card rectangle. */
-    interface Painter {
-        void paint(float x, float y, float w, float h);
-    }
+    static final int HEADER = 2;
 
     final int kind;
     final String label;
     final String desc;
     final Widget control;
-    final Painter painter;
     final float height;
+    /** A header's existing feature switch; used only for its accurate green/red status dot. */
+    final Supplier<Boolean> status;
     float y;
     /** Measured text column assigned by AppleHubScreen's shared responsive row split. */
     float labelX;
     float labelWidth;
 
-    /** For ITEM and CUSTOM rows: the HEADER title this row belongs to, or null. */
-    String group;
-    /** False while the row's group is collapsed. Set by the screen before layout. */
+    /** False while this header's one-level body is closed. Set by the screen before layout. */
     boolean visible = true;
-    /** For HEADER rows: how many rows belong to the group. Set by the screen before layout. */
-    int children;
+    /** For HEADER rows: exactly the two body rows owned by this dropdown. */
+    int bodyRows;
 
-    /** Tree identity and visual depth. Parent branches persist independently from old transient headers. */
-    String treeId;
-    String treeParentId;
-    int treeDepth;
-    boolean treeHasChildren;
-    boolean treeInitiallyOpen;
-
-    private Row(int kind, String label, String desc, Widget control, Painter painter, float height) {
+    private Row(int kind, String label, String desc, Widget control, float height, Supplier<Boolean> status) {
         this.kind = kind;
         this.label = label;
         this.desc = desc;
         this.control = control;
-        this.painter = painter;
         this.height = height;
+        this.status = status;
     }
 
     static Row section(String title) {
-        return new Row(SECTION, title.toUpperCase(Locale.ROOT), null, null, null, 20f);
+        return new Row(SECTION, title.toUpperCase(Locale.ROOT), null, null, 20f, null);
     }
 
-    /** A collapsible category. The title is shown as written. */
-    static Row header(String title) {
-        return new Row(HEADER, title, null, null, null, 32f);
+    /** A one-level feature dropdown. Its status comes from the exact existing toggle in its body. */
+    static Row dropdown(String title, String description, Supplier<Boolean> status) {
+        return new Row(HEADER, title, description, null, 42f, status);
     }
 
+    /** A simple feature row, or one of the two direct body rows in a feature dropdown. */
     static Row item(String label, String desc, Widget control) {
-        return new Row(ITEM, label, desc, control, null, 40f);
-    }
-
-    /** A compact tree feature. Children become physically absent while any ancestor is closed. */
-    static Row treeFeature(String id, String parentId, int depth, boolean hasChildren, boolean initiallyOpen,
-                           String label, String desc, Widget control) {
-        Row row = new Row(TREE, label, desc, control, null, 42f);
-        row.treeId = id;
-        row.treeParentId = parentId;
-        row.treeDepth = Math.max(0, depth);
-        row.treeHasChildren = hasChildren;
-        row.treeInitiallyOpen = initiallyOpen;
-        return row;
-    }
-
-    static Row custom(float height, Painter painter) {
-        return new Row(CUSTOM, null, null, null, painter, height);
+        return new Row(ITEM, label, desc, control, 40f, null);
     }
 }

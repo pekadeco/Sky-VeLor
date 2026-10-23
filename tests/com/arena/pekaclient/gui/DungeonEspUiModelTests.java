@@ -3,96 +3,60 @@ package com.arena.pekaclient.gui;
 import java.util.HashSet;
 import java.util.Set;
 
-/** Regression proof that the full Dungeon ESP set stays on one four-group collapsible surface without overlap. */
+/** Regression proof that the pre-simplification Dungeon ESP option inventory remains editor-reachable. */
 public final class DungeonEspUiModelTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        ownsExactlyRequiredGroups();
-        everyNamedOptionBelongsOnce();
-        rowsNeverOverlapAtGuiScales();
-        responsiveColumnsNeverOverlapAtGuiScales();
-        closedGroupsReserveNoBodyRows();
+        retainsTheLegacyOptionInventory();
+        everyNamedOptionHasAnEditorRoute();
+        editorsUseFlatCategories();
         done();
     }
 
-    private static void ownsExactlyRequiredGroups() {
+    private static void retainsTheLegacyOptionInventory() {
         String[] groups = DungeonEspUiModel.groupTitles();
-        check("exactly four ESP groups", groups.length == 4);
-        check("Mob ESP is first", groups.length > 0 && "Mob ESP".equals(groups[0]));
-        check("Door ESP is second", groups.length > 1 && "Door ESP".equals(groups[1]));
-        check("Performance is third", groups.length > 2 && "Performance".equals(groups[2]));
-        check("Presets is fourth", groups.length > 3 && "Presets".equals(groups[3]));
-        check("all ESP controls represented", DungeonEspUiModel.totalControlRows() == 67);
+        check("legacy Mob ESP group remains inventory owner", groups.length > 0 && "Mob ESP".equals(groups[0]));
+        check("legacy Door ESP group remains inventory owner", groups.length > 1 && "Door ESP".equals(groups[1]));
+        check("all previous ESP controls represented", DungeonEspUiModel.totalControlRows() == 67);
         check("mob control count", DungeonEspUiModel.rowCount(0) == 46);
         check("door control count", DungeonEspUiModel.rowCount(1) == 12);
         check("performance control count", DungeonEspUiModel.rowCount(2) == 6);
         check("preset control count", DungeonEspUiModel.rowCount(3) == 3);
     }
 
-    private static void everyNamedOptionBelongsOnce() {
-        String[] groups = DungeonEspUiModel.groupTitles();
+    private static void everyNamedOptionHasAnEditorRoute() {
         DungeonEspUiModel.Option[] options = DungeonEspUiModel.options();
         Set<String> names = new HashSet<String>();
-        boolean groupKnown = true;
-        boolean nonBlank = true;
-        for (int i = 0; i < options.length; i++) {
-            DungeonEspUiModel.Option option = options[i];
-            nonBlank &= option.name != null && option.name.trim().length() > 0;
-            groupKnown &= contains(groups, option.group);
+        for (DungeonEspUiModel.Option option : options) {
+            check("human-facing option: " + option.name, option.name != null && option.name.trim().length() > 0);
+            check("flat editor route: " + option.name, FeatureSettingsUiModel.hasOptionLabel(option.name));
             names.add(option.name);
         }
-        check("all control names are human-facing", nonBlank);
-        check("all controls have one of four owners", groupKnown);
-        check("no duplicate option rows", names.size() == options.length);
-        check("Enderman category is listed", names.contains("Enderman ESP"));
-        check("Skeletor category is listed", names.contains("Skeletor ESP"));
-        check("force-render switch is listed", names.contains("Force Render All Mobs in Room"));
+        check("no duplicate old option rows", names.size() == options.length);
+        check("Enderman remains in the editor", names.contains("Enderman ESP"));
+        check("Skeletor remains in the editor", names.contains("Skeletor ESP"));
+        check("force-render switch remains in the editor", names.contains("Force Render All Mobs in Room"));
     }
 
-    private static void rowsNeverOverlapAtGuiScales() {
-        float[] widths = {160f, 214f, 427f, 854f, 1708f};
-        float[] heights = {80f, 120f, 240f, 480f};
-        boolean[] open = new boolean[DungeonEspUiModel.groupCount()];
-        for (int i = 0; i < open.length; i++) open[i] = true;
-        for (int widthIndex = 0; widthIndex < widths.length; widthIndex++) {
-            for (int heightIndex = 0; heightIndex < heights.length; heightIndex++) {
-                GuiLayoutToolkit.Sections sections = DungeonEspUiModel.layout(widths[widthIndex], heights[heightIndex], open);
-                for (int i = 0; i < sections.headers.length; i++) {
-                    check("header/body disjoint " + widths[widthIndex] + " / " + heights[heightIndex] + " / " + i,
-                            !sections.headers[i].intersects(sections.bodies[i]));
-                    if (i + 1 < sections.headers.length) {
-                        check("group flow ordered " + widths[widthIndex] + " / " + heights[heightIndex] + " / " + i,
-                                sections.headers[i + 1].y >= sections.bodies[i].bottom());
-                    }
-                }
-            }
-        }
+    private static void editorsUseFlatCategories() {
+        FeatureSettingsEditorScreen.Spec mob = DungeonEspEditorSpecs.mobSpec();
+        FeatureSettingsEditorScreen.Spec door = DungeonEspEditorSpecs.doorSpec();
+        check("Mob editor has a flat category list", hasFlatList(mob));
+        check("Door editor has a flat category list", hasFlatList(door));
+        check("Mob editor supplies one toggle per left-list category", allCategoriesHaveToggles(mob));
+        check("Door editor supplies one toggle per left-list category", allCategoriesHaveToggles(door));
     }
 
-    private static void responsiveColumnsNeverOverlapAtGuiScales() {
-        float[] widths = {1f, 80f, 160f, 214f, 427f, 854f, 1708f};
-        for (int i = 0; i < widths.length; i++) {
-            GuiLayoutToolkit.Rect row = new GuiLayoutToolkit.Rect().set(0f, 0f, widths[i], 40f);
-            GuiLayoutToolkit.Rect label = new GuiLayoutToolkit.Rect();
-            GuiLayoutToolkit.Rect control = new GuiLayoutToolkit.Rect();
-            GuiLayoutToolkit.splitRow(row, 12f, 12f, 150f, 24f, label, control);
-            check("responsive row is in bounds " + widths[i], label.x >= row.x && control.right() <= row.right());
-            check("responsive label/control do not overlap " + widths[i], !label.intersects(control));
-        }
+    private static boolean hasFlatList(FeatureSettingsEditorScreen.Spec spec) {
+        // The flat Category API has no parent/depth fields; this ordered list is the whole navigation surface.
+        return spec != null && spec.categories != null && !spec.categories.isEmpty();
     }
 
-    private static void closedGroupsReserveNoBodyRows() {
-        GuiLayoutToolkit.Sections sections = DungeonEspUiModel.layout(214f, 120f, new boolean[DungeonEspUiModel.groupCount()]);
-        boolean allClosed = true;
-        for (int i = 0; i < sections.bodies.length; i++) allClosed &= sections.bodies[i].h == 0f;
-        check("collapsed groups have zero body geometry", allClosed);
-    }
-
-    private static boolean contains(String[] values, String value) {
-        for (int i = 0; i < values.length; i++) if (value.equals(values[i])) return true;
-        return false;
+    private static boolean allCategoriesHaveToggles(FeatureSettingsEditorScreen.Spec spec) {
+        for (FeatureSettingsEditorScreen.Category category : spec.categories) if (!category.hasToggle()) return false;
+        return true;
     }
 
     private static void check(String name, boolean ok) {

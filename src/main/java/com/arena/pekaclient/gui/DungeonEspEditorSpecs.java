@@ -32,34 +32,68 @@ public final class DungeonEspEditorSpecs {
         return new FeatureSettingsEditorScreen(parent, doorSpec(), categoryId);
     }
 
-    private static FeatureSettingsEditorScreen.Spec mobSpec() {
+    /** Package-visible for the headless GUI contract: this is the actual Mob ESP editor category list. */
+    static FeatureSettingsEditorScreen.Spec mobSpec() {
         List<FeatureSettingsEditorScreen.Category> categories = new ArrayList<FeatureSettingsEditorScreen.Category>();
-        categories.add(category("global", "Global", "Master, scan limits and presets"));
-        categories.add(category("starred", "Starred Mob", "Standard starred dungeon mobs"));
-        categories.add(category("miniboss", "Miniboss", "Dungeon miniboss hitboxes"));
-        categories.add(category("special", "Special Starred Mob", "Named special starred enemies"));
-        categories.add(category("enderman", "Enderman", "Real and head-marker Endermen"));
-        categories.add(category("skeletor", "Skeletor", "Starred Skeletors"));
-        categories.add(category("other", "Other Mobs", "Optional room-wide hostile coverage"));
+        categories.add(mobCategory("global", "Global", "Master, performance and presets",
+                () -> DungeonEspSettings.enabled, value -> DungeonEspSettings.enabled = value, DungeonEspSettings.starred));
+        categories.add(mobCategory("starred", "Starred Mob", "Standard starred dungeon mobs",
+                () -> DungeonEspSettings.starred.enabled, value -> DungeonEspSettings.starred.enabled = value,
+                DungeonEspSettings.starred));
+        categories.add(mobCategory("miniboss", "Miniboss", "Dungeon miniboss hitboxes",
+                () -> DungeonEspSettings.miniboss.enabled, value -> DungeonEspSettings.miniboss.enabled = value,
+                DungeonEspSettings.miniboss));
+        categories.add(mobCategory("special", "Special Starred Mob", "Named special starred enemies",
+                () -> DungeonEspSettings.special.enabled, value -> DungeonEspSettings.special.enabled = value,
+                DungeonEspSettings.special));
+        categories.add(mobCategory("enderman", "Enderman", "Real and head-marker Endermen",
+                () -> DungeonEspSettings.enderman.enabled, value -> DungeonEspSettings.enderman.enabled = value,
+                DungeonEspSettings.enderman));
+        categories.add(mobCategory("skeletor", "Skeletor", "Starred Skeletors",
+                () -> DungeonEspSettings.skeletor.enabled, value -> DungeonEspSettings.skeletor.enabled = value,
+                DungeonEspSettings.skeletor));
+        categories.add(mobCategory("other", "Other Mobs", "Optional room-wide hostile coverage",
+                () -> DungeonEspSettings.otherMobs.enabled, value -> DungeonEspSettings.otherMobs.enabled = value,
+                DungeonEspSettings.otherMobs));
         return new FeatureSettingsEditorScreen.Spec("mob-esp", "Mob ESP Settings",
-                "Choose a category on the left. Changes apply immediately.", categories,
+                "Select a category; its switch and hitbox preview stay visible on the left.", categories,
                 DungeonEspEditorSpecs::buildMobEntries, DungeonEspEditorSpecs::previewMob,
                 DungeonEspSettings::resetDefaults);
     }
 
-    private static FeatureSettingsEditorScreen.Spec doorSpec() {
+    /** Package-visible for the headless GUI contract: this is the actual Door ESP editor category list. */
+    static FeatureSettingsEditorScreen.Spec doorSpec() {
         List<FeatureSettingsEditorScreen.Category> categories = new ArrayList<FeatureSettingsEditorScreen.Category>();
-        categories.add(category("global", "Global", "Master, scanning and reset"));
-        categories.add(category("wither", "Wither Doors", "Closed wither door style"));
-        categories.add(category("blood", "Blood Doors", "Blood door filter and shared style"));
+        categories.add(doorCategory("global", "Global", "Master, scanning and reset",
+                () -> DungeonEspSettings.doorsEnabled, value -> DungeonEspSettings.doorsEnabled = value,
+                () -> DungeonEspSettings.doors.color));
+        categories.add(doorCategory("wither", "Wither Doors", "Closed wither door style",
+                () -> DungeonEspSettings.doors.enabled, value -> DungeonEspSettings.doors.enabled = value,
+                () -> DungeonEspSettings.doors.color));
+        categories.add(doorCategory("blood", "Blood Doors", "Blood door filter and shared style",
+                () -> DungeonEspSettings.showBloodDoors, value -> DungeonEspSettings.showBloodDoors = value,
+                () -> DungeonEspSettings.bloodDoorColor));
         return new FeatureSettingsEditorScreen.Spec("door-esp", "Door ESP Settings",
-                "Closed-door settings are cached and use the live ESP style.", categories,
+                "Select a door category; its switch and cached-prism preview stay visible on the left.", categories,
                 DungeonEspEditorSpecs::buildDoorEntries, DungeonEspEditorSpecs::previewDoor,
                 DungeonEspSettings::resetDefaults);
     }
 
-    private static FeatureSettingsEditorScreen.Category category(String id, String title, String description) {
-        return new FeatureSettingsEditorScreen.Category(id, title, description);
+    private static FeatureSettingsEditorScreen.Category mobCategory(final String id, String title, String description,
+                                                                      java.util.function.Supplier<Boolean> getter,
+                                                                      java.util.function.Consumer<Boolean> setter,
+                                                                      final DungeonEspSettings.Style style) {
+        return new FeatureSettingsEditorScreen.Category(id, title, description, getter, setter,
+                (x, y, width, height) -> DungeonEspPreviewRenderer.drawMobThumbnail(id, style, x, y, width, height));
+    }
+
+    private static FeatureSettingsEditorScreen.Category doorCategory(final String id, String title, String description,
+                                                                       java.util.function.Supplier<Boolean> getter,
+                                                                       java.util.function.Consumer<Boolean> setter,
+                                                                       final java.util.function.IntSupplier color) {
+        return new FeatureSettingsEditorScreen.Category(id, title, description, getter, setter,
+                (x, y, width, height) -> DungeonEspPreviewRenderer.drawDoorThumbnail(id, DungeonEspSettings.doors,
+                        color.getAsInt(), x, y, width, height));
     }
 
     private static void buildMobEntries(FeatureSettingsEditorScreen.Category category,
@@ -73,7 +107,7 @@ public final class DungeonEspEditorSpecs {
         entries.add(new FeatureSettingsEditorScreen.Entry("Enable " + category.title + " ESP",
                 "Keeps this category out of the live cached render batch when off.",
                 new AppleToggle(() -> style.enabled, value -> style.enabled = value)));
-        addStyleEntries(entries, style, category.title, true);
+        addStyleEntries(entries, style, category.title, true, true);
         if ("other".equals(category.id)) {
             entries.add(new FeatureSettingsEditorScreen.Entry("Force Render All Mobs in Room",
                     "Off by default. Caches eligible hostiles in the room or ESP range.",
@@ -161,18 +195,19 @@ public final class DungeonEspEditorSpecs {
                     "Color used for blood door boxes; opacity stays in the shared style.", colorDropdown(
                     () -> DungeonEspSettings.colorIndex(DungeonEspSettings.bloodDoorColor),
                     value -> DungeonEspSettings.bloodDoorColor = DungeonEspSettings.colorForIndex(value))));
-            addStyleEntries(entries, DungeonEspSettings.doors, "Shared Door", true);
+            addStyleEntries(entries, DungeonEspSettings.doors, "Shared Door", true, false);
             return;
         }
         entries.add(new FeatureSettingsEditorScreen.Entry("Enable Door Style",
                 "The existing shared door style gates both wither and blood cached boxes.",
                 new AppleToggle(() -> DungeonEspSettings.doors.enabled, value -> DungeonEspSettings.doors.enabled = value)));
-        addStyleEntries(entries, DungeonEspSettings.doors, "Wither Door", true);
+        addStyleEntries(entries, DungeonEspSettings.doors, "Wither Door", true, false);
     }
 
     /** Adds the complete existing Style schema with the regular palette dropdown rather than a bespoke color UI. */
     private static void addStyleEntries(List<FeatureSettingsEditorScreen.Entry> entries,
-                                        final DungeonEspSettings.Style style, String label, boolean clipboard) {
+                                        final DungeonEspSettings.Style style, String label, boolean clipboard,
+                                        boolean applyToAllMobCategories) {
         final String lower = label.toLowerCase(java.util.Locale.ROOT);
         entries.add(new FeatureSettingsEditorScreen.Entry(label + " Color",
                 "Choose the " + lower + " ESP color.", colorDropdown(
@@ -200,6 +235,22 @@ public final class DungeonEspEditorSpecs {
                     "Apply the last copied style to this existing category.", "Apply",
                     () -> CLIPBOARD.apply(style)));
         }
+        if (applyToAllMobCategories) {
+            entries.add(FeatureSettingsEditorScreen.Entry.action("Apply This Style to All",
+                    "Copy this category's existing style to every Mob ESP category.", "Apply to All",
+                    () -> applyStyleToAllMobCategories(style)));
+        }
+    }
+
+    /** Applies values already present in one selected style; it introduces no persisted clipboard/config setting. */
+    private static void applyStyleToAllMobCategories(DungeonEspSettings.Style source) {
+        CLIPBOARD.copy(source);
+        CLIPBOARD.apply(DungeonEspSettings.starred);
+        CLIPBOARD.apply(DungeonEspSettings.miniboss);
+        CLIPBOARD.apply(DungeonEspSettings.special);
+        CLIPBOARD.apply(DungeonEspSettings.enderman);
+        CLIPBOARD.apply(DungeonEspSettings.skeletor);
+        CLIPBOARD.apply(DungeonEspSettings.otherMobs);
     }
 
     private static AppleSlider slider(int min, int max, int step, String suffix,

@@ -62,14 +62,13 @@ REQUIRED_CLASSES = [
     'command/SvCommand',
     'gui/AppleHubScreen',
     'gui/FeatureUiState',
-    'gui/FeatureTreeLayout',
+    'gui/Row',
     'gui/FeatureSettingsUiModel',
     'gui/FeatureSettingsEditorScreen',
     'gui/FeatureSettingsEditors',
     'gui/DungeonEspEditorSpecs',
     'gui/DungeonEspPreviewRenderer',
     'config/FeatureUiPreferences',
-    'widget/FeatureRowControl',
     'gui/DungeonEspUiModel',
     'gui/QualityOfLifeUiModel',
     'gui/ModSettingsUiModel',
@@ -501,13 +500,15 @@ def main():
     r.check(all(value in esp_hub_constants for value in
                 ('Mob ESP', 'Door ESP', 'Performance', 'Presets', 'Force Render All Mobs in Room', 'Enderman',
                  'Skeletor', 'Other Mobs')),
-            'DungeonEspUiModel packages the four collapsed Dungeon ESP groups and all new category controls')
-    r.check(b'DungeonEspEditorSpecs' in hub_raw
+            'DungeonEspUiModel retains the pre-flat option inventory for reachability coverage')
+    r.check(all(value in hub_raw for value in (b'Mob ESP', b'Door ESP'))
                 and all(value in esp_editor_raw for value in
                         (b'Enable Dungeon ESP', b'Force Render All Mobs in Room', b'Wither Door',
-                         b'Blood Door Color', b'Default Preset', b'Subtle Preset', b'Apply Copied Style'))
-                and b'drawStyledBox' in esp_preview_raw and b'drawStyledBox' in esp_batch_raw,
-            'compact Dungeon tree routes every ESP control through shared Mob/Door editors and live-style preview')
+                         b'Blood Door Color', b'Default Preset', b'Subtle Preset', b'Apply Copied Style',
+                         b'Apply This Style to All'))
+                and all(value in esp_preview_raw for value in (b'drawStyledBox', b'drawMobThumbnail', b'drawDoorThumbnail'))
+                and b'drawStyledBox' in esp_batch_raw,
+            'flat Dungeon rows route every ESP control through shared Mob/Door editors and shared live-style previews')
     # ReobfJar remaps Minecraft class names, so inspect durable Sky VeLor fields/strings rather than MCP class names.
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
@@ -522,10 +523,10 @@ def main():
 
     # --- Item Animation GUI reachability and ownership proof -----------------
     # A standalone Item Animation class is not enough: both real GUI entry points must reference the pure models,
-    # the Hub must use its shared collapsible section, and customization may not be duplicated in a GUI tab.
+    # the Hub must use its one-level dropdown, and customization may not be duplicated in a GUI tab.
     ui_constants = constants_of('gui/ItemAnimationUiModel')
     r.check(all(value in ui_constants for value in
-                ('Item Animation', 'Open the HUD editor', 'Open Item Animation Editor', 'Scale', 'Position',
+                ('Item Animation', 'Open Item Animation Editor', 'Scale', 'Position',
                  'Animation', 'Options', 'X', 'Y', 'Z', 'Reset Position', 'Remove Haste Effect',
                  'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth swing', 'Smoothness',
                  'Swing blur unavailable (no safe translucent ghosts)', 'Preview Swing', 'Reset to Defaults')),
@@ -541,9 +542,13 @@ def main():
     layout_ref = b'com/arena/pekaclient/gui/HudEditorLayout'
     hub_raw = raw_of('gui/AppleHubScreen')
     hub_members = members_of('gui/AppleHubScreen')
-    r.check(b'HudEditorScreen' in hub_raw and b'FeatureRowControl' in hub_raw and audit_ref in hub_raw
-                and model_ref in raw_of('gui/HudEditorScreen'),
-            'compact Hub keeps one Item Animation row and routes its detailed controls to the HUD editor')
+    flat_model_raw = raw_of('gui/FeatureSettingsUiModel')
+    r.check(b'HudEditorScreen' in hub_raw and b'AppleToggle' in hub_raw and b'AppleButton' in hub_raw
+                and audit_ref in hub_raw and model_ref in raw_of('gui/HudEditorScreen')
+                and all(value in flat_model_raw for value in (b'simple', b'dropdown', b'editor-button',
+                                                               b'Mob ESP', b'Door ESP', b'Open ', b' Editor'))
+                and b'FeatureRowControl' not in hub_raw and b'FeatureTreeLayout' not in hub_raw,
+            'flat Hub keeps one-level Item Animation and ESP routes without tree or child-row controls')
     r.check(b'HudSettingsBuilder' not in hub_raw,
             'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
     editor_members = members_of('gui/HudEditorScreen')
@@ -559,11 +564,10 @@ def main():
     # switches and the editor route; all visual/tab details remain editor-owned.
     chat_ui_constants = constants_of('gui/ChatUiModel')
     chat_editor_raw = raw_of('gui/ChatEditorScreen')
-    r.check(all(value in chat_ui_constants for value in
-                ('Chat QoL', 'Chat Tabs', 'Smooth Messages', 'Hover Highlight', 'Open Chat Editor'))
-                and 'Separate Chats' not in chat_ui_constants
-                and 'Global Font' not in chat_ui_constants and 'Open Font Settings' not in chat_ui_constants,
-            'ChatUiModel keeps only the one-default-chat switch set and editor route')
+    r.check(all(value in chat_ui_constants for value in ('Chat QoL', 'Open Chat Editor'))
+                and all(value not in chat_ui_constants for value in ('Chat Tabs', 'Smooth Messages', 'Hover Highlight',
+                                                                      'Separate Chats', 'Global Font', 'Open Font Settings')),
+            'ChatUiModel keeps exactly its Hub master toggle and editor route')
     chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
     r.check(all(value in chat_editor_raw for value in
                 (b'Background', b'Messages', b'Tabs', b'Menu and Highlight', b'Reset', b'Invalid regex',
@@ -799,7 +803,7 @@ def main():
     fishing_ui_constants = constants_of('gui/FishingUiModel')
     r.check('Nearby encounter titles' in fishing_ui_constants
                 and b'Nearby Encounters' in hub_raw and b'Catch Counter Settings' in feature_editors_raw,
-            'compact Fishing tree keeps nearby encounter alerts simple and routes counters to its editor')
+            'flat Fishing rows keep nearby encounter alerts simple and route counters to their editor')
 
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at

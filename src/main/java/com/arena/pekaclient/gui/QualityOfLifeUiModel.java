@@ -1,21 +1,15 @@
 package com.arena.pekaclient.gui;
 
-import com.arena.pekaclient.itemlockswap.ItemLockSwapUiModel;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Minecraft-free ownership contract for the Quality of Life hub tab. Gameplay controls, Commands and Chat QoL are
- * separate collapsible groups on this one page; their detailed settings remain owned by their existing routes.
- */
+/** Minecraft-free ownership contract for the flat Quality of Life hub tab. */
 public final class QualityOfLifeUiModel {
 
     public static final String TAB_LABEL = "Quality of Life";
 
-    private QualityOfLifeUiModel() {
-    }
+    private QualityOfLifeUiModel() { }
 
     public static final class Entry {
         private final String id;
@@ -28,32 +22,23 @@ public final class QualityOfLifeUiModel {
             this.description = description;
         }
 
-        public String getId() {
-            return id;
-        }
-
-        public String getLabel() {
-            return label;
-        }
-
-        public String getDescription() {
-            return description;
-        }
+        public String getId() { return id; }
+        public String getLabel() { return label; }
+        public String getDescription() { return description; }
     }
 
-    /** The two gameplay toggles in the Quality of Life page's Gameplay group. */
+    /** The first rows in the tab: no dropdowns, no children, only their established feature toggle. */
     public static List<Entry> buildToggleModel() {
         return Collections.unmodifiableList(Arrays.asList(
-                new Entry("disable-hotbar-scrolling", "Disable hotbar scrolling",
-                        "Ignore mouse-wheel hotbar selection during gameplay"),
                 new Entry("no-block-particles", "No block particles",
-                        "Hide only vanilla block digging and crack particles")
+                        "Hide only vanilla block digging and crack particles"),
+                new Entry("disable-hotbar-scrolling", "Disable hotbar scrolling",
+                        "Ignore mouse-wheel hotbar selection during gameplay")
         ));
     }
 
-    /** Ordered collapsible groups; feature controls remain on this tab rather than becoming top-level tabs. */
+    /** Display-only headings; feature rows themselves remain a single flat list. */
     public static List<String> buildSectionTitles() {
-        return Collections.unmodifiableList(Arrays.asList("Gameplay", ItemLockSwapUiModel.SECTION_TITLE,
-                "Chat QoL", "Commands"));
+        return Collections.unmodifiableList(Arrays.asList("Simple features", "Feature editors"));
     }
 }

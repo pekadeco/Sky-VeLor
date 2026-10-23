@@ -14,10 +14,9 @@ public final class ItemAnimationReachabilityTests {
                 ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
         List<ItemAnimationUiModel.Entry> editorTargets = ItemAnimationUiModel.buildHudEditorTargetList();
 
-        check("HUD editor section is first in HUD tab", hasIdAt(hudTab, 0, "hud-editor-section"));
-        check("HUD editor button is the first HUD-tab entry", hasIdAt(hudTab, 1, "hud-editor-open"));
-        requireInteractive(hudTab, "hud-editor-open", "HUD editor button is visible and registered");
-        check("Item Animation dropdown directly follows HUD editor", hasIdAt(hudTab, 2, "item-animation-dropdown"));
+        check("HUD tab starts with the flat Item Animation dropdown", hasIdAt(hudTab, 0, "item-animation-dropdown"));
+        check("HUD tab has no separate nested HUD-editor launcher", hudTab.size() == 1
+                && !contains(hudTab, "hud-editor-open"));
         check("Item Animation dropdown contains exactly two rows", itemAnimationDropdown.size() == 2);
         check("dropdown starts with Item Animation ON/OFF", hasIdAt(itemAnimationDropdown, 0, "item-animation-toggle"));
         check("dropdown ends with Open Item Animation Editor",
@@ -137,14 +136,13 @@ public final class ItemAnimationReachabilityTests {
                 && !contains(fishing.getTabControls(), "common-creature"));
 
         List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
-        check("Chat QoL master appears in the QoL model", chatEntry(chat, "chat-qol-master", true));
-        check("Chat QoL exposes requested Chat Tabs toggle", chatEntry(chat, "chat-tabs", false));
-        check("Chat QoL exposes requested Smooth Messages toggle", chatEntry(chat, "smooth-messages", false));
-        check("Chat QoL exposes requested Hover Highlight toggle", chatEntry(chat, "hover-highlight", false));
+        check("Chat QoL master appears in the flat Hub model", chatEntry(chat, "chat-qol-master", true));
+        check("Chat QoL leaves Chat Tabs, smooth messages and hover controls in its editor", findChat(chat, "chat-tabs") == null
+                && findChat(chat, "smooth-messages") == null && findChat(chat, "hover-highlight") == null);
         check("Chat QoL keeps context-menu policy in its detailed editor", findChat(chat, "right-click-menu") == null);
         check("Chat QoL does not duplicate global Font controls", findChat(chat, "global-font") == null
                 && findChat(chat, "open-font-settings") == null);
-        check("Chat QoL keeps only its chat editor route", chat.size() == 5
+        check("Chat QoL has exactly toggle plus editor route", chat.size() == 2
                 && findChat(chat, "open-chat-editor") != null && findChat(chat, "open-chat-editor").isEditorRoute());
 
         List<FishingUiModel.Entry> fishingToggles = FishingUiModel.buildFeatureToggleModel();

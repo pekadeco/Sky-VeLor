@@ -6,9 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Minecraft-free ownership and layout contract for the Dungeon tab's one Dungeon ESP surface. AppleHubScreen uses
- * the existing Row headers/dropdowns/sliders; this model keeps the required four collapsible groups, every label,
- * and their scale-safe vertical flow regression-testable without constructing a Minecraft screen.
+ * Minecraft-free legacy-option inventory for Dungeon ESP. The flat Hub never renders these four former groups;
+ * Mob ESP and Door ESP now own the same labels through their focused editors. Keeping this list lets tests prove
+ * that every pre-simplification option remains reachable without restoring child rows to the tab.
  */
 public final class DungeonEspUiModel {
 

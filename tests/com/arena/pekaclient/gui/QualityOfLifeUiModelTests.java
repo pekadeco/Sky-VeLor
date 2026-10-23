@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Headless ownership proof for the dedicated Quality of Life and scroll-only Mod Settings surfaces. */
+/** Headless ownership proof for the flat Quality of Life tab and focused editors. */
 public final class QualityOfLifeUiModelTests {
 
     private static int passed;
@@ -19,79 +19,68 @@ public final class QualityOfLifeUiModelTests {
         List<ItemAnimationUiModel.Entry> hud = ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
 
         check("Quality of Life has its dedicated tab label", "Quality of Life".equals(QualityOfLifeUiModel.TAB_LABEL));
-        check("Quality of Life has exactly its two toggles", quality.size() == 2
-                && "disable-hotbar-scrolling".equals(quality.get(0).getId())
-                && "no-block-particles".equals(quality.get(1).getId()));
-        check("Quality of Life toggles are not duplicated", uniqueQualityIds(quality));
+        check("Quality of Life starts with its two simple toggles", quality.size() == 2
+                && "no-block-particles".equals(quality.get(0).getId())
+                && "disable-hotbar-scrolling".equals(quality.get(1).getId()));
+        check("Quality of Life simple toggles are not duplicated", uniqueQualityIds(quality));
         check("General is the first hub tab", AppleHubScreen.PAGE_NAMES.length == 7
                 && "General".equals(AppleHubScreen.PAGE_NAMES[0])
                 && "Quality of Life".equals(AppleHubScreen.PAGE_NAMES[1]));
-        check("Quality of Life keeps Gameplay, Item Lock/Swap, Chat QoL and Commands as dropdown groups",
-                QualityOfLifeUiModel.buildSectionTitles().size() == 4
-                        && "Gameplay".equals(QualityOfLifeUiModel.buildSectionTitles().get(0))
-                        && ItemLockSwapUiModel.SECTION_TITLE.equals(QualityOfLifeUiModel.buildSectionTitles().get(1))
-                        && "Chat QoL".equals(QualityOfLifeUiModel.buildSectionTitles().get(2))
-                        && "Commands".equals(QualityOfLifeUiModel.buildSectionTitles().get(3)));
+        check("Quality of Life has only simple/features headings",
+                QualityOfLifeUiModel.buildSectionTitles().size() == 2
+                        && "Simple features".equals(QualityOfLifeUiModel.buildSectionTitles().get(0))
+                        && "Feature editors".equals(QualityOfLifeUiModel.buildSectionTitles().get(1)));
+
+        FeatureSettingsUiModel.Feature lock = FeatureSettingsUiModel.feature("item-lock-swap");
+        check("Item Lock/Swap Hub dropdown has exactly toggle plus editor", lock != null && lock.isDropdown()
+                && lock.tabControls.size() == 2 && "item-lock-swap".equals(lock.editorId));
         List<ItemLockSwapUiModel.Entry> itemLockSwap = ItemLockSwapUiModel.buildControlModel();
-        check("Item Lock/Swap dropdown owns fourteen non-duplicated shared-row controls", itemLockSwap.size() == 14
+        check("Item Lock/Swap editor retains fourteen non-duplicated controls", itemLockSwap.size() == 14
                 && uniqueItemLockSwapIds(itemLockSwap)
                 && "item-lock-swap-master".equals(itemLockSwap.get(0).getId())
-                && "item-lock-swap-lines".equals(itemLockSwap.get(8).getId())
-                && "item-lock-swap-line-color".equals(itemLockSwap.get(9).getId())
-                && "item-lock-swap-line-opacity".equals(itemLockSwap.get(10).getId())
-                && "item-lock-swap-line-width".equals(itemLockSwap.get(11).getId())
                 && "item-lock-swap-clear-pairs".equals(itemLockSwap.get(13).getId()));
-        check("Item Lock/Swap shared rows never overlap at the compact 40px row height",
-                hasNonOverlappingSharedRows(itemLockSwap));
+        check("Item Lock/Swap editor rows never overlap", hasNonOverlappingEditorRows(itemLockSwap));
 
         check("Mod Settings retains exactly the scroll controls", mod.size() == 2
-                && "scroll-speed".equals(mod.get(0).getId())
-                && "smooth-scrolling".equals(mod.get(1).getId()));
+                && "scroll-speed".equals(mod.get(0).getId()) && "smooth-scrolling".equals(mod.get(1).getId()));
         check("Mod Settings has neither Item Animation nor Chat QoL master",
                 !containsMod(mod, "item-animation") && !containsMod(mod, "chat-qol-master"));
-        check("quality and Mod Settings do not duplicate controls", noCrossSurfaceDuplicates(quality, mod));
+        check("simple QoL and Mod Settings do not duplicate controls", noCrossSurfaceDuplicates(quality, mod));
 
-        check("Chat QoL retains its own master toggle", containsChatMaster(chat, "chat-qol-master"));
-        check("Item Animation remains in the HUD dropdown", containsItemAnimationToggle(hud));
+        check("Chat QoL Hub dropdown has master plus editor only", chat.size() == 2
+                && containsChatMaster(chat, "chat-qol-master") && containsEditor(chat, "open-chat-editor"));
+        check("Item Animation Hub dropdown has its two controls", hud.size() == 2 && containsItemAnimationToggle(hud)
+                && containsItemAnimationEditor(hud));
 
         System.out.println("quality of life UI model: passed " + passed + ", failed " + failed);
-        if (failed > 0) {
-            throw new AssertionError("quality of life UI model failures: " + failed);
-        }
+        if (failed > 0) throw new AssertionError("quality of life UI model failures: " + failed);
     }
 
     private static boolean uniqueQualityIds(List<QualityOfLifeUiModel.Entry> entries) {
         Set<String> ids = new HashSet<String>();
-        for (QualityOfLifeUiModel.Entry entry : entries) {
-            if (!ids.add(entry.getId())) return false;
-        }
+        for (QualityOfLifeUiModel.Entry entry : entries) if (!ids.add(entry.getId())) return false;
         return true;
     }
 
-    /** Uses AppleHubScreen's actual vertical flow helper, not a second test-only layout calculation. */
-    private static boolean hasNonOverlappingSharedRows(List<ItemLockSwapUiModel.Entry> entries) {
+    private static boolean hasNonOverlappingEditorRows(List<ItemLockSwapUiModel.Entry> entries) {
         float top = 0f;
         float previousBottom = -1f;
         for (ItemLockSwapUiModel.Entry ignored : entries) {
             if (top < previousBottom) return false;
-            previousBottom = top + 40f; // Row.item() production height.
-            top = AppleHubScreen.nextRowTop(top, 40f);
+            previousBottom = top + 42f;
+            top = AppleHubScreen.nextRowTop(top, 42f);
         }
         return true;
     }
 
     private static boolean uniqueItemLockSwapIds(List<ItemLockSwapUiModel.Entry> entries) {
         Set<String> ids = new HashSet<String>();
-        for (ItemLockSwapUiModel.Entry entry : entries) {
-            if (!ids.add(entry.getId())) return false;
-        }
+        for (ItemLockSwapUiModel.Entry entry : entries) if (!ids.add(entry.getId())) return false;
         return true;
     }
 
     private static boolean containsMod(List<ModSettingsUiModel.Entry> entries, String id) {
-        for (ModSettingsUiModel.Entry entry : entries) {
-            if (id.equals(entry.getId())) return true;
-        }
+        for (ModSettingsUiModel.Entry entry : entries) if (id.equals(entry.getId())) return true;
         return false;
     }
 
@@ -99,16 +88,17 @@ public final class QualityOfLifeUiModelTests {
                                                     List<ModSettingsUiModel.Entry> mod) {
         Set<String> ids = new HashSet<String>();
         for (QualityOfLifeUiModel.Entry entry : quality) ids.add(entry.getId());
-        for (ModSettingsUiModel.Entry entry : mod) {
-            if (!ids.add(entry.getId())) return false;
-        }
+        for (ModSettingsUiModel.Entry entry : mod) if (!ids.add(entry.getId())) return false;
         return true;
     }
 
     private static boolean containsChatMaster(List<ChatUiModel.Entry> entries, String id) {
-        for (ChatUiModel.Entry entry : entries) {
-            if (id.equals(entry.getId())) return entry.isMasterToggle() && entry.isToggle();
-        }
+        for (ChatUiModel.Entry entry : entries) if (id.equals(entry.getId())) return entry.isMasterToggle() && entry.isToggle();
+        return false;
+    }
+
+    private static boolean containsEditor(List<ChatUiModel.Entry> entries, String id) {
+        for (ChatUiModel.Entry entry : entries) if (id.equals(entry.getId())) return entry.isEditorRoute();
         return false;
     }
 
@@ -119,12 +109,19 @@ public final class QualityOfLifeUiModelTests {
         return false;
     }
 
-    private static void check(String name, boolean ok) {
-        if (ok) {
+    private static boolean containsItemAnimationEditor(List<ItemAnimationUiModel.Entry> entries) {
+        for (ItemAnimationUiModel.Entry entry : entries) {
+            if ("item-animation-open-editor".equals(entry.getId())) return entry.isControlRegistered();
+        }
+        return false;
+    }
+
+    private static void check(String name, boolean okay) {
+        if (okay) {
             passed++;
         } else {
             failed++;
-            System.err.println("FAIL " + name);
+            System.out.println("FAIL " + name);
         }
     }
 }

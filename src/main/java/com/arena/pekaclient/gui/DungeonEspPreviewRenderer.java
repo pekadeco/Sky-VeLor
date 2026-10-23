@@ -38,6 +38,20 @@ public final class DungeonEspPreviewRenderer {
                 Math.max(13f, Math.min(width * .13f, 28f)), 2.0f, .22f);
     }
 
+    /** Small left-list preview: it deliberately calls the same drawBox/drawStyledBox path as the large preview and live ESP. */
+    public static void drawMobThumbnail(String category, DungeonEspSettings.Style style,
+                                        float x, float y, float width, float height) {
+        drawBox(style, style == null ? 0xFFFFFF : style.color, x + width * .5f, y + height - 1f,
+                Math.max(3f, Math.min(width * .48f, 8f)), mobHeight(category), 1.0f);
+    }
+
+    /** Small left-list preview for a cached closed-door prism, also through the shared styled-box path. */
+    public static void drawDoorThumbnail(String category, DungeonEspSettings.Style style, int color,
+                                         float x, float y, float width, float height) {
+        drawBox(style, color, x + width * .5f, y + height - 1f,
+                Math.max(3f, Math.min(width * .48f, 8f)), 2.0f, .22f);
+    }
+
     private static void drawBox(DungeonEspSettings.Style style, int color,
                                 float centerX, float baselineY, float scale, float modelHeight, float modelDepth) {
         if (style == null) return;

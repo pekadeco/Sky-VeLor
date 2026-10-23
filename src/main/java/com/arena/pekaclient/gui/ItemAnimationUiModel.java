@@ -7,8 +7,6 @@ import java.util.List;
 /** Minecraft-free discoverability and compact-panel model shared by the real screens and headless tests. */
 public final class ItemAnimationUiModel {
 
-    private static final String HUD_EDITOR_SECTION = "HUD editor";
-    private static final String HUD_EDITOR_OPEN = "Open the HUD editor";
     private static final String HUD_ITEM_ANIMATION_DROPDOWN = "Item Animation";
     private static final String HUD_TOGGLE = "Item Animation";
     private static final String HUD_OPEN_EDITOR = "Open Item Animation Editor";
@@ -83,12 +81,9 @@ public final class ItemAnimationUiModel {
         return EDITOR_ENTRY;
     }
 
-    /** HUD order is intentional: the HUD editor comes first, then the Item Animation collapsible header. */
+    /** Item Animation is one flat HUD dropdown; its target-specific HUD editor route is its second body row. */
     public static List<Entry> buildHudTabModel() {
         List<Entry> entries = new ArrayList<Entry>();
-        entries.add(new Entry("hud-editor-section", HUD_EDITOR_SECTION, true, false));
-        entries.add(new Entry("hud-editor-open", HUD_EDITOR_OPEN, true, true));
-        // This is a Row.header in AppleHubScreen, so it uses the hub's shared chevron, spacing and animation.
         entries.add(new Entry("item-animation-dropdown", HUD_ITEM_ANIMATION_DROPDOWN, true, true));
         return Collections.unmodifiableList(entries);
     }

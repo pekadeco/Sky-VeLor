@@ -39,24 +39,46 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         void reset();
     }
 
-    /** Navigation category. Parent/depth optionally make this a visual tree instead of a flat list. */
+    /** Lightweight shared thumbnail contract for category lists such as Mob ESP. */
+    public interface CategoryThumbnail {
+        void draw(float x, float y, float width, float height);
+    }
+
+    /**
+     * A flat navigation category. A category can expose its existing on/off control directly in the left list and
+     * can optionally draw a tiny preview; neither capability creates a config key or a second feature model.
+     */
     public static final class Category {
         public final String id;
-        public final String parentId;
-        public final int depth;
         public final String title;
         public final String description;
+        private final java.util.function.Supplier<Boolean> enabled;
+        private final java.util.function.Consumer<Boolean> enabledSetter;
+        private final CategoryThumbnail thumbnail;
 
         public Category(String id, String title, String description) {
-            this(id, null, 0, title, description);
+            this(id, title, description, null, null, null);
         }
 
-        public Category(String id, String parentId, int depth, String title, String description) {
+        public Category(String id, String title, String description,
+                        java.util.function.Supplier<Boolean> enabled,
+                        java.util.function.Consumer<Boolean> enabledSetter,
+                        CategoryThumbnail thumbnail) {
             this.id = id == null ? "" : id;
-            this.parentId = parentId;
-            this.depth = Math.max(0, depth);
             this.title = title == null ? "" : title;
             this.description = description == null ? "" : description;
+            this.enabled = enabled;
+            this.enabledSetter = enabledSetter;
+            this.thumbnail = thumbnail;
+        }
+
+
+        public boolean hasToggle() { return enabled != null && enabledSetter != null; }
+        public boolean isEnabled() { return enabled != null && Boolean.TRUE.equals(enabled.get()); }
+        public void setEnabled(boolean value) { if (enabledSetter != null) enabledSetter.accept(value); }
+        public boolean hasThumbnail() { return thumbnail != null; }
+        public void drawThumbnail(float x, float y, float width, float height) {
+            if (thumbnail != null) thumbnail.draw(x, y, width, height);
         }
     }
 
@@ -103,8 +125,8 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
     private static final float TITLE_H = 34f;
     private static final float PAD = 12f;
-    private static final float LEFT_W = 166f;
-    private static final float CAT_H = 42f;
+    private static final float LEFT_W = 190f;
+    private static final float CAT_H = 46f;
     private static final float ENTRY_H = 42f;
     private static final float GAP = 6f;
 
@@ -297,6 +319,32 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         UIRender.text(font, fit(font, subtitle, textW), textX, back.y + 7f, color, .92f, false);
     }
 
+    private float categoryToggleWidth() {
+        return Math.min(34f, Math.max(26f, left.w * .30f));
+    }
+
+    private float categoryToggleX() {
+        return left.right() - 8f - categoryToggleWidth();
+    }
+
+    private boolean categoryToggleContains(Category category, int mouseX, int mouseY, float rowY) {
+        return category != null && category.hasToggle() && inside(mouseX, mouseY, categoryToggleX(),
+                rowY + (CAT_H - 20f) * .5f, categoryToggleWidth(), 20f);
+    }
+
+    private void drawCategoryToggle(Category category, float rowY) {
+        if (!category.hasToggle()) return;
+        float tw = categoryToggleWidth();
+        float tx = categoryToggleX();
+        float ty = rowY + (CAT_H - 20f) * .5f;
+        boolean enabled = category.isEnabled();
+        int fill = enabled ? Theme.accent : Theme.track;
+        UIRender.roundRect(tx, ty, tw, 20f, 10f, fill, fill, .4f);
+        float knob = 16f;
+        float knobX = enabled ? tx + tw - knob - 2f : tx + 2f;
+        UIRender.circle(knobX + knob * .5f, ty + 10f, knob * .5f, 0xFFFFFFFF);
+    }
+
     private void drawNavigation(int mouseX, int mouseY, FontRenderer font) {
         UIRender.roundRectBorder(left.x, left.y, left.w, left.h, Math.max(4f, Theme.radius - 4f),
                 Theme.card, Theme.card, Theme.border);
@@ -308,21 +356,23 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
                 boolean hover = inside(mouseX, mouseY, left.x + 4f, cursor, left.w - 8f, CAT_H);
                 int fill = chosen ? UIRender.withAlpha(Theme.accent, .18f)
                         : hover ? Theme.cardHover : Theme.card;
-                float indent = category.depth * FeatureTreeLayout.INDENT;
-                UIRender.roundRect(left.x + 4f + indent, cursor, Math.max(1f, left.w - 8f - indent), CAT_H - 2f,
+                UIRender.roundRect(left.x + 4f, cursor, Math.max(1f, left.w - 8f), CAT_H - 2f,
                         5f, fill, fill, 1f);
-                if (category.depth > 0) {
-                    float lineX = left.x + 10f + (category.depth - 1) * FeatureTreeLayout.INDENT;
-                    UIRender.rect(lineX, cursor - 2f, 1f, CAT_H * .5f + 1f, Theme.divider);
-                    UIRender.rect(lineX, cursor + CAT_H * .5f, FeatureTreeLayout.CONNECTOR_TICK, 1f, Theme.divider);
+                float toggleX = category.hasToggle() ? categoryToggleX() : left.right() - 8f;
+                float thumbnailW = category.hasThumbnail() ? 18f : 0f;
+                float thumbnailX = toggleX - (thumbnailW > 0f ? thumbnailW + 7f : 0f);
+                if (category.hasThumbnail()) {
+                    category.drawThumbnail(thumbnailX, cursor + 11f, thumbnailW, 22f);
                 }
-                float titleX = left.x + 10f + indent;
-                UIRender.text(font, fit(font, category.title, Math.max(1f, left.right() - titleX - 8f)), titleX,
-                        cursor + 8f, chosen ? Theme.textPrimary : Theme.textSecondary, .95f, false);
+                float titleX = left.x + 10f;
+                float titleW = Math.max(1f, thumbnailX - titleX - 6f);
+                UIRender.text(font, fit(font, category.title, titleW), titleX, cursor + 8f,
+                        chosen ? Theme.textPrimary : Theme.textSecondary, .95f, false);
                 if (category.description.length() > 0) {
-                    UIRender.text(font, fit(font, category.description, Math.max(1f, left.right() - titleX - 8f)),
-                            titleX, cursor + 21f, Theme.textTertiary, .78f, false);
+                    UIRender.text(font, fit(font, category.description, titleW), titleX, cursor + 22f,
+                            Theme.textTertiary, .76f, false);
                 }
+                drawCategoryToggle(category, cursor);
             }
             cursor += CAT_H;
         }
@@ -370,6 +420,15 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         return null;
     }
 
+    private boolean categoryToggleAt(Category target, int mouseX, int mouseY) {
+        float cursor = left.y + 4f - navigationScroll.value();
+        for (Category category : spec.categories) {
+            if (category == target) return categoryToggleContains(category, mouseX, mouseY, cursor);
+            cursor += CAT_H;
+        }
+        return false;
+    }
+
     private Widget widgetAt(int mouseX, int mouseY) {
         if (!entriesView.contains(mouseX, mouseY)) return null;
         for (Entry entry : entries) if (entry.widget != null && entry.widget.contains(mouseX, mouseY)) return entry.widget;
@@ -391,7 +450,15 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         if (back.contains(mouseX, mouseY)) { active = back; active.onPress(mouseX, mouseY); return; }
         if (reset.contains(mouseX, mouseY)) { active = reset; active.onPress(mouseX, mouseY); return; }
         Category category = navigationAt(mouseX, mouseY);
-        if (category != null) { select(category); return; }
+        if (category != null) {
+            if (categoryToggleAt(category, mouseX, mouseY)) {
+                category.setEnabled(!category.isEnabled());
+                if (category.id.equals(selectedId)) dirtyEntries = true;
+                return;
+            }
+            select(category);
+            return;
+        }
         active = widgetAt(mouseX, mouseY);
         if (active != null) active.onPress(mouseX, mouseY);
     }
