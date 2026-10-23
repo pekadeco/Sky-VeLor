@@ -359,6 +359,15 @@ public final class ReferenceSettingsCatalog {
         return null;
     }
 
+    private static Setting find(List<Setting> settings, String id) {
+        for (Setting setting : settings) {
+            if (id.equals(setting.id)) return setting;
+            Setting child = find(setting.children, id);
+            if (child != null) return child;
+        }
+        return null;
+    }
+
     public static List<Match> search(String value, boolean showAdvanced) {
         String query = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
         if (query.length() == 0) return Collections.emptyList();
