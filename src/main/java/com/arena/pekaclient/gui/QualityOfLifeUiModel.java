@@ -36,7 +36,7 @@ public final class QualityOfLifeUiModel {
     /** The first rows in the tab: direct controls only, with no nested feature tree. */
     public static List<Entry> buildControlModel() {
         return Collections.unmodifiableList(Arrays.asList(
-                new Entry("no-block-particles", "No Block Particles",
+                new Entry("no-block-particles", "No block particles",
                         "Hide only vanilla block digging and crack particles", TOGGLE),
                 new Entry("disable-hotbar-scrolling", "No Hotbar Scrolling",
                         "Ignore mouse-wheel hotbar selection during gameplay", TOGGLE),
