@@ -2,7 +2,7 @@
   {
     "modid": "pekaclient",
     "name": "Sky VeLor",
-    "description": "Sky VeLor Beta-0.10.8.7v (${version}): client-side HUD, Chat QoL, Item Animation, cached Dungeon ESP, assists, and fishing utilities for Minecraft 1.8.9.",
+    "description": "Sky VeLor Beta-0.10.8.8v (${version}): client-side HUD, Chat QoL, Item Animation, cached Dungeon ESP, assists, and fishing utilities for Minecraft 1.8.9.",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "authorList": ["Sky VeLor contributors"],

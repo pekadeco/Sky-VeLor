@@ -22,8 +22,8 @@ repositories {
 }
 
 // Version: read from PekaVersion.NAME so there is exactly one source of release version metadata.
-// Beta-0.10.8.7v is the release contract for this branch; fail early if the source and build surfaces drift.
-def releaseDisplayVersion = "Beta-0.10.8.7v"
+// Beta-0.10.8.8v is the release contract for this branch; fail early if the source and build surfaces drift.
+def releaseDisplayVersion = "Beta-0.10.8.8v"
 def pekaVersionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java').text
 def pekaVersionMatch = (pekaVersionSource =~ /NAME\s*=\s*"([^"]+)"/)
 if (!pekaVersionMatch.find()) {
@@ -34,7 +34,7 @@ if (version != releaseDisplayVersion) {
     throw new GradleException("PekaVersion.NAME must match releaseDisplayVersion " + releaseDisplayVersion)
 }
 // Forge's mod metadata convention is numeric even though the user-facing release/JAR keeps Beta-...v.
-// Releases may carry up to three optional patch components (for example 0.10.8.7.1).
+// Releases may carry up to three optional patch components (for example 0.10.8.8.1).
 def mcmodVersionMatch = (version =~ /(?:Beta-)?([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+){0,3})(?:v)?/)
 def mcmodVersion = mcmodVersionMatch.find() ? mcmodVersionMatch.group(1) : version
 group = "com.arena.pekaclient"

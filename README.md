@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.7v
+# Sky VeLor — Beta-0.10.8.8v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -16,8 +16,9 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 - Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; all gameplay-affecting controls are off by default.
 
-## Beta-0.10.8.7 assist additions
+## Beta-0.10.8.8 settings rework and assist catalogue
 
+- The Hub now uses short persisted feature trees. Detailed Appearance, Performance, assist, Dungeon ESP, Door ESP, Terminal, M7, Slayer and Catch Counter options open the shared **Feature Settings Editor**; existing HUD, Item Animation, Chat, Fonts and Mod Settings editors remain their focused owners. This is a presentation-only reorganization.
 - **Quality of Life** adds inventory search/filtering, potion-panel hiding, Roman tooltip levels, long-tooltip scrolling, rarity tints, local no-hurt camera, UUID-backed item protection, opt-in Auto Sprint, and unbound Wardrobe/Pets shortcuts.
 - **Mining** adds a local pickaxe-ready alert, read-only Puzzler route marker, and a configurable Mining Assistant HUD. **Dungeons** adds a Boss HP HUD, guarded terminal highlights/dimming/wrong-click blocking, terminal/device waypoints, and optional auto-click only for an unambiguous live F7/M7 terminal result.
 - **Dungeons → Dungeon Sync** is off by default. It shares only allow-listed puzzle labels and aligned coordinates through a TLS WebSocket after deriving a local SHA-256 session; names are hashing inputs only and are never serialized. Read [the privacy and safety note](docs/DUNGEON_SYNC.md) before enabling it.
@@ -66,7 +67,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.7v.jar --version Beta-0.10.8.7v --mcmod-version 0.10.8.7
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.8v.jar --version Beta-0.10.8.8v --mcmod-version 0.10.8.8
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -77,7 +78,7 @@ temporary and should not be included in source ZIPs.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.7v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.8v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap

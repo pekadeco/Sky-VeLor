@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.7v] [--mcmod-version 0.10.8.7]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.8v] [--mcmod-version 0.10.8.8]
 """
 
 import argparse
@@ -134,7 +134,7 @@ REQUIRED_CLASSES = [
     'itemlockswap/ItemLockSwapTransformer',
     'itemlockswap/ItemLockSwapController',
     'widget/AppleKeybindButton',
-    # Beta-0.10.8.7 clean-room assist runtime: requiring these keeps a release from claiming
+    # Beta-0.10.8.8 clean-room assist runtime: requiring these keeps a release from claiming
     # the feature catalogue while accidentally packaging only its settings/UI surface.
     'config/AssistSettings',
     'assist/ShortcutController',
@@ -182,7 +182,7 @@ FORBIDDEN_CLASSES = [
     # The per-frame level-tag renderer was replaced by the cached yellow-star Dungeon ESP.
     'render/MobHighlight',
     'feature/MobMarkers',
-    # Beta-0.10.8.7 retains the one-default-chat implementation and no split-chat classes.
+    # Beta-0.10.8.8 retains the one-default-chat implementation and no split-chat classes.
     'feature/ChatFilterRules',
     'feature/ChatPatternRules',
     'feature/ChatQolHistory',
@@ -312,8 +312,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.7v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.7')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.8v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.8')
     args = ap.parse_args()
 
     path = args.jar
@@ -452,7 +452,7 @@ def main():
         path = MOD_PACKAGE + cls + '.class'
         return zf.read(path) if path in names else b''
 
-    # --- Beta-0.10.8.7 clean-room assist proof --------------------------------
+    # --- Beta-0.10.8.8 clean-room assist proof --------------------------------
     # Presence alone is not enough: these checks tie the persisted safe-default controls, Hub labels,
     # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
     assist_settings_raw = raw_of('config/AssistSettings')

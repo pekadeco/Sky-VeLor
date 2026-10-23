@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Minecraft-free catalog of every Beta-0.10.8.7 control. The Hub uses these exact labels/descriptions so tests can
+ * Minecraft-free catalog of every Beta-0.10.8.8 control. The Hub uses these exact labels/descriptions so tests can
  * prove each option has a one-line explanation and belongs to exactly one matching tab/channel.
  */
 public final class AssistUiModel {

@@ -1,5 +1,16 @@
 # Changelog
 
+## Beta-0.10.8.8v — 2026-10-23
+
+- Reworked settings presentation only: every crowded Hub tab now uses compact, persisted feature-tree rows with an optional master toggle, gray description, and one **Open Settings** route. Existing feature behavior, config keys/values, migration and old-config loading are unchanged.
+- Added the reusable **Feature Settings Editor** framework with Back/Reset, remembered category selection, scrollable left navigation/tree and settings pane, shared responsive geometry, and the existing dropdown palette style.
+- Moved Mob ESP and Door ESP into focused editors. Mob ESP lists Global plus Starred Mob, Miniboss, Special Starred Mob, Enderman, Skeletor and Other Mobs; Door ESP covers global filters plus Wither/Blood doors. Both retain all prior options, Default/Subtle/Reset and session-only copy/apply style actions.
+- Added an in-editor safe named hitbox/prism preview. Preview and live Dungeon ESP both emit style geometry through `DungeonEspRenderBatch.drawStyledBox`; no dummy world/entity is constructed.
+- Routed detailed Appearance, Performance, assist, Item Lock & Swap, Spirit Leap, Terminal, M7, Catch Counter and Slayer controls through the framework. Existing HUD Editor, Item Animation editor, Chat Editor, Fonts and Mod Settings remain their focused owners.
+- Added headless persisted-tree, connector/indentation, reachability and Dungeon ESP control-route coverage; updated release-jar audit checks for the compact editor architecture.
+- Updated display version to `Beta-0.10.8.8v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.8`.
+- **NOT tested in-game.**
+
 ## Beta-0.10.8.7v — 2026-10-23
 
 - Added a clean-room assist foundation with namespaced, bounds-checked, old-key-compatible settings and a one-place Hub catalog. New game-affecting assists default to off; new keybinds are unbound and registered under **Sky VeLor**.

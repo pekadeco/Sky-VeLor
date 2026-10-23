@@ -4,7 +4,7 @@ import java.util.Locale;
 import java.util.Properties;
 
 /**
- * Isolated, safe-by-default schema for the Beta-0.10.8.7 optional client assists. Keeping this schema separate
+ * Isolated, safe-by-default schema for the Beta-0.10.8.8 optional client assists. Keeping this schema separate
  * from the older shared AppleSettings fields means the new modules cannot repurpose a historic key or move an
  * existing HUD position. Every value is normalized on both load and save.
  */
