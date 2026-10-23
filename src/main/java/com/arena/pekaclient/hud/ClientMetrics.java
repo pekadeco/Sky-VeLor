@@ -50,10 +50,10 @@ public final class ClientMetrics {
         public String fpsText() { return fpsText; }
         public String pingText() { return pingText; }
         public String memoryText() { return memoryText; }
-        public int fpsColor() { return fpsColor(fps); }
-        public int pingColor() { return pingColor(pingMs); }
-        public int memoryColor() { return memoryColor(usedBytes, maxBytes); }
-        public float memoryRatio() { return memoryRatio(usedBytes, maxBytes); }
+        public int fpsColor() { return ClientMetrics.fpsColor(fps); }
+        public int pingColor() { return ClientMetrics.pingColor(pingMs); }
+        public int memoryColor() { return ClientMetrics.memoryColor(usedBytes, maxBytes); }
+        public float memoryRatio() { return ClientMetrics.memoryRatio(usedBytes, maxBytes); }
     }
 
     /** Reader caches data for roughly twice-per-second General-tab refreshes with no per-frame snapshot allocation. */
