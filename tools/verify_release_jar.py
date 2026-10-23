@@ -474,7 +474,8 @@ def main():
     # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
     assist_settings_raw = raw_of('config/AssistSettings')
     settings_screen_raw = raw_of('gui/AppleSettingsScreen')
-    reference_catalog_raw = raw_of('gui/ReferenceSettingsCatalog')
+    # Human rail labels live on the nested enum class; include it with the outer catalog for ownership checks.
+    reference_catalog_raw = raw_of('gui/ReferenceSettingsCatalog') + raw_of('gui/ReferenceSettingsCatalog$Tab')
     # Labels/data live in the immutable catalog while interaction owners live in the native screen.
     settings_surface_raw = settings_screen_raw + reference_catalog_raw
     feature_editors_raw = raw_of('gui/FeatureSettingsEditors')
