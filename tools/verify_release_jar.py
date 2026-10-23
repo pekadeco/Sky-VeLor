@@ -491,17 +491,21 @@ def main():
     visual_status_raw = raw_of('assist/visual/VisualAssistHookStatus')
     client_mod_raw = raw_of('PekaClientMod')
     selftest_raw = raw_of('command/SvCommand')
-    r.check(b'assist.visual.noHurtCamera' in assist_settings_raw and b'No Hurt Cam' in assist_hub_raw
-                and b'No Hurt Camera' not in feature_editors_raw
-                and all(value in visual_transformer_raw for value in
-                        (b'hurtCameraEffect', b'func_78482_e', b'suppressHurtCamera'))
-                # reobfJar maps Minecraft's hurtTime field, so prove the fallback through Sky VeLor-owned
-                # method/class references instead of requiring its MCP field spelling in the packed bytecode.
-                and all(value in visual_hooks_raw for value in
-                        (b'zeroFallbackVisualTilt', b'shouldUseVisualFallback', b'VisualAssistHookStatus', b'AssistSettings'))
-                and b'zeroFallbackVisualTilt' in client_mod_raw and b'FALLBACK' in visual_status_raw
-                and b'no hurt cam' in selftest_raw,
-            'No Hurt Cam is default-off, visual-only, hook-first with local-tilt fallback and selftest status')
+    no_hurt_ui = (b'assist.visual.noHurtCamera' in assist_settings_raw and b'No Hurt Cam' in assist_hub_raw
+                  and b'No Hurt Camera' not in feature_editors_raw)
+    no_hurt_hook = all(value in visual_transformer_raw for value in
+                       (b'hurtCameraEffect', b'func_78482_e', b'suppressHurtCamera'))
+    # reobfJar maps Minecraft's hurtTime field, so prove the fallback through Sky VeLor-owned
+    # method/class references instead of requiring its MCP field spelling in the packed bytecode.
+    no_hurt_fallback = (all(value in visual_hooks_raw for value in
+                            (b'zeroFallbackVisualTilt', b'shouldUseVisualFallback', b'VisualAssistHookStatus',
+                             b'AssistSettings'))
+                        and b'zeroFallbackVisualTilt' in client_mod_raw and b'FALLBACK' in visual_status_raw)
+    no_hurt_selftest = b'no hurt cam' in selftest_raw
+    r.check(no_hurt_ui and no_hurt_hook and no_hurt_fallback and no_hurt_selftest,
+            'No Hurt Cam is default-off, visual-only, hook-first with local-tilt fallback and selftest status',
+            'ui=%s hook=%s fallback=%s selftest=%s' %
+            (no_hurt_ui, no_hurt_hook, no_hurt_fallback, no_hurt_selftest))
     auto_sprint_raw = raw_of('assist/movement/AutoSprintController')
     auto_sprint_policy_raw = raw_of('assist/movement/AutoSprintPolicy')
     r.check(b'assist.movement.autoSprint' in assist_settings_raw and b'Auto Sprint' in assist_hub_raw
