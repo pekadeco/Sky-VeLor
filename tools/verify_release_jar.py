@@ -563,17 +563,23 @@ def main():
     hud_element_raw = raw_of('hud/HudElement')
     hud_manager_raw = raw_of('hud/HudManager')
     item_slots_raw = raw_of('hud/ItemSlots')
-    r.check(all(value in reference_catalog_raw for value in
-                (b'Quality of Life', b'Mining', b'Slayer', b'Fishing', b'HUD Hub', b'Settings theme',
-                 b'Forest & Cyan', b'Black & Blue'))
-                and all(value in settings_screen_raw for value in
-                        (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'DRAG TITLE BAR'))
-                and b'HIT_ADVANCED' not in settings_screen_raw
-                and b'Advanced settings shown' not in settings_screen_raw
-                and all(value in apple_settings_raw for value in
-                        (b'appearance.settingsTheme', b'SETTINGS_THEME_BLACK_BLUE', b'SETTINGS_THEME_FOREST_CYAN'))
-                and b'applyBlackBluePalette' in theme_raw,
-            'direct category shell removes the visible Advanced gate and persists Forest & Cyan or Black & Blue')
+    category_shell_tokens = (b'Quality of Life', b'Mining', b'Slayer', b'Fishing', b'HUD Hub', b'Settings theme',
+                             b'Forest & Cyan', b'Black & Blue')
+    category_screen_tokens = (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'DRAG TITLE BAR')
+    category_settings_tokens = (b'appearance.settingsTheme', b'SETTINGS_THEME_BLACK_BLUE', b'SETTINGS_THEME_FOREST_CYAN')
+    missing_catalog = [value.decode('ascii') for value in category_shell_tokens if value not in reference_catalog_raw]
+    missing_screen = [value.decode('ascii') for value in category_screen_tokens if value not in settings_screen_raw]
+    missing_settings = [value.decode('ascii') for value in category_settings_tokens if value not in apple_settings_raw]
+    direct_category_shell = (not missing_catalog and not missing_screen and not missing_settings
+                             and b'HIT_ADVANCED' not in settings_screen_raw
+                             and b'Advanced settings shown' not in settings_screen_raw
+                             and b'applyBlackBluePalette' in theme_raw)
+    r.check(direct_category_shell,
+            'direct category shell removes the visible Advanced gate and persists Forest & Cyan or Black & Blue',
+            'missing catalog=%s screen=%s settings=%s legacyGate=%s themeHelper=%s' %
+            (missing_catalog, missing_screen, missing_settings,
+             b'HIT_ADVANCED' in settings_screen_raw or b'Advanced settings shown' in settings_screen_raw,
+             b'applyBlackBluePalette' in theme_raw))
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
                 and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
                 and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,
