@@ -22,6 +22,7 @@ public final class ConfigTests {
         invalidValuesFallBack();
         outOfRangeIsClamped();
         legacyFileLoads();
+        metricDisplaysDefaultOffAndIgnoreRemovedStatsKeys();
         saveLoadRoundTrip();
 
         System.out.println();
@@ -97,6 +98,16 @@ public final class ConfigTests {
         d.load(parse("dollars.x=-6\ndollars.y=6\ndollars.cx=false\ndollars.cy=false\n"));
         check("legacy right edge", d.place.anchorX == Anchor.END && d.place.offsetX == 6, d.place.toString());
         check("legacy top", d.place.anchorY == Anchor.START && d.place.offsetY == 6, d.place.toString());
+    }
+
+    private static void metricDisplaysDefaultOffAndIgnoreRemovedStatsKeys() throws IOException {
+        ClientMetricHud display = new ClientMetricHud("fps-display", "FPS Display",
+                new HudPlacement(Anchor.END, 6, Anchor.START, 40), ClientMetricHud.Metric.FPS);
+        check("metric default off", !display.enabled, "enabled");
+        display.load(parse("stats.enabled=true\nstats.fps=true\nstats.ping=true\n"));
+        check("removed stats keys ignored", !display.enabled, "enabled");
+        display.load(parse("fps-display.enabled=true\n"));
+        check("metric own key loads", display.enabled, "enabled");
     }
 
     private static void saveLoadRoundTrip() throws IOException {

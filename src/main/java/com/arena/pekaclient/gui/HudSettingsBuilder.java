@@ -6,7 +6,6 @@ import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.InventoryHud;
 import com.arena.pekaclient.hud.MiningHud;
 import com.arena.pekaclient.hud.PlayerDollHud;
-import com.arena.pekaclient.hud.StatsHud;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleSegmented;
@@ -116,11 +115,6 @@ final class HudSettingsBuilder {
             gatedSlider("Drops", 1, 4, 1, "", () -> sl.drops, v -> sl.drops = v, () -> sl.limitDrops);
             toggle("Profit", () -> sl.showProfit, v -> sl.showProfit = v);
             toggle("Boss timer", () -> sl.showBossTimer, v -> sl.showBossTimer = v);
-        } else if (element instanceof StatsHud) {
-            final StatsHud st = (StatsHud) element;
-            toggle("Show FPS", () -> st.showFps, v -> st.showFps = v);
-            toggle("Show ping", () -> st.showPing, v -> st.showPing = v);
-        }
     }
 
     private void common(final HudElement e) {

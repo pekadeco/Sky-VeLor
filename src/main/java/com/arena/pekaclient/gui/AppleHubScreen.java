@@ -236,9 +236,16 @@ public class AppleHubScreen extends AppleScreen {
         return rows;
     }
 
-    /** General remains the first overview page, with only flat editor dropdowns for multi-option settings. */
+    /** General keeps display visibility as simple rows and sends multi-option settings to flat editors. */
     private List<Row> generalPage() {
         List<Row> rows = new ArrayList<Row>();
+        rows.add(Row.section("Display HUD"));
+        simpleFeature(rows, "FPS Display", "Show the game's current frame rate as an independently placed HUD element.",
+                () -> HudManager.FPS_DISPLAY.enabled, value -> HudManager.FPS_DISPLAY.enabled = value);
+        simpleFeature(rows, "Ping Display", "Show your local player's tab-list response time as an independently placed HUD element.",
+                () -> HudManager.PING_DISPLAY.enabled, value -> HudManager.PING_DISPLAY.enabled = value);
+        simpleFeature(rows, "Memory Display", "Show used and maximum Java heap memory in MB as an independently placed HUD element.",
+                () -> HudManager.MEMORY_DISPLAY.enabled, value -> HudManager.MEMORY_DISPLAY.enabled = value);
         rows.add(Row.section("Feature editors"));
         editorFeature(rows, "Appearance", "Dark/light theme, accent, corners and panel opacity.",
                 "Dark Mode", "Use the established dark or light interface setting.", () -> AppleSettings.darkMode,

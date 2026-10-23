@@ -56,6 +56,9 @@ public final class FeatureSettingsUiModelTests {
         check("no per-child tab rows are modeled", FeatureSettingsUiModel.maximumDropdownDepth() == 1);
         check("Mob ESP is a dropdown feature", isDropdownEditor("mob-esp", "mob-esp"));
         check("Door ESP is a dropdown feature", isDropdownEditor("door-esp", "door-esp"));
+        check("FPS Display is a simple General row", FeatureSettingsUiModel.feature("fps-display").isSimple());
+        check("Ping Display is a simple General row", FeatureSettingsUiModel.feature("ping-display").isSimple());
+        check("Memory Display is a simple General row", FeatureSettingsUiModel.feature("memory-display").isSimple());
         check("No Block Particles is a simple row", FeatureSettingsUiModel.feature("no-block-particles").isSimple());
         check("Dungeon Sync Debug is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
     }

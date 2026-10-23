@@ -30,14 +30,23 @@ public final class HudManager {
     public static final InventoryHud INVENTORY = new InventoryHud();
     public static final HotbarHud HOTBAR = new HotbarHud();
     public static final PlayerDollHud DOLL = new PlayerDollHud();
-    public static final StatsHud STATS = new StatsHud();
+    /** Separate default-off metric elements, each with its own placement and style. */
+    public static final ClientMetricHud FPS_DISPLAY = new ClientMetricHud("fps-display", "FPS Display",
+            new HudPlacement(HudPlacement.Anchor.END, 6, HudPlacement.Anchor.START, 40),
+            ClientMetricHud.Metric.FPS);
+    public static final ClientMetricHud PING_DISPLAY = new ClientMetricHud("ping-display", "Ping Display",
+            new HudPlacement(HudPlacement.Anchor.END, 6, HudPlacement.Anchor.START, 64),
+            ClientMetricHud.Metric.PING);
+    public static final ClientMetricHud MEMORY_DISPLAY = new ClientMetricHud("memory-display", "Memory Display",
+            new HudPlacement(HudPlacement.Anchor.END, 6, HudPlacement.Anchor.START, 88),
+            ClientMetricHud.Metric.MEMORY);
     public static final FishingHud FISHING = new FishingHud();
     public static final SeaCreatureHud SEA_HP = new SeaCreatureHud();
     public static final SlayerHud SLAYER = new SlayerHud();
 
     /** Elements shown in the normal HUD editor, in draw order. */
     public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DOLLARS, INVENTORY, HOTBAR,
-            DOLL, STATS, FISHING, SEA_HP, SLAYER};
+            DOLL, FPS_DISPLAY, PING_DISPLAY, MEMORY_DISPLAY, FISHING, SEA_HP, SLAYER};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient-hud.properties";
