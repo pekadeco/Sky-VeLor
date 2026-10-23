@@ -73,6 +73,8 @@ jobs:
           echo "MCMOD_VERSION=$MCMOD_VERSION" >> "$GITHUB_ENV"
           echo "JAR_NAME=SkyVeLor-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
           echo "ZIP_NAME=SkyVeLor-1.8.9-$VERSION.zip" >> "$GITHUB_ENV"
+          echo "SOURCE_ZIP_NAME=SkyVeLor-1.8.9-$VERSION-source.zip" >> "$GITHUB_ENV"
+          echo "SOURCE_ROOT=SkyVeLor-1.8.9-$VERSION-source/" >> "$GITHUB_ENV"
           {
             echo "revision : $(git rev-parse HEAD)"
             echo "branch   : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
@@ -150,10 +152,27 @@ jobs:
           fi
           echo "::notice title=JAR::verified $JAR_NAME $(stat -c%s "$JAR") bytes version=$VERSION"
 
+      - name: Create and verify the curated source ZIP
+        run: |
+          set -e
+          SOURCE_ZIP="build/delivery/$SOURCE_ZIP_NAME"
+          mkdir -p build/delivery
+          # This explicit allow-list is intentional: git archive never receives dist/, build/, .git/,
+          # IDE state, generated artifacts, or any untracked local file. The wrapper JAR is retained
+          # because it is required to build the released source tree.
+          git archive --format=zip --prefix="$SOURCE_ROOT" HEAD -- .github .gitignore CHANGELOG.md LICENSE README.md THIRD_PARTY_NOTICES build.gradle docs gradle gradlew gradlew.bat settings.gradle src tests tools > "$SOURCE_ZIP"
+          if ! python3 tools/verify_source_zip.py "$SOURCE_ZIP" --version "$VERSION" > "$RUNNER_TEMP/source-verify.txt" 2>&1; then
+            cat "$RUNNER_TEMP/source-verify.txt"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/source-verify.txt"
+          echo "::notice title=SOURCE::verified $SOURCE_ZIP_NAME $(stat -c%s "$SOURCE_ZIP") bytes"
+
       - name: Write the build report
         run: |
           set -e
           JAR="build/libs/$JAR_NAME"
+          SOURCE_ZIP="build/delivery/$SOURCE_ZIP_NAME"
           {
             echo "Sky VeLor $VERSION build report"
             echo "================================"
@@ -166,6 +185,9 @@ jobs:
             echo "jar      : dist/$JAR_NAME"
             echo "size     : $(stat -c%s "$JAR") bytes"
             echo "sha256   : $(sha256sum "$JAR" | cut -d' ' -f1)"
+            echo "source   : dist/$SOURCE_ZIP_NAME"
+            echo "source size: $(stat -c%s "$SOURCE_ZIP") bytes"
+            echo "source sha256: $(sha256sum "$SOURCE_ZIP" | cut -d' ' -f1)"
             echo
             echo "gradle tasks that produced the jar:"
             grep -E "^:(compileJava|jar|reobfJar|sourceJar|assemble|check|build)" "$RUNNER_TEMP/build.log" || echo "(none listed)"
@@ -176,8 +198,11 @@ jobs:
             echo "test suites:"
             grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" || true
             echo
-            echo "verification:"
+            echo "release JAR verification:"
             cat "$RUNNER_TEMP/verify.txt"
+            echo
+            echo "source ZIP verification:"
+            cat "$RUNNER_TEMP/source-verify.txt"
           } > BUILD-REPORT.txt
           grep -vE '^      (func|field)_' BUILD-REPORT.txt | tail -45
 
@@ -201,16 +226,24 @@ jobs:
                   print('  %s %d bytes' % (item.filename, item.file_size))
           PY
 
-      - name: Publish only the jar and zip into dist/ on this branch
+      - name: Publish the three release artifacts into dist/ on this branch
         if: github.event_name == 'push'
         run: |
           set +e +o pipefail
-          # A release directory is deliberately a two-file delivery surface: the new JAR and its ZIP.
-          # Remove every prior artifact only after build, tests, and JAR verification have passed.
+          # A release directory is deliberately a three-file delivery surface: the JAR, delivery ZIP,
+          # and reproducible source ZIP. Remove every prior artifact only after all verification passes.
           rm -rf dist
           mkdir -p dist
           cp -v "build/libs/$JAR_NAME" "dist/$JAR_NAME"
           cp -v "build/delivery/$ZIP_NAME" "dist/$ZIP_NAME"
+          cp -v "build/delivery/$SOURCE_ZIP_NAME" "dist/$SOURCE_ZIP_NAME"
+          EXPECTED=$(printf '%s\n' "$JAR_NAME" "$SOURCE_ZIP_NAME" "$ZIP_NAME" | sort)
+          ACTUAL=$(find dist -maxdepth 1 -type f -printf '%f\n' | sort)
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error title=DIST::dist/ must contain exactly the release JAR, delivery ZIP and source ZIP"
+            printf 'expected:\n%s\nactual:\n%s\n' "$EXPECTED" "$ACTUAL"
+            exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f -A dist
@@ -226,7 +259,7 @@ jobs:
             echo "::error title=DIST::could not publish dist/ (exit $RC)"
             exit "$RC"
           fi
-          echo "::notice title=DIST::published dist/$JAR_NAME and $ZIP_NAME"
+          echo "::notice title=DIST::published dist/$JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME"
 
       - name: Attach the jar to a GitHub release (main only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -236,22 +269,23 @@ jobs:
           set -e
           JAR="dist/$JAR_NAME"
           ZIP="dist/$ZIP_NAME"
+          SOURCE_ZIP="dist/$SOURCE_ZIP_NAME"
           TAG="SkyVeLor-$VERSION"
           printf '%s\n' \
             "Minecraft 1.8.9 Forge mod built by the Build Sky VeLor workflow." \
             "" \
-            "Built from commit $GITHUB_SHA. The release carries the verified JAR and delivery ZIP." \
+            "Built from commit $GITHUB_SHA. The release carries the verified JAR, delivery ZIP and source ZIP." \
             "" \
             "Install: put $JAR_NAME in the Minecraft mods folder." \
             "Requires Minecraft 1.8.9 with Forge 11.15.1.2318 and Java 8." > release-notes.txt
           cat release-notes.txt
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$JAR" "$ZIP" --clobber
+            gh release upload "$TAG" "$JAR" "$ZIP" "$SOURCE_ZIP" --clobber
           else
-            gh release create "$TAG" "$JAR" "$ZIP" \
+            gh release create "$TAG" "$JAR" "$ZIP" "$SOURCE_ZIP" \
               --title "Sky VeLor $VERSION" --notes-file release-notes.txt
           fi
-          echo "::notice title=RELEASE::$TAG published with $JAR_NAME and $ZIP_NAME"
+          echo "::notice title=RELEASE::$TAG published with $JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME"
 
       # A squash merge into main is performed through the API, and GitHub does not always
       # schedule a workflow run for it - which leaves the release created but carrying no
@@ -282,6 +316,7 @@ jobs:
           mkdir -p release-assets
           git show "$TAG:dist/$JAR_NAME" > "release-assets/$JAR_NAME"
           git show "$TAG:dist/$ZIP_NAME" > "release-assets/$ZIP_NAME"
+          git show "$TAG:dist/$SOURCE_ZIP_NAME" > "release-assets/$SOURCE_ZIP_NAME"
           WANT=$(sha256sum "release-assets/$JAR_NAME" | cut -d' ' -f1)
           GOT=$(sha256sum "build/libs/$JAR_NAME" | cut -d' ' -f1)
           echo "jar published on main at $TAG : $WANT"
@@ -291,18 +326,20 @@ jobs:
             exit 1
           fi
           echo "identical - attaching main's own artifacts to $TAG"
-          gh release upload "$TAG" "release-assets/$JAR_NAME" "release-assets/$ZIP_NAME" --clobber
+          gh release upload "$TAG" "release-assets/$JAR_NAME" "release-assets/$ZIP_NAME" \
+            "release-assets/$SOURCE_ZIP_NAME" --clobber
           gh release view "$TAG" --json name,tagName,assets \
             --jq '"release \(.name) (\(.tagName)) carries: " + ([.assets[] | "\(.name) \(.size) bytes"] | join(", "))'
-          echo "::notice title=RELEASE::attached $JAR_NAME and $ZIP_NAME to $TAG"
+          echo "::notice title=RELEASE::attached $JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME to $TAG"
 
-      - name: Upload the release jar as a workflow artifact
+      - name: Upload the verified release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: SkyVeLor-1.8.9-${{ env.VERSION }}
           path: |
             build/libs/${{ env.JAR_NAME }}
             build/delivery/${{ env.ZIP_NAME }}
+            build/delivery/${{ env.SOURCE_ZIP_NAME }}
             BUILD-REPORT.txt
           if-no-files-found: error
           retention-days: 90

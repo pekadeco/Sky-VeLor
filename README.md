@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.8.2v
+# Sky VeLor — Beta-0.10.8.9v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -16,9 +16,10 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 - Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; all gameplay-affecting controls are off by default.
 
-## Beta-0.10.8.8.2 flat-Hub/editor release
+## Beta-0.10.8.9v settings and General telemetry release
 
-- The Hub is now a flat list: a **Simple** row has one toggle, while a one-level **Dropdown** has its status dot plus exactly **On/Off** and **Settings**. Detailed Appearance, Performance, assist, Dungeon ESP, Door ESP, Terminal, M7, Slayer and Catch Counter options remain in their focused Settings screens; HUD, Item Animation, Chat and Mod Settings retain their focused owners. This is a presentation-only reorganization.
+- The Hub uses a flat list: a **Simple** row has one toggle, while a one-level **Dropdown** has its status dot plus exactly **On/Off** and **Settings**. Detailed Appearance, Performance, assist, Dungeon ESP, Door ESP, Terminal, M7, Slayer and Catch Counter options remain in their focused Settings screens; HUD, Item Animation, Chat and Mod Settings retain their focused owners. This is a presentation-only reorganization.
+- **General** shows cached color-coded local FPS, tab-list Ping, and used/max Java heap readouts. These telemetry readouts are GUI-only; the HUD editor has no FPS/Ping/Memory elements.
 - **Quality of Life** adds inventory search/filtering, potion-panel hiding, Roman tooltip levels, long-tooltip scrolling, rarity tints, local no-hurt camera, opt-in Auto Sprint, and unbound Wardrobe/Pets shortcuts.
 - **Farming** adds a local pickaxe-ready alert, read-only Puzzler route marker, and a configurable Mining Assistant HUD. **Dungeon** adds a Boss HP HUD, guarded terminal highlights/dimming/wrong-click blocking, terminal/device waypoints, and optional auto-click only for an unambiguous live F7/M7 terminal result.
 - **Dungeon → Dungeon Sync** is off by default. It shares only allow-listed puzzle labels and aligned coordinates through a TLS WebSocket after deriving a local SHA-256 session; names are hashing inputs only and are never serialized. Read [the privacy and safety note](docs/DUNGEON_SYNC.md) before enabling it.
@@ -67,7 +68,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.8.2v.jar --version Beta-0.10.8.8.2v --mcmod-version 0.10.8.8.2
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9v.jar --version Beta-0.10.8.9v --mcmod-version 0.10.8.9
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -75,10 +76,15 @@ file or nested archive was packaged, and — decisively — that the classes ref
 by SRG name with no development names left. The generated `build/` and `.gradle/` directories are
 temporary and should not be included in source ZIPs.
 
+The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9v-source.zip`. It is generated with a
+curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9v-source/` root prefix;
+use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9v` to verify its contents.
+The only JAR allowed in that source archive is the required Gradle wrapper.
+
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.8.2v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap

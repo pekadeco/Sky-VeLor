@@ -1,4 +1,4 @@
-# Flat Hub and editor reachability — Beta-0.10.8.8.2v
+# Flat Hub and editor reachability — Beta-0.10.8.9v
 
 This release changes presentation only. It does **not** change gameplay behavior, setting keys, values, defaults, HUD placement, or feature ownership.
 

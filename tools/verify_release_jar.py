@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.8.2v] [--mcmod-version 0.10.8.8.2]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9v] [--mcmod-version 0.10.8.9]
 """
 
 import argparse
@@ -322,8 +322,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.8.2v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.8.2')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9')
     args = ap.parse_args()
 
     path = args.jar

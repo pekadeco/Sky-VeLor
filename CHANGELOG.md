@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta-0.10.8.9v — 2026-10-23
+
+- Rebuilt the focused settings editors around a responsive scrollable settings pane and scissored Live Preview surface; previews update the real shared state immediately.
+- Moved cached local FPS, tab-list Ping, and used/max Java heap telemetry into color-coded **General** GUI cards. Retired FPS/Ping/Memory HUD elements and their old keys are safely ignored.
+- Kept the visible Hub category table exactly **General**, **Quality of Life**, **HUD**, **Farming**, **Dungeon**, **Slayer**, and **Fishing**; legacy catalog and documentation references now use those same labels.
+- Added the reproducible `SkyVeLor-1.8.9-Beta-0.10.8.9v-source.zip` source delivery. CI creates it with a rooted `git archive` allow-list, verifies it with `tools/verify_source_zip.py`, uploads it as an artifact, and publishes exactly the JAR, delivery ZIP, and source ZIP in `dist/`.
+- Updated display version to `Beta-0.10.8.9v`; generated Forge `mcmod.info` and build metadata resolve numeric version `0.10.8.9`.
+- **NOT tested in-game.**
+
 ## Beta-0.10.8.8.2v — 2026-10-23
 
 - Restored independent default-off **FPS Display**, **Ping Display**, and **Memory Display** HUD elements with cached, roughly once-per-second text updates.
