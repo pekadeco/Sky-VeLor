@@ -208,6 +208,8 @@ public class AppleHubScreen extends AppleScreen {
                 () -> AppleSettings.disableHotbarScrolling, value -> AppleSettings.disableHotbarScrolling = value);
         simpleFeature(rows, "No Hurt Cam", QualityOfLifeUiModel.buildToggleModel().get(2).getDescription(),
                 () -> AssistSettings.noHurtCamera, value -> AssistSettings.noHurtCamera = value);
+        simpleFeature(rows, "Auto Sprint", QualityOfLifeUiModel.buildToggleModel().get(3).getDescription(),
+                () -> AssistSettings.autoSprint, value -> AssistSettings.autoSprint = value);
 
         rows.add(Row.section("Feature editors"));
         editorFeature(rows, "Inventory Assist", "Search, tooltip and inventory visual helpers.",
@@ -218,9 +220,9 @@ public class AppleHubScreen extends AppleScreen {
                 "Item Protection", assistDescription("Item Protection"), () -> AssistSettings.itemGuard,
                 value -> AssistSettings.itemGuard = value, "Item Protection",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemProtection(this)));
-        editorFeature(rows, "Movement and Shortcuts", "Auto sprint, wardrobe and pets shortcuts.",
-                "Auto Sprint", assistDescription("Auto sprint"), () -> AssistSettings.autoSprint,
-                value -> AssistSettings.autoSprint = value, "Movement and Shortcuts",
+        editorFeature(rows, "Movement and Shortcuts", "Wardrobe and pets shortcuts.",
+                "Wardrobe Shortcut", assistDescription("Wardrobe shortcut"), () -> AssistSettings.wardrobeShortcut,
+                value -> AssistSettings.wardrobeShortcut = value, "Movement and Shortcuts",
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.movementShortcuts(this)));
         editorFeature(rows, "Item Lock and Swap", "Pair locks, indicators and persistent pair-center lines.",
                 "Item Lock and Swap", "Enable the existing persistent inventory lock and pair controls.",

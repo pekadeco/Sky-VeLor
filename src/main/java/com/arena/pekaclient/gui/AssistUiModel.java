@@ -60,8 +60,8 @@ public final class AssistUiModel {
                 "Guard UUID-tagged SkyBlock items against destructive drops");
         add(entries, TAB_QUALITY_OF_LIFE, "Item safety", "Item Protection notifications",
                 "Show local feedback when the item guard blocks an action");
-        add(entries, TAB_QUALITY_OF_LIFE, "Movement and shortcuts", "Auto sprint",
-                "Opt-in forward sprint assistance using vanilla movement conditions");
+        add(entries, TAB_QUALITY_OF_LIFE, "Simple features", "Auto Sprint",
+                "Sprints automatically while you hold forward.");
         add(entries, TAB_QUALITY_OF_LIFE, "Movement and shortcuts", "Wardrobe shortcut",
                 "Allow the unbound Wardrobe key to send its command on Fakepixel");
         add(entries, TAB_QUALITY_OF_LIFE, "Movement and shortcuts", "Pets shortcut",

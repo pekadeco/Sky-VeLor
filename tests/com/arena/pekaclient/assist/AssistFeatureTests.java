@@ -77,6 +77,9 @@ public final class AssistFeatureTests {
                 && !ItemGuardPolicy.shouldBlockWindowAction(true, true, true, 4, 0));
         check("auto sprint requires vanilla-safe movement", AutoSprintPolicy.mayStart(1F, false, false, false, false, true, false)
                 && !AutoSprintPolicy.mayStart(.5F, false, false, false, false, true, false));
+        check("auto sprint releases when forward is not held", AutoSprintPolicy.shouldHoldSprintKey(true, 1F,
+                false, false, false, false, true, false)
+                && !AutoSprintPolicy.shouldHoldSprintKey(false, 1F, false, false, false, false, true, false));
         guardStoreRoundTrip();
     }
 

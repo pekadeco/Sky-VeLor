@@ -113,6 +113,8 @@ public final class FeatureSettingsUiModel {
         simple("no-hurt-cam", "Quality of Life", "No Hurt Cam",
                 "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged.",
                 "no-hurt-cam", "No Hurt Cam");
+        simple("auto-sprint", "Quality of Life", "Auto Sprint", "Sprints automatically while you hold forward.",
+                "auto-sprint", "Auto Sprint");
         dropdown("inventory-assist", "Quality of Life", "Inventory Assist", "Search, tooltip and inventory visual helpers.",
                 "inventory-assist", "inventory-search", "Inventory Assist", options("Inventory search and filter", "inventory-search",
                 "Hide potion effects in inventory", "hide-potions", "Roman numerals in tooltips", "roman-numerals",
@@ -120,9 +122,9 @@ public final class FeatureSettingsUiModel {
         dropdown("item-protection", "Quality of Life", "Item Protection", "Protect selected UUID items and show status.",
                 "item-protection", "item-guard", "Item Protection", options("Item Protection", "item-guard",
                 "Item Protection notifications", "item-guard-notifications", "Item Protection status", "item-guard-status"));
-        dropdown("movement-shortcuts", "Quality of Life", "Movement and Shortcuts", "Sprint, wardrobe and pets helpers.",
-                "movement-shortcuts", "auto-sprint", "Movement and Shortcuts", options("Auto sprint", "auto-sprint",
-                "Wardrobe shortcut", "wardrobe-shortcut", "Pets shortcut", "pets-shortcut"));
+        dropdown("movement-shortcuts", "Quality of Life", "Movement and Shortcuts", "Wardrobe and pets shortcuts.",
+                "movement-shortcuts", "wardrobe-shortcut", "Movement and Shortcuts", options("Wardrobe shortcut", "wardrobe-shortcut",
+                "Pets shortcut", "pets-shortcut"));
         dropdown("item-lock-swap", "Quality of Life", "Item Lock and Swap", "Pair locks, indicators and swap-line controls.",
                 "item-lock-swap", "item-lock-swap-enabled", "Item Lock and Swap", options("Item Lock and Swap", "item-lock-swap-enabled",
                 "Item Lock and Swap key", "item-lock-swap-key", "Swap cooldown", "item-lock-swap-cooldown", "Show lock icons", "item-lock-show-icons",

@@ -27,11 +27,12 @@ public final class AssistSettingsTests {
         Properties old = new Properties();
         old.setProperty("miningAbilityNotifier", "true");
         old.setProperty("inventorySearchEnabled", "true");
+        old.setProperty("autoSprintEnabled", "true");
         old.setProperty("itemProtectionEnabled", "true");
         old.setProperty("terminalGuiScale", "1.5");
         AssistSettings.load(old);
         check("old friend aliases load", AssistSettings.miningAbilityAlert && AssistSettings.inventorySearch
-                && AssistSettings.itemGuard && AssistSettings.terminalScale == 150);
+                && AssistSettings.autoSprint && AssistSettings.itemGuard && AssistSettings.terminalScale == 150);
         check("old shared keys remain untouched", old.containsKey("itemProtectionEnabled")
                 && old.containsKey("inventorySearchEnabled"));
     }
@@ -40,6 +41,7 @@ public final class AssistSettingsTests {
         AssistSettings.resetDefaults();
         AssistSettings.tooltipScroll = true;
         AssistSettings.noHurtCamera = true;
+        AssistSettings.autoSprint = true;
         AssistSettings.dungeonSync = true;
         AssistSettings.dungeonSyncEndpoint = "wss://sync.example.org/ws";
         AssistSettings.terminalHints = true;
@@ -48,11 +50,12 @@ public final class AssistSettingsTests {
         Properties saved = new Properties();
         AssistSettings.save(saved);
         check("new keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
-                && saved.containsKey("assist.visual.noHurtCamera")
+                && saved.containsKey("assist.visual.noHurtCamera") && saved.containsKey("assist.movement.autoSprint")
                 && saved.containsKey("assist.dungeon.sync.enabled") && saved.containsKey("assist.dungeon.terminal.autoClick"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.noHurtCamera
-                && AssistSettings.dungeonSync && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint)
+                && AssistSettings.autoSprint && AssistSettings.dungeonSync
+                && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint)
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222);
         saved.setProperty("assist.dungeon.sync.endpoint", "http://not-secure.invalid");
         saved.setProperty("assist.dungeon.terminal.scale", "9999");

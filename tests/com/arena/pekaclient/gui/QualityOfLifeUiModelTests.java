@@ -19,11 +19,13 @@ public final class QualityOfLifeUiModelTests {
         List<ItemAnimationUiModel.Entry> hud = ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
 
         check("Quality of Life has its dedicated tab label", "Quality of Life".equals(QualityOfLifeUiModel.TAB_LABEL));
-        check("Quality of Life starts with its three simple toggles", quality.size() == 3
+        check("Quality of Life starts with its four simple toggles", quality.size() == 4
                 && "no-block-particles".equals(quality.get(0).getId())
                 && "disable-hotbar-scrolling".equals(quality.get(1).getId())
                 && "no-hurt-cam".equals(quality.get(2).getId())
-                && "No Hurt Cam".equals(quality.get(2).getLabel()));
+                && "No Hurt Cam".equals(quality.get(2).getLabel())
+                && "auto-sprint".equals(quality.get(3).getId())
+                && "Sprints automatically while you hold forward.".equals(quality.get(3).getDescription()));
         check("Quality of Life simple toggles are not duplicated", uniqueQualityIds(quality));
         check("General is the first hub tab", AppleHubScreen.PAGE_NAMES.length == 7
                 && "General".equals(AppleHubScreen.PAGE_NAMES[0])

@@ -23,9 +23,12 @@ public final class AssistUiModelTests {
             check("has one-line description " + entry.name, entry.description.length() >= 12 && entry.description.indexOf('\n') < 0);
         }
         AssistUiModel.Entry noHurtCam = AssistUiModel.find("No Hurt Cam");
+        AssistUiModel.Entry autoSprint = AssistUiModel.find("Auto Sprint");
         check("new areas are represented", AssistUiModel.find("Enable Dungeon Sync") != null
                 && AssistUiModel.find("Mining Assistant HUD") != null && AssistUiModel.find("Item Protection") != null
-                && noHurtCam != null && "Simple features".equals(noHurtCam.group));
+                && noHurtCam != null && "Simple features".equals(noHurtCam.group)
+                && autoSprint != null && "Simple features".equals(autoSprint.group)
+                && "Sprints automatically while you hold forward.".equals(autoSprint.description));
     }
 
     private static void descriptionRowsDoNotOverlapAtGuiScales() {

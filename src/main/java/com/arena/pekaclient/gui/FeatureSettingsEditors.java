@@ -189,8 +189,6 @@ public final class FeatureSettingsEditors {
 
     private static void movementEntries(FeatureSettingsEditorScreen.Category ignored,
                                         List<FeatureSettingsEditorScreen.Entry> entries) {
-        entries.add(toggle("Auto Sprint", assist("Auto sprint"), () -> AssistSettings.autoSprint,
-                value -> AssistSettings.autoSprint = value));
         entries.add(toggle("Wardrobe Shortcut", assist("Wardrobe shortcut"), () -> AssistSettings.wardrobeShortcut,
                 value -> AssistSettings.wardrobeShortcut = value));
         entries.add(toggle("Pets Shortcut", assist("Pets shortcut"), () -> AssistSettings.petsShortcut,
@@ -407,7 +405,6 @@ public final class FeatureSettingsEditors {
     }
 
     private static void resetMovement() {
-        AssistSettings.autoSprint = false;
         AssistSettings.wardrobeShortcut = false;
         AssistSettings.petsShortcut = false;
     }

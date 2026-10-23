@@ -10,4 +10,12 @@ public final class AutoSprintPolicy {
         return forwardInput >= 0.8F && !sneaking && !usingItem && !riding && !collidedHorizontally
                 && hasFoodOrFlight && !blinded;
     }
+
+    /** A held forward key plus vanilla-safe movement conditions is the only path that may hold sprint. */
+    public static boolean shouldHoldSprintKey(boolean forwardKeyHeld, float forwardInput, boolean sneaking,
+                                              boolean usingItem, boolean riding, boolean collidedHorizontally,
+                                              boolean hasFoodOrFlight, boolean blinded) {
+        return forwardKeyHeld && mayStart(forwardInput, sneaking, usingItem, riding, collidedHorizontally,
+                hasFoodOrFlight, blinded);
+    }
 }

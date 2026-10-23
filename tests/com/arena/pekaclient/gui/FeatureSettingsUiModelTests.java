@@ -61,6 +61,8 @@ public final class FeatureSettingsUiModelTests {
         check("Memory Display is a simple General row", FeatureSettingsUiModel.feature("memory-display").isSimple());
         check("No Block Particles is a simple row", FeatureSettingsUiModel.feature("no-block-particles").isSimple());
         check("No Hurt Cam is a simple row", FeatureSettingsUiModel.feature("no-hurt-cam").isSimple());
+        check("Auto Sprint is a simple row", FeatureSettingsUiModel.feature("auto-sprint").isSimple());
+        check("Auto Sprint is not nested in Movement and Shortcuts", FeatureSettingsUiModel.option("auto-sprint") == null);
         check("No Hurt Cam is not nested in Inventory Assist", FeatureSettingsUiModel.option("no-hurt-camera") == null);
         check("Dungeon Sync Debug is a simple row", FeatureSettingsUiModel.feature("dungeon-sync-debug").isSimple());
     }

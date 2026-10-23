@@ -35,7 +35,9 @@ public final class QualityOfLifeUiModel {
                 new Entry("disable-hotbar-scrolling", "Disable hotbar scrolling",
                         "Ignore mouse-wheel hotbar selection during gameplay"),
                 new Entry("no-hurt-cam", "No Hurt Cam",
-                        "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged")
+                        "Removes only the local hurt-camera tilt; damage, knockback, and packets are unchanged"),
+                new Entry("auto-sprint", "Auto Sprint",
+                        "Sprints automatically while you hold forward.")
         ));
     }
 

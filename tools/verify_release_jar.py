@@ -465,10 +465,10 @@ def main():
                  b'assist.dungeon.terminal.autoClick')),
             'AssistSettings packages namespaced inventory, safety, movement, terminal, and sync controls')
     r.check(b'FeatureSettingsEditors' in assist_hub_raw and b'Dungeon Sync' in assist_hub_raw
+                and b'Auto Sprint' in assist_hub_raw and b'Auto Sprint' not in feature_editors_raw
                 and all(value in feature_editors_raw for value in
-                        (b'Item Protection', b'Auto Sprint', b'Pickaxe Ability Ready Alert',
-                         b'Terminal Auto Click', b'Terminal Waypoints')),
-            'compact Hub routes every new assist through its focused Feature Settings Editor')
+                        (b'Item Protection', b'Pickaxe Ability Ready Alert', b'Terminal Auto Click', b'Terminal Waypoints')),
+            'compact Hub keeps Auto Sprint simple while routing the remaining detailed assists through editors')
     r.check(all(value in sync_client_raw for value in
                 (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
@@ -491,6 +491,16 @@ def main():
                 and b'zeroFallbackVisualTilt' in client_mod_raw and b'FALLBACK' in visual_status_raw
                 and b'no hurt cam' in selftest_raw,
             'No Hurt Cam is default-off, visual-only, hook-first with local-tilt fallback and selftest status')
+    auto_sprint_raw = raw_of('assist/movement/AutoSprintController')
+    auto_sprint_policy_raw = raw_of('assist/movement/AutoSprintPolicy')
+    r.check(b'assist.movement.autoSprint' in assist_settings_raw and b'Auto Sprint' in assist_hub_raw
+                and b'Sprints automatically while you hold forward.' in raw_of('gui/QualityOfLifeUiModel')
+                and b'Auto Sprint' not in feature_editors_raw
+                and all(value in auto_sprint_raw for value in
+                        (b'setKeyBindState', b'keyBindForward', b'keyBindSprint', b'releaseSprintKey'))
+                and b'setSprinting' not in auto_sprint_raw and b'C0BPacketEntityAction' not in auto_sprint_raw
+                and b'shouldHoldSprintKey' in auto_sprint_policy_raw,
+            'Auto Sprint owns only vanilla sprint-key state, releases on forward loss, and sends no custom packets')
 
     # --- Cached Dungeon ESP proof --------------------------------------------
     # This release must not silently fall back to the retired per-frame MobHighlight path. The packaged controller,
