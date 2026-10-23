@@ -27,7 +27,6 @@ import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleKeybindButton;
-import com.arena.pekaclient.widget.AppleSegmented;
 import com.arena.pekaclient.widget.AppleSlider;
 import com.arena.pekaclient.widget.AppleToggle;
 import com.arena.pekaclient.widget.FeatureRowControl;
@@ -201,256 +200,95 @@ public class AppleHubScreen extends AppleScreen {
         pages.add(fishingPage());
     }
 
+    /** Builds one compact persisted tree feature row; details remain in a focused editor rather than the tab. */
+    private static Row featureRow(String id, String parentId, int depth, boolean hasChildren, boolean initiallyOpen,
+                                  String title, String description, java.util.function.Supplier<Boolean> getter,
+                                  java.util.function.Consumer<Boolean> setter, Runnable open) {
+        return Row.treeFeature(id, parentId, depth, hasChildren, initiallyOpen, title, description,
+                getter == null ? new FeatureRowControl(open) : new FeatureRowControl(getter, setter, open));
+    }
+
+    private static Row featureRow(String id, String parentId, int depth, boolean hasChildren, boolean initiallyOpen,
+                                  String title, String description, Widget inlineControl) {
+        return Row.treeFeature(id, parentId, depth, hasChildren, initiallyOpen, title, description, inlineControl);
+    }
+
+    private static Row featureBranch(String id, String parentId, int depth, boolean initiallyOpen,
+                                     String title, String description) {
+        return Row.treeFeature(id, parentId, depth, true, initiallyOpen, title, description, null);
+    }
+
     /**
      * One Quality of Life page with gameplay, optional inventory safety/assist rows, Item Lock and Item Swap,
      * Chat QoL, and commands. The item feature uses ordinary shared rows so it remains scroll-safe at every scale.
      */
     private List<Row> qualityOfLifePage() {
         List<Row> rows = new ArrayList<Row>();
-        List<QualityOfLifeUiModel.Entry> toggles = QualityOfLifeUiModel.buildToggleModel();
-        List<String> sections = QualityOfLifeUiModel.buildSectionTitles();
-        List<ItemLockSwapUiModel.Entry> itemControls = ItemLockSwapUiModel.buildControlModel();
         rows.add(Row.section(QualityOfLifeUiModel.TAB_LABEL));
-        rows.add(Row.header(sections.get(0)));
-        rows.add(Row.item(toggles.get(0).getLabel(), toggles.get(0).getDescription(),
+        rows.add(featureBranch("qol.root", null, 0, true, "Quality of Life Features",
+                "Open a feature for its detailed settings."));
+
+        rows.add(featureBranch("qol.gameplay", "qol.root", 1, true, "Gameplay",
+                "Two small client-side switches."));
+        rows.add(featureRow("qol.hotbar-scroll", "qol.gameplay", 2, false, false, "Disable Hotbar Scrolling",
+                QualityOfLifeUiModel.buildToggleModel().get(0).getDescription(),
                 new AppleToggle(() -> AppleSettings.disableHotbarScrolling,
                         value -> AppleSettings.disableHotbarScrolling = value)));
-        rows.add(Row.item(toggles.get(1).getLabel(), toggles.get(1).getDescription(),
+        rows.add(featureRow("qol.block-particles", "qol.gameplay", 2, false, false, "No Block Particles",
+                QualityOfLifeUiModel.buildToggleModel().get(1).getDescription(),
                 new AppleToggle(() -> AppleSettings.noBlockParticles,
                         value -> AppleSettings.noBlockParticles = value)));
 
-        rows.add(Row.header("Inventory assist"));
-        rows.add(Row.item("Inventory search and filter", assistDescription("Inventory search and filter"),
-                new AppleToggle(() -> AssistSettings.inventorySearch, value -> AssistSettings.inventorySearch = value)));
-        rows.add(Row.item("Hide potion effects in inventory", assistDescription("Hide potion effects in inventory"),
-                new AppleToggle(() -> AssistSettings.hidePotionEffects, value -> AssistSettings.hidePotionEffects = value)));
-        rows.add(Row.item("Roman numerals in tooltips", assistDescription("Roman numerals in tooltips"),
-                new AppleToggle(() -> AssistSettings.romanNumerals, value -> AssistSettings.romanNumerals = value)));
-        rows.add(Row.item("Scrollable item tooltips", assistDescription("Scrollable item tooltips"),
-                new AppleToggle(() -> AssistSettings.tooltipScroll, value -> AssistSettings.tooltipScroll = value)));
-        rows.add(Row.item("Item rarity highlight", assistDescription("Item rarity highlight"),
-                new AppleToggle(() -> AssistSettings.rarityHighlight, value -> AssistSettings.rarityHighlight = value)));
-
-        rows.add(Row.header("Visual safety"));
-        rows.add(Row.item("No hurt camera", assistDescription("No hurt camera"),
-                new AppleToggle(() -> AssistSettings.noHurtCamera, value -> AssistSettings.noHurtCamera = value)));
-
-        rows.add(Row.header("Item safety"));
-        rows.add(Row.item("Item Protection", assistDescription("Item Protection"),
-                new AppleToggle(() -> AssistSettings.itemGuard, value -> AssistSettings.itemGuard = value)));
-        rows.add(Row.item("Item Protection notifications", assistDescription("Item Protection notifications"),
-                new AppleToggle(() -> AssistSettings.itemGuardNotifications,
-                        value -> AssistSettings.itemGuardNotifications = value)));
-        rows.add(Row.item("Item Protection status", "Bind Item Protection in Options, Controls, Sky VeLor; protects only selected UUID items locally",
-                new AppleButton("Show status", 104f, 26f, false, () -> {
-                    Minecraft current = Minecraft.getMinecraft();
-                    if (current != null && current.thePlayer != null) {
-                        current.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText("\u00a7b[Sky VeLor] \u00a7fItem Guard: "
-                                + ItemGuardController.statusText()));
-                    }
-                })));
-
-        rows.add(Row.header("Movement and shortcuts"));
-        rows.add(Row.item("Auto sprint", assistDescription("Auto sprint"),
-                new AppleToggle(() -> AssistSettings.autoSprint, value -> AssistSettings.autoSprint = value)));
-        rows.add(Row.item("Wardrobe shortcut", assistDescription("Wardrobe shortcut"),
-                new AppleToggle(() -> AssistSettings.wardrobeShortcut, value -> AssistSettings.wardrobeShortcut = value)));
-        rows.add(Row.item("Pets shortcut", assistDescription("Pets shortcut"),
-                new AppleToggle(() -> AssistSettings.petsShortcut, value -> AssistSettings.petsShortcut = value)));
-
-        rows.add(Row.header(sections.get(1)));
-        rows.add(Row.item(itemControls.get(0).getLabel(),
-                "Hold the key over A, move to B, then release it; release over A toggles that position lock",
-                new AppleToggle(() -> ItemLockSwapSettings.enabled, value -> ItemLockSwapSettings.enabled = value)));
-        itemLockSwapKeyButton = new AppleKeybindButton(126f, 26f,
-                () -> PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode());
-        rows.add(Row.item(itemControls.get(1).getLabel(),
-                "Default L. Click this button, then press a key; key conflicts are reported in chat",
-                itemLockSwapKeyButton));
-        rows.add(Row.item(itemControls.get(2).getLabel(), "Time between manual pair swaps (0.5 to 5.0 seconds)",
-                new AppleSlider(ItemLockSwapSettings.MIN_COOLDOWN_TENTHS, ItemLockSwapSettings.MAX_COOLDOWN_TENTHS,
-                        1, "", 126f, () -> ItemLockSwapSettings.cooldownTenths,
-                        value -> ItemLockSwapSettings.cooldownTenths = value)
-                        .valueLabel(ItemLockSwapSettings::cooldownLabel)));
-        rows.add(Row.item(itemControls.get(3).getLabel(), "Padlock and numbered pair badges in player inventory slots",
-                new AppleToggle(() -> ItemLockSwapSettings.showLockIcons,
-                        value -> ItemLockSwapSettings.showLockIcons = value)));
-        rows.add(Row.item(itemControls.get(4).getLabel(), "Keep indicators visible in the in-game hotbar",
-                new AppleToggle(() -> ItemLockSwapSettings.showIconsOnHotbar,
-                        value -> ItemLockSwapSettings.showIconsOnHotbar = value)));
-        rows.add(Row.item(itemControls.get(5).getLabel(), "Chat feedback when an item action is blocked or a pair changes",
-                new AppleToggle(() -> ItemLockSwapSettings.showBlockedMessage,
-                        value -> ItemLockSwapSettings.showBlockedMessage = value)));
-        rows.add(Row.item(itemControls.get(6).getLabel(), "Badge tint",
-                new AppleDropdown(ItemLockSwapSettings.ICON_COLOR_NAMES, ItemLockSwapSettings.ICON_COLORS,
-                        126f, 24f, () -> ItemLockSwapSettings.iconColor,
-                        value -> ItemLockSwapSettings.iconColor = value)));
-        rows.add(Row.item(itemControls.get(7).getLabel(), "Badge transparency",
-                new AppleSlider(ItemLockSwapSettings.MIN_ICON_OPACITY, ItemLockSwapSettings.MAX_ICON_OPACITY,
-                        5, "", 126f, () -> ItemLockSwapSettings.iconOpacity,
-                        value -> ItemLockSwapSettings.iconOpacity = value)
-                        .valueLabel(ItemLockSwapSettings::iconOpacityLabel)));
-        rows.add(Row.item(itemControls.get(8).getLabel(), "Persistent pair-center lines: always visible, only for the hovered pair, or hidden",
-                new AppleDropdown(ItemLockSwapSettings.SWAP_LINE_MODE_NAMES, null,
-                        126f, 24f, () -> ItemLockSwapSettings.swapLineMode,
-                        value -> ItemLockSwapSettings.swapLineMode = value)));
-        rows.add(Row.item(itemControls.get(9).getLabel(), "Tint for persistent pair-center lines",
-                new AppleDropdown(ItemLockSwapSettings.ICON_COLOR_NAMES, ItemLockSwapSettings.ICON_COLORS,
-                        126f, 24f, () -> ItemLockSwapSettings.swapLineColor,
-                        value -> ItemLockSwapSettings.swapLineColor = value)));
-        rows.add(Row.item(itemControls.get(10).getLabel(), "Persistent pair-line transparency",
-                new AppleSlider(ItemLockSwapSettings.MIN_LINE_OPACITY, ItemLockSwapSettings.MAX_LINE_OPACITY,
-                        5, "", 126f, () -> ItemLockSwapSettings.swapLineOpacity,
-                        value -> ItemLockSwapSettings.swapLineOpacity = value)
-                        .valueLabel(ItemLockSwapSettings::swapLineOpacityLabel)));
-        rows.add(Row.item(itemControls.get(11).getLabel(), "Rounded persistent pair-line thickness",
-                new AppleSlider(ItemLockSwapSettings.MIN_LINE_WIDTH, ItemLockSwapSettings.MAX_LINE_WIDTH,
-                        1, "", 126f, () -> ItemLockSwapSettings.swapLineWidth,
-                        value -> ItemLockSwapSettings.swapLineWidth = value)
-                        .valueLabel(ItemLockSwapSettings::swapLineWidthLabel)));
-        rows.add(Row.item(itemControls.get(12).getLabel(), "Removes every saved position lock; empty positions are included",
-                new AppleButton("Clear locks", 104f, 26f, false, ItemLockSwapSettings::clearLocks)));
-        rows.add(Row.item(itemControls.get(13).getLabel(), "Removes every saved item-swap pair",
-                new AppleButton("Clear pairs", 104f, 26f, false, ItemLockSwapSettings::clearPairs)));
-
-        // The Hub intentionally owns only Chat QoL's feature switches and editor route. Every visual/tab setting
-        // lives in Chat Editor, preventing duplicate controls across normal GUI pages.
-        rows.add(Row.header(sections.get(2)));
-        rows.add(Row.item(ChatUiModel.label("chat-qol-master"),
-                "Master switch. Off keeps Minecraft chat exactly unchanged",
-                new AppleToggle(() -> ChatQolSettings.enabled, value -> {
+        rows.add(featureRow("qol.inventory", "qol.root", 1, false, false, "Inventory Assist",
+                "Search, tooltip and inventory visual helpers.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this))));
+        rows.add(featureRow("qol.item-protection", "qol.root", 1, false, false, "Item Protection",
+                "Protect selected UUID items locally and view status.", () -> AssistSettings.itemGuard,
+                value -> AssistSettings.itemGuard = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemProtection(this))));
+        rows.add(featureRow("qol.movement", "qol.root", 1, false, false, "Movement and Shortcuts",
+                "Auto sprint, wardrobe and pets shortcuts.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.movementShortcuts(this))));
+        rows.add(featureRow("qol.item-lock-swap", "qol.root", 1, false, false, "Item Lock & Swap",
+                "Pair locks, indicators and persistent pair-center lines.", () -> ItemLockSwapSettings.enabled,
+                value -> ItemLockSwapSettings.enabled = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.itemLockSwap(this))));
+        rows.add(featureRow("qol.chat", "qol.root", 1, false, false, "Chat QoL",
+                "Attached tabs, message animation and highlighting.", () -> ChatQolSettings.enabled, value -> {
                     ChatQolSettings.enabled = value;
                     if (!value) ChatChannelTabs.disableAndRestoreAll();
-                })));
-        rows.add(Row.item(ChatUiModel.label("chat-tabs"),
-                "Show attached All, Party, Reply, and custom filters on the one Default Chat",
-                new AppleToggle(() -> ChatQolSettings.tabsEnabled, value -> {
-                    ChatQolSettings.tabsEnabled = value;
-                    if (!value) ChatChannelTabs.disableAndRestoreAll();
-                })));
-        rows.add(Row.item(ChatUiModel.label("smooth-messages"),
-                "Fade and short-slide new messages in the default chat",
-                new AppleToggle(() -> ChatQolSettings.smoothMessages, value -> ChatQolSettings.smoothMessages = value)));
-        rows.add(Row.item(ChatUiModel.label("hover-highlight"),
-                "Highlight an entire wrapped default-chat message group",
-                new AppleToggle(() -> ChatQolSettings.hoverHighlight, value -> ChatQolSettings.hoverHighlight = value)));
-        rows.add(Row.item(ChatUiModel.label("open-chat-editor"),
-                "Background, messages, tabs, menu, and highlight options",
-                new AppleButton("Open", 84f, 26f, true,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this)))));
-
-        rows.add(Row.header(sections.get(3)));
-        rows.add(Row.item("/sv", "Opens this hub from chat",
-                new AppleToggle(() -> AppleSettings.svCommand, v -> AppleSettings.svCommand = v)));
-        rows.add(Row.item("/qn", "Opens the quick note pad from chat. Also /quicknote",
-                new AppleToggle(() -> AppleSettings.qnCommand, v -> AppleSettings.qnCommand = v)));
-        rows.add(Row.item("/velor itemdebug", "Shows the live Item Animation values used by the renderer", null));
-        rows.add(Row.item("/velor lockdebug", "Shows Item Lock/Swap settings, drag key/state/slots, last release decision and hook state", null));
-        rows.add(Row.item("/velor selftest", "Shows active core-hook, tooltip, camera, and item-guard status", null));
+                }, () -> Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this))));
+        rows.add(featureRow("qol.commands", "qol.root", 1, false, false, "Commands",
+                "Optional /sv and /qn routes plus diagnostics.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.commands(this))));
         return rows;
     }
 
     /** General remains the first, non-feature overview page. */
     private List<Row> generalPage() {
         List<Row> rows = new ArrayList<Row>();
-
         rows.add(Row.section("Overview"));
         rows.add(Row.custom(86f, this::paintStats));
-
-        rows.add(Row.header("Appearance"));
-        rows.add(Row.item("Appearance", "Dark or light interface",
-                new AppleSegmented(new String[]{"Dark", "Light"}, 132f, 24f,
-                        () -> AppleSettings.darkMode ? 0 : 1,
-                        v -> {
-                            AppleSettings.darkMode = v == 0;
-                            Theme.refresh();
-                        })));
-        rows.add(Row.item("Accent color", "Selection, toggles and sliders",
-                new AppleDropdown(AppleSettings.ACCENT_NAMES, AppleSettings.ACCENT_COLORS, 124f, 24f,
-                        () -> AppleSettings.accent,
-                        v -> {
-                            AppleSettings.accent = v;
-                            Theme.refresh();
-                        })));
-        rows.add(Row.item("Corner radius", "On: use the slider. Off: 12 px",
-                new AppleToggle(() -> AppleSettings.cornerRadiusOn, v -> {
-                    AppleSettings.cornerRadiusOn = v;
-                    Theme.refresh();
-                })));
-        rows.add(Row.item("Corner radius value", "Roundness of panels and controls",
-                gated(new AppleSlider(4, 18, 1, "px", 150f,
-                        () -> AppleSettings.cornerRadius,
-                        v -> {
-                            AppleSettings.cornerRadius = v;
-                            Theme.refresh();
-                        }), () -> AppleSettings.cornerRadiusOn)));
-        rows.add(Row.item("Panel opacity", "On: use the slider. Off: " + AppleSettings.DEFAULT_GLASS_OPACITY + "%",
-                new AppleToggle(() -> AppleSettings.glassOpacityOn, v -> {
-                    AppleSettings.glassOpacityOn = v;
-                    Theme.refresh();
-                })));
-        rows.add(Row.item("Panel opacity value", "Higher is more solid. Lower lets more of the game show through",
-                gated(new AppleSlider(60, 100, 5, "%", 150f,
-                        () -> AppleSettings.glassOpacity,
-                        v -> {
-                            AppleSettings.glassOpacity = v;
-                            Theme.refresh();
-                        }), () -> AppleSettings.glassOpacityOn)));
-
-        // Scroll controls stay in their focused screen rather than being duplicated in the feature tabs.
-        rows.add(Row.header("Mod settings"));
-        rows.add(Row.item("Open Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling",
-                new AppleButton("Open", 84f, 26f, false,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(new ModSettingsScreen(this)))));
-        rows.add(Row.item("Fonts", "Global Sky VeLor font selection, preview, bundled licenses and safe fallback",
-                new AppleButton("Open", 84f, 26f, false,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(new FontsScreen(this)))));
-
-        rows.add(Row.header("Performance"));
-        rows.add(Row.item("Curve quality", "Smoothness of rounded corners",
-                new AppleDropdown(AppleSettings.CURVE_NAMES, null, 124f, 24f,
-                        () -> AppleSettings.curveQuality,
-                        v -> AppleSettings.curveQuality = v)));
-        rows.add(Row.item("Soft shadows", "Shadows behind panels and menus",
-                new AppleToggle(() -> AppleSettings.shadows, v -> AppleSettings.shadows = v)));
-        rows.add(Row.item("Animations", "Smooth transitions and motion",
-                new AppleToggle(() -> AppleSettings.animations,
-                        v -> {
-                            AppleSettings.animations = v;
-                            Theme.refresh();
-                        })));
-        rows.add(Row.item("Animation speed", "On: use the slider. Off: 100%",
-                new AppleToggle(() -> AppleSettings.animSpeedOn, v -> {
-                    AppleSettings.animSpeedOn = v;
-                    Theme.refresh();
-                })));
-        rows.add(Row.item("Animation speed value", "Tempo of transitions",
-                gated(new AppleSlider(40, 200, 10, "%", 150f,
-                        () -> AppleSettings.animSpeed,
-                        v -> {
-                            AppleSettings.animSpeed = v;
-                            Theme.refresh();
-                        }), () -> AppleSettings.animSpeedOn)));
-        rows.add(Row.item("Adaptive quality", "Lowers detail automatically when FPS drops",
-                new AppleToggle(() -> AppleSettings.adaptive, v -> AppleSettings.adaptive = v)));
-        rows.add(Row.item("Performance Boost Beta",
-                "Lower-cost Sky VeLor GUI/HUD settings. Entity and world rendering are unchanged",
-                new AppleToggle(() -> AppleSettings.experimentalPerformance,
-                        v -> AppleSettings.experimentalPerformance = v)));
-
-        rows.add(Row.header("Live"));
+        rows.add(Row.section("Features"));
+        rows.add(featureBranch("general.root", null, 0, true, "General Settings", "Theme, global tools and performance."));
+        rows.add(featureRow("general.appearance", "general.root", 1, false, false, "Appearance",
+                "Dark/light theme, accent, corners and panel opacity.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.appearance(this))));
+        rows.add(featureRow("general.mod-settings", "general.root", 1, false, false, "Mod Settings",
+                "Global scroll speed and smoothing; Shift + wheel is fine scrolling.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(new ModSettingsScreen(this))));
+        rows.add(featureRow("general.fonts", "general.root", 1, false, false, "Fonts",
+                "Global font selection, preview, bundled licenses and safe fallback.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(new FontsScreen(this))));
+        rows.add(featureRow("general.performance", "general.root", 1, false, false, "Performance",
+                "Curve, shadows, animation and adaptive GUI quality.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.performance(this))));
+        rows.add(Row.section("Live"));
         rows.add(Row.custom(76f, this::paintGraph));
-
-        rows.add(Row.header("About"));
+        rows.add(Row.section("About"));
         rows.add(Row.item("Sky VeLor " + PekaVersion.NAME,
                 "Forge client for Minecraft 1.8.9. Settings are saved in skyvelor.properties", null));
         return rows;
-    }
-
-    /** Wraps a slider so it only responds while its switch is on. */
-    private static AppleSlider gated(AppleSlider s, java.util.function.Supplier<Boolean> on) {
-        s.gate(on);
-        return s;
     }
 
     /** The hub opened on the HUD tab, Dungeon category. */
@@ -472,44 +310,29 @@ public class AppleHubScreen extends AppleScreen {
     }
 
     private List<Row> hudPage() {
-        if (hudCategory == HUD_CAT_DUNGEON) {
-            return hudDungeonPage();
-        }
+        if (hudCategory == HUD_CAT_DUNGEON) return hudDungeonPage();
         final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
-
-        // The editor comes first. Its Item Animation section is the shared hub dropdown style, not a bespoke panel.
-        List<ItemAnimationUiModel.Entry> hudModel = ItemAnimationUiModel.buildHudTabModel();
-        rows.add(Row.section(hudModel.get(0).getLabel()));
-        rows.add(Row.item(hudModel.get(1).getLabel(), "Drag, resize and style each element on the game screen",
-                new AppleButton("Open", 84f, 26f, true, () -> mc.displayGuiScreen(new HudEditorScreen(this)))));
-
-        rows.add(Row.header(hudModel.get(2).getLabel()));
-        List<ItemAnimationUiModel.Entry> itemAnimationDropdown =
-                ItemAnimationUiModel.buildHudItemAnimationDropdownModel();
-        rows.add(Row.item(itemAnimationDropdown.get(0).getLabel(),
-                "Visual first-person transforms only; it never changes packets, attacks, or gameplay",
-                new AppleToggle(() -> AppleSettings.itemAnimationEnabled, value -> {
+        rows.add(Row.section("HUD"));
+        rows.add(featureBranch("hud.root", null, 0, true, "HUD Features", "Visibility switches and editor routes."));
+        rows.add(featureRow("hud.editor", "hud.root", 1, false, false, "HUD Editor",
+                "Drag, resize and style each element on the game screen.", null, null,
+                () -> mc.displayGuiScreen(new HudEditorScreen(this))));
+        rows.add(featureRow("hud.item-animation", "hud.root", 1, false, false, "Item Animation",
+                "Visual first-person transforms only; never changes packets, attacks or gameplay.",
+                () -> AppleSettings.itemAnimationEnabled, value -> {
                     AppleSettings.itemAnimationEnabled = value;
                     AppleSettings.save();
-                })));
-        rows.add(Row.item(itemAnimationDropdown.get(1).getLabel(),
-                "Scale, Position, Animation, Options, preview, and reset",
-                new AppleButton(itemAnimationDropdown.get(1).getLabel(), 166f, 26f, true,
-                        () -> mc.displayGuiScreen(HudEditorScreen.openItemAnimation(this)))));
-
-        // Every HUD element keeps only visibility and the route to its single source of customization: the editor.
-        for (int i = 0; i < HUD_OVERVIEW.length; i++) {
-            final HudElement el = HUD_OVERVIEW[i];
-            GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find(el.id);
-            final String title = feature == null ? el.name : feature.getTitle();
-            final String description = feature == null ? "Shown on screen" : feature.getDescription();
-            rows.add(Row.header(title));
-            rows.add(Row.item("Show on screen", description,
-                    new AppleToggle(() -> el.enabled, v -> el.enabled = v)));
-            rows.add(Row.item("Open in HUD Editor", "Position and all styling live in the HUD editor",
-                    new AppleButton("Open in HUD Editor", 142f, 26f, false,
-                            () -> mc.displayGuiScreen(HudEditorScreen.openElement(this, el)))));
+                }, () -> mc.displayGuiScreen(HudEditorScreen.openItemAnimation(this))));
+        rows.add(featureBranch("hud.elements", "hud.root", 1, false, "HUD Elements",
+                "Each element keeps visibility and its single editor route."));
+        for (final HudElement element : HUD_OVERVIEW) {
+            GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find(element.id);
+            final String title = feature == null ? element.name : feature.getTitle();
+            final String description = feature == null ? "Shown on screen." : feature.getDescription();
+            rows.add(featureRow("hud.element." + element.id, "hud.elements", 2, false, false, title, description,
+                    () -> element.enabled, value -> element.enabled = value,
+                    () -> mc.displayGuiScreen(HudEditorScreen.openElement(this, element))));
         }
         return rows;
     }
@@ -518,22 +341,13 @@ public class AppleHubScreen extends AppleScreen {
     private List<Row> hudDungeonPage() {
         List<Row> rows = new ArrayList<Row>();
         rows.add(Row.section("Dungeon"));
-        rows.add(Row.item("Back to elements", "Return to the HUD element list",
+        rows.add(Row.item("Back to Elements", "Return to the HUD element list.",
                 new AppleButton("Back", 84f, 26f, false, () -> setHudCategory(HUD_CAT_ELEMENTS))));
-
-        rows.add(Row.header("Floor VII (M7) overlay"));
-        rows.add(Row.item("M7 overlay",
-                "Draws the boss rooms, dragon spawns and relic areas on a Floor VII run. Off elsewhere",
-                new AppleToggle(M7Settings::isOverlayEnabled, M7Settings::setOverlayEnabled)));
-        rows.add(Row.item("Relic kill areas", "Shows the five relic areas around the dragon statues",
-                new AppleToggle(M7Settings::isStatueZonesEnabled, M7Settings::setStatueZonesEnabled)));
-        rows.add(Row.item("Dragon kill alert", "Title when a dragon is close to you and sitting at its statue",
-                new AppleToggle(M7Settings::isDragonKillAlertEnabled, M7Settings::setDragonKillAlertEnabled)));
-
-        rows.add(Row.header("Terminals"));
-        rows.add(Row.item("Click in order solver",
-                "Outlines only the next parsed live chest slot on Floor VII and M7. It never replaces, clicks, or blocks the chest",
-                new AppleToggle(M7Settings::isTerminalSolverEnabled, M7Settings::setTerminalSolverEnabled)));
+        rows.add(featureBranch("hud.dungeon.root", null, 0, true, "Dungeon HUD Features", "Floor VII overlay controls."));
+        rows.add(featureRow("hud.dungeon.m7", "hud.dungeon.root", 1, false, false, "Floor VII (M7) Overlay",
+                "Areas, alert, terminal solver, boss and dragon hitboxes.", M7Settings::isOverlayEnabled,
+                M7Settings::setOverlayEnabled,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.m7Overlay(this))));
         return rows;
     }
 
@@ -547,133 +361,73 @@ public class AppleHubScreen extends AppleScreen {
 
     private List<Row> farmingPage() {
         List<Row> rows = new ArrayList<Row>();
-        GuiSettingsAuditModel.Feature feature = GuiSettingsAuditModel.find("mining");
-        rows.add(Row.section("Mining"));
-        rows.add(Row.header(feature.getTitle()));
-        rows.add(Row.item("Show on screen", feature.getDescription(),
-                new AppleToggle(() -> HudManager.MINING.enabled, v -> HudManager.MINING.enabled = v)));
-        rows.add(Row.item("Open in HUD Editor", "Label, rolling window and decimals live in the HUD editor",
-                new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_MINING))));
-
+        GuiSettingsAuditModel.Feature mining = GuiSettingsAuditModel.find("mining");
         GuiSettingsAuditModel.Feature assistant = GuiSettingsAuditModel.find("mining-assistant");
-        rows.add(Row.header(assistant.getTitle()));
-        rows.add(Row.item("Pickaxe ability ready alert", assistDescription("Pickaxe ability ready alert"),
-                new AppleToggle(() -> AssistSettings.miningAbilityAlert, v -> AssistSettings.miningAbilityAlert = v)));
-        rows.add(Row.item("Puzzler direction helper", assistDescription("Puzzler direction helper"),
-                new AppleToggle(() -> AssistSettings.miningPuzzlerMarker, v -> AssistSettings.miningPuzzlerMarker = v)));
-        rows.add(Row.item("Show Mining Assistant", assistDescription("Mining Assistant HUD"),
-                new AppleToggle(() -> HudManager.MINING_ASSIST.enabled, v -> HudManager.MINING_ASSIST.enabled = v)));
-        rows.add(Row.item("Open Mining Assistant Editor", "Position, scale, border and panel style live in the HUD editor",
-                new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_MINING_ASSIST))));
+        rows.add(Row.section("Mining"));
+        rows.add(featureBranch("farming.root", null, 0, true, "Mining Features", "HUD and optional mining helpers."));
+        rows.add(featureRow("farming.mining-bps", "farming.root", 1, false, false, mining.getTitle(),
+                mining.getDescription(), () -> HudManager.MINING.enabled, value -> HudManager.MINING.enabled = value,
+                () -> openHud(HUD_MINING)));
+        rows.add(featureRow("farming.mining-assistant", "farming.root", 1, false, false, assistant.getTitle(),
+                assistant.getDescription(), () -> HudManager.MINING_ASSIST.enabled,
+                value -> HudManager.MINING_ASSIST.enabled = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.miningAssistant(this))));
         return rows;
     }
 
     private List<Row> dungeonPage() {
         final Minecraft mc = Minecraft.getMinecraft();
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.header("Spirit Leap"));
-        rows.add(Row.item("Leap menu",
-                "Shows a teammate picker when the server opens Spirit Leap. Clicks match the server menu",
-                new AppleToggle(() -> AppleSettings.leapMenu, v -> AppleSettings.leapMenu = v)));
-        rows.add(Row.item("Use Spirit Leap key",
-                "Unbound by default. Set it in Controls, Sky VeLor. Hold a Spirit Leap item first",
-                new AppleToggle(() -> AppleSettings.leapKey, v -> AppleSettings.leapKey = v)));
-        rows.add(Row.item("Preview Spirit Leap GUI",
-                "Opens the real 2x2 picker with isolated test data. N/P cycles all five classes; no packets or teleports",
-                new AppleButton("Preview", 96f, 26f, false,
-                        () -> mc.displayGuiScreen(LeapScreen.createPreview(this)))));
-
         GuiSettingsAuditModel.Feature dungeonMap = GuiSettingsAuditModel.find("dungeon-map");
-        rows.add(Row.header(dungeonMap.getTitle()));
-        rows.add(Row.item("Show dungeon map", dungeonMap.getDescription(),
-                new AppleToggle(() -> AppleSettings.dungeonMap, v -> AppleSettings.dungeonMap = v)));
-        rows.add(Row.item("Open in HUD Editor", "Position, scale, zoom and labels live in the HUD editor",
-                new AppleButton("Open in HUD Editor", 142f, 26f, false,
-                        () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this)))));
-
         GuiSettingsAuditModel.Feature bossHud = GuiSettingsAuditModel.find("dungeon-boss-hp");
-        rows.add(Row.header(bossHud.getTitle()));
-        rows.add(Row.item("Show Boss HP", assistDescription("Boss HP HUD"),
-                new AppleToggle(() -> HudManager.DUNGEON_BOSS_HP.enabled, v -> HudManager.DUNGEON_BOSS_HP.enabled = v)));
-        rows.add(Row.item("Open Boss HP Editor", "Position, scale, border and panel style live in the HUD editor",
-                new AppleButton("Open in HUD Editor", 142f, 26f, false, () -> openHud(HUD_DUNGEON_BOSS_HP))));
+        rows.add(Row.section("Dungeon"));
+        rows.add(featureBranch("dungeon.root", null, 0, true, "Dungeon Features", "Open a feature for its detailed settings."));
+        rows.add(featureRow("dungeon.spirit-leap", "dungeon.root", 1, false, false, "Spirit Leap",
+                "Menu replacement, key shortcut and isolated preview.", () -> AppleSettings.leapMenu,
+                value -> AppleSettings.leapMenu = value,
+                () -> mc.displayGuiScreen(FeatureSettingsEditors.spiritLeap(this))));
+        rows.add(featureRow("dungeon.map", "dungeon.root", 1, false, false, dungeonMap.getTitle(),
+                dungeonMap.getDescription(), () -> AppleSettings.dungeonMap, value -> AppleSettings.dungeonMap = value,
+                () -> mc.displayGuiScreen(HudEditorScreen.openDungeonMap(this))));
+        rows.add(featureRow("dungeon.boss-hp", "dungeon.root", 1, false, false, bossHud.getTitle(),
+                assistDescription("Boss HP HUD"), () -> HudManager.DUNGEON_BOSS_HP.enabled,
+                value -> HudManager.DUNGEON_BOSS_HP.enabled = value, () -> openHud(HUD_DUNGEON_BOSS_HP)));
+        rows.add(featureBranch("dungeon.sync", "dungeon.root", 1, true, "Dungeon Sync",
+                "Two small sync switches."));
+        rows.add(featureRow("dungeon.sync.enabled", "dungeon.sync", 2, false, false, "Enable Dungeon Sync",
+                assistDescription("Enable Dungeon Sync"), new AppleToggle(() -> AssistSettings.dungeonSync,
+                        value -> AssistSettings.dungeonSync = value)));
+        rows.add(featureRow("dungeon.sync.debug", "dungeon.sync", 2, false, false, "Dungeon Sync Debug",
+                assistDescription("Dungeon Sync Debug"), new AppleToggle(() -> AssistSettings.dungeonSyncDebug,
+                        value -> AssistSettings.dungeonSyncDebug = value)));
+        rows.add(featureRow("dungeon.terminals", "dungeon.root", 1, false, false, "Terminal Assist",
+                "Visual helpers, explicit automation and waypoints.", () -> AssistSettings.terminalHints,
+                value -> AssistSettings.terminalHints = value,
+                () -> mc.displayGuiScreen(FeatureSettingsEditors.terminalAssist(this))));
 
-        rows.add(Row.header("Dungeon Sync"));
-        rows.add(Row.item("Enable Dungeon Sync", assistDescription("Enable Dungeon Sync"),
-                new AppleToggle(() -> AssistSettings.dungeonSync, value -> AssistSettings.dungeonSync = value)));
-        rows.add(Row.item("Dungeon Sync Debug", assistDescription("Dungeon Sync Debug"),
-                new AppleToggle(() -> AssistSettings.dungeonSyncDebug, value -> AssistSettings.dungeonSyncDebug = value)));
-
-        rows.add(Row.header("Terminal assist"));
-        rows.add(Row.item("Terminal visual helpers", assistDescription("Terminal visual helpers"),
-                new AppleToggle(() -> AssistSettings.terminalHints, value -> AssistSettings.terminalHints = value)));
-        rows.add(Row.item("Terminal auto click", assistDescription("Terminal auto click"),
-                new AppleToggle(() -> AssistSettings.terminalAutoClick, value -> AssistSettings.terminalAutoClick = value)));
-        rows.add(Row.item("Hide incorrect terminal choices", assistDescription("Hide incorrect terminal choices"),
-                new AppleToggle(() -> AssistSettings.terminalHideIncorrect,
-                        value -> AssistSettings.terminalHideIncorrect = value)));
-        rows.add(Row.item("Prevent wrong terminal clicks", assistDescription("Prevent wrong terminal clicks"),
-                new AppleToggle(() -> AssistSettings.terminalPreventWrongClicks,
-                        value -> AssistSettings.terminalPreventWrongClicks = value)));
-        rows.add(Row.item("Terminal waypoints", assistDescription("Terminal waypoints"),
-                new AppleToggle(() -> AssistSettings.terminalWaypoints, value -> AssistSettings.terminalWaypoints = value)));
-
-        // ESP now occupies a compact persisted tree. All former inline controls live in the focused Mob/Door
-        // Feature Settings Editors; child cards jump directly to their selected category.
-        rows.add(Row.section("Dungeon ESP"));
-        rows.add(Row.treeFeature("dungeon.esp", null, 0, true, true, "Dungeon ESP",
-                "Cached dungeon mob and closed-door hitboxes", null));
-        rows.add(Row.treeFeature("dungeon.mob-esp", "dungeon.esp", 1, true, false, "Mob ESP",
-                "Per-category styles, live fallback preview, scan controls and presets",
-                new FeatureRowControl(() -> DungeonEspSettings.enabled, value -> DungeonEspSettings.enabled = value,
-                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this)))));
+        rows.add(featureBranch("dungeon.esp", "dungeon.root", 1, true, "Dungeon ESP",
+                "Cached dungeon mob and closed-door hitboxes."));
+        rows.add(featureRow("dungeon.mob-esp", "dungeon.esp", 2, true, false, "Mob ESP",
+                "Per-category styles, live fallback preview, scan controls and presets.",
+                () -> DungeonEspSettings.enabled, value -> DungeonEspSettings.enabled = value,
+                () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this))));
         addMobEspTreeRows(rows, "dungeon.mob-esp", mc);
-        rows.add(Row.treeFeature("dungeon.door-esp", "dungeon.esp", 1, true, false, "Door ESP",
-                "Wither and blood door filters, shared style and closed-prism preview",
-                new FeatureRowControl(() -> DungeonEspSettings.doorsEnabled,
-                        value -> DungeonEspSettings.doorsEnabled = value,
-                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this)))));
-        rows.add(Row.treeFeature("dungeon.door-esp.wither", "dungeon.door-esp", 2, false, false, "Wither Doors",
-                "Shared cached door style and wither door color",
-                new FeatureRowControl(() -> DungeonEspSettings.doors.enabled,
-                        value -> DungeonEspSettings.doors.enabled = value,
-                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this, "wither")))));
-        rows.add(Row.treeFeature("dungeon.door-esp.blood", "dungeon.door-esp", 2, false, false, "Blood Doors",
-                "Blood door filter, color and the existing shared door style",
-                new FeatureRowControl(() -> DungeonEspSettings.showBloodDoors,
-                        value -> DungeonEspSettings.showBloodDoors = value,
-                        () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this, "blood")))));
-
-        rows.add(Row.header("Floor VII (M7) overlay"));
-        rows.add(Row.item("M7 overlay",
-                "Draws the boss rooms, dragon spawns and relic areas on a Floor VII run. Off elsewhere",
-                new AppleToggle(M7Settings::isOverlayEnabled, M7Settings::setOverlayEnabled)));
-        rows.add(Row.item("Relic kill areas",
-                "Shows the five relic areas around the dragon statues",
-                new AppleToggle(M7Settings::isStatueZonesEnabled, M7Settings::setStatueZonesEnabled)));
-        rows.add(Row.item("Keep areas after dragons spawn",
-                "Keeps the relic areas on screen after the dragons appear",
-                new AppleToggle(M7Settings::isAreasPersistAfterDragonSpawn,
-                        M7Settings::setAreasPersistAfterDragonSpawn)));
-        rows.add(Row.item("Dragon kill alert",
-                "Title when a dragon is close to you and sitting at its statue",
-                new AppleToggle(M7Settings::isDragonKillAlertEnabled, M7Settings::setDragonKillAlertEnabled)));
-
-        rows.add(Row.header("Boss hitboxes"));
-        for (final M7OverlayRenderer.M7HitboxTarget t : new M7OverlayRenderer.M7HitboxTarget[] {
-                M7OverlayRenderer.M7HitboxTarget.MAXOR, M7OverlayRenderer.M7HitboxTarget.STORM,
-                M7OverlayRenderer.M7HitboxTarget.GOLDOR, M7OverlayRenderer.M7HitboxTarget.NECRON}) {
-            rows.add(Row.item(bossName(t), "Outline the " + bossName(t) + " boss",
-                    new AppleToggle(() -> M7Settings.isBossHitboxEnabled(t),
-                            v -> M7Settings.setBossHitboxEnabled(t, v))));
-        }
-
-        rows.add(Row.header("Dragon hitboxes"));
-        for (final M7OverlayRenderer.M7DragonStatue d : M7OverlayRenderer.M7DragonStatue.values()) {
-            rows.add(Row.item(d.dragonName, "Outline the " + d.dragonName + " while it is alive",
-                    new AppleToggle(() -> M7Settings.isDragonHitboxEnabled(d),
-                            v -> M7Settings.setDragonHitboxEnabled(d, v))));
-        }
+        rows.add(featureRow("dungeon.door-esp", "dungeon.esp", 2, true, false, "Door ESP",
+                "Wither and blood door filters, shared style and closed-prism preview.",
+                () -> DungeonEspSettings.doorsEnabled, value -> DungeonEspSettings.doorsEnabled = value,
+                () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this))));
+        rows.add(featureRow("dungeon.door-esp.wither", "dungeon.door-esp", 3, false, false, "Wither Doors",
+                "Shared cached door style and wither door color.", () -> DungeonEspSettings.doors.enabled,
+                value -> DungeonEspSettings.doors.enabled = value,
+                () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this, "wither"))));
+        rows.add(featureRow("dungeon.door-esp.blood", "dungeon.door-esp", 3, false, false, "Blood Doors",
+                "Blood door filter, color and existing shared door style.", () -> DungeonEspSettings.showBloodDoors,
+                value -> DungeonEspSettings.showBloodDoors = value,
+                () -> mc.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this, "blood"))));
+        rows.add(featureRow("dungeon.m7", "dungeon.root", 1, false, false, "Floor VII (M7) Overlay",
+                "Areas, alerts, terminal solver, boss and dragon hitboxes.", M7Settings::isOverlayEnabled,
+                M7Settings::setOverlayEnabled,
+                () -> mc.displayGuiScreen(FeatureSettingsEditors.m7Overlay(this))));
         return rows;
     }
 
@@ -695,52 +449,36 @@ public class AppleHubScreen extends AppleScreen {
 
     private void addMobEspTreeRow(List<Row> rows, String parentId, String category, String title, String description,
                                   final DungeonEspSettings.Style style, final Minecraft mc) {
-        rows.add(Row.treeFeature("dungeon.mob-esp." + category, parentId, 2, false, false, title, description,
+        rows.add(Row.treeFeature("dungeon.mob-esp." + category, parentId, 3, false, false, title, description,
                 new FeatureRowControl(() -> style.enabled, value -> style.enabled = value,
                         () -> mc.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this, category)))));
     }
 
     private List<Row> fishingPage() {
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.section("Catch counter"));
-        rows.add(Row.item(FishingUiModel.label("catch-counter"),
-                "Counts Legendary/Mythic separately and Common through Epic in the optional CC HUD row",
-                new AppleToggle(() -> AppleSettings.fishingCounter, v -> AppleSettings.fishingCounter = v)));
-        rows.add(Row.item(FishingUiModel.label("festival-best"),
-                "Great White Sharks caught in the current Festival, and your best. Festival ends in chat",
-                new AppleToggle(() -> AppleSettings.fishingFestival, v -> AppleSettings.fishingFestival = v)));
-        rows.add(Row.item("Reset counters", "Clears every catch count and the Festival best",
-                button("Reset", () -> {
-                    FishingStats.reset();
-                })));
-
-        rows.add(Row.header("Lord Jawbus"));
-        rows.add(Row.item(FishingUiModel.label("jawbus-arrival-alert"),
-                "Shows a title when Lord Jawbus arrives. Uses the chat line, shows once per arrival",
-                new AppleToggle(() -> AppleSettings.fishingJawbusAlert,
-                        v -> AppleSettings.fishingJawbusAlert = v)));
-
-        rows.add(Row.header("Nearby encounters"));
-        rows.add(Row.item(FishingUiModel.label("nearby-encounter-alert"),
-                "Optional local title when their compatible HP nameplate first appears. Off by default",
-                new AppleToggle(() -> AppleSettings.fishingNearbyEncounterAlert,
-                        v -> AppleSettings.fishingNearbyEncounterAlert = v)));
-
         GuiSettingsAuditModel.Feature fishingHud = GuiSettingsAuditModel.find("fishing");
-        rows.add(Row.header(fishingHud.getTitle()));
-        rows.add(Row.item("Show on screen", fishingHud.getDescription(),
-                new AppleToggle(() -> HudManager.FISHING.enabled, v -> HudManager.FISHING.enabled = v)));
-        rows.add(Row.item("Open in HUD Editor", "Catches, Festival, position and style live in the HUD editor",
-                new AppleButton("Open in HUD Editor", 142f, 26f, false,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.FISHING)))));
-
         GuiSettingsAuditModel.Feature seaHpHud = GuiSettingsAuditModel.find("seahp");
-        rows.add(Row.header(seaHpHud.getTitle()));
-        rows.add(Row.item("Show on screen", seaHpHud.getDescription(),
-                new AppleToggle(() -> HudManager.SEA_HP.enabled, v -> HudManager.SEA_HP.enabled = v)));
-        rows.add(Row.item("Open in HUD Editor", "Range, rows, position and style live in the HUD editor",
-                new AppleButton("Open in HUD Editor", 142f, 26f, false,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SEA_HP)))));
+        rows.add(Row.section("Fishing"));
+        rows.add(featureBranch("fishing.root", null, 0, true, "Fishing Features", "Counters, alerts and HUD routes."));
+        rows.add(featureRow("fishing.catch-counter", "fishing.root", 1, false, false, "Catch Counter",
+                "Catch counts, Festival best and counter reset.", () -> AppleSettings.fishingCounter,
+                value -> AppleSettings.fishingCounter = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.catchCounter(this))));
+        rows.add(featureBranch("fishing.alerts", "fishing.root", 1, true, "Simple Alerts",
+                "Two independent one-switch alerts."));
+        rows.add(featureRow("fishing.jawbus", "fishing.alerts", 2, false, false, "Lord Jawbus",
+                "Shows a title once when Lord Jawbus arrives.", new AppleToggle(() -> AppleSettings.fishingJawbusAlert,
+                        value -> AppleSettings.fishingJawbusAlert = value)));
+        rows.add(featureRow("fishing.nearby", "fishing.alerts", 2, false, false, "Nearby Encounters",
+                "Optional local title when compatible HP nameplates first appear.",
+                new AppleToggle(() -> AppleSettings.fishingNearbyEncounterAlert,
+                        value -> AppleSettings.fishingNearbyEncounterAlert = value)));
+        rows.add(featureRow("fishing.hud", "fishing.root", 1, false, false, fishingHud.getTitle(),
+                fishingHud.getDescription(), () -> HudManager.FISHING.enabled, value -> HudManager.FISHING.enabled = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.FISHING))));
+        rows.add(featureRow("fishing.sea-hp", "fishing.root", 1, false, false, seaHpHud.getTitle(),
+                seaHpHud.getDescription(), () -> HudManager.SEA_HP.enabled, value -> HudManager.SEA_HP.enabled = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SEA_HP))));
         return rows;
     }
 
@@ -757,36 +495,19 @@ public class AppleHubScreen extends AppleScreen {
 
     private List<Row> slayerPage() {
         List<Row> rows = new ArrayList<Row>();
-        rows.add(Row.section("Tracker"));
-        rows.add(Row.item("Track slayer drops",
-                "Records rare drops for each Slayer from chat. Kept until you clear them",
-                new AppleToggle(() -> AppleSettings.slayerTracker, v -> AppleSettings.slayerTracker = v)));
         GuiSettingsAuditModel.Feature slayerHud = GuiSettingsAuditModel.find("slayer");
-        rows.add(Row.header(slayerHud.getTitle()));
-        rows.add(Row.item("Show on screen", slayerHud.getDescription(),
-                new AppleToggle(() -> HudManager.SLAYER.enabled, v -> HudManager.SLAYER.enabled = v)));
-        rows.add(Row.item("Open in HUD Editor", "Drops, profit, timer, position and style live in the HUD editor",
-                new AppleButton("Open in HUD Editor", 142f, 26f, false,
-                        () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SLAYER)))));
-
-        rows.add(Row.header("Boss timer"));
-        rows.add(Row.item("Boss timer",
-                "Counts from the boss spawn to Slayer quest complete",
-                new AppleToggle(() -> AppleSettings.slayerBossTimer, v -> AppleSettings.slayerBossTimer = v)));
-
-        rows.add(Row.header("Prices"));
-        rows.add(Row.item("Price drops",
-                "Shows profit from your prices. Also turns /setprice on or off",
-                new AppleToggle(() -> AppleSettings.slayerPricing, v -> AppleSettings.slayerPricing = v)));
-        rows.add(Row.item("Set a price",
-                "/setprice <price> for the held item, or /setprice <item name> <price>", null));
-
-        rows.add(Row.header("Clear history"));
-        for (final SlayerType type : SlayerType.values()) {
-            String name = SlayerTracker.displayName(type);
-            rows.add(Row.item(name, "Clears the drops and profit for " + name,
-                    button("Clear", () -> SlayerTracker.clearHistory(type))));
-        }
+        rows.add(Row.section("Slayer"));
+        rows.add(featureBranch("slayer.root", null, 0, true, "Slayer Features", "Tracker, HUD and drop controls."));
+        rows.add(featureRow("slayer.tracker", "slayer.root", 1, false, false, "Track Slayer Drops",
+                "Records rare drops from chat until you clear their histories.", () -> AppleSettings.slayerTracker,
+                value -> AppleSettings.slayerTracker = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.slayer(this))));
+        rows.add(featureRow("slayer.hud", "slayer.root", 1, false, false, slayerHud.getTitle(),
+                slayerHud.getDescription(), () -> HudManager.SLAYER.enabled, value -> HudManager.SLAYER.enabled = value,
+                () -> Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SLAYER))));
+        rows.add(featureRow("slayer.settings", "slayer.root", 1, false, false, "Boss Timer, Prices and History",
+                "Timer, price drops, /setprice help and per-Slayer clear actions.", null, null,
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.slayer(this))));
         return rows;
     }
 

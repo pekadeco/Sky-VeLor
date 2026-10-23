@@ -4,6 +4,7 @@ import com.arena.pekaclient.chat.ChatMenuPolicy;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.feature.ChatTabs;
+import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
@@ -128,6 +129,12 @@ public final class ChatEditorScreen extends AppleScreen {
     }
 
     private void buildEntries() {
+        // Feature-level switches live here as well as visual settings, so the compact Hub row has one editor route.
+        entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Enable Chat QoL", new AppleToggle(
+                () -> ChatQolSettings.enabled, value -> {
+                    ChatQolSettings.enabled = value;
+                    if (!value) ChatChannelTabs.disableAndRestoreAll();
+                })));
         entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Background colour", backgroundColour));
         entries.add(new Entry(ChatEditorLayout.BACKGROUND, "Open opacity", slider(0, 100, 5, "%",
                 () -> ChatQolSettings.backgroundOpacityOpen, value -> ChatQolSettings.backgroundOpacityOpen = value)));
@@ -154,6 +161,11 @@ public final class ChatEditorScreen extends AppleScreen {
                 () -> ChatQolSettings.compactMessages, value -> ChatQolSettings.compactMessages = value)));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Compact counter colour", compactCounterColour));
 
+        entries.add(new Entry(ChatEditorLayout.TABS, "Use chat tabs", new AppleToggle(
+                () -> ChatQolSettings.tabsEnabled, value -> {
+                    ChatQolSettings.tabsEnabled = value;
+                    if (!value) ChatChannelTabs.disableAndRestoreAll();
+                })));
         entries.add(new Entry(ChatEditorLayout.TABS, "Unselected tab colour", tabInactiveColour));
         entries.add(new Entry(ChatEditorLayout.TABS, "Selected tab colour", tabBaseColour));
         entries.add(new Entry(ChatEditorLayout.TABS, "Tab opacity", slider(0, 100, 1, "%",
@@ -185,6 +197,8 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.TABS, "Delete custom", new AppleButton("Delete", 66f, 22f, false,
                 this::deleteCustomTab)));
 
+        entries.add(new Entry(ChatEditorLayout.MENU_HIGHLIGHT, "Use hover highlight", new AppleToggle(
+                () -> ChatQolSettings.hoverHighlight, value -> ChatQolSettings.hoverHighlight = value)));
         entries.add(new Entry(ChatEditorLayout.MENU_HIGHLIGHT, "Highlight colour", hoverColour));
         entries.add(new Entry(ChatEditorLayout.MENU_HIGHLIGHT, "Highlight opacity", slider(0, 100, 5, "%",
                 () -> ChatQolSettings.hoverOpacity, value -> ChatQolSettings.hoverOpacity = value)));

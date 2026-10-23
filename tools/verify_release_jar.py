@@ -61,6 +61,15 @@ REQUIRED_CLASSES = [
     'command/ItemDebugCommand',
     'command/SvCommand',
     'gui/AppleHubScreen',
+    'gui/FeatureUiState',
+    'gui/FeatureTreeLayout',
+    'gui/FeatureSettingsUiModel',
+    'gui/FeatureSettingsEditorScreen',
+    'gui/FeatureSettingsEditors',
+    'gui/DungeonEspEditorSpecs',
+    'gui/DungeonEspPreviewRenderer',
+    'config/FeatureUiPreferences',
+    'widget/FeatureRowControl',
     'gui/DungeonEspUiModel',
     'gui/QualityOfLifeUiModel',
     'gui/ModSettingsUiModel',
@@ -448,6 +457,7 @@ def main():
     # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
     assist_settings_raw = raw_of('config/AssistSettings')
     assist_hub_raw = raw_of('gui/AppleHubScreen')
+    feature_editors_raw = raw_of('gui/FeatureSettingsEditors')
     sync_client_raw = raw_of('assist/sync/DungeonSyncClient')
     sync_messages_raw = raw_of('assist/sync/DungeonSyncMessages')
     sync_manager_raw = raw_of('assist/sync/DungeonSyncManager')
@@ -458,10 +468,11 @@ def main():
                  b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
                  b'assist.dungeon.terminal.autoClick')),
             'AssistSettings packages namespaced inventory, safety, movement, terminal, and sync controls')
-    r.check(all(value in assist_hub_raw for value in
-                (b'Item Protection', b'Auto sprint', b'Pickaxe ability ready alert', b'Boss HP HUD',
-                 b'Dungeon Sync', b'Terminal auto click', b'Terminal waypoints')),
-            'AppleHubScreen packages every new assist through its Quality of Life, Mining, or Dungeons page')
+    r.check(b'FeatureSettingsEditors' in assist_hub_raw and b'Dungeon Sync' in assist_hub_raw
+                and all(value in feature_editors_raw for value in
+                        (b'Item Protection', b'Auto Sprint', b'Pickaxe Ability Ready Alert',
+                         b'Terminal Auto Click', b'Terminal Waypoints')),
+            'compact Hub routes every new assist through its focused Feature Settings Editor')
     r.check(all(value in sync_client_raw for value in
                 (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
@@ -480,6 +491,9 @@ def main():
     esp_tracker_raw = raw_of('dungeonesp/DungeonEspTracker')
     esp_command_raw = raw_of('command/ItemDebugCommand')
     hub_raw = raw_of('gui/AppleHubScreen')
+    esp_editor_raw = raw_of('gui/DungeonEspEditorSpecs')
+    esp_preview_raw = raw_of('gui/DungeonEspPreviewRenderer')
+    esp_batch_raw = raw_of('dungeonesp/DungeonEspRenderBatch')
     r.check(all(value in esp_settings_constants for value in
                 ('dungeonEsp.', 'Outline', 'Filled', 'Outline + Filled', 'Nearest closed door',
                  'All closed doors', 'Cyan', 'Gold', 'Purple')),
@@ -488,10 +502,12 @@ def main():
                 ('Mob ESP', 'Door ESP', 'Performance', 'Presets', 'Force Render All Mobs in Room', 'Enderman',
                  'Skeletor', 'Other Mobs')),
             'DungeonEspUiModel packages the four collapsed Dungeon ESP groups and all new category controls')
-    r.check(b'com/arena/pekaclient/config/DungeonEspSettings' in hub_raw
-                and b'Enable Dungeon ESP' in hub_raw and b'Force Render All Mobs in Room' in hub_raw
-                and b'Wither Door Color' in hub_raw,
-            'AppleHubScreen routes every Dungeon ESP control through its one shared Dungeons page')
+    r.check(b'DungeonEspEditorSpecs' in hub_raw
+                and all(value in esp_editor_raw for value in
+                        (b'Enable Dungeon ESP', b'Force Render All Mobs in Room', b'Wither Door',
+                         b'Blood Door Color', b'Default Preset', b'Subtle Preset', b'Apply Copied Style'))
+                and b'drawStyledBox' in esp_preview_raw and b'drawStyledBox' in esp_batch_raw,
+            'compact Dungeon tree routes every ESP control through shared Mob/Door editors and live-style preview')
     # ReobfJar remaps Minecraft class names, so inspect durable Sky VeLor fields/strings rather than MCP class names.
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
@@ -525,9 +541,9 @@ def main():
     layout_ref = b'com/arena/pekaclient/gui/HudEditorLayout'
     hub_raw = raw_of('gui/AppleHubScreen')
     hub_members = members_of('gui/AppleHubScreen')
-    r.check(model_ref in hub_raw and audit_ref in hub_raw
-                and all(name in hub_members for name in ('buildHudTabModel', 'buildHudItemAnimationDropdownModel')),
-            'AppleHubScreen bytecode builds the shared Item Animation dropdown and uses the tab/editor ownership audit')
+    r.check(b'HudEditorScreen' in hub_raw and b'FeatureRowControl' in hub_raw and audit_ref in hub_raw
+                and model_ref in raw_of('gui/HudEditorScreen'),
+            'compact Hub keeps one Item Animation row and routes its detailed controls to the HUD editor')
     r.check(b'HudSettingsBuilder' not in hub_raw,
             'AppleHubScreen keeps HUD customization out of GUI tabs; it routes it to the HUD editor')
     editor_members = members_of('gui/HudEditorScreen')
@@ -642,9 +658,9 @@ def main():
                 (b'smooth-abel-regular.ttf', b'doodle-architects-daughter.ttf', b'rounded-nunito.ttf',
                  b'mono-jetbrains-mono.ttf', b'skyvelor/fonts')),
             'GlobalFontManager packages all bundled/config-folder font paths with cached atlas fallback')
-    r.check(b'com/arena/pekaclient/gui/ChatUiModel' in hub_raw
-                and b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw,
-            'AppleHubScreen uses the Chat QoL ownership model and routes to Chat Editor')
+    r.check(b'com/arena/pekaclient/gui/ChatEditorScreen' in hub_raw
+                and b'Enable Chat QoL' in chat_editor_raw and b'Use chat tabs' in chat_editor_raw,
+            'compact Hub routes Chat QoL through Chat Editor including its feature-level switches')
     r.check(all(value not in hub_raw for value in
                 (b'Chatting animation bridge', b'Message animation speed', b'Hide vanilla scroll bar')),
             'AppleHubScreen has no retired external animation or duplicate chat customization controls')
@@ -782,8 +798,8 @@ def main():
             'CorruptedHP profile excludes Water Hydra/Reindrake while retaining Yeti and Lord Jawbus labels')
     fishing_ui_constants = constants_of('gui/FishingUiModel')
     r.check('Nearby encounter titles' in fishing_ui_constants
-                and b'com/arena/pekaclient/gui/FishingUiModel' in hub_raw,
-            'AppleHubScreen uses the toggle-only Fishing ownership model for nearby encounter titles')
+                and b'Nearby Encounters' in hub_raw and b'Catch Counter Settings' in feature_editors_raw,
+            'compact Fishing tree keeps nearby encounter alerts simple and routes counters to its editor')
 
     # --- explicit direct ItemRenderer proof --------------------------------
     # These are plain UTF8 constants intentionally: an ASM transformer has to carry the names it will compare at
