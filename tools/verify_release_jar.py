@@ -493,8 +493,11 @@ def main():
     selftest_raw = raw_of('command/SvCommand')
     no_hurt_ui = (b'assist.visual.noHurtCamera' in assist_settings_raw and b'No Hurt Cam' in assist_hub_raw
                   and b'No Hurt Camera' not in feature_editors_raw)
+    # ReobfJar may rewrite MCP-name string constants used by an ASM matcher. The packed transformer still carries
+    # its explicit notch EntityRenderer target, float descriptor, and early-return hook owner; headless transformer
+    # tests exercise all MCP/SRG/notch aliases before packaging.
     no_hurt_hook = all(value in visual_transformer_raw for value in
-                       (b'hurtCameraEffect', b'func_78482_e', b'suppressHurtCamera'))
+                       (b'bfk', b'(F)V', b'suppressHurtCamera', b'VisualAssistHooks'))
     # reobfJar maps Minecraft's hurtTime field, so prove the fallback through Sky VeLor-owned
     # method/class references instead of requiring its MCP field spelling in the packed bytecode.
     no_hurt_fallback = (all(value in visual_hooks_raw for value in
