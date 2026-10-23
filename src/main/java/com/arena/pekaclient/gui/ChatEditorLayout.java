@@ -42,6 +42,9 @@ public final class ChatEditorLayout {
         public final Rect[] bodies = new Rect[SECTION_COUNT];
         public final Rect[][] rows = new Rect[SECTION_COUNT][];
         private final GuiLayoutToolkit.Sections shared = new GuiLayoutToolkit.Sections(SECTION_COUNT);
+        /** Reused update scratch arrays keep the editor/preview frame allocation-free. */
+        private final float[] bodyHeights = new float[SECTION_COUNT];
+        private final float[] openness = new float[SECTION_COUNT];
         public float contentH;
         public float maxScroll;
         public float scroll;
@@ -61,8 +64,8 @@ public final class ChatEditorLayout {
     public static void update(Layout out, float x, float y, float width, float height, boolean[] expanded,
                               float headerHeight, float[][] rowHeights, float[][] extraAfter, float requestedScroll) {
         if (out == null) return;
-        float[] bodyHeights = new float[SECTION_COUNT];
-        float[] openness = new float[SECTION_COUNT];
+        float[] bodyHeights = out.bodyHeights;
+        float[] openness = out.openness;
         for (int section = 0; section < SECTION_COUNT; section++) {
             float total = 0f;
             float[] rows = rowHeights == null || section >= rowHeights.length ? null : rowHeights[section];

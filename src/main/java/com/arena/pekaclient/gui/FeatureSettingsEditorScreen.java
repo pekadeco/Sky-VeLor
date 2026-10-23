@@ -20,34 +20,61 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Reusable two-pane settings surface for detailed features.
+ * Shared focused-settings surface.
  *
- * <p>It owns only editor chrome, selection persistence, scrolling and widget routing. A feature supplies its
- * categories, existing setting widgets, reset action and optional preview; it never has to duplicate a modal or
- * layout implementation. This keeps the hub compact without changing the feature/configuration owners.</p>
+ * <p>The left side is always the one scrollable settings column.  When a feature has a meaningful
+ * visual surface, the remaining right side is a clipped, non-interactive Live Preview; a feature
+ * without one deliberately uses the whole width for settings rather than showing an empty mockup.
+ * Widgets still write their live configuration owners directly, so there is no Apply/Save staging
+ * state and no second preview copy of any setting.</p>
  */
 public final class FeatureSettingsEditorScreen extends AppleScreen {
     public interface EntryFactory {
         void build(Category category, List<Entry> entries);
     }
 
+    /** A preview receives the exact live settings owner and is drawn only while this editor is open. */
     public interface Preview {
-        void draw(String categoryId, float x, float y, float width, float height, FontRenderer font);
+        /** The object/class which owns the values used by the live renderer for this category. */
+        Object settingsObject(String categoryId);
+        /** Draw in the already clipped preview viewport. Implementations must not allocate per frame. */
+        void draw(PreviewContext context);
+    }
+
+    /** Reused frame context; preview implementations must never retain it. */
+    public static final class PreviewContext {
+        public String categoryId = "";
+        public float x, y, width, height;
+        public int mouseX, mouseY;
+        public float partialTicks;
+        public long nowNanos;
+        public FontRenderer font;
+
+        private void set(String category, float px, float py, float pw, float ph, int mx, int my,
+                         float partial, long now, FontRenderer renderer) {
+            categoryId = category == null ? "" : category;
+            x = px;
+            y = py;
+            width = pw;
+            height = ph;
+            mouseX = mx;
+            mouseY = my;
+            partialTicks = partial;
+            nowNanos = now;
+            font = renderer;
+        }
     }
 
     public interface ResetAction {
         void reset();
     }
 
-    /** Lightweight shared thumbnail contract for category lists such as Mob ESP. */
+    /** Lightweight shared thumbnail contract for category headings such as Mob ESP. */
     public interface CategoryThumbnail {
         void draw(float x, float y, float width, float height);
     }
 
-    /**
-     * A flat navigation category. A category can expose its existing on/off control directly in the left list and
-     * can optionally draw a tiny preview; neither capability creates a config key or a second feature model.
-     */
+    /** A flat, one-level section heading and its existing feature switch. */
     public static final class Category {
         public final String id;
         public final String title;
@@ -72,7 +99,6 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
             this.thumbnail = thumbnail;
         }
 
-
         public boolean hasToggle() { return enabled != null && enabledSetter != null; }
         public boolean isEnabled() { return enabled != null && Boolean.TRUE.equals(enabled.get()); }
         public void setEnabled(boolean value) { if (enabledSetter != null) enabledSetter.accept(value); }
@@ -82,7 +108,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         }
     }
 
-    /** One right-pane setting row. Widgets remain the existing source of behavior and visual language. */
+    /** One live-setting row. The widget is the actual feature widget/configuration owner. */
     public static final class Entry {
         public final String label;
         public final String description;
@@ -125,10 +151,11 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
     private static final float TITLE_H = 34f;
     private static final float PAD = 12f;
-    private static final float LEFT_W = 190f;
-    private static final float CAT_H = 46f;
+    private static final float BOTTOM_H = 28f;
+    private static final float CATEGORY_H = 42f;
     private static final float ENTRY_H = 42f;
     private static final float GAP = 6f;
+    private static final float SETTINGS_RATIO = .35f;
 
     private final GuiScreen parent;
     private final Spec spec;
@@ -137,13 +164,16 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private final GuiLayoutToolkit.Scroll navigationScroll = new GuiLayoutToolkit.Scroll();
     private final GuiLayoutToolkit.Rect panel = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect content = new GuiLayoutToolkit.Rect();
+    /** Category section headings. Kept separate from the scrollable setting rows. */
     private final GuiLayoutToolkit.Rect left = new GuiLayoutToolkit.Rect();
+    /** Right-hand preview only; never a duplicate settings pane. */
     private final GuiLayoutToolkit.Rect right = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect previewBounds = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect entriesView = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect row = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect label = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect control = new GuiLayoutToolkit.Rect();
+    private final PreviewContext previewContext = new PreviewContext();
     private final AppleButton back;
     private final AppleButton reset;
     private String selectedId;
@@ -151,13 +181,14 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private long lastNs;
     private float scaleFactor = 1f;
     private boolean dirtyEntries = true;
+    private boolean previewAvailable = true;
     private String status = "";
 
     public FeatureSettingsEditorScreen(GuiScreen parent, Spec spec) {
         this(parent, spec, null);
     }
 
-    /** Opens a routed child category while retaining the remembered selection for ordinary editor openings. */
+    /** Opens a routed child category while retaining the remembered category for ordinary openings. */
     public FeatureSettingsEditorScreen(GuiScreen parent, Spec spec, String requestedCategory) {
         this.parent = parent;
         this.spec = spec == null ? new Spec("settings", "Feature Settings", "", null, null, null, null) : spec;
@@ -172,6 +203,11 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
     public String selectedCategoryId() { return selectedId; }
 
+    /** Test and diagnostics hook proving a preview and live renderer share the same settings owner. */
+    Object previewSettingsIdentity() {
+        return spec.preview == null ? null : spec.preview.settingsObject(selectedId);
+    }
+
     private Category category(String id) {
         for (Category category : spec.categories) if (category.id.equals(id)) return category;
         return null;
@@ -185,6 +221,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         dirtyEntries = true;
         openDropdown = null;
         status = "";
+        previewAvailable = true;
     }
 
     private void rebuildEntries() {
@@ -246,12 +283,13 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
         FontRenderer font = fr();
         UIRender.text(font, spec.title, panel.x + 42f, panel.y + 12.5f, Theme.textPrimary, 1.05f, false);
-        String version = "Settings";
-        UIRender.text(font, version, panel.x + panel.w - PAD - font.getStringWidth(version) * .85f,
-                panel.y + 13.5f, Theme.textTertiary, .85f, false);
-        drawToolbar(mouseX, mouseY, font);
+        String heading = spec.preview == null ? "Settings" : "Settings + Live Preview";
+        UIRender.text(font, heading, panel.right() - PAD - font.getStringWidth(heading) * .78f,
+                panel.y + 13.5f, Theme.textTertiary, .78f, false);
+        drawSubtitle(font);
         drawNavigation(mouseX, mouseY, font);
-        drawSettings(mouseX, mouseY, font);
+        drawSettings(mouseX, mouseY, partialTicks, now, font);
+        drawBottomBar(mouseX, mouseY, font);
         if (openDropdown != null) {
             openDropdown.drawPopup(mouseX, mouseY, panel.y, panel.bottom(), panel.right(), panel.x);
         }
@@ -261,30 +299,33 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private void layout() {
         float availW = Math.max(1f, width - 8f);
         float availH = Math.max(1f, height - 8f);
-        float desiredW = Math.min(availW, 760f);
-        float desiredH = Math.min(availH, 470f);
-        desiredW = Math.max(Math.min(260f, availW), desiredW);
-        desiredH = Math.max(Math.min(180f, availH), desiredH);
+        float desiredW = Math.min(availW, 920f);
+        float desiredH = Math.min(availH, 560f);
+        desiredW = Math.max(Math.min(300f, availW), desiredW);
+        desiredH = Math.max(Math.min(200f, availH), desiredH);
         GuiLayoutToolkit.clampPanel(panel, (width - desiredW) * .5f, (height - desiredH) * .5f,
                 desiredW, desiredH, width, height);
-        float top = panel.y + TITLE_H + PAD;
-        float toolbarH = 24f;
-        content.set(panel.x + PAD, top + toolbarH + PAD, panel.w - PAD * 2f,
-                Math.max(1f, panel.bottom() - PAD - (top + toolbarH + PAD)));
-        float actualLeft = Math.min(LEFT_W, Math.max(94f, content.w * .32f));
-        left.set(content.x, content.y, actualLeft, content.h);
-        right.set(left.right() + GAP, content.y, Math.max(1f, content.w - actualLeft - GAP), content.h);
-        navigationScroll.setMaximum(Math.max(0f, spec.categories.size() * CAT_H + 8f - left.h));
-        float previewH = spec.preview == null ? 0f : Math.min(92f, Math.max(46f, right.h * .28f));
-        previewBounds.set(right.x, right.y, right.w, previewH);
-        entriesView.set(right.x, right.y + previewH + (previewH > 0 ? GAP : 0), right.w,
-                Math.max(1f, right.h - previewH - (previewH > 0 ? GAP : 0)));
+
+        float contentTop = panel.y + TITLE_H + PAD + 18f;
+        content.set(panel.x + PAD, contentTop, panel.w - PAD * 2f,
+                Math.max(1f, panel.bottom() - PAD - BOTTOM_H - GAP - contentTop));
+        boolean hasPreview = spec.preview != null;
+        GuiLayoutToolkit.splitLivePreview(content, SETTINGS_RATIO, GAP, 110f, hasPreview, left, right);
+        float settingsW = left.w;
+        float categoryH = Math.min(Math.max(42f, content.h * .30f), Math.max(42f, spec.categories.size() * CATEGORY_H + 8f));
+        if (content.h < 115f) categoryH = Math.min(categoryH, Math.max(26f, content.h * .38f));
+        left.set(left.x, left.y, settingsW, Math.min(categoryH, content.h));
+        entriesView.set(content.x, Math.min(content.bottom(), left.bottom() + GAP), settingsW,
+                Math.max(1f, content.bottom() - Math.min(content.bottom(), left.bottom() + GAP)));
+        previewBounds.set(right.x, right.y, right.w, right.h);
+        navigationScroll.setMaximum(Math.max(0f, spec.categories.size() * CATEGORY_H + 8f - left.h));
+
         back.x = panel.x + PAD;
-        back.y = top;
+        back.y = panel.bottom() - PAD - 22f;
         back.w = Math.min(back.preferredWidth(), Math.max(38f, panel.w * .13f));
-        reset.x = panel.right() - PAD - Math.min(reset.preferredWidth(), Math.max(38f, panel.w * .13f));
-        reset.y = top;
-        reset.w = Math.min(reset.preferredWidth(), Math.max(38f, panel.w * .13f));
+        reset.x = back.x + back.w + GAP;
+        reset.y = back.y;
+        reset.w = Math.min(reset.preferredWidth(), Math.max(40f, panel.w * .13f));
 
         float total = 0f;
         for (Entry ignored : entries) total += ENTRY_H + GAP;
@@ -293,7 +334,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         for (Entry entry : entries) {
             row.set(entriesView.x, cursor, entriesView.w, ENTRY_H);
             if (entry.widget != null) {
-                GuiLayoutToolkit.splitRow(row, 10f, 8f, entry.widget.preferredWidth(), entry.widget.h, label, control);
+                GuiLayoutToolkit.splitRow(row, 9f, 7f, entry.widget.preferredWidth(), entry.widget.h, label, control);
                 entry.labelX = label.x;
                 entry.labelW = label.w;
                 entry.widget.x = control.x;
@@ -301,26 +342,33 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
                 entry.widget.w = control.w;
                 entry.widget.h = control.h;
             } else {
-                entry.labelX = entriesView.x + 10f;
-                entry.labelW = Math.max(1f, entriesView.w - 20f);
+                entry.labelX = entriesView.x + 9f;
+                entry.labelW = Math.max(1f, entriesView.w - 18f);
             }
             cursor += ENTRY_H + GAP;
         }
         scaleFactor = new ScaledResolution(Minecraft.getMinecraft()).getScaleFactor();
     }
 
-    private void drawToolbar(int mouseX, int mouseY, FontRenderer font) {
-        back.draw(mouseX, mouseY);
-        reset.draw(mouseX, mouseY);
-        float textX = back.x + back.w + 10f;
-        float textW = Math.max(1f, reset.x - textX - 10f);
+    private void drawSubtitle(FontRenderer font) {
         String subtitle = status.length() == 0 ? spec.subtitle : status;
         int color = status.length() == 0 ? Theme.textSecondary : Theme.accent;
-        UIRender.text(font, fit(font, subtitle, textW), textX, back.y + 7f, color, .92f, false);
+        UIRender.text(font, fit(font, subtitle, panel.w - PAD * 2f), panel.x + PAD, panel.y + TITLE_H + 6f,
+                color, .83f, false);
+    }
+
+    private void drawBottomBar(int mouseX, int mouseY, FontRenderer font) {
+        UIRender.rect(panel.x + 1f, back.y - 7f, panel.w - 2f, 1f, Theme.divider);
+        back.draw(mouseX, mouseY);
+        reset.draw(mouseX, mouseY);
+        String hint = spec.preview == null ? "Changes apply instantly." : "Live Preview — changes apply instantly.";
+        float hintX = reset.x + reset.w + 10f;
+        UIRender.text(font, fit(font, hint, panel.right() - PAD - hintX), hintX, back.y + 7f,
+                Theme.textTertiary, .80f, false);
     }
 
     private float categoryToggleWidth() {
-        return Math.min(34f, Math.max(26f, left.w * .30f));
+        return Math.min(34f, Math.max(26f, left.w * .26f));
     }
 
     private float categoryToggleX() {
@@ -329,14 +377,14 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
     private boolean categoryToggleContains(Category category, int mouseX, int mouseY, float rowY) {
         return category != null && category.hasToggle() && inside(mouseX, mouseY, categoryToggleX(),
-                rowY + (CAT_H - 20f) * .5f, categoryToggleWidth(), 20f);
+                rowY + (CATEGORY_H - 20f) * .5f, categoryToggleWidth(), 20f);
     }
 
     private void drawCategoryToggle(Category category, float rowY) {
         if (!category.hasToggle()) return;
         float tw = categoryToggleWidth();
         float tx = categoryToggleX();
-        float ty = rowY + (CAT_H - 20f) * .5f;
+        float ty = rowY + (CATEGORY_H - 20f) * .5f;
         boolean enabled = category.isEnabled();
         int fill = enabled ? Theme.accent : Theme.track;
         UIRender.roundRect(tx, ty, tw, 20f, 10f, fill, fill, .4f);
@@ -345,58 +393,51 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         UIRender.circle(knobX + knob * .5f, ty + 10f, knob * .5f, 0xFFFFFFFF);
     }
 
+    /** Plain section-heading navigation; no nested tree/dropdowns are created here. */
     private void drawNavigation(int mouseX, int mouseY, FontRenderer font) {
         UIRender.roundRectBorder(left.x, left.y, left.w, left.h, Math.max(4f, Theme.radius - 4f),
                 Theme.card, Theme.card, Theme.border);
         UIRender.scissorBegin(left.x, left.y, left.w, left.h, scaleFactor);
         float cursor = left.y + 4f - navigationScroll.value();
         for (Category category : spec.categories) {
-            if (cursor + CAT_H >= left.y && cursor <= left.bottom()) {
+            if (cursor + CATEGORY_H >= left.y && cursor <= left.bottom()) {
                 boolean chosen = category.id.equals(selectedId);
-                boolean hover = inside(mouseX, mouseY, left.x + 4f, cursor, left.w - 8f, CAT_H);
-                int fill = chosen ? UIRender.withAlpha(Theme.accent, .18f)
-                        : hover ? Theme.cardHover : Theme.card;
-                UIRender.roundRect(left.x + 4f, cursor, Math.max(1f, left.w - 8f), CAT_H - 2f,
+                boolean hover = inside(mouseX, mouseY, left.x + 4f, cursor, left.w - 8f, CATEGORY_H);
+                int fill = chosen ? UIRender.withAlpha(Theme.accent, .18f) : hover ? Theme.cardHover : Theme.card;
+                UIRender.roundRect(left.x + 4f, cursor, Math.max(1f, left.w - 8f), CATEGORY_H - 2f,
                         5f, fill, fill, 1f);
                 float toggleX = category.hasToggle() ? categoryToggleX() : left.right() - 8f;
                 float thumbnailW = category.hasThumbnail() ? 18f : 0f;
                 float thumbnailX = toggleX - (thumbnailW > 0f ? thumbnailW + 7f : 0f);
-                if (category.hasThumbnail()) {
-                    category.drawThumbnail(thumbnailX, cursor + 11f, thumbnailW, 22f);
-                }
+                if (category.hasThumbnail()) category.drawThumbnail(thumbnailX, cursor + 10f, thumbnailW, 22f);
                 float titleX = left.x + 10f;
                 float titleW = Math.max(1f, thumbnailX - titleX - 6f);
-                UIRender.text(font, fit(font, category.title, titleW), titleX, cursor + 8f,
-                        chosen ? Theme.textPrimary : Theme.textSecondary, .95f, false);
+                UIRender.text(font, fit(font, category.title, titleW), titleX, cursor + 7f,
+                        chosen ? Theme.textPrimary : Theme.textSecondary, .92f, false);
                 if (category.description.length() > 0) {
-                    UIRender.text(font, fit(font, category.description, titleW), titleX, cursor + 22f,
-                            Theme.textTertiary, .76f, false);
+                    UIRender.text(font, fit(font, category.description, titleW), titleX, cursor + 21f,
+                            Theme.textTertiary, .73f, false);
                 }
                 drawCategoryToggle(category, cursor);
             }
-            cursor += CAT_H;
+            cursor += CATEGORY_H;
         }
         UIRender.scissorEnd();
     }
 
-    private void drawSettings(int mouseX, int mouseY, FontRenderer font) {
-        if (spec.preview != null) {
-            UIRender.roundRectBorder(previewBounds.x, previewBounds.y, previewBounds.w, previewBounds.h,
-                    Math.max(4f, Theme.radius - 4f), Theme.card, Theme.card, Theme.border);
-            spec.preview.draw(selectedId, previewBounds.x, previewBounds.y, previewBounds.w, previewBounds.h, font);
-        }
+    private void drawSettings(int mouseX, int mouseY, float partialTicks, long now, FontRenderer font) {
+        if (spec.preview != null) drawPreview(mouseX, mouseY, partialTicks, now, font);
         UIRender.scissorBegin(entriesView.x, entriesView.y, entriesView.w, entriesView.h, scaleFactor);
         float cursor = entriesView.y - scroll.value();
         for (Entry entry : entries) {
             if (cursor + ENTRY_H >= entriesView.y && cursor <= entriesView.bottom()) {
                 UIRender.roundRectBorder(entriesView.x, cursor, entriesView.w, ENTRY_H,
                         Math.max(4f, Theme.radius - 4f), Theme.card, Theme.card, Theme.border);
-                float labelW = entry.labelW;
-                UIRender.text(font, fit(font, entry.label, labelW), entry.labelX, cursor + 7f,
-                        Theme.textPrimary, .95f, false);
+                UIRender.text(font, fit(font, entry.label, entry.labelW), entry.labelX, cursor + 7f,
+                        Theme.textPrimary, .90f, false);
                 if (entry.description != null && entry.description.length() > 0) {
-                    UIRender.text(font, fit(font, entry.description, labelW), entry.labelX, cursor + 21f,
-                            Theme.textSecondary, .85f, false);
+                    UIRender.text(font, fit(font, entry.description, entry.labelW), entry.labelX, cursor + 21f,
+                            Theme.textSecondary, .78f, false);
                 }
                 if (entry.widget != null) entry.widget.draw(mouseX, mouseY);
             }
@@ -404,9 +445,34 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         }
         UIRender.scissorEnd();
         if (entries.isEmpty()) {
-            String empty = "No settings in this category.";
-            UIRender.text(font, empty, entriesView.x + (entriesView.w - font.getStringWidth(empty)) * .5f,
-                    entriesView.y + 18f, Theme.textTertiary, .9f, false);
+            String empty = "No settings in this section.";
+            UIRender.text(font, empty, entriesView.x + 8f, entriesView.y + 18f, Theme.textTertiary, .85f, false);
+        }
+    }
+
+    private void drawPreview(int mouseX, int mouseY, float partialTicks, long now, FontRenderer font) {
+        UIRender.roundRectBorder(previewBounds.x, previewBounds.y, previewBounds.w, previewBounds.h,
+                Math.max(4f, Theme.radius - 4f), Theme.card, Theme.card, Theme.border);
+        UIRender.text(font, "LIVE PREVIEW", previewBounds.x + 10f, previewBounds.y + 9f,
+                Theme.textTertiary, .72f, false);
+        if (!previewAvailable) {
+            String unavailable = "Preview unavailable";
+            UIRender.text(font, unavailable, previewBounds.x + (previewBounds.w - font.getStringWidth(unavailable) * .9f) * .5f,
+                    previewBounds.y + previewBounds.h * .5f, Theme.textTertiary, .9f, false);
+            return;
+        }
+        try {
+            UIRender.scissorBegin(previewBounds.x + 1f, previewBounds.y + 18f,
+                    Math.max(1f, previewBounds.w - 2f), Math.max(1f, previewBounds.h - 19f), scaleFactor);
+            previewContext.set(selectedId, previewBounds.x + 1f, previewBounds.y + 19f,
+                    Math.max(1f, previewBounds.w - 2f), Math.max(1f, previewBounds.h - 20f),
+                    mouseX, mouseY, partialTicks, now, font);
+            spec.preview.draw(previewContext);
+            UIRender.scissorEnd();
+        } catch (RuntimeException | LinkageError unavailable) {
+            // A missing renderer/world/mod hook must never block access to the real settings column.
+            previewAvailable = false;
+            try { UIRender.scissorEnd(); } catch (RuntimeException ignored) { }
         }
     }
 
@@ -414,8 +480,8 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         if (!left.contains(mouseX, mouseY)) return null;
         float cursor = left.y + 4f - navigationScroll.value();
         for (Category category : spec.categories) {
-            if (inside(mouseX, mouseY, left.x + 4f, cursor, left.w - 8f, CAT_H)) return category;
-            cursor += CAT_H;
+            if (inside(mouseX, mouseY, left.x + 4f, cursor, left.w - 8f, CATEGORY_H)) return category;
+            cursor += CATEGORY_H;
         }
         return null;
     }
@@ -424,7 +490,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         float cursor = left.y + 4f - navigationScroll.value();
         for (Category category : spec.categories) {
             if (category == target) return categoryToggleContains(category, mouseX, mouseY, cursor);
-            cursor += CAT_H;
+            cursor += CATEGORY_H;
         }
         return false;
     }
@@ -439,10 +505,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     protected void mouseClicked(int mouseX, int mouseY, int button) throws IOException {
         if (button != 0) return;
         if (handleOpenDropdownClick(mouseX, mouseY)) return;
-        if (!panel.contains(mouseX, mouseY)) {
-            backToParent();
-            return;
-        }
+        if (!panel.contains(mouseX, mouseY)) { backToParent(); return; }
         if (WindowDots.hit(mouseX, mouseY, panel.x + 16f, panel.y + 17f, 0b001) == WindowDots.CLOSE) {
             backToParent();
             return;
@@ -490,11 +553,10 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         int mouseY = height - Mouse.getEventY() * height / Math.max(1, Minecraft.getMinecraft().displayHeight) - 1;
         if (wheel != 0 && openDropdown == null) {
             boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
-            if (left.contains(mouseX, mouseY)) {
-                navigationScroll.wheel(wheel / 120f, fine, AppleSettings.guiScrollMultiplier(), 30f);
-            } else if (entriesView.contains(mouseX, mouseY)) {
-                scroll.wheel(wheel / 120f, fine, AppleSettings.guiScrollMultiplier(), 30f);
-            }
+            if (left.contains(mouseX, mouseY)) navigationScroll.wheel(wheel / 120f, fine,
+                    AppleSettings.guiScrollMultiplier(), 30f);
+            else if (entriesView.contains(mouseX, mouseY)) scroll.wheel(wheel / 120f, fine,
+                    AppleSettings.guiScrollMultiplier(), 30f);
         }
     }
 
@@ -508,6 +570,6 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         if (keyCode == Keyboard.KEY_UP) { scroll.nudge(-ENTRY_H); return; }
         if (keyCode == Keyboard.KEY_DOWN) { scroll.nudge(ENTRY_H); return; }
         if (keyCode == Keyboard.KEY_PRIOR) { scroll.nudge(-entriesView.h * .8f); return; }
-        if (keyCode == Keyboard.KEY_NEXT) { scroll.nudge(entriesView.h * .8f); }
+        if (keyCode == Keyboard.KEY_NEXT) scroll.nudge(entriesView.h * .8f);
     }
 }

@@ -434,6 +434,7 @@ public final class HudEditorScreen extends AppleScreen {
     public void onGuiClosed() {
         super.onGuiClosed();
         Keyboard.enableRepeatEvents(false);
+        ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
     }
@@ -623,6 +624,8 @@ public final class HudEditorScreen extends AppleScreen {
                         changed();
                     })));
         }
+        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("preview-swing-loop", itemAnimationPanel),
+                new AppleToggle(ItemAnimation::isPreviewSwingLoop, ItemAnimation::setPreviewSwingLoop)));
         entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("preview-swing", itemAnimationPanel),
                 new AppleButton("Preview", 74f, CONTROL_H, true, ItemAnimation::previewSwing)));
         entries.add(new Entry(null, new AppleButton(ItemAnimationUiModel.panelControlLabel("reset-defaults", itemAnimationPanel),
@@ -887,6 +890,7 @@ public final class HudEditorScreen extends AppleScreen {
         manualField.clear();
         manualField.setFocused(false);
         changed();
+        ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
     }
@@ -901,11 +905,13 @@ public final class HudEditorScreen extends AppleScreen {
         clearItemAnimationExactFields();
         openDropdown = null;
         rebuild();
+        ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
     }
 
     private void close() {
+        ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
         Minecraft.getMinecraft().displayGuiScreen(parent);

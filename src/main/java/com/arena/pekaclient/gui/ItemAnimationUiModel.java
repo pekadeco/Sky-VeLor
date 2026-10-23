@@ -126,6 +126,7 @@ public final class ItemAnimationUiModel {
         if (panel.isOptionsExpanded()) {
             entries.add(new Entry("remove-haste", "Remove Haste Effect", true, true));
         }
+        entries.add(new Entry("preview-swing-loop", "Loop Preview Swing", true, true));
         entries.add(new Entry("preview-swing", "Preview Swing", true, true));
         entries.add(new Entry("reset-defaults", "Reset to Defaults", true, true));
         return Collections.unmodifiableList(entries);

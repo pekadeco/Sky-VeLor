@@ -12,44 +12,112 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import org.lwjgl.opengl.GL11;
 
 /**
- * Editor-only ESP preview. It deliberately uses a named, real-dimension fallback hitbox instead of constructing a
- * fake entity/world: the editor can safely open from a menu or a disconnected client. Fill and outline vertices are
- * emitted by {@link DungeonEspRenderBatch#drawStyledBox}, the same style path used for live dungeon ESP.
+ * Editor-only Dungeon ESP surface. The hitbox is emitted through
+ * {@link DungeonEspRenderBatch#drawStyledBox}, exactly the live cached-ESP style path.  The rotating
+ * biped is intentionally a renderer-safe geometric stand-in rather than a fake world/entity, so this
+ * editor remains available at the title screen and on a disconnected client.
  */
 public final class DungeonEspPreviewRenderer {
     private DungeonEspPreviewRenderer() { }
 
+    /** Compatibility entry point retained for category thumbnails/tests. */
     public static void drawMob(String category, DungeonEspSettings.Style style,
                                float x, float y, float width, float height, FontRenderer font) {
-        String name = mobName(category);
-        UIRender.text(font, "Preview · " + name, x + 10f, y + 8f, Theme.textSecondary, .84f, false);
-        UIRender.text(font, "Named fallback hitbox", x + 10f, y + height - 16f, Theme.textTertiary, .74f, false);
-        float entityHeight = mobHeight(category);
-        drawBox(style, style == null ? 0xFFFFFF : style.color, x + width * .68f, y + height - 10f,
-                Math.max(13f, Math.min(width * .13f, 28f)), entityHeight, 1.0f);
+        drawMob(category, style, x, y, width, height, font, System.nanoTime());
     }
 
+    /** Draws the selected rotating model and the exact live styled hitbox in one clipped editor frame. */
+    public static void drawMob(String category, DungeonEspSettings.Style style,
+                               float x, float y, float width, float height, FontRenderer font, long nowNanos) {
+        String name = mobName(category);
+        UIRender.text(font, name, x + 10f, y + 8f, Theme.textSecondary, .84f, false);
+        UIRender.text(font, "Rotating model + live ESP hitbox", x + 10f, y + height - 16f,
+                Theme.textTertiary, .72f, false);
+        float entityHeight = mobHeight(category);
+        float modelScale = Math.max(8f, Math.min(Math.min(width, height) * .20f, 28f));
+        float centerX = x + width * .43f;
+        float baseline = y + height * .72f;
+        drawRotatingMobModel(category, centerX, baseline, modelScale, nowNanos,
+                style == null ? 0xFFFFFFFF : opaque(style.color));
+        drawBox(style, style == null ? 0xFFFFFF : style.color, x + width * .72f, y + height - 27f,
+                Math.max(13f, Math.min(width * .12f, 26f)), entityHeight, 1.0f);
+    }
+
+    /** Door frame plus the exact cached closed-door hitbox path used by live Wither/Blood Door ESP. */
     public static void drawDoor(String category, DungeonEspSettings.Style style, int color,
                                 float x, float y, float width, float height, FontRenderer font) {
         String name = "blood".equals(category) ? "Blood Door" : "Wither Door";
-        UIRender.text(font, "Preview · " + name, x + 10f, y + 8f, Theme.textSecondary, .84f, false);
-        UIRender.text(font, "Cached closed-door prism", x + 10f, y + height - 16f, Theme.textTertiary, .74f, false);
-        drawBox(style, color, x + width * .68f, y + height - 10f,
-                Math.max(13f, Math.min(width * .13f, 28f)), 2.0f, .22f);
+        UIRender.text(font, name + " frame", x + 10f, y + 8f, Theme.textSecondary, .84f, false);
+        UIRender.text(font, "Cached closed-door ESP", x + 10f, y + height - 16f, Theme.textTertiary, .72f, false);
+        float frameW = Math.max(24f, Math.min(width * .23f, 62f));
+        float frameH = Math.max(44f, Math.min(height * .52f, 104f));
+        float frameX = x + width * .27f - frameW * .5f;
+        float frameY = y + height * .52f - frameH * .5f;
+        int frame = UIRender.withAlpha(color, .68f);
+        UIRender.roundRectRing(frameX, frameY, frameW, frameH, 3f, 2f, frame);
+        UIRender.rect(frameX + frameW * .5f - 1f, frameY + 3f, 2f, frameH - 6f, UIRender.withAlpha(color, .35f));
+        drawBox(style, color, x + width * .72f, y + height - 27f,
+                Math.max(13f, Math.min(width * .12f, 26f)), 2.0f, .22f);
     }
 
-    /** Small left-list preview: it deliberately calls the same drawBox/drawStyledBox path as the large preview and live ESP. */
+    /** Small category-heading preview sharing the actual ESP styled-box renderer. */
     public static void drawMobThumbnail(String category, DungeonEspSettings.Style style,
                                         float x, float y, float width, float height) {
         drawBox(style, style == null ? 0xFFFFFF : style.color, x + width * .5f, y + height - 1f,
                 Math.max(3f, Math.min(width * .48f, 8f)), mobHeight(category), 1.0f);
     }
 
-    /** Small left-list preview for a cached closed-door prism, also through the shared styled-box path. */
+    /** Small category-heading preview for a cached closed-door prism. */
     public static void drawDoorThumbnail(String category, DungeonEspSettings.Style style, int color,
                                          float x, float y, float width, float height) {
         drawBox(style, color, x + width * .5f, y + height - 1f,
                 Math.max(3f, Math.min(width * .48f, 8f)), 2.0f, .22f);
+    }
+
+    /** A compact biped/Enderman geometry built without a world, entity allocation, texture, or item stack. */
+    private static void drawRotatingMobModel(String category, float centerX, float baseline, float scale,
+                                             long nowNanos, int color) {
+        float tall = "enderman".equals(category) ? 1.42f : "miniboss".equals(category) ? 1.18f : 1f;
+        float angle = (nowNanos / 1000000L % 8000L) * .045f;
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(centerX, baseline, 0f);
+        GlStateManager.scale(scale, -scale, scale);
+        GlStateManager.rotate(angle, 0f, 1f, 0f);
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableLighting();
+        GlStateManager.disableCull();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GL11.glColor4f(((color >>> 16) & 0xFF) / 255f, ((color >>> 8) & 0xFF) / 255f,
+                (color & 0xFF) / 255f, .85f);
+        // Legs, torso, arms and head match the recognisable dimensions of a Minecraft biped.
+        cuboid(-.28f, 0f, -.12f, .16f, .72f * tall, .24f);
+        cuboid(.12f, 0f, -.12f, .16f, .72f * tall, .24f);
+        cuboid(-.32f, .65f * tall, -.16f, .64f, .72f * tall, .32f);
+        cuboid(-.58f, .70f * tall, -.12f, .20f, .64f * tall, .24f);
+        cuboid(.38f, .70f * tall, -.12f, .20f, .64f * tall, .24f);
+        cuboid(-.30f, 1.35f * tall, -.25f, .60f, .55f * tall, .50f);
+        GlStateManager.disableBlend();
+        GlStateManager.enableCull();
+        GlStateManager.enableLighting();
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.popMatrix();
+    }
+
+    private static void cuboid(float x, float y, float z, float w, float h, float d) {
+        float r = x + w, t = y + h, f = z + d;
+        GL11.glBegin(GL11.GL_QUADS);
+        // front/back
+        GL11.glVertex3f(x, y, f); GL11.glVertex3f(r, y, f); GL11.glVertex3f(r, t, f); GL11.glVertex3f(x, t, f);
+        GL11.glVertex3f(r, y, z); GL11.glVertex3f(x, y, z); GL11.glVertex3f(x, t, z); GL11.glVertex3f(r, t, z);
+        // left/right
+        GL11.glVertex3f(x, y, z); GL11.glVertex3f(x, y, f); GL11.glVertex3f(x, t, f); GL11.glVertex3f(x, t, z);
+        GL11.glVertex3f(r, y, f); GL11.glVertex3f(r, y, z); GL11.glVertex3f(r, t, z); GL11.glVertex3f(r, t, f);
+        // bottom/top
+        GL11.glVertex3f(x, y, z); GL11.glVertex3f(r, y, z); GL11.glVertex3f(r, y, f); GL11.glVertex3f(x, y, f);
+        GL11.glVertex3f(x, t, f); GL11.glVertex3f(r, t, f); GL11.glVertex3f(r, t, z); GL11.glVertex3f(x, t, z);
+        GL11.glEnd();
     }
 
     private static void drawBox(DungeonEspSettings.Style style, int color,
@@ -61,7 +129,6 @@ public final class DungeonEspPreviewRenderer {
         float fit = Math.min(scale, Math.max(5f, scale * 2.2f / worldHeight));
         GlStateManager.pushMatrix();
         GlStateManager.translate(centerX, baselineY, 0f);
-        // GUI y grows downward; flip y so a hitbox grows upward from its baseline like the live entity box.
         GlStateManager.scale(fit, -fit, fit);
         GlStateManager.translate(-worldWidth * .5f, 0f, -worldDepth * .5f);
         GlStateManager.disableTexture2D();
@@ -93,6 +160,8 @@ public final class DungeonEspPreviewRenderer {
         GlStateManager.color(1f, 1f, 1f, 1f);
         GlStateManager.popMatrix();
     }
+
+    private static int opaque(int color) { return 0xFF000000 | (color & 0xFFFFFF); }
 
     private static String mobName(String id) {
         if ("starred".equals(id)) return "Starred Mob";

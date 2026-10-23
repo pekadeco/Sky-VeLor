@@ -28,6 +28,8 @@ public final class ItemAnimation {
     public static final int MAX_SMOOTHNESS_PERCENT = AppleSettings.ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT;
     public static final int DEFAULT_SMOOTHNESS_PERCENT = AppleSettings.DEFAULT_ITEM_ANIMATION_SMOOTHNESS;
     private static volatile long previewSwingStartedNanos = -1L;
+    /** Editor-only transient loop; it is intentionally not a gameplay or persisted setting. */
+    private static volatile boolean previewSwingLoop;
 
     private ItemAnimation() {
     }
@@ -87,6 +89,21 @@ public final class ItemAnimation {
         previewSwingStartedNanos = System.nanoTime();
     }
 
+    /** Enables/disables an editor-only repeating hand preview. It is never written to config. */
+    public static void setPreviewSwingLoop(boolean value) {
+        previewSwingLoop = value;
+        if (value) previewSwing();
+    }
+
+    public static boolean isPreviewSwingLoop() {
+        return previewSwingLoop;
+    }
+
+    /** Restarts a completed loop without touching player state or an input key. */
+    public static void restartPreviewSwing() {
+        if (previewSwingLoop) previewSwingStartedNanos = System.nanoTime();
+    }
+
     /** Timestamp read by the hand renderer hook; negative means no preview is pending. */
     public static long getPreviewSwingStartedNanos() {
         return previewSwingStartedNanos;
@@ -95,6 +112,12 @@ public final class ItemAnimation {
     /** Clears a finished renderer-only preview. */
     public static void clearPreviewSwing() {
         previewSwingStartedNanos = -1L;
+    }
+
+    /** Called when the HUD editor closes so a preview cannot continue while playing. */
+    public static void stopPreviewSwingLoop() {
+        previewSwingLoop = false;
+        clearPreviewSwing();
     }
 
     /** Stored X value, independent of the master toggle, for editor/debug readouts. */
@@ -167,6 +190,6 @@ public final class ItemAnimation {
         AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
         AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
         AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
-        clearPreviewSwing();
+        stopPreviewSwingLoop();
     }
 }

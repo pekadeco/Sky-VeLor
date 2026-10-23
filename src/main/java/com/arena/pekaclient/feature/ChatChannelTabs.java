@@ -560,9 +560,8 @@ public final class ChatChannelTabs {
         UIRender.beginFrame();
         if (hasMessageBackground && opacity > 0) {
             ChatRenderGeometry.Rect background = backgroundTransition.rect;
-            int colour = withOpacity(ChatQolSettings.backgroundColor, opacity);
-            UIRender.roundRect(background.x, background.y, background.w, background.h, background.radius,
-                    colour, colour, 1f);
+            // The editor preview invokes this same shared surface primitive with the same ChatQolSettings object.
+            ChatSurfaceRenderer.drawMessageBackground(background.x, background.y, background.w, background.h, opacity);
         }
         UIRender.scissorBegin(2f, viewportTop, width, viewportH, resolution.getScaleFactor());
         for (RenderRow row : rows) {
@@ -570,8 +569,8 @@ public final class ChatChannelTabs {
             float alpha = row.group.alpha;
             if (alpha <= .001f) continue;
             float slide = row.group.slide;
-            int colour = withAlpha(row.rgb, alpha);
-            UIRender.text(font, row.formatted, row.x, row.y + 1f + slide, colour, scale, true);
+            ChatSurfaceRenderer.drawMessageLine(font, row.formatted, row.x, row.y + 1f + slide,
+                    row.rgb, alpha, scale, true);
         }
         if (debug) drawGroupOutlines(viewportTop, messageBottom);
         UIRender.scissorEnd();
@@ -715,10 +714,8 @@ public final class ChatChannelTabs {
     /** White, configurable alpha per full wrapped row: each blank right-hand row area is intentionally included. */
     private void drawHoverHighlight() {
         if (!ChatQolSettings.hoverHighlight || hoveredGroup == null || hover.alpha() <= .003f) return;
-        float alpha = ChatQolSettings.hoverOpacity / 100f * hover.alpha();
-        int colour = withAlpha(ChatQolSettings.hoverColor, alpha);
         for (RenderRow row : rows) {
-            if (row.group == hoveredGroup) UIRender.roundRect(row.x, row.y, row.w, row.h, 0f, colour, colour, 0f);
+            if (row.group == hoveredGroup) ChatSurfaceRenderer.drawHoverRow(row.x, row.y, row.w, row.h, hover.alpha());
         }
     }
 
@@ -752,28 +749,9 @@ public final class ChatChannelTabs {
             ChatTabLayout.Rect rect = tabLayout.tabs[i];
             ChatTabs.Tab tab = ChatQolSettings.tab(rect.id);
             if (tab == null) continue;
-            boolean selected = rect.id.equals(ChatQolSettings.selectedTabId());
-            boolean hot = rect.contains(mouseX, mouseY);
-            float alpha = (selected ? ChatQolSettings.tabActiveOpacity : ChatQolSettings.tabOpacity) / 100f;
-            int surface = selected ? ChatQolSettings.tabBackgroundColor : ChatQolSettings.tabInactiveColor;
-            // Raising opacity would make a black button darker, so hover instead lifts the RGB surface slightly.
-            if (hot) {
-                surface = lighter(surface, .12f);
-                alpha = Math.min(1f, alpha + .05f);
-            }
-            int fill = withAlpha(surface, alpha);
-            int border = withAlpha(lighter(surface, .18f), Math.min(1f, alpha + .18f));
-            UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, 3f, fill, fill, border);
-            String label = fit(font, tab.name(), Math.max(1f, rect.w - 12f), .70f);
-            UIRender.text(font, label, rect.x + 5f, rect.y + 5f, 0xFFFFFFFF, .70f, false);
-            // Custom colours are accents, not competing tab backgrounds, so the strip remains a coherent blue.
-            if (!tab.builtIn() && rect.w > 8f) {
-                UIRender.rect(rect.x + 3f, rect.y + rect.h - 2f, rect.w - 6f, 1.2f, withAlpha(tab.colour(), .95f));
-            }
-            if (unreadTabs.contains(rect.id)) {
-                UIRender.circle(rect.x + rect.w - 5f, rect.y + 5f, 2.2f,
-                        tab.builtIn() ? 0xFFFFFFFF : tab.colour());
-            }
+            ChatSurfaceRenderer.drawTab(font, tab, rect.x, rect.y, rect.w, rect.h,
+                    rect.id.equals(ChatQolSettings.selectedTabId()), rect.contains(mouseX, mouseY),
+                    unreadTabs.contains(rect.id));
         }
         tabBarDrawn = true;
     }
@@ -1031,17 +1009,10 @@ public final class ChatChannelTabs {
             if (!geometry.visible || state == null) return;
             int hovered = geometry.rowAt(mouseX, mouseY);
             geometry.updateHover(dt, hovered);
-            UIRender.roundRectBorder(geometry.x, geometry.y, geometry.w, geometry.h, 4f,
-                    Theme.popup, Theme.popup, Theme.border);
             FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
-            for (int i = 0; i < state.optionCount(); i++) {
-                float hot = geometry.hoverAmount(i);
-                float rowY = geometry.y + i * ChatInteractionModel.Menu.ROW_HEIGHT;
-                if (hot > .002f) UIRender.roundRect(geometry.x + 2f, rowY + 1f, geometry.w - 4f, 18f,
-                        3f, UIRender.withAlpha(Theme.cardHover, hot), UIRender.withAlpha(Theme.cardHover, hot), 0f);
-                UIRender.text(font, fit(font, state.labelAt(i), geometry.w - 14f, .78f), geometry.x + 7f, rowY + 6f,
-                        hot > .5f ? Theme.textPrimary : Theme.textSecondary, .78f, false);
-            }
+            ChatSurfaceRenderer.drawMenu(font, geometry.x, geometry.y, geometry.w, state.optionCount(),
+                    state.labelAt(0), state.labelAt(1), state.optionCount() > 2 ? state.labelAt(2) : "",
+                    hovered, hovered < 0 ? 0f : geometry.hoverAmount(hovered));
         }
 
         String describeStored() {

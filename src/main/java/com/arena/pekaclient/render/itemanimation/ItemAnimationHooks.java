@@ -175,6 +175,10 @@ public final class ItemAnimationHooks {
         float elapsedTicks = (System.nanoTime() - started) / 50000000.0F;
         float visual = elapsedTicks * cachedSpeed / VisualSwingStateMachine.SWING_TICKS;
         if (visual >= 1.0F) {
+            if (ItemAnimation.isPreviewSwingLoop()) {
+                ItemAnimation.restartPreviewSwing();
+                return 0.0F;
+            }
             ItemAnimation.clearPreviewSwing();
             return 1.0F;
         }

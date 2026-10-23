@@ -242,7 +242,7 @@ public class AppleHubScreen extends AppleScreen {
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.appearance(this)));
         editorFeature(rows, "Mod Settings", "Global scroll speed and smoothing; Shift + wheel is fine scrolling.", () -> AppleSettings.smoothScrolling,
                 value -> AppleSettings.smoothScrolling = value,
-                () -> Minecraft.getMinecraft().displayGuiScreen(new ModSettingsScreen(this)));
+                () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.modSettings(this)));
         editorFeature(rows, "Performance", "Curve, shadows, animation and adaptive GUI quality.", () -> AppleSettings.experimentalPerformance,
                 value -> AppleSettings.experimentalPerformance = value,
                 () -> Minecraft.getMinecraft().displayGuiScreen(FeatureSettingsEditors.performance(this)));

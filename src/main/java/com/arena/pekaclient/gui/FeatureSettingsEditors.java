@@ -7,6 +7,7 @@ import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
+import com.arena.pekaclient.itemlockswap.ItemLockSwapOverlay;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.slayer.SlayerType;
@@ -26,7 +27,21 @@ import java.util.List;
  * Each widget writes its established owner directly; this class introduces no replacement config schema.
  */
 public final class FeatureSettingsEditors {
+    /** Uses the same ItemLockSwapOverlay primitives and static settings owner as live inventories/hotbar. */
+    private static final FeatureSettingsEditorScreen.Preview ITEM_LOCK_SWAP_PREVIEW =
+            new FeatureSettingsEditorScreen.Preview() {
+                @Override public Object settingsObject(String categoryId) { return ItemLockSwapSettings.class; }
+                @Override public void draw(FeatureSettingsEditorScreen.PreviewContext context) {
+                    ItemLockSwapOverlay.drawEditorPreview(context.x, context.y, context.width, context.height, context.font);
+                }
+            };
+
     private FeatureSettingsEditors() { }
+
+    /** Package-visible headless contract for the live Item Lock & Swap preview owner. */
+    static Object itemLockSwapPreviewSettingsIdentity() {
+        return ITEM_LOCK_SWAP_PREVIEW.settingsObject("settings");
+    }
 
     public static FeatureSettingsEditorScreen appearance(GuiScreen parent) {
         return editor(parent, "appearance", "Appearance Settings", "Theme, accent, corners and panel opacity.",
@@ -37,6 +52,12 @@ public final class FeatureSettingsEditors {
         return editor(parent, "performance", "Performance Settings", "GUI quality only; world and entity rendering are unchanged.",
                 FeatureSettingsEditors::performanceEntries, FeatureSettingsEditors::resetPerformance);
     }
+
+    public static FeatureSettingsEditorScreen modSettings(GuiScreen parent) {
+        return editor(parent, "mod-settings", "Mod Settings", "Global scrolling behavior; changes apply instantly.",
+                FeatureSettingsEditors::modSettingsEntries, FeatureSettingsEditors::resetModSettings);
+    }
+
 
     public static FeatureSettingsEditorScreen inventoryAssist(GuiScreen parent) {
         return editor(parent, "inventory-assist", "Inventory Assist Settings", "Optional inventory and tooltip helpers.",
@@ -51,7 +72,8 @@ public final class FeatureSettingsEditors {
     public static FeatureSettingsEditorScreen itemLockSwap(GuiScreen parent) {
         return editor(parent, "item-lock-swap", "Item Lock and Swap Settings",
                 "Locks, pairs, badges and persistent pair-center lines.",
-                (category, entries) -> itemLockEntries(parent, entries), FeatureSettingsEditors::resetItemLockSwap);
+                (category, entries) -> itemLockEntries(parent, entries), ITEM_LOCK_SWAP_PREVIEW,
+                FeatureSettingsEditors::resetItemLockSwap);
     }
 
     public static FeatureSettingsEditorScreen commands(GuiScreen parent) {
@@ -101,8 +123,15 @@ public final class FeatureSettingsEditors {
     private static FeatureSettingsEditorScreen editor(GuiScreen parent, String id, String title, String subtitle,
                                                        FeatureSettingsEditorScreen.EntryFactory entries,
                                                        FeatureSettingsEditorScreen.ResetAction reset) {
+        return editor(parent, id, title, subtitle, entries, null, reset);
+    }
+
+    private static FeatureSettingsEditorScreen editor(GuiScreen parent, String id, String title, String subtitle,
+                                                       FeatureSettingsEditorScreen.EntryFactory entries,
+                                                       FeatureSettingsEditorScreen.Preview preview,
+                                                       FeatureSettingsEditorScreen.ResetAction reset) {
         return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec(id, title, subtitle,
-                Collections.singletonList(category("settings", "Settings", "Feature controls")), entries, null, reset));
+                Collections.singletonList(category("settings", "Settings", "Feature controls")), entries, preview, reset));
     }
 
     private static FeatureSettingsEditorScreen.Category category(String id, String title, String description) {
@@ -130,6 +159,17 @@ public final class FeatureSettingsEditors {
         entries.add(new FeatureSettingsEditorScreen.Entry("Panel Opacity Value", "Higher is more solid.",
                 slider(60, 100, 5, "%", () -> AppleSettings.glassOpacity,
                         value -> { AppleSettings.glassOpacity = value; Theme.refresh(); })));
+    }
+
+    private static void modSettingsEntries(FeatureSettingsEditorScreen.Category ignored,
+                                           List<FeatureSettingsEditorScreen.Entry> entries) {
+        entries.add(new FeatureSettingsEditorScreen.Entry("Scroll Speed", "Mouse/touch scroll multiplier; Shift makes it fine.",
+                slider(50, 300, 25, "%", AppleSettings::effectiveScrollSpeed, value -> {
+                    AppleSettings.scrollSpeedOn = true;
+                    AppleSettings.scrollSpeed = value;
+                })));
+        entries.add(toggle("Smooth Scrolling", "Ease scrolling in every Sky VeLor settings viewport.",
+                () -> AppleSettings.smoothScrolling, value -> AppleSettings.smoothScrolling = value));
     }
 
     private static void performanceEntries(FeatureSettingsEditorScreen.Category ignored,
@@ -347,6 +387,12 @@ public final class FeatureSettingsEditors {
     private static String title(String value) {
         String lower = value.toLowerCase(java.util.Locale.ROOT);
         return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
+    }
+
+    private static void resetModSettings() {
+        AppleSettings.scrollSpeedOn = true;
+        AppleSettings.scrollSpeed = AppleSettings.DEFAULT_SCROLL_SPEED;
+        AppleSettings.smoothScrolling = AppleSettings.DEFAULT_SMOOTH_SCROLLING;
     }
 
     private static void resetAppearance() {

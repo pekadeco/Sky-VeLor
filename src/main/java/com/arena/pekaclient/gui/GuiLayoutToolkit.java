@@ -44,6 +44,28 @@ public final class GuiLayoutToolkit {
         control.set(innerX + innerW - controlW, row.y + (row.h - ch) * .5f, controlW, ch);
     }
 
+    /**
+     * Splits an editor surface into its single settings column and optional Live Preview without
+     * manufacturing overlap at very small GUI scales.  The preview rectangle is empty for features
+     * with no meaningful visual rendering, leaving settings full-width.
+     */
+    public static void splitLivePreview(Rect outer, float settingsRatio, float gap, float minimumSettingsWidth,
+                                        boolean hasPreview, Rect settings, Rect preview) {
+        if (outer == null || settings == null || preview == null) return;
+        if (!hasPreview || outer.w <= 0f) {
+            settings.set(outer.x, outer.y, outer.w, outer.h);
+            preview.set(outer.right(), outer.y, 0f, outer.h);
+            return;
+        }
+        float safeGap = Math.min(Math.max(0f, gap), Math.max(0f, outer.w));
+        float available = Math.max(0f, outer.w - safeGap);
+        float wanted = available * clamp(settingsRatio, .10f, .90f);
+        float minimum = Math.min(Math.max(0f, minimumSettingsWidth), available);
+        float settingsW = clamp(Math.max(minimum, wanted), 0f, available);
+        settings.set(outer.x, outer.y, settingsW, outer.h);
+        preview.set(outer.x + settingsW + safeGap, outer.y, Math.max(0f, available - settingsW), outer.h);
+    }
+
     public static String ellipsize(String value, float maxWidth, TextMetrics metrics) {
         if (value == null || value.length() == 0 || metrics == null || maxWidth <= 0f) return "";
         if (metrics.width(value) <= maxWidth) return value;
