@@ -464,7 +464,12 @@ public final class ReferenceSettingsCatalog {
 
     private static boolean matchesOwn(Setting setting, String query) {
         String text = normalizedSearchText(setting.id + " " + setting.label + " " + setting.description + " " + setting.keywords);
-        return text.contains(query);
+        if (text.contains(query)) return true;
+        String[] words = query.split(" ");
+        for (String word : words) {
+            if (word.length() > 0 && !text.contains(word)) return false;
+        }
+        return true;
     }
 
     /** Normalizes presentation ids such as chat-tab-filter-text into the same searchable words users type. */
