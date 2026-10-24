@@ -552,6 +552,8 @@ def main():
                 and all(value in rail_layout_raw for value in (b'ENTRY_HEIGHT', b'ENTRY_GAP', b'COMPACT_COLUMNS'))
                 and b'NARROW_CONTENT_WIDTH' in page_layout_raw,
             'settings shell retains shared scale-1–4 spacing, compact rail reflow and debug bounds')
+    r.check(all(value not in settings_screen_raw for value in (b'MOUSE', b'MOUSE/GUI', b'GUI AREA')),
+            'settings shell packages no launcher-owned MOUSE/GUI indicator labels')
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
                 and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
                 and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,

@@ -76,6 +76,8 @@ public final class ReleaseClaimsTests {
         check("fullscreen icon has a dedicated corner-bracket renderer", screen.contains("drawFullscreenGlyph"));
         check("all inline toggles retain the standard 38 by 20 pill", toggle.preferredWidth() == 38f && toggle.h == 20f);
         check("safe notice is compact one line", screen.contains("Safe by default"));
+        check("settings shell has no launcher-owned MOUSE/GUI labels", !screen.contains("MOUSE")
+                && !screen.contains("MOUSE/GUI") && !screen.contains("GUI AREA"));
     }
 
     private static void removedFocusedSurfacesStayAbsent() {
