@@ -67,6 +67,9 @@ REQUIRED_CLASSES = [
     'gui/ReferenceSettingsCatalog',
     'gui/SettingsRailLayout',
     'gui/SettingsPageLayout',
+    'gui/SettingsShellLayout',
+    'gui/HomeMetricHistory',
+    'gui/HomeMetricsLayout',
     'render/UIRender',
     'render/RoundedRectGeometry',
     'render/GuiStyle',
@@ -92,7 +95,6 @@ REQUIRED_CLASSES = [
     'gui/ChatEditorScreen',
     'gui/ChatEditorPreview',
     'gui/GuiLayoutToolkit',
-    'gui/GeneralMetricsLayout',
     'gui/ModSettingsScreen',
     'notes/QuickNoteLayout',
     'chat/CapturedChatMenu',
@@ -177,8 +179,6 @@ REQUIRED_CLASSES = [
     'assist/visual/VisualAssistTransformer',
     'hud/MiningAssistantHud',
     'hud/DungeonBossHud',
-    'hud/StatsHud',
-    'hud/StatsHudText',
 ]
 
 # Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
@@ -221,6 +221,9 @@ FORBIDDEN_CLASSES = [
     'hud/DollarsHud',
     'hud/BalanceSource',
     'assist/inventory/InventorySearchPolicy',
+    # FPS, memory and ping must remain Home-only settings telemetry, never a registered HUD.
+    'hud/StatsHud',
+    'hud/StatsHudText',
 ]
 
 # Minecraft members this mod really calls or overrides. Reobfuscation must have
@@ -574,9 +577,10 @@ def main():
     item_slots_raw = raw_of('hud/ItemSlots')
     category_shell_tokens = (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'No farming features yet', b'Visuals',
                              b'System', b'Settings theme', b'Forest & Cyan', b'Black & Blue')
-    category_screen_tokens = (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'DRAG TITLE BAR',
-                              b'drawFarmingEmpty')
-    category_settings_tokens = (b'appearance.settingsTheme', b'SETTINGS_THEME_BLACK_BLUE', b'SETTINGS_THEME_FOREST_CYAN')
+    category_screen_tokens = (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'fullscreenWindow',
+                              b'window-fullscreen', b'window-close', b'roundedClipBegin', b'drawFarmingEmpty')
+    category_settings_tokens = (b'appearance.settingsTheme', b'SETTINGS_THEME_BLACK_BLUE', b'SETTINGS_THEME_FOREST_CYAN',
+                                b'settings.window.fullscreen')
     missing_catalog = [value.decode('ascii') for value in category_shell_tokens if value not in reference_catalog_raw]
     missing_screen = [value.decode('ascii') for value in category_screen_tokens if value not in settings_screen_raw]
     missing_settings = [value.decode('ascii') for value in category_settings_tokens if value not in apple_settings_raw]
@@ -666,9 +670,9 @@ def main():
                         (b'simple', b'slider', b'editor-route', b'editor-button'))
                 and all(value in settings_surface_raw for value in
                         (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'No farming features yet', b'Visuals', b'System',
-                         b'HUD Editor', b'Stats Display'))
+                         b'HUD Editor'))
                 and b'Item Animation' in raw_of('gui/ItemAnimationUiModel')
-                and b'Stats Display' in raw_of('gui/GuiSettingsAuditModel')
+                and b'Stats Display' not in raw_of('gui/GuiSettingsAuditModel')
                 and all(value not in settings_screen_raw for value in
                         (b'PAGE_NAMES', b'drawSidebar', b'drawTabs', b'FeatureRowControl', b'FeatureTreeLayout')),
             'reference rail keeps direct controls, inline Item Animation details, and distinct HUD editor access')
@@ -694,22 +698,22 @@ def main():
             'every focused editor uses its Feature Settings title and has no retired Editor title')
     metric_raw = raw_of('hud/ClientMetrics')
     metric_compat_raw = raw_of('hud/HudConfigCompatibility')
-    metric_layout_raw = raw_of('gui/GeneralMetricsLayout')
-    stats_hud_raw = raw_of('hud/StatsHud')
-    stats_text_raw = raw_of('hud/StatsHudText')
-    r.check(b'ClientMetrics' in settings_screen_raw and b'Client metrics' in reference_catalog_raw
-                and len(metric_raw) > 0 and len(metric_compat_raw) > 0 and len(metric_layout_raw) > 0
+    home_history_raw = raw_of('gui/HomeMetricHistory')
+    home_metrics_layout_raw = raw_of('gui/HomeMetricsLayout')
+    r.check(b'ClientMetrics' in settings_screen_raw and b'LIVE PERFORMANCE' in settings_screen_raw
+                and b'HomeMetricHistory' in settings_screen_raw and b'drawHomeSparkline' in settings_screen_raw
+                and len(metric_raw) > 0 and len(metric_compat_raw) > 0
+                and b'CAPACITY' in home_history_raw and b'generation' in home_history_raw
+                and b'WIDE_CARD_HEIGHT' in home_metrics_layout_raw and b'STACKED_CARD_HEIGHT' in home_metrics_layout_raw
+                and b'Client metrics' not in reference_catalog_raw
                 and MOD_PACKAGE + 'hud/ClientMetricHud.class' not in names
-                and b'ClientMetricHud' not in hud_manager_raw and b'FPS_DISPLAY' not in hud_manager_raw
-                and b'PING_DISPLAY' not in hud_manager_raw and b'MEMORY_DISPLAY' not in hud_manager_raw
-                and b'StatsHud' in hud_manager_raw and b'migrateVisibleRetiredMetricDisplay' in metric_compat_raw
-                and b'migrateVisibleRetiredMetricDisplay' in hud_manager_raw
-                and all(value in stats_hud_raw for value in
-                        (b'FRAME RATE', b'MINING', b'MEMORY', b'bevelRect', b'ClientMetrics', b'MiningTracker',
-                         b'CARD_WIDTH', b'CARD_HEIGHT', b'CARD_GAP', b'CARD_CUT',
-                         b'CARD_SHADOW_OFFSET_X', b'CARD_SHADOW_OFFSET_Y'))
-                and all(value in stats_text_raw for value in (b' fps', b' BPS', b' MB')),
-            'System Diagnostics keeps GUI-only telemetry while only restored Frame Rate/Mining/Memory Stats Display renders in-game metrics and migrates legacy visibility')
+                and MOD_PACKAGE + 'hud/StatsHud.class' not in names and MOD_PACKAGE + 'hud/StatsHudText.class' not in names
+                and b'ClientMetricHud' not in hud_manager_raw and b'StatsHud' not in hud_manager_raw
+                and b'FPS_DISPLAY' not in hud_manager_raw and b'PING_DISPLAY' not in hud_manager_raw
+                and b'MEMORY_DISPLAY' not in hud_manager_raw and b'STATS' not in hud_manager_raw
+                and b'fps-display.' in metric_compat_raw and b'ping-display.' in metric_compat_raw
+                and b'memory-display.' in metric_compat_raw and b'stats.' in metric_compat_raw,
+            'FPS, memory and ping are fixed-ring Home telemetry only; no in-game metric HUD, editor route or saved metric key remains')
     r.check(MOD_PACKAGE + 'hud/DollarsHud.class' not in names and MOD_PACKAGE + 'hud/BalanceSource.class' not in names
                 and b'DollarsHud' not in hud_manager_raw and b'BalanceSource' not in hud_manager_raw,
             'Player Dollars HUD and manual balance source have no packaged runtime route')

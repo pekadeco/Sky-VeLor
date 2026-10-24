@@ -9,6 +9,8 @@ name: Build Sky VeLor
 # build.gradle also reads, so the jar name, mcmod.info, the release tag and the verification all
 # follow the source automatically.
 #
+# Compilation/test-only stage commits deliberately do not publish distributables. Publishing requires the explicit
+# [publish-artifacts] commit marker, used only after the release version has been updated and verification passed.
 # The dist/ publish step commits the built jar back to the branch, so this needs write access.
 permissions:
   contents: write
@@ -227,7 +229,8 @@ jobs:
           PY
 
       - name: Publish the three release artifacts into dist/ on this branch
-        if: github.event_name == 'push'
+        # Stage commits still compile and test, but only the explicit release commit may persist delivery files.
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-artifacts]')
         run: |
           set +e +o pipefail
           # A release directory is deliberately a three-file delivery surface: the JAR, delivery ZIP,
@@ -262,7 +265,7 @@ jobs:
           echo "::notice title=DIST::published dist/$JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME"
 
       - name: Attach the jar to a GitHub release (main only)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-artifacts]')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -296,7 +299,7 @@ jobs:
       # be populated from unmerged work. The rebuild is only used as a cross-check: if this
       # branch compiles the same source into different bytes, that is worth failing on.
       - name: Attach the tagged artifacts to the release (tag already on main)
-        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-artifacts]')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -333,6 +336,7 @@ jobs:
           echo "::notice title=RELEASE::attached $JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME to $TAG"
 
       - name: Upload the verified release artifacts
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-artifacts]')
         uses: actions/upload-artifact@v4
         with:
           name: SkyVeLor-1.8.9-${{ env.VERSION }}

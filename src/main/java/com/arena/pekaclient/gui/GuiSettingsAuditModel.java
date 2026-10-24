@@ -82,7 +82,6 @@ public final class GuiSettingsAuditModel {
                     "mining-rate", "session-blocks", "ability-status"),
             feature("dungeon-boss-hp", "Boss HP", "Timer-scanned F7/M7 boss and dragon health",
                     "rows", "scan-status"),
-            feature("stats", "Stats Display", "Frame rate, mining BPS and memory cards in the restored cut-corner layout"),
             feature("fishing", "Fishing counter", "Legendary/Mythic, Common Creature (CC), Festival and Festival best",
                     "catches", "common-creature", "festival"),
             feature("seahp", "Sea Creature HP", "Nearby sea creatures: name, level and health",

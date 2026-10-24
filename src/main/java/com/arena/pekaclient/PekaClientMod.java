@@ -67,7 +67,7 @@ import org.lwjgl.input.Keyboard;
  * Entry point for Sky VeLor. Client-only. Adds:
  *  - a keybind (default Right Shift) that opens the hub from gameplay,
  *  - a "Sky VeLor" button on the main menu and pause menu,
- *  - movable HUD elements (Stats Display, Mining BPS, inventory, player doll) with an editor,
+ *  - movable HUD elements (Mining BPS, inventory, player doll) with an editor,
  *  - the Spirit Leap teammate selector, which replaces only the server-opened Spirit Leap menu when enabled,
  *  - a loading screen that runs Sky VeLor's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,

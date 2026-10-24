@@ -82,7 +82,7 @@ public final class FeatureSettingsUiModelTests {
             check("route is retained: " + id, setting != null);
         }
         check("HUD Editor remains distinct", ReferenceSettingsCatalog.find("hud-editor") != null);
-        check("Stats HUD route is retained", ReferenceSettingsCatalog.find("hud-stats") != null);
+        check("retired metric HUD route is absent", ReferenceSettingsCatalog.find("hud-stats") == null);
         check("Dungeon ESP style routes are retained", ReferenceSettingsCatalog.find("door-esp") != null
                 && ReferenceSettingsCatalog.find("mob-esp") != null);
         check("focused chat route is retained", ReferenceSettingsCatalog.find("chat-qol") != null);
@@ -122,14 +122,16 @@ public final class FeatureSettingsUiModelTests {
 
     private static void homeIsLiveAndTheWindowUsesThePolishedShellContract() {
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
-        check("Home uses the cached live performance reader", screen.contains("LIVE PERFORMANCE")
-                && screen.contains("ClientMetrics$Reader") && screen.contains("SERVER PING"));
+        check("Home uses its cached live performance reader and fixed history", screen.contains("LIVE PERFORMANCE")
+                && screen.contains("ClientMetrics$Reader") && screen.contains("HomeMetricHistory")
+                && screen.contains("drawHomeSparkline"));
         check("screen has global search with no Advanced-button behavior", screen.contains("Search settings")
                 && !screen.contains("Advanced settings shown") && !screen.contains("Advanced settings hidden"));
-        check("title bar drag and palette reapplication are packaged", screen.contains("DRAG TITLE BAR")
-                && screen.contains("refreshReferenceTheme") && screen.contains("windowOffsetX"));
-        check("window controls and profile credits remain part of the shell", screen.contains("window-green")
-                && screen.contains("window-yellow") && screen.contains("window-red")
+        check("title bar drag retains the small window across fullscreen", screen.contains("smallWindowOffsetX")
+                && screen.contains("fullscreenWindow") && screen.contains("refreshReferenceTheme"));
+        check("header packages exactly fullscreen and close controls without traffic-light hints", screen.contains("window-fullscreen")
+                && screen.contains("window-close") && !screen.contains("window-green") && !screen.contains("window-yellow")
+                && !screen.contains("window-red") && !screen.contains("DRAG TITLE BAR")
                 && "pekadeco".equals(AppleSettingsScreen.PROFILE_CREATOR)
                 && Arrays.equals(new String[]{"ii88w", "whiteShadow"}, AppleSettingsScreen.PROFILE_CONTRIBUTORS));
     }

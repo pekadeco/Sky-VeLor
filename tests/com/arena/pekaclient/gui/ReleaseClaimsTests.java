@@ -58,10 +58,10 @@ public final class ReleaseClaimsTests {
                 && !screen.contains("Advanced settings shown") && !screen.contains("Advanced settings hidden"));
         check("Farming page packages its audited empty-state message and rail destination",
                 screen.contains("No farming features yet") && screen.contains("FARMING"));
-        check("screen uses one clipped settings viewport", screen.contains("scissorBegin")
-                && screen.contains("GuiLayoutToolkit$Scroll"));
-        check("screen packages title-bar drag and Black and Blue theme ownership", screen.contains("DRAG TITLE BAR")
-                && screen.contains("windowOffsetX") && screen.contains("appearance-theme")
+        check("screen clips its full rounded shell plus one settings viewport", screen.contains("roundedClipBegin")
+                && screen.contains("scissorBegin") && screen.contains("GuiLayoutToolkit$Scroll"));
+        check("screen packages title-bar drag, fullscreen persistence and theme ownership", screen.contains("smallWindowOffsetX")
+                && screen.contains("settingsWindowFullscreen") && screen.contains("appearance-theme")
                 && screen.contains("refreshReferenceTheme"));
         check("old Hub is compatibility-only", classText("com.arena.pekaclient.gui.AppleHubScreen")
                 .contains("AppleSettingsScreen"));
@@ -113,7 +113,7 @@ public final class ReleaseClaimsTests {
                 && ItemLockSwapUiModel.buildControlModel().size() == 14);
         check("Item Animation route and inline settings survive", ReferenceSettingsCatalog.find("item-animation") != null
                 && ReferenceSettingsCatalog.find("item-animation-size") != null);
-        check("Stats HUD route stays separately named", ReferenceSettingsCatalog.find("hud-stats") != null
+        check("HUD editor remains while the retired metric HUD route is absent", ReferenceSettingsCatalog.find("hud-stats") == null
                 && ReferenceSettingsCatalog.find("hud-editor") != null);
         check("Dungeon route inventory remains complete", ReferenceSettingsCatalog.routesAreComplete()
                 && ReferenceSettingsCatalog.find("door-esp") != null && ReferenceSettingsCatalog.find("m7-overlay") != null);
@@ -128,6 +128,8 @@ public final class ReleaseClaimsTests {
                 && !classExists("com.arena.pekaclient.assist.guard.ItemGuardController"));
         check("binary No Hurt Cam remains retired", ReferenceSettingsCatalog.find("no-hurt-cam") == null);
         check("Player Dollars remains retired", ReferenceSettingsCatalog.find("hud-dollars") == null);
+        check("in-game metric HUD classes remain absent", !classExists("com.arena.pekaclient.hud.StatsHud")
+                && !classExists("com.arena.pekaclient.hud.StatsHudText"));
     }
 
     private static boolean classExists(String binaryName) {

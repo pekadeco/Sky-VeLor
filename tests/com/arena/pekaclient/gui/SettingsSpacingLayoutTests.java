@@ -31,10 +31,10 @@ public final class SettingsSpacingLayoutTests {
             float screenW = 1280f / scale;
             float screenH = 720f / scale;
             GuiLayoutToolkit.Rect panel = ReferenceSettingsWindowLayout.layout(new GuiLayoutToolkit.Rect(), screenW, screenH,
-                    false, false);
-            float toolbar = panel.w < 360f ? 43f : (panel.w < 520f ? 65f : 43f);
-            float bodyY = panel.y + 17f + toolbar;
-            float bodyH = Math.max(1f, panel.h - 17f - toolbar);
+                    false);
+            float toolbar = panel.w < 360f ? 34f : (panel.w < 520f ? 65f : 43f);
+            float bodyY = panel.y + SettingsShellLayout.HEADER_HEIGHT + toolbar;
+            float bodyH = Math.max(1f, panel.h - SettingsShellLayout.HEADER_HEIGHT - toolbar);
             boolean compact = SettingsRailLayout.shouldCompact(panel.w, bodyH, 6);
             float railX = compact ? panel.x + GuiStyle.SPACE_4 : panel.x;
             float railY = compact ? bodyY + GuiStyle.SPACE_4 : bodyY;

@@ -38,6 +38,9 @@ public final class AppleSettings {
     public static int accent = 0;
     /** Persisted main/editor palette selection. Missing legacy key intentionally preserves the established shell. */
     public static int settingsTheme = DEFAULT_SETTINGS_THEME;
+    /** The settings shell deliberately opens in its compact responsive layout unless the user chose fullscreen. */
+    public static final boolean DEFAULT_SETTINGS_WINDOW_FULLSCREEN = false;
+    public static boolean settingsWindowFullscreen = DEFAULT_SETTINGS_WINDOW_FULLSCREEN;
     public static boolean darkMode = true;
     public static int cornerRadius = 12;      // 4..18
     /** Switches for the global sliders. Off uses the default value below. */
@@ -240,12 +243,24 @@ public final class AppleSettings {
         }
     }
 
+    /** Reads the small/fullscreen shell choice; missing historic configurations retain the compact default. */
+    static void loadSettingsWindowLayout(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        settingsWindowFullscreen = readBool(p, "settings.window.fullscreen", DEFAULT_SETTINGS_WINDOW_FULLSCREEN);
+    }
+
+    /** Persists only the selected shell size mode, never a screen coordinate or a gameplay setting. */
+    static void saveSettingsWindowLayout(Properties settings) {
+        if (settings != null) settings.setProperty("settings.window.fullscreen", Boolean.toString(settingsWindowFullscreen));
+    }
+
     public static void load() {
         itemAnimationMigrationPending = false;
         globalScrollMigrationPending = false;
         configVersionMigrationPending = false;
         Properties p = ConfigFiles.read(readFile());
         loadSettingsTheme(p);
+        loadSettingsWindowLayout(p);
         accent = readInt(p, "accent", accent, 0, ACCENT_COLORS.length - 1);
         darkMode = readBool(p, "darkMode", darkMode);
         cornerRadius = readInt(p, "cornerRadius", cornerRadius, 4, 18);
@@ -482,6 +497,7 @@ public final class AppleSettings {
         Properties p = new Properties();
         saveConfigurationVersion(p);
         saveSettingsTheme(p);
+        saveSettingsWindowLayout(p);
         p.setProperty("accent", Integer.toString(accent));
         p.setProperty("darkMode", Boolean.toString(darkMode));
         p.setProperty("cornerRadius", Integer.toString(cornerRadius));

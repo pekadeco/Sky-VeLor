@@ -68,6 +68,7 @@ public final class AppleSettingsTests {
         mouseSettingsCompatibility();
         particleSettingsCompatibility();
         settingsThemePersistence();
+        settingsWindowLayoutPersistence();
         configurationVersionMigration();
 
         System.out.println();
@@ -194,6 +195,22 @@ public final class AppleSettingsTests {
         AppleSettings.loadSettingsTheme(invalid);
         check("theme selection is bounded", AppleSettings.settingsTheme == AppleSettings.SETTINGS_THEME_BLACK_BLUE);
         AppleSettings.settingsTheme = AppleSettings.DEFAULT_SETTINGS_THEME;
+    }
+
+    /** The compact/fullscreen shell choice is additive and leaves old properties safe by default. */
+    private static void settingsWindowLayoutPersistence() {
+        AppleSettings.settingsWindowFullscreen = true;
+        AppleSettings.loadSettingsWindowLayout(new Properties());
+        check("missing shell layout key opens the compact responsive window", !AppleSettings.settingsWindowFullscreen);
+        Properties stored = new Properties();
+        stored.setProperty("settings.window.fullscreen", "true");
+        AppleSettings.loadSettingsWindowLayout(stored);
+        check("fullscreen choice loads", AppleSettings.settingsWindowFullscreen);
+        Properties saved = new Properties();
+        AppleSettings.saveSettingsWindowLayout(saved);
+        check("fullscreen choice has one stable persisted key",
+                "true".equals(saved.getProperty("settings.window.fullscreen")) && saved.size() == 1);
+        AppleSettings.settingsWindowFullscreen = AppleSettings.DEFAULT_SETTINGS_WINDOW_FULLSCREEN;
     }
 
     /** Exercises the same order used by AppleSettings.load without requiring a Minecraft data directory. */

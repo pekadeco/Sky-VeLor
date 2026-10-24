@@ -1,6 +1,6 @@
 package com.arena.pekaclient.hud;
 
-/** Headless coverage for the General-category client metric reader, colour coding, and 500 ms refresh boundary. */
+/** Headless coverage for the Home-only client metric reader, colour coding, and 500 ms refresh boundary. */
 public final class ClientMetricsTests {
     private static int passed;
     private static int failed;
@@ -35,7 +35,7 @@ public final class ClientMetricsTests {
     }
 
     private static void memoryAndNetworkPresentationUsesThresholds() {
-        check("high FPS green", ClientMetrics.fpsColor(60) == ClientMetrics.COLOR_GOOD);
+        check("high FPS blue", ClientMetrics.fpsColor(60) == ClientMetrics.COLOR_GOOD);
         check("low FPS red", ClientMetrics.fpsColor(29) == ClientMetrics.COLOR_BAD);
         check("high local ping red", ClientMetrics.pingColor(151) == ClientMetrics.COLOR_BAD);
         check("unknown ping neutral", ClientMetrics.pingColor(-1) == ClientMetrics.COLOR_UNKNOWN);

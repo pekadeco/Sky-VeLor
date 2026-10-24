@@ -43,8 +43,10 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Hardened HUD Editor/HUD Hub Editor rendering cleanup. Shared GUI/OpenGL state, clipping, item/entity previews,
   element matrix/alpha, and editor hover flags now restore through exception-safe cleanup; returning parent settings
   screens reapply their selected palette so repeated transitions do not retain a corrupted color/state.
-- Kept Home's cached **LIVE PERFORMANCE** panel and the separate in-game three-card **Stats Display** (**FRAME RATE**,
-  **MINING**, **MEMORY**). Existing persistence owners and saved configurations remain authoritative.
+- Kept **LIVE PERFORMANCE** as Home-only telemetry with equal FPS, Java-memory, and local-ping cards, a fixed
+  twice-per-second history ring, value bars and sparklines. Removed all in-game FPS/memory/ping HUD registration,
+  editor routes and defaults; legacy `fps-display.*`, `ping-display.*`, `memory-display.*`, and `stats.*` keys are
+  safely ignored.
 - Updated source/headless contracts, release verification, documentation, and version metadata for this minor source
   update.
 

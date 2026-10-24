@@ -28,6 +28,9 @@ set "CP=%OUT%;%CLASSES%;%TEST_CP%"
 call :run com.arena.pekaclient.gui.PureLogicTests || goto fail
 call :run com.arena.pekaclient.gui.GuiLayoutToolkitTests || goto fail
 call :run com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.SettingsShellLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.HomeMetricsLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.HomeMetricHistoryTests || goto fail
 call :run com.arena.pekaclient.gui.SettingsSpacingLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
 call :run com.arena.pekaclient.gui.FeatureSettingsUiModelTests || goto fail
@@ -41,7 +44,6 @@ call :run com.arena.pekaclient.chat.ChatMenuInputRouterTests || goto fail
 call :run com.arena.pekaclient.chat.ChatVisibilityAuditTests || goto fail
 if errorlevel 1 goto fail
 call :run com.arena.pekaclient.hud.ConfigTests || goto fail
-call :run com.arena.pekaclient.hud.StatsHudTextTests || goto fail
 call :run com.arena.pekaclient.compat.RemovedFeatureSurfaceTests || goto fail
 call :run com.arena.pekaclient.feature.LeapTextTests || goto fail
 call :run com.arena.pekaclient.feature.LeapIdentityTests || goto fail
@@ -91,8 +93,7 @@ call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPaletteTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPreviewDataTests || goto fail
 call :run com.arena.pekaclient.hud.ClientMetricsTests || goto fail
-call :run com.arena.pekaclient.gui.GeneralMetricsLayoutTests || goto fail
-call :run com.arena.pekaclient.hud.StatsTextTests || goto fail
+call :run com.arena.pekaclient.hud.ClientMetricTextTests || goto fail
 call :run com.arena.pekaclient.startup.StartupTimingTests || goto fail
 call :run com.arena.pekaclient.fishing.FishingTests || goto fail
 call :run com.arena.pekaclient.dungeon.DragonKillTests || goto fail

@@ -23,8 +23,7 @@ public final class ConfigTests {
         outOfRangeIsClamped();
         legacyPlacementLoadsForActiveHud();
         retiredHotbarIsNotRegistered();
-        retiredMetricAndDollarsKeysAreIgnoredWhileStatsRemainsActive();
-        retiredMetricVisibilityMigratesWithoutOverridingModernChoice();
+        retiredMetricAndDollarsKeysAreIgnoredWithoutAnyMetricHudRegistration();
         saveLoadRoundTrip();
 
         System.out.println();
@@ -95,11 +94,11 @@ public final class ConfigTests {
     }
 
     private static void legacyPlacementLoadsForActiveHud() throws IOException {
-        // Raw x/y with centre flags remain supported for active HUD elements.
-        StatsHud stats = new StatsHud();
-        stats.load(parse("stats.x=-6\nstats.y=6\nstats.cx=false\nstats.cy=false\n"));
-        check("legacy right edge", stats.place.anchorX == Anchor.END && stats.place.offsetX == 6, stats.place.toString());
-        check("legacy top", stats.place.anchorY == Anchor.START && stats.place.offsetY == 6, stats.place.toString());
+        // Raw x/y with centre flags remain supported for active HUD elements that were not retired.
+        MiningHud mining = new MiningHud();
+        mining.load(parse("mining.x=-6\nmining.y=6\nmining.cx=false\nmining.cy=false\n"));
+        check("legacy right edge", mining.place.anchorX == Anchor.END && mining.place.offsetX == 6, mining.place.toString());
+        check("legacy top", mining.place.anchorY == Anchor.START && mining.place.offsetY == 6, mining.place.toString());
     }
 
     private static void retiredHotbarIsNotRegistered() {
@@ -108,56 +107,27 @@ public final class ConfigTests {
         check("retired hotbar HUD is not registered", !registered, "registered=" + registered);
     }
 
-    private static void retiredMetricAndDollarsKeysAreIgnoredWhileStatsRemainsActive() throws IOException {
-        boolean hasRetiredMetric = false;
-        boolean hasStats = false;
+    private static void retiredMetricAndDollarsKeysAreIgnoredWithoutAnyMetricHudRegistration() throws IOException {
+        boolean hasMetricHud = false;
         boolean hasDollars = false;
         for (HudElement element : HudManager.ELEMENTS) {
             if ("fps-display".equals(element.id) || "ping-display".equals(element.id)
-                    || "memory-display".equals(element.id)) hasRetiredMetric = true;
-            if ("stats".equals(element.id)) hasStats = true;
+                    || "memory-display".equals(element.id) || "stats".equals(element.id)) hasMetricHud = true;
             if ("dollars".equals(element.id)) hasDollars = true;
         }
-        check("independent retired metric HUD elements are no longer registered", !hasRetiredMetric,
-                "registered=" + hasRetiredMetric);
-        check("restored Stats Display is registered", hasStats, "registered=" + hasStats);
+        check("no in-game metric HUD element is registered", !hasMetricHud, "registered=" + hasMetricHud);
         check("Player Dollars is no longer registered", !hasDollars, "registered=" + hasDollars);
         Properties old = parse("fps-display.enabled=true\nping-display.enabled=true\nmemory-display.enabled=true\n"
-                + "dollars.enabled=true\nbalance.source=manual\nbalance.manual=42\n"
-                + "stats.enabled=true\nmining.enabled=false\n");
+                + "stats.enabled=true\nstats.x=99\ndollars.enabled=true\nbalance.source=manual\nbalance.manual=42\n"
+                + "mining.enabled=false\n");
         HudConfigCompatibility.ignoreRetiredMetricKeys(old);
         HudConfigCompatibility.ignoreRetiredPlayerDollarsKeys(old);
-        check("retired individual metric HUD keys ignored", !old.containsKey("fps-display.enabled")
-                && !old.containsKey("ping-display.enabled") && !old.containsKey("memory-display.enabled"), old.toString());
+        check("legacy FPS memory ping and stats keys are safely ignored", !old.containsKey("fps-display.enabled")
+                && !old.containsKey("ping-display.enabled") && !old.containsKey("memory-display.enabled")
+                && !old.containsKey("stats.enabled") && !old.containsKey("stats.x"), old.toString());
         check("retired Player Dollars keys ignored", !old.containsKey("dollars.enabled")
                 && !old.containsKey("balance.source") && !old.containsKey("balance.manual"), old.toString());
-        check("active Stats Display and unrelated HUD keys remain loadable", "true".equals(old.getProperty("stats.enabled"))
-                && "false".equals(old.getProperty("mining.enabled")), old.toString());
-    }
-
-    private static void retiredMetricVisibilityMigratesWithoutOverridingModernChoice() throws IOException {
-        Properties visibleLegacy = parse("fps-display.enabled=true\nping-display.enabled=false\n");
-        check("visible old metric enables restored Stats Display when no modern choice exists",
-                HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(visibleLegacy)
-                        && "true".equals(visibleLegacy.getProperty("stats.enabled")), visibleLegacy.toString());
-        HudConfigCompatibility.ignoreRetiredMetricKeys(visibleLegacy);
-        check("visibility migration still retires old metric keys", !visibleLegacy.containsKey("fps-display.enabled")
-                && !visibleLegacy.containsKey("ping-display.enabled"), visibleLegacy.toString());
-
-        Properties pingOrMemoryLegacy = parse("ping-display.enabled=true\nmemory-display.enabled=true\n");
-        check("any visible old metric carries visibility forward",
-                HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(pingOrMemoryLegacy)
-                        && "true".equals(pingOrMemoryLegacy.getProperty("stats.enabled")), pingOrMemoryLegacy.toString());
-
-        Properties hiddenLegacy = parse("fps-display.enabled=false\nping-display.enabled=false\nmemory-display.enabled=false\n");
-        check("hidden old metrics do not turn on Stats Display",
-                !HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(hiddenLegacy)
-                        && !hiddenLegacy.containsKey("stats.enabled"), hiddenLegacy.toString());
-
-        Properties explicitModern = parse("stats.enabled=false\nfps-display.enabled=true\n");
-        check("explicit modern Stats choice wins over old visible metric",
-                !HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(explicitModern)
-                        && "false".equals(explicitModern.getProperty("stats.enabled")), explicitModern.toString());
+        check("unrelated active HUD key remains loadable", "false".equals(old.getProperty("mining.enabled")), old.toString());
     }
 
     private static void saveLoadRoundTrip() throws IOException {

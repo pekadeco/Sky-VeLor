@@ -1,7 +1,7 @@
 package com.arena.pekaclient.hud;
 
-/** Pure checks for the three GUI-only General-category metric labels. */
-public final class StatsTextTests {
+/** Pure checks for the three Home-only live-performance metric labels. */
+public final class ClientMetricTextTests {
 
     private static int passed;
     private static int failed;
@@ -10,6 +10,7 @@ public final class StatsTextTests {
         formatsMetrics();
         unknownValuesStayExplicit();
         memoryUsesUsedAndMaximumMb();
+        homeCardValuesKeepUnknownPingHonest();
 
         System.out.println();
         System.out.println("client metric text: passed " + passed + ", failed " + failed);
@@ -41,5 +42,16 @@ public final class StatsTextTests {
         long mb = 1024L * 1024L;
         String label = ClientMetricText.memory(123L * mb + 999L, 768L * mb + 17L);
         check("used/max", "Memory 123 / 768 MB".equals(label), label);
+    }
+
+    private static void homeCardValuesKeepUnknownPingHonest() {
+        long mb = 1024L * 1024L;
+        check("large FPS value", "144".equals(ClientMetricText.fpsValue(144)), ClientMetricText.fpsValue(144));
+        check("large memory value", "123 MB".equals(ClientMetricText.memoryValue(123L * mb + 999L)),
+                ClientMetricText.memoryValue(123L * mb + 999L));
+        check("large memory detail", "123 / 768 MB".equals(ClientMetricText.memoryDetail(123L * mb, 768L * mb)),
+                ClientMetricText.memoryDetail(123L * mb, 768L * mb));
+        check("unknown Home ping is not fabricated", "-- ms".equals(ClientMetricText.pingValue(-1)),
+                ClientMetricText.pingValue(-1));
     }
 }

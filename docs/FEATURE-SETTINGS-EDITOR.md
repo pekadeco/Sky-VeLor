@@ -18,9 +18,9 @@ Hub surface.
   crop/farming control, counter, or display to move, so its page displays only **No farming features yet**. Mining
   Assistant controls remain Mining functionality inside **Gameplay**; no farming automation is introduced.
 - Normal desktop mode starts centered at 85% of available width and 82% of available height until its fixed maximum.
-  It can be dragged by the title bar; its offset is clamped to leave a visible world border. Green toggles
-  normal/larger layout, yellow minimizes/restores a compact strip, red closes, and window/controls/hitboxes are all
-  rebuilt from the same moved layout bounds after drag or resize.
+  It can be dragged by the clear header area; its offset is clamped to leave a visible world border. The header has
+  exactly **Fullscreen** and **Close** 24 px icon targets with hover/state tooltips. Fullscreen persists through
+  `settings.window.fullscreen`; returning to small mode restores the in-memory dragged position.
 - One shared per-corner rounded-rectangle primitive draws the shell, rail, cards, controls, fields, pills, popups,
   previews, tooltips, chat click menu, and chat background. It clamps radii to each box, reuses cached geometry,
   applies a one-GUI-pixel anti-alias fringe, and shares named window/card/button/pill radii. Hover, toggle, and tab
@@ -35,10 +35,13 @@ Hub surface.
 - The toolbar contains product/version chrome and global **Search settings**. The visible **Advanced** button and its
   reserved width were removed. Formerly Advanced-marked cards, child rows, and search results remain directly visible;
   `Optional` is informational only and never filters a control.
-- One scissored viewport owns wheel, Shift fine-wheel, touch/mouse drag, page, Home and End scrolling. A swipe cancels
-  a pending control click. `Ctrl+F` or `/` focuses search; Escape clears focused search before closing the screen.
-- Home has no setup presets. Its **LIVE PERFORMANCE** card reads the existing cached `ClientMetrics.Reader` for real
-  FPS, Java used/max heap MB, and local tab-list ping; it never creates a second in-game metric renderer.
+- The whole shell is clipped to its one equal-radius rounded outer window; its nested scroll viewport owns wheel,
+  Shift fine-wheel, touch/mouse drag, page, Home and End scrolling. A dedicated scrollbar gutter prevents thumb/text
+  overlap, final cards have 12 px bottom padding, and a short edge fade marks clipped continuation. `Ctrl+F` or `/`
+  focuses search; Escape clears focused search before closing the screen.
+- Home has no setup presets. Its equal **LIVE PERFORMANCE** FPS, Java-memory, and local-tab-list ping cards read the
+  cached `ClientMetrics.Reader`, record only its 500 ms generations in a fixed ring, and render large values, status,
+  bars, and sparklines. They are the only FPS/memory/ping display; no in-game metric HUD is registered.
 - The rail **Profile** control opens a themed compact popup listing creator **pekadeco** and contributors **ii88w** and
   **whiteShadow**. Its X, Escape, and outside click close it.
 - **Settings Theme** persists either the established **Forest & Cyan** shell or **Black & Blue**. Black & Blue uses
@@ -56,9 +59,9 @@ Hub surface.
 | Gameplay | Shortcuts / Mining / Slayer / Fishing | Existing shortcuts, Mining BPS/Assistant/Puzzler/HUD, Slayer routes, catch counter, Fishing HUD, Sea Creature HP, Jawbus and nearby encounter alerts |
 | Dungeon | Run tools / Floor VII / Highlights / Party sync | Existing Dungeon Map, terminal, Spirit Leap, M7, ESP, boss HUD and sync routes |
 | Farming | No farming features yet | Audited empty state only; no crop setting, counter, display, config key, or automation was fabricated |
-| Visuals | HUD Hub / Item Animation | Direct-canvas HUD Editor, Stats Display, Player Doll, Inventory HUD, Item Animation and focused routes |
+| Visuals | HUD Hub / Item Animation | Direct-canvas HUD Editor, Player Doll, Inventory HUD, Item Animation and focused routes |
 | System | Appearance / Performance / General | Settings Theme, legacy appearance sliders, performance and shared scrolling routes |
-| System | Diagnostics / About | Read-only client metrics, command/sync diagnostics, version and client-side safety information |
+| System | Diagnostics / About | Command/sync diagnostics, version and client-side safety information |
 
 `ReferenceSettingsCatalog` is the immutable presentation inventory. It contains the rail/card order, search synonyms,
 inline children, and every current route that must remain accessible. `FeatureSettingsUiModel` is a non-rendered audit
@@ -71,7 +74,8 @@ Search uses each setting's id, label, description, keywords, and inline child co
 rail/card while retaining the same live control and focused route. Existing owners remain authoritative:
 `AppleSettings`, `AssistSettings`, `ChatQolSettings`, `DungeonEspSettings`, `M7Settings`, `ItemLockSwapSettings`, and
 each HUD element. The additive `appearance.settingsTheme` key defaults missing legacy configurations to Forest & Cyan
-and bounds saved values to the two supported choices.
+and bounds saved values to the two supported choices. `settings.window.fullscreen` persists only the shell mode; a
+missing old key safely opens the responsive small window.
 
 HUD Editor/HUD Hub Editor transitions preserve the selected palette and shared OpenGL/UI state:
 
@@ -88,17 +92,19 @@ because it lacks a new key. Dungeon Sync, terminal automatic clicks, Auto Sprint
 nearby encounter titles, M7 overlays/solvers, and fresh Dungeon ESP remain opt-in. Schema v3 does not overwrite an
 explicit saved choice.
 
-## Stats Display and verification scope
+## Home metric and verification scope
 
-- The only restored **in-game** metric group is **Stats Display**: **FRAME RATE**, **MINING**, and **MEMORY**. The
-  Home live-performance card is settings-only and does not replace it.
-- Stats Display remains opt-in on a fresh configuration. The **Visuals** HUD card exposes visibility/editor routes, and
-  the HUD editor shows disabled elements as selectable faded placeholders.
+- **FPS**, **Java memory**, and **ping** are displayed only by Home's LIVE PERFORMANCE cards. Their reader is queried
+  while Home is open, refreshes at most once per 500 ms, and appends to a fixed 24-sample ring only for a new snapshot.
+- No `StatsHud`, metric HUD-editor target, Visuals route, default, render-event overlay, or active persisted metric
+  key remains. Historical `fps-display.*`, `ping-display.*`, `memory-display.*`, and `stats.*` keys are consumed and
+  ignored, without enabling a replacement display.
 - Existing Dungeon ESP detection, entity filters, styles, cached doors, badges, and focused-editor live preview remain
   available through Dungeon → Highlights.
 - Headless contracts cover exact six-tab order, category/config-key ownership, ungated search/children, Farming's
-  searchable audited empty state, 4/8/12/16 spacing, scale-1–4 rail reachability/constant gaps/no-overlap, one-column
-  narrow reflow, Black & Blue persistence/palette, drag/clamp geometry, and rendered state-restoration contracts.
+  searchable audited empty state, 4/8/12/16 spacing, scale-1–4 rail/header reachability/constant gaps/no-overlap,
+  one-column narrow reflow, rounded shell clip/gutter/final-padding geometry, Home metric format/unknown-ping/ring
+  bounds, Black & Blue persistence/palette, drag/clamp geometry, and rendered state-restoration contracts.
 
 The release workflow runs Java 8 Forge compilation/reobfuscation, the standalone test suite, release-JAR verification,
 and source-ZIP verification. These checks do **not** start Minecraft. Rendering, input feel, and gameplay remain **NOT

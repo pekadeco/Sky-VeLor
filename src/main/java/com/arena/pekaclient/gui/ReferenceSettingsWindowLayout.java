@@ -1,67 +1,55 @@
 package com.arena.pekaclient.gui;
 
 /**
- * Pure geometry contract for the native reference settings window. Keeping the size policy free of Minecraft
- * classes lets the screen use exactly the same bounds for drawing and hit testing, and lets the low-GUI-scale
- * behavior be checked without starting a client.
+ * Pure geometry contract for the native settings window. Keeping the size policy free of Minecraft classes lets the
+ * screen use exactly the same bounds for drawing and hit testing, and lets the low-GUI-scale behavior be checked
+ * without starting a client.
  */
 public final class ReferenceSettingsWindowLayout {
 
-    /** Keeps a visible strip of world around the desktop window whenever the GUI is large enough. */
+    /** Keeps a visible strip of world around both small and fullscreen rounded windows. */
     public static final float OUTER_MARGIN = 12f;
     public static final float NORMAL_WIDTH_RATIO = .85f;
     public static final float NORMAL_HEIGHT_RATIO = .82f;
-    public static final float EXPANDED_WIDTH_RATIO = .96f;
-    public static final float EXPANDED_HEIGHT_RATIO = .96f;
+    /** Fullscreen occupies the complete safe area while retaining the rounded-window margin. */
+    public static final float FULLSCREEN_WIDTH_RATIO = 1f;
+    public static final float FULLSCREEN_HEIGHT_RATIO = 1f;
     public static final float NORMAL_MAX_WIDTH = 820f;
     public static final float NORMAL_MAX_HEIGHT = 520f;
-    public static final float EXPANDED_MAX_WIDTH = 920f;
-    public static final float EXPANDED_MAX_HEIGHT = 640f;
     public static final float MIN_WINDOW_WIDTH = 280f;
     public static final float MIN_WINDOW_HEIGHT = 210f;
-    public static final float MINIMIZED_MAX_WIDTH = 360f;
-    public static final float MINIMIZED_HEIGHT = 46f;
 
     private ReferenceSettingsWindowLayout() {
     }
 
-    /** Centers a bounded desktop window without a user drag offset. */
+    /** Centers a bounded small/fullscreen window without a user drag offset. */
     public static GuiLayoutToolkit.Rect layout(GuiLayoutToolkit.Rect out, float screenWidth, float screenHeight,
-                                               boolean expanded, boolean minimized) {
-        return layout(out, screenWidth, screenHeight, expanded, minimized, 0f, 0f);
+                                               boolean fullscreen) {
+        return layout(out, screenWidth, screenHeight, fullscreen, 0f, 0f);
     }
 
     /**
-     * Lays out a bounded desktop window with a title-bar drag offset from its natural centre. The same constrained
-     * bounds drive drawing and hit testing, so a moved, expanded, or minimized window cannot leave stale controls
-     * behind. The offset is intentionally presentation-only; opening a fresh settings screen still starts centred.
+     * Lays out a bounded small/fullscreen window with a title-bar drag offset from its natural centre. The same
+     * constrained bounds drive drawing and hit testing, so a moved window cannot leave stale controls behind. The
+     * offset is presentation-only; opening a fresh settings screen still starts centred.
      */
     public static GuiLayoutToolkit.Rect layout(GuiLayoutToolkit.Rect out, float screenWidth, float screenHeight,
-                                               boolean expanded, boolean minimized, float offsetX, float offsetY) {
+                                               boolean fullscreen, float offsetX, float offsetY) {
         GuiLayoutToolkit.Rect result = out == null ? new GuiLayoutToolkit.Rect() : out;
         float sw = Math.max(1f, screenWidth);
         float sh = Math.max(1f, screenHeight);
         float availableW = Math.max(1f, sw - OUTER_MARGIN * 2f);
         float availableH = Math.max(1f, sh - OUTER_MARGIN * 2f);
-
-        float wantedW;
-        float wantedH;
-        if (minimized) {
-            wantedW = Math.min(MINIMIZED_MAX_WIDTH, Math.max(220f, availableW * .58f));
-            wantedH = MINIMIZED_HEIGHT;
-        } else {
-            float ratioW = expanded ? EXPANDED_WIDTH_RATIO : NORMAL_WIDTH_RATIO;
-            float ratioH = expanded ? EXPANDED_HEIGHT_RATIO : NORMAL_HEIGHT_RATIO;
-            float maxW = expanded ? EXPANDED_MAX_WIDTH : NORMAL_MAX_WIDTH;
-            float maxH = expanded ? EXPANDED_MAX_HEIGHT : NORMAL_MAX_HEIGHT;
-            wantedW = Math.max(MIN_WINDOW_WIDTH, Math.min(maxW, availableW * ratioW));
-            wantedH = Math.max(MIN_WINDOW_HEIGHT, Math.min(maxH, availableH * ratioH));
-        }
-
+        float wantedW = fullscreen ? availableW * FULLSCREEN_WIDTH_RATIO
+                : Math.max(MIN_WINDOW_WIDTH, Math.min(NORMAL_MAX_WIDTH, availableW * NORMAL_WIDTH_RATIO));
+        float wantedH = fullscreen ? availableH * FULLSCREEN_HEIGHT_RATIO
+                : Math.max(MIN_WINDOW_HEIGHT, Math.min(NORMAL_MAX_HEIGHT, availableH * NORMAL_HEIGHT_RATIO));
         float w = Math.min(availableW, wantedW);
         float h = Math.min(availableH, wantedH);
-        float x = clampX(centeredX(sw, w) + offsetX, sw, w);
-        float y = clampY(centeredY(sh, h) + offsetY, sh, h);
+        // Fullscreen is intentionally fixed to its safe area. Small-window drags retain their exact offset when the
+        // user returns from fullscreen, rather than being overwritten by the temporary fullscreen bounds.
+        float x = fullscreen ? centeredX(sw, w) : clampX(centeredX(sw, w) + offsetX, sw, w);
+        float y = fullscreen ? centeredY(sh, h) : clampY(centeredY(sh, h) + offsetY, sh, h);
         result.set(x, y, w, h);
         return result;
     }
@@ -94,10 +82,5 @@ public final class ReferenceSettingsWindowLayout {
         float min = margin;
         float max = Math.max(min, usableScreen - usableExtent - margin);
         return Math.max(min, Math.min(max, position));
-    }
-
-    /** A minimized chrome strip must still expose all three small desktop controls. */
-    public static boolean canShowDesktopControls(GuiLayoutToolkit.Rect bounds) {
-        return bounds != null && bounds.w >= 42f && bounds.h >= 14f;
     }
 }

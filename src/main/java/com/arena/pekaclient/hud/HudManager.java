@@ -25,14 +25,13 @@ public final class HudManager {
     public static final DungeonBossHud DUNGEON_BOSS_HP = new DungeonBossHud();
     public static final InventoryHud INVENTORY = new InventoryHud();
     public static final PlayerDollHud DOLL = new PlayerDollHud();
-    /** Restored reference-style Frame Rate / Mining / Memory card group; opt-in by default and migrated from old visible metric HUDs. */
-    public static final StatsHud STATS = new StatsHud();
     public static final FishingHud FISHING = new FishingHud();
     public static final SeaCreatureHud SEA_HP = new SeaCreatureHud();
     public static final SlayerHud SLAYER = new SlayerHud();
 
-    /** Elements shown in the normal HUD editor, in draw order. */
-    public static final HudElement[] ELEMENTS = {STATS, MINING, MINING_ASSIST, DUNGEON_BOSS_HP, INVENTORY, DOLL,
+    /** Elements shown in the normal HUD editor, in draw order. Metrics deliberately do not register here: FPS,
+     * memory and ping exist only in Settings Home. */
+    public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, INVENTORY, DOLL,
             FISHING, SEA_HP, SLAYER};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
@@ -54,8 +53,7 @@ public final class HudManager {
 
     public static void load() {
         Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME));
-        // Preserve an old opt-in metric HUD as the one restored three-card display before dropping retired keys.
-        HudConfigCompatibility.migrateVisibleRetiredMetricDisplay(p);
+        // All legacy metric HUD keys, including the former consolidated stats.* group, are intentionally ignored.
         HudConfigCompatibility.ignoreRetiredMetricKeys(p);
         HudConfigCompatibility.ignoreRetiredPlayerDollarsKeys(p);
         for (HudElement e : ELEMENTS) e.load(p);

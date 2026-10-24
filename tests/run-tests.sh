@@ -22,6 +22,9 @@ javac -nowarn -encoding UTF-8 -cp "$CP" -d "$OUT" $(find "$HERE/tests" -name '*.
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.PureLogicTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.GuiLayoutToolkitTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsShellLayoutTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.HomeMetricsLayoutTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.HomeMetricHistoryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsSpacingLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HudEditorSelectionPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.FeatureSettingsUiModelTests
@@ -34,7 +37,6 @@ java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatMessageHistoryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatMenuInputRouterTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ChatVisibilityAuditTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ConfigTests
-java -cp "$OUT:$CP" com.arena.pekaclient.hud.StatsHudTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.compat.RemovedFeatureSurfaceTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapIdentityTests
@@ -84,8 +86,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPaletteTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPreviewDataTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ClientMetricsTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.GeneralMetricsLayoutTests
-java -cp "$OUT:$CP" com.arena.pekaclient.hud.StatsTextTests
+java -cp "$OUT:$CP" com.arena.pekaclient.hud.ClientMetricTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.startup.StartupTimingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.fishing.FishingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.DragonKillTests

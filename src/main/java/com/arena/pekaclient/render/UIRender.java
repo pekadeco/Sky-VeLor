@@ -13,8 +13,9 @@ import org.lwjgl.opengl.GL11;
  * Low-level 2D primitives built on Minecraft's own Tessellator / WorldRenderer.
  *
  * Only fixed-function GL 1.x features are used (blend, texture enable, alpha test,
- * scissor). No shaders, FBOs, VBOs, stencil or extensions, so it runs on desktop GL
- * and on Android launchers such as PojavLauncher (GL4ES).
+ * scissor). No shaders, FBOs, VBOs or extensions are required. The settings shell additionally uses the
+ * core stencil buffer when Minecraft exposes one, with a bounded rectangular fallback, so its rounded outer shape
+ * can clip every child surface on desktop GL and Android launchers such as PojavLauncher (GL4ES).
  *
  * Rounded shapes use cached triangle-fan perimeters with a one-GUI-pixel analytic feather for anti-aliasing.
  * Geometry is allocated only on a bounded cache miss, never in a warmed render loop.
@@ -37,6 +38,18 @@ public final class UIRender {
     private static int frameDepth;
     private static final float[] SAVED_ALPHA = new float[8];
     private static final boolean[] SAVED_BATCH_MODE = new boolean[8];
+    /** Nested shell clips share one stencil mask; their caller still owns the matching end call. */
+    private static int roundedClipDepth;
+    private static boolean roundedClipStencilActive;
+    private static boolean stencilChecked;
+    private static boolean stencilAvailable;
+    /** GUI-coordinate scissor stack keeps a shell fallback and its scroll viewport intersected correctly. */
+    private static int scissorDepth;
+    private static final float[] SCISSOR_X = new float[8];
+    private static final float[] SCISSOR_Y = new float[8];
+    private static final float[] SCISSOR_W = new float[8];
+    private static final float[] SCISSOR_H = new float[8];
+    private static final float[] SCISSOR_SCALE = new float[8];
 
     private UIRender() {
     }
@@ -93,6 +106,11 @@ public final class UIRender {
         batchOpen = false;
         alphaMul = 1f;
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
+        GL11.glStencilMask(0xFF);
+        roundedClipDepth = 0;
+        roundedClipStencilActive = false;
+        scissorDepth = 0;
         GlStateManager.color(1f, 1f, 1f, 1f);
         GlStateManager.disableLighting();
         GlStateManager.disableRescaleNormal();
@@ -224,6 +242,22 @@ public final class UIRender {
         vtx(wr, x, y, c);
         vtx(wr, x + w, y + h, c);
         vtx(wr, x + w, y, c);
+        close();
+    }
+
+    /** Draws a vertical gradient without allocating a quad or colour array in a GUI frame. */
+    public static void verticalGradient(float x, float y, float w, float h, int top, int bottom) {
+        if (w <= 0f || h <= 0f) return;
+        int topColor = col(top);
+        int bottomColor = col(bottom);
+        if (((topColor | bottomColor) >>> 24) == 0) return;
+        WorldRenderer wr = open();
+        vtx(wr, x, y, topColor);
+        vtx(wr, x, y + h, bottomColor);
+        vtx(wr, x + w, y + h, bottomColor);
+        vtx(wr, x, y, topColor);
+        vtx(wr, x + w, y + h, bottomColor);
+        vtx(wr, x + w, y, topColor);
         close();
     }
 
@@ -531,20 +565,147 @@ public final class UIRender {
 
     // ------------------------------------------------------------------ clipping
 
-    /** Clips subsequent drawing to a rectangle given in GUI (scaled) coordinates. */
+    /**
+     * Starts a stencil-backed rounded clip in GUI coordinates. The mask uses the same cached perimeter as visible
+     * rounded panels, so the shell's four corners and its child clip cannot drift apart. A framebuffer without a
+     * stencil attachment still keeps ordinary rectangular clipping callers safe; Minecraft's normal framebuffer is
+     * upgraded once when it exposes the standard enableStencil hook.
+     *
+     * @return whether a rounded stencil mask is active
+     */
+    public static boolean roundedClipBegin(float x, float y, float w, float h, float radius, float scaleFactor) {
+        flush();
+        if (roundedClipDepth > 0) {
+            roundedClipDepth++;
+            // A compatible framebuffer shares its one rounded mask. The rectangular fallback still needs every
+            // nested bound so a viewport inside an older framebuffer remains an actual intersection.
+            if (!roundedClipStencilActive) scissorBegin(x, y, w, h, scaleFactor);
+            return roundedClipStencilActive;
+        }
+        roundedClipDepth = 1;
+        roundedClipStencilActive = ensureStencil();
+        if (!roundedClipStencilActive) {
+            // The safe fallback still bounds every child to the one outer window; compatible framebuffers get the
+            // exact rounded mask above, while a very old framebuffer never leaks content outside the app rectangle.
+            scissorBegin(x, y, w, h, scaleFactor);
+            return false;
+        }
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClearStencil(0);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+        GL11.glStencilMask(0xFF);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+        GL11.glColorMask(false, false, false, false);
+        GL11.glDepthMask(false);
+        drawRoundedClipMask(x, y, w, h, radius);
+        flush();
+        GL11.glColorMask(true, true, true, true);
+        GL11.glDepthMask(true);
+        GL11.glStencilMask(0x00);
+        GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+        return true;
+    }
+
+    /** Ends the matching rounded shell clip and restores stencil writes for the next independent frame. */
+    public static void roundedClipEnd() {
+        if (roundedClipDepth <= 0) return;
+        flush();
+        boolean usedStencil = roundedClipStencilActive;
+        roundedClipDepth--;
+        if (!usedStencil) scissorEnd();
+        if (roundedClipDepth == 0) {
+            if (usedStencil) {
+                GL11.glStencilMask(0xFF);
+                GL11.glDisable(GL11.GL_STENCIL_TEST);
+            }
+            roundedClipStencilActive = false;
+        }
+    }
+
+    private static boolean ensureStencil() {
+        if (stencilChecked) return stencilAvailable;
+        stencilChecked = true;
+        try {
+            Object framebuffer = Minecraft.getMinecraft().getFramebuffer();
+            if (framebuffer != null) {
+                java.lang.reflect.Method enable = framebuffer.getClass().getMethod("enableStencil");
+                enable.invoke(framebuffer);
+            }
+        } catch (ReflectiveOperationException ignored) {
+            // Vanilla/Forge versions without this optional hook fall back safely instead of failing the GUI.
+        } catch (RuntimeException ignored) {
+            // A transient framebuffer/context failure must never leave the settings screen half-rendered.
+        }
+        stencilAvailable = GL11.glGetInteger(GL11.GL_STENCIL_BITS) > 0;
+        return stencilAvailable;
+    }
+
+    /** Writes an exact, no-feather rounded perimeter into the active stencil mask. */
+    private static void drawRoundedClipMask(float x, float y, float w, float h, float radius) {
+        if (w <= 0f || h <= 0f) return;
+        int segments = RoundedRectGeometry.segmentsFor(Math.max(0f, radius), segCap);
+        RoundedRectGeometry.Geometry shape = RoundedRectGeometry.get(w, h, radius, radius, radius, radius, segments);
+        WorldRenderer wr = open();
+        float centerX = x + shape.width * .5f;
+        float centerY = y + shape.height * .5f;
+        for (int point = 0; point < shape.pointCount; point++) {
+            int next = (point + 1) % shape.pointCount;
+            vtx(wr, centerX, centerY, 0xFFFFFFFF);
+            vtx(wr, x + shape.x(point), y + shape.y(point), 0xFFFFFFFF);
+            vtx(wr, x + shape.x(next), y + shape.y(next), 0xFFFFFFFF);
+        }
+        close();
+    }
+
+    /** Clips subsequent drawing to a rectangle given in GUI (scaled) coordinates. Nested clips intersect. */
     public static void scissorBegin(float x, float y, float w, float h, float scaleFactor) {
         flush();
-        Minecraft mc = Minecraft.getMinecraft();
-        int px = Math.round(x * scaleFactor);
-        int py = Math.round(mc.displayHeight - (y + h) * scaleFactor);
-        int pw = Math.max(0, Math.round(w * scaleFactor));
-        int ph = Math.max(0, Math.round(h * scaleFactor));
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(px, py, pw, ph);
+        int slot = Math.min(scissorDepth, SCISSOR_X.length - 1);
+        float left = x;
+        float top = y;
+        float right = x + Math.max(0f, w);
+        float bottom = y + Math.max(0f, h);
+        if (scissorDepth > 0) {
+            int parent = Math.min(scissorDepth - 1, SCISSOR_X.length - 1);
+            left = Math.max(left, SCISSOR_X[parent]);
+            top = Math.max(top, SCISSOR_Y[parent]);
+            right = Math.min(right, SCISSOR_X[parent] + SCISSOR_W[parent]);
+            bottom = Math.min(bottom, SCISSOR_Y[parent] + SCISSOR_H[parent]);
+        }
+        SCISSOR_X[slot] = left;
+        SCISSOR_Y[slot] = top;
+        SCISSOR_W[slot] = Math.max(0f, right - left);
+        SCISSOR_H[slot] = Math.max(0f, bottom - top);
+        SCISSOR_SCALE[slot] = Math.max(.01f, scaleFactor);
+        scissorDepth++;
+        applyScissor(slot);
     }
 
     public static void scissorEnd() {
         flush();
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        if (scissorDepth <= 0) {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            return;
+        }
+        scissorDepth--;
+        if (scissorDepth == 0) {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        } else {
+            applyScissor(Math.min(scissorDepth - 1, SCISSOR_X.length - 1));
+        }
+    }
+
+    private static void applyScissor(int slot) {
+        Minecraft mc = Minecraft.getMinecraft();
+        float scale = SCISSOR_SCALE[Math.max(0, Math.min(slot, SCISSOR_SCALE.length - 1))];
+        int safe = Math.max(0, Math.min(slot, SCISSOR_X.length - 1));
+        int px = Math.round(SCISSOR_X[safe] * scale);
+        int py = Math.round(mc.displayHeight - (SCISSOR_Y[safe] + SCISSOR_H[safe]) * scale);
+        int pw = Math.max(0, Math.round(SCISSOR_W[safe] * scale));
+        int ph = Math.max(0, Math.round(SCISSOR_H[safe] * scale));
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(px, py, pw, ph);
     }
 }

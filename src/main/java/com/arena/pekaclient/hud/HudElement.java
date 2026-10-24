@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.Properties;
 
 /**
- * One movable, resizable on-screen element (Stats Display, mining rate, inventory, player doll).
+ * One movable, resizable on-screen element (mining rate, inventory, player doll).
  *
  * Position is a PekaClient {@link HudPlacement}. Every element shares the same style controls:
  * scale, opacity, corner radius, text size, background, border and accent colour. Module-specific
