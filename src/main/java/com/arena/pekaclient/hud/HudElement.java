@@ -306,7 +306,7 @@ public abstract class HudElement {
     /** Colour dots for the accent dropdown. The theme entry is neutral grey. */
     public static int[] accentDots() {
         int[] out = new int[AppleSettings.ACCENT_COLORS.length + 1];
-        out[0] = 0xFF8E8E93;
+        out[0] = Theme.NEUTRAL_DOT;
         System.arraycopy(AppleSettings.ACCENT_COLORS, 0, out, 1, AppleSettings.ACCENT_COLORS.length);
         return out;
     }

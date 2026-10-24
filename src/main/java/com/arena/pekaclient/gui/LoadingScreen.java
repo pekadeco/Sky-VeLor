@@ -27,9 +27,9 @@ import java.io.IOException;
  */
 public final class LoadingScreen extends GuiScreen {
 
-    private static final int BLACK = 0xFF000000;
+    private static final int BLACK = Theme.LOADING_BLACK;
     /** Bottom of the gradient. Deep blue, the Sky VeLor brand colour. */
-    private static final int DEEP_BLUE = 0xFF0B2350;
+    private static final int DEEP_BLUE = Theme.LOADING_DEEP_BLUE;
     private static final int DOTS = 12;
     private static final float BAR_W = 180f;
 
@@ -101,11 +101,11 @@ public final class LoadingScreen extends GuiScreen {
         String name = PekaVersion.DISPLAY_NAME;
         float wordScale = Math.min(3f, Math.max(.75f, (safeViewport.w - 16f) / Math.max(1f, fr.getStringWidth(name))));
         float wordW = fr.getStringWidth(name) * wordScale;
-        UIRender.text(fr, name, cx - wordW * 0.5f, wordY, UIRender.withAlpha(0xFFFFFFFF, a), wordScale, false);
+        UIRender.text(fr, name, cx - wordW * 0.5f, wordY, UIRender.withAlpha(Theme.LOADING_WORDMARK, a), wordScale, false);
         String ver = GuiLayoutToolkit.ellipsize(PekaVersion.NAME, Math.max(1f, safeViewport.w - 24f),
                 metrics(fr));
         UIRender.text(fr, ver, cx - fr.getStringWidth(ver) * 0.5f, versionY,
-                UIRender.withAlpha(0xFF9CC3FF, a), 1f, false);
+                UIRender.withAlpha(Theme.LOADING_VERSION, a), 1f, false);
 
         // Spinner: twelve dots on a ring, with a moving bright head. Motion only, no progress meaning.
         float t = (System.nanoTime() - startNs) / 1.0e9f;
@@ -117,29 +117,29 @@ public final class LoadingScreen extends GuiScreen {
             float dy = spinnerY + ring * (float) Math.sin(ang);
             int age = (head - i + DOTS) % DOTS;
             float alpha = (1f - age / (float) DOTS) * a;
-            UIRender.circle(dx, dy, 1.8f, UIRender.withAlpha(0xFFFFFFFF, Math.max(0.12f, alpha)));
+            UIRender.circle(dx, dy, 1.8f, UIRender.withAlpha(Theme.LOADING_WORDMARK, Math.max(0.12f, alpha)));
         }
 
         // Progress: the real count of finished tasks.
         int total = StartupTasks.total();
         int done = StartupTasks.completed();
-        UIRender.roundRect(cx - barW * 0.5f, barY, barW, 3f, 1.5f, 0x33FFFFFF, 0x33FFFFFF, 0.5f);
+        UIRender.roundRect(cx - barW * 0.5f, barY, barW, 3f, 1.5f, Theme.LOADING_TRACK, Theme.LOADING_TRACK, 0.5f);
         if (total > 0) {
             float frac = Math.min(1f, done / (float) total);
-            UIRender.roundRect(cx - barW * 0.5f, barY, barW * frac, 3f, 1.5f, Theme.accent, Theme.accent, 0.5f);
+            UIRender.roundRect(cx - barW * 0.5f, barY, barW * frac, 3f, 1.5f, Theme.ACCENT_BLUE, Theme.ACCENT_BLUE, 0.5f);
         }
 
         String status;
         int statusCol;
         if (StartupTasks.failed()) {
             status = StartupTasks.failureMessage();
-            statusCol = 0xFFFF7A70;
+            statusCol = Theme.LOADING_ERROR;
         } else if (StartupTasks.hasWork()) {
             status = StartupTasks.currentLabel() + " (" + (done + 1) + " of " + total + ")";
-            statusCol = 0xFFA1A1A8;
+            statusCol = Theme.LOADING_STATUS;
         } else {
             status = "Ready";
-            statusCol = 0xFFA1A1A8;
+            statusCol = Theme.LOADING_STATUS;
         }
         if (!(StartupTasks.failed() && safeViewport.h < 150f)) {
             float maxW = Math.max(1f, safeViewport.w - 24f);
@@ -151,7 +151,7 @@ public final class LoadingScreen extends GuiScreen {
             String foot = GuiLayoutToolkit.ellipsize("Forge client for Minecraft 1.8.9",
                     Math.max(1f, safeViewport.w - 24f), metrics(fr));
             UIRender.text(fr, foot, cx - fr.getStringWidth(foot) * 0.5f, safeViewport.bottom() - 22f,
-                    0xFF8E8E93, 1f, false);
+                    Theme.LOADING_DIM, 1f, false);
         }
         UIRender.endFrame();
 

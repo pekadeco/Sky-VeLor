@@ -79,12 +79,12 @@ public final class HudEditorScreen extends AppleScreen {
         @Override
         public void draw(int mouseX, int mouseY) {
             boolean active = ItemAnimationHookStatus.isActive();
-            int accent = active ? 0xFF30D158 : 0xFFFF453A;
-            int fill = active ? 0x2830D158 : 0x38FF453A;
+            int accent = active ? Theme.ACCENT_BLUE : Theme.STATUS_CRITICAL;
+            int fill = active ? UIRender.withAlpha(Theme.ACCENT_BLUE, .16f) : UIRender.withAlpha(Theme.STATUS_CRITICAL, .22f);
             UIRender.roundRectBorder(x, y, w, h, 5f, fill, fill, accent);
             String status = fit(font(), ItemAnimationHookStatus.getDisplay(), Math.max(0f, w - 14f));
             UIRender.text(font(), status, x + 7f, y + 7f,
-                    active ? 0xFFD7FFE4 : 0xFFFFD7D1, 0.72f, false);
+                    active ? Theme.TEXT_PRIMARY : Theme.STATUS_CRITICAL, 0.72f, false);
         }
 
         @Override
@@ -436,7 +436,7 @@ public final class HudEditorScreen extends AppleScreen {
         HudManager.save();
         AppleSettings.save();
         // The editor combines HUD primitives, entity previews and vanilla item rendering. Always leave a neutral
-        // GUI baseline behind; an AppleSettingsScreen parent reapplies its selected reference palette on init/draw.
+        // GUI baseline behind; an AppleSettingsScreen parent reapplies its fixed Theme on init/draw.
         UIRender.restoreVanillaGuiState();
     }
 
@@ -1212,9 +1212,8 @@ public final class HudEditorScreen extends AppleScreen {
                 Theme.windowTop, Theme.windowBottom, Theme.border);
 
         float cy = barY + BAR_H * 0.5f;
-        // Only close is live here. Collapse and zoom have no meaning for the editor, so they are drawn dimmed and
-        // hovering them says why.
-        WindowDots.draw(barX + 14f, cy, mx, my, 0b001, false);
+        // The compact editor header exposes one explicit Close icon; no fake collapse/zoom controls are drawn.
+        FocusedHeaderCloseButton.draw(barX + 14f, cy, mx, my);
 
         FontRenderer fr = fr();
         // The editor has no sidebar/list: this single line is the persistent selection instruction.
@@ -1224,8 +1223,6 @@ public final class HudEditorScreen extends AppleScreen {
         UIRender.text(fr, fit(fr, instruction, instructionW / .72f), instructionX, cy - 3.2f,
                 Theme.textSecondary, .72f, false);
         doneBtn.draw(mx, my);
-        WindowDots.drawHint(fr, mx, my, barX + 14f, cy, 0b001,
-                "Collapse is not used in the HUD editor", "Zoom is not used in the HUD editor", width);
         resetAllBtn.draw(mx, my);
     }
 
@@ -1431,7 +1428,7 @@ public final class HudEditorScreen extends AppleScreen {
         }
 
         float cy = barY + BAR_H * 0.5f;
-        if (WindowDots.hit(mx, my, barX + 14f, cy, 0b001) == WindowDots.CLOSE) {
+        if (FocusedHeaderCloseButton.contains(mx, my, barX + 14f, cy)) {
             close();
             return;
         }

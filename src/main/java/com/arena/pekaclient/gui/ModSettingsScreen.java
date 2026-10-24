@@ -1,6 +1,7 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.gui.GuiScreen;
 
@@ -33,7 +34,7 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
         drawDefaultBackground();
         beginPanel("Mod Settings", mx, my);
         float naturalY = 0f;
-        drawLabel("Mouse", content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
+        drawLabel("Mouse", content.x, rowY(naturalY), content.w, Theme.TEXT_SECONDARY);
         naturalY += 17f;
         row(SCROLL_SETTINGS.get(0).getLabel(), multiplier(AppleSettings.effectiveScrollSpeed()), 0, rowY(naturalY));
         naturalY += 31f;
@@ -41,10 +42,10 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
                 rowY(naturalY));
         naturalY += 42f;
         drawLabel("Shift + wheel uses fine scrolling. A wheel event is applied once only to its hovered viewport.",
-                content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
+                content.x, rowY(naturalY), content.w, Theme.TEXT_SECONDARY);
         naturalY += 18f;
         drawLabel("Hotbar scrolling is configured in Quality of Life, Comfort and applies only during gameplay.",
-                content.x, rowY(naturalY), content.w, 0xFFB9C1CD);
+                content.x, rowY(naturalY), content.w, Theme.TEXT_SECONDARY);
         finishContent(naturalY + 28f);
         endPanel();
     }
@@ -54,10 +55,10 @@ public final class ModSettingsScreen extends GuiLayoutScreen {
         GuiLayoutToolkit.Rect left = new GuiLayoutToolkit.Rect();
         GuiLayoutToolkit.splitRow(whole, 4f, 6f, Math.max(100f, uiFont().getStringWidth(value) + 16f),
                 20f, left, controls[index]);
-        drawLabel(label, left.x, left.y + 8f, left.w, 0xFFD9DDE5);
+        drawLabel(label, left.x, left.y + 8f, left.w, Theme.TEXT_PRIMARY);
         UIRender.roundRect(controls[index].x, controls[index].y, controls[index].w, controls[index].h,
-                4f, 0xFF343B47, 0xFF343B47, 1f);
-        drawLabel(value, controls[index].x + 6f, controls[index].y + 6f, controls[index].w - 12f, 0xFFFFFFFF);
+                4f, Theme.SURFACE_CONTROL, Theme.SURFACE_CONTROL, 1f);
+        drawLabel(value, controls[index].x + 6f, controls[index].y + 6f, controls[index].w - 12f, Theme.OPAQUE_WHITE);
     }
 
     @Override

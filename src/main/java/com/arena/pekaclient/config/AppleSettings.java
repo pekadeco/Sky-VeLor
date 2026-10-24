@@ -26,7 +26,7 @@ public final class AppleSettings {
     public static final int[] ACCENT_COLORS = {
             0xFF0A84FF, 0xFFBF5AF2, 0xFFFF375F, 0xFF30D158, 0xFFFF9F0A, 0xFF64D2FF
     };
-    /** The existing forest/cyan shell remains the default; Black & Blue is a separately persisted alternative. */
+    /** Historical appearance values retained solely so existing settings files and HUD colour choices remain readable. */
     public static final String[] SETTINGS_THEME_NAMES = {"Forest & Cyan", "Black & Blue"};
     public static final int SETTINGS_THEME_FOREST_CYAN = 0;
     public static final int SETTINGS_THEME_BLACK_BLUE = 1;
@@ -36,7 +36,7 @@ public final class AppleSettings {
     public static final int[] CURVE_SEGMENTS = {8, 4, 2};
 
     public static int accent = 0;
-    /** Persisted main/editor palette selection. Missing legacy key intentionally preserves the established shell. */
+    /** Persisted legacy palette selection; Theme reads it only for compatibility, never to fork active GUI rendering. */
     public static int settingsTheme = DEFAULT_SETTINGS_THEME;
     /** The settings shell deliberately opens in its compact responsive layout unless the user chose fullscreen. */
     public static final boolean DEFAULT_SETTINGS_WINDOW_FULLSCREEN = false;
@@ -223,7 +223,7 @@ public final class AppleSettings {
         return ACCENT_COLORS[Math.max(0, Math.min(ACCENT_COLORS.length - 1, accent))];
     }
 
-    /** True only for the deliberate dark blue palette; legacy configs remain on the existing shell. */
+    /** Historical compatibility query; the fixed active Theme deliberately ignores this legacy palette choice. */
     public static boolean isBlackBlueTheme() {
         return settingsTheme == SETTINGS_THEME_BLACK_BLUE;
     }

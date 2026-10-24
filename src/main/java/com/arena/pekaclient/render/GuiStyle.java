@@ -1,40 +1,32 @@
 package com.arena.pekaclient.render;
 
 /**
- * Shared logical GUI measurements.
+ * Layout helper facade for the named tokens in {@link Theme}.
  *
- * <p>Values are in Minecraft GUI pixels, rather than framebuffer pixels. Minecraft scales that coordinate system
- * for GUI scales 1 through 4, so one {@link #AA_FRINGE} unit remains one logical GUI pixel at every scale. Keep
- * spacing and corner roles here instead of creating almost-identical magic numbers in every editor.</p>
+ * <p>Existing screens use this class for local radius calculations; concrete spacing and radius values intentionally
+ * live only in Theme so the whole GUI shares one visual system.</p>
  */
 public final class GuiStyle {
-    /** The compact spacing scale used by settings pages, editors, popups and the navigation rail. */
-    public static final float SPACE_4 = 4f;
-    public static final float SPACE_8 = 8f;
-    public static final float SPACE_12 = 12f;
-    public static final float SPACE_16 = 16f;
+    public static final float SPACE_4 = Theme.SPACE_4;
+    public static final float SPACE_8 = Theme.SPACE_8;
+    public static final float SPACE_12 = Theme.SPACE_12;
+    public static final float SPACE_16 = Theme.SPACE_16;
 
-    /** Baseline role radii at the default configured 12 px theme radius. */
-    public static final float RADIUS_WINDOW = 12f;
-    public static final float RADIUS_CARD = 7f;
-    public static final float RADIUS_BUTTON = 8f;
-    public static final float RADIUS_FIELD = 7f;
-    public static final float RADIUS_POPUP = 7f;
-    public static final float RADIUS_SMALL = 4f;
-    public static final float RADIUS_PILL = 10f;
-    public static final float RADIUS_THEME_BASE = 12f;
-
-    /** One logical GUI pixel: the default outline and anti-alias fringe thickness. */
-    public static final float OUTLINE = 1f;
-    public static final float AA_FRINGE = 1f;
+    public static final float RADIUS_WINDOW = Theme.RADIUS_WINDOW;
+    public static final float RADIUS_CARD = Theme.RADIUS_CARD;
+    public static final float RADIUS_BUTTON = Theme.RADIUS_BUTTON;
+    public static final float RADIUS_FIELD = Theme.RADIUS_FIELD;
+    public static final float RADIUS_POPUP = Theme.RADIUS_POPUP;
+    public static final float RADIUS_SMALL = Theme.RADIUS_SMALL;
+    public static final float RADIUS_PILL = Theme.RADIUS_PILL;
+    public static final float RADIUS_THEME_BASE = Theme.RADIUS_THEME_BASE;
+    public static final float OUTLINE = Theme.OUTLINE;
+    public static final float AA_FRINGE = Theme.AA_FRINGE;
 
     private GuiStyle() {
     }
 
-    /**
-     * Applies the persisted Corner radius preference to a named role while preserving its relative hierarchy.
-     * The final clamp is deliberately local to the actual box, so tiny controls cannot self-intersect.
-     */
+    /** Applies the persisted Corner radius preference while preserving each role's relative hierarchy. */
     public static float radius(float roleRadius, float configuredRadius, float width, float height) {
         float scale = Math.max(0f, configuredRadius) / RADIUS_THEME_BASE;
         float desired = Math.max(0f, roleRadius) * scale;

@@ -60,9 +60,10 @@ public final class ReleaseClaimsTests {
                 screen.contains("No farming features yet") && screen.contains("FARMING"));
         check("screen clips its full rounded shell plus one settings viewport", screen.contains("roundedClipBegin")
                 && screen.contains("scissorBegin") && screen.contains("GuiLayoutToolkit$Scroll"));
-        check("screen packages title-bar drag, fullscreen persistence and theme ownership", screen.contains("smallWindowOffsetX")
-                && screen.contains("settingsWindowFullscreen") && screen.contains("appearance-theme")
-                && screen.contains("refreshReferenceTheme"));
+        check("screen packages title-bar drag, fullscreen persistence and one Theme-owned shell", screen.contains("smallWindowOffsetX")
+                && screen.contains("settingsWindowFullscreen") && screen.contains("Sky VeLor · Settings")
+                && screen.contains("SettingsControlLayout") && screen.contains("refreshReferenceTheme")
+                && !screen.contains("appearance-theme") && !screen.contains("appearance-accent"));
         check("old Hub is compatibility-only", classText("com.arena.pekaclient.gui.AppleHubScreen")
                 .contains("AppleSettingsScreen"));
     }
@@ -117,8 +118,11 @@ public final class ReleaseClaimsTests {
                 && ReferenceSettingsCatalog.find("hud-editor") != null);
         check("Dungeon route inventory remains complete", ReferenceSettingsCatalog.routesAreComplete()
                 && ReferenceSettingsCatalog.find("door-esp") != null && ReferenceSettingsCatalog.find("m7-overlay") != null);
-        check("theme selector offers both supported palettes", ReferenceSettingsCatalog.find("appearance-theme") != null
-                && ReferenceSettingsCatalog.find("appearance-theme").choices.length == 2);
+        check("fixed theme keeps only radius and opacity appearance controls", ReferenceSettingsCatalog.find("appearance-theme") == null
+                && ReferenceSettingsCatalog.find("appearance") == null
+                && ReferenceSettingsCatalog.find("appearance-accent") == null
+                && ReferenceSettingsCatalog.find("appearance-corners") != null
+                && ReferenceSettingsCatalog.find("appearance-opacity") != null);
     }
 
     private static void removedPrototypeEntriesStayRemoved() {

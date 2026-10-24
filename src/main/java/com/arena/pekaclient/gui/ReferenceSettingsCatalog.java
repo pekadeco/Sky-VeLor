@@ -322,14 +322,8 @@ public final class ReferenceSettingsCatalog {
     private static final Card FARMING_SEARCH_CARD = card("farming-empty", "Farming", "", false, "", FARMING_SEARCH_RESULT);
 
     private static final List<Card> SYSTEM = cards(
-            card("appearance", "Appearance", "The Apple surfaces: theme, glass, corners, accent and density.", false, "",
-                    choice("appearance-theme", "Settings theme", "Keep the existing forest/cyan surfaces, or use deep black with blue and cyan accents.",
-                            "theme forest black blue cyan", false, new String[]{"Forest & Cyan", "Black & Blue"}),
-                    choice("appearance", "Base surface", "Graphite for late-night dungeons, Frost for daylight.", "dark light graphite frost", false,
-                            new String[]{"Graphite", "Frost"}),
-                    choice("appearance-accent", "Accent", "The highlight used for selection and focus.", "accent color blue purple green", false,
-                            new String[]{"Blue", "Purple", "Pink", "Green", "Orange", "Teal"}),
-                    slider("appearance-corners", "Corner radius", "Soft Apple-style corners. Lower values feel more utilitarian.",
+            card("appearance", "Appearance", "Neutral dark surfaces and a fixed blue focus.", false, "",
+                    slider("appearance-corners", "Corner radius", "Adjust the shared shell roundness.",
                             "radius corners", true, 4, 18, 1, " px"),
                     slider("appearance-opacity", "Panel opacity", "Higher is more readable; lower reveals more game behind it.",
                             "glass opacity", true, 60, 100, 1, "%")),

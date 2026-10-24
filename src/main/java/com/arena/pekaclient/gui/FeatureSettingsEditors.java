@@ -44,7 +44,7 @@ public final class FeatureSettingsEditors {
     }
 
     public static FeatureSettingsEditorScreen appearance(GuiScreen parent) {
-        return editor(parent, "appearance", "Appearance Settings", "Theme, accent, corners and panel opacity.",
+        return editor(parent, "appearance", "Appearance Settings", "Neutral dark surfaces, blue focus, corners and panel opacity.",
                 FeatureSettingsEditors::appearanceEntries, FeatureSettingsEditors::resetAppearance);
     }
 
@@ -140,22 +140,8 @@ public final class FeatureSettingsEditors {
 
     private static void appearanceEntries(FeatureSettingsEditorScreen.Category ignored,
                                           List<FeatureSettingsEditorScreen.Entry> entries) {
-        entries.add(new FeatureSettingsEditorScreen.Entry("Settings Theme", "Existing forest/cyan shell or deep Black & Blue.",
-                new AppleDropdown(AppleSettings.SETTINGS_THEME_NAMES, null, 132f, 24f,
-                        () -> AppleSettings.settingsTheme, value -> {
-                    AppleSettings.settingsTheme = Math.max(AppleSettings.SETTINGS_THEME_FOREST_CYAN,
-                            Math.min(AppleSettings.SETTINGS_THEME_BLACK_BLUE, value));
-                    Theme.refresh();
-                })));
-        entries.add(new FeatureSettingsEditorScreen.Entry("Appearance", "Dark or light base surface for the existing theme.",
-                new AppleDropdown(new String[]{"Dark", "Light"}, null, 132f, 24f,
-                        () -> AppleSettings.darkMode ? 0 : 1, value -> {
-                    AppleSettings.darkMode = value == 0;
-                    Theme.refresh();
-                })));
-        entries.add(new FeatureSettingsEditorScreen.Entry("Accent Color", "Selection, toggles and sliders.",
-                new AppleDropdown(AppleSettings.ACCENT_NAMES, AppleSettings.ACCENT_COLORS, 132f, 24f,
-                        () -> AppleSettings.accent, value -> { AppleSettings.accent = value; Theme.refresh(); })));
+        // Historic palette/accent keys remain loadable for compatibility, but this release deliberately has one
+        // neutral-dark, blue-accent visual system rather than a second set of selectable colour schemes.
         entries.add(new FeatureSettingsEditorScreen.Entry("Corner Radius", "Use the slider when enabled.",
                 new AppleToggle(() -> AppleSettings.cornerRadiusOn, value -> { AppleSettings.cornerRadiusOn = value; Theme.refresh(); })));
         entries.add(new FeatureSettingsEditorScreen.Entry("Corner Radius Value", "Roundness of panels and controls.",

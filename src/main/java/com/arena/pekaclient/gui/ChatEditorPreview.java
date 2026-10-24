@@ -114,7 +114,7 @@ final class ChatEditorPreview {
         float windowW = Math.max(12f, width - pad * 2f);
         float windowH = Math.max(12f, height - 24f);
         UIRender.roundRectBorder(windowX, windowY, windowW, windowH, 4f,
-                0x8A111822, 0x8A111822, Theme.border);
+                Theme.CHAT_PREVIEW_SURFACE, Theme.CHAT_PREVIEW_SURFACE, Theme.border);
         float inputY = windowY + windowH - 15f;
         float messageBottom = inputY - 4f;
         float lineH = Math.max(9f, font.FONT_HEIGHT * .82f + 1f);
@@ -129,9 +129,9 @@ final class ChatEditorPreview {
         }
         boolean hoveringSecond = contains(mouseX, mouseY, windowX + 6f, firstY + lineH, lineW, lineH);
         if (hoveringSecond) ChatSurfaceRenderer.drawHoverRow(windowX + 5f, firstY + lineH, lineW, lineH, 1f);
-        ChatSurfaceRenderer.drawMessageLine(font, LINE_ONE, windowX + 7f, firstY, 0xFFFFFF, 1f, .82f, true);
-        ChatSurfaceRenderer.drawMessageLine(font, LINE_TWO, windowX + 7f, firstY + lineH, 0xFFFFFF, 1f, .82f, true);
-        ChatSurfaceRenderer.drawMessageLine(font, LINE_THREE, windowX + 7f, firstY + lineH * 2f, 0xFFFFFF, 1f, .82f, true);
+        ChatSurfaceRenderer.drawMessageLine(font, LINE_ONE, windowX + 7f, firstY, (Theme.TEXT_PRIMARY & Theme.RGB_MASK), 1f, .82f, true);
+        ChatSurfaceRenderer.drawMessageLine(font, LINE_TWO, windowX + 7f, firstY + lineH, (Theme.TEXT_PRIMARY & Theme.RGB_MASK), 1f, .82f, true);
+        ChatSurfaceRenderer.drawMessageLine(font, LINE_THREE, windowX + 7f, firstY + lineH * 2f, (Theme.TEXT_PRIMARY & Theme.RGB_MASK), 1f, .82f, true);
 
         drawTestMessage(state, font, windowX + 7f, testY, nowNanos);
         state.lastLineX = windowX + 5f;
@@ -139,8 +139,8 @@ final class ChatEditorPreview {
         state.lastLineW = lineW;
         state.lastLineH = lineH;
 
-        UIRender.roundRect(windowX + 4f, inputY, windowW - 8f, 10f, 2f, 0xA1000000, 0xA1000000, .3f);
-        UIRender.text(font, "Type a chat message…", windowX + 8f, inputY + 2f, 0xFFAAB4C3, .68f, false);
+        UIRender.roundRect(windowX + 4f, inputY, windowW - 8f, 10f, 2f, Theme.CHAT_PREVIEW_INPUT, Theme.CHAT_PREVIEW_INPUT, .3f);
+        UIRender.text(font, "Type a chat message…", windowX + 8f, inputY + 2f, Theme.CHAT_PREVIEW_HINT, .68f, false);
         drawTabs(state, font, windowX, inputY - ChatTabLayout.HEIGHT - 2f, windowW, mouseX, mouseY);
         if (state.menuOpen) {
             state.menuHot = (int) ((mouseY - state.menuY - 2f) / 20f);
@@ -162,7 +162,7 @@ final class ChatEditorPreview {
             slide = (1f - eased) * 5f;
         }
         if (alpha > .002f) ChatSurfaceRenderer.drawMessageLine(font, "[Preview] New test message", x, y + slide,
-                0xFF86D9FF, alpha, .82f, true);
+                Theme.CHAT_PREVIEW_TAB, alpha, .82f, true);
     }
 
     private static void drawTabs(State state, FontRenderer font, float x, float y, float width, int mouseX, int mouseY) {

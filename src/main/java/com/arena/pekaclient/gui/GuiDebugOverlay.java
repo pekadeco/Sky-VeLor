@@ -1,5 +1,7 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.render.Theme;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
@@ -26,9 +28,9 @@ import java.util.List;
 public final class GuiDebugOverlay {
 
     private static final int MAX_ENTRIES = 900;
-    private static final int THIN_RED = 0xC8E83A3A;
-    private static final int HOT_RED = 0xFFFF1717;
-    private static final int HOT_FILL = 0x35FF1717;
+    private static final int THIN_RED = Theme.DEBUG_THIN;
+    private static final int HOT_RED = Theme.DEBUG_HOT;
+    private static final int HOT_FILL = Theme.DEBUG_FILL;
 
     private static final int LABEL = 0;
     private static final int ROW = 1;

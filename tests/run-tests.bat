@@ -32,6 +32,8 @@ call :run com.arena.pekaclient.gui.SettingsShellLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HomeMetricsLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HomeMetricHistoryTests || goto fail
 call :run com.arena.pekaclient.gui.SettingsSpacingLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.SettingsControlLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.HardcodedGuiColorTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
 call :run com.arena.pekaclient.gui.FeatureSettingsUiModelTests || goto fail
 call :run com.arena.pekaclient.gui.FarmingNavigationTests || goto fail

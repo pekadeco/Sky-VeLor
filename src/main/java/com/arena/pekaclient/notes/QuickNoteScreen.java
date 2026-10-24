@@ -3,6 +3,7 @@ package com.arena.pekaclient.notes;
 import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.gui.GuiLayoutToolkit;
+import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
 import java.io.IOException;
@@ -28,21 +29,21 @@ public final class QuickNoteScreen extends GuiScreen {
     private static final int BUTTON_DELETE_PAGE = 3;
     private static final int BUTTON_DONE = 4;
 
-    private static final int COLOR_PANEL = 0xF01B1B1D;
-    private static final int COLOR_BORDER = 0xFF8E8E96;
-    private static final int COLOR_BOX = 0xFF141416;
-    private static final int COLOR_BOX_BORDER = 0xFF6E6E76;
-    private static final int COLOR_TITLE = 0xFFF2F2F4;
-    private static final int COLOR_TEXT = 0xFFE8E8EB;
-    private static final int COLOR_HINT = 0xFF9A9AA2;
-    private static final int COLOR_SAVED = 0xFF8FD68F;
-    private static final int COLOR_PENDING = 0xFFE8C46A;
-    private static final int COLOR_CURSOR = 0xFFFFFFFF;
-    private static final int COLOR_SIDEBAR = 0xFF141416;
-    private static final int COLOR_SIDEBAR_BORDER = 0xFF6E6E76;
-    private static final int COLOR_ROW = 0xFF9A9AA2;
-    private static final int COLOR_ROW_SELECTED = 0xFF35D3D3;
-    private static final int COLOR_ROW_COUNT = 0xFF7F7F88;
+    private static final int COLOR_PANEL = Theme.NOTE_PANEL;
+    private static final int COLOR_BORDER = Theme.NOTE_BORDER;
+    private static final int COLOR_BOX = Theme.NOTE_BOX;
+    private static final int COLOR_BOX_BORDER = Theme.NOTE_BOX_BORDER;
+    private static final int COLOR_TITLE = Theme.NOTE_TITLE;
+    private static final int COLOR_TEXT = Theme.NOTE_TEXT;
+    private static final int COLOR_HINT = Theme.NOTE_HINT;
+    private static final int COLOR_SAVED = Theme.NOTE_SAVED;
+    private static final int COLOR_PENDING = Theme.NOTE_PENDING;
+    private static final int COLOR_CURSOR = Theme.NOTE_CURSOR;
+    private static final int COLOR_SIDEBAR = Theme.NOTE_SIDEBAR;
+    private static final int COLOR_SIDEBAR_BORDER = Theme.NOTE_SIDEBAR_BORDER;
+    private static final int COLOR_ROW = Theme.NOTE_ROW;
+    private static final int COLOR_ROW_SELECTED = Theme.NOTE_ROW_SELECTED;
+    private static final int COLOR_ROW_COUNT = Theme.NOTE_ROW_COUNT;
     private static final long AUTOSAVE_DELAY_MS = 700L;
 
     private final QuickNoteStore store;
@@ -307,7 +308,7 @@ public final class QuickNoteScreen extends GuiScreen {
             String clipped = font().trimStringToWidth(label, Math.max(1, sidebarWidth - 12));
             if (selected) {
                 Gui.drawRect(sidebarX() + 1, rowY - 1, sidebarX() + sidebarWidth - 1,
-                        rowY + rowHeight - 1, 0x5535D3D3);
+                        rowY + rowHeight - 1, UIRender.withAlpha(Theme.NOTE_ROW_SELECTED, .33f));
             }
             font().drawStringWithShadow(clipped, sidebarX() + 5, rowY,
                     selected ? COLOR_ROW_SELECTED : COLOR_ROW);

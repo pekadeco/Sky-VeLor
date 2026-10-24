@@ -7,6 +7,7 @@ import com.arena.pekaclient.feature.LeapIdentity;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.render.SkinHead;
+import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
@@ -80,9 +81,9 @@ public final class LeapScreen extends GuiScreen {
     private static final int CARD_HOVER = LeapPalette.CARD_HOVER_BACKGROUND;
     private static final int CARD_EDGE = LeapPalette.CARD_BORDER;
     private static final int CARD_SELECT_EDGE = LeapPalette.CARD_HOVER_BORDER;
-    private static final int HEAD_LETTER = 0xFF2C3E5C;
-    private static final int TEXT = 0xFFFFFFFF;
-    private static final int TEXT_DIM = 0xFFE0E0E0;
+    private static final int HEAD_LETTER = Theme.LEAP_HEAD_LETTER;
+    private static final int TEXT = Theme.TEXT_PRIMARY;
+    private static final int TEXT_DIM = Theme.LEAP_TEXT_DIM;
 
     /** Head states: unavailable skins immediately use a named fallback tile; ready skins use the real texture. */
     private static final int SKIN_UNAVAILABLE = 0;

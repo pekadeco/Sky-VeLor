@@ -15,9 +15,15 @@
 - Applied the shared 4/8/12/16 GUI-pixel spacing scale: 30 px full-rail and 28 px compact-rail destinations use exact
   4 px gaps; Profile is bottom-docked; cards/rows use 8 px gaps and 12 px padding; narrow settings and Home controls
   reflow to one column. `/velor layoutdebug` now registers clipped settings rail, Profile, card, row, and Home bounds.
-- Added scale-1–4 rail/reflow/no-overlap contracts, release-JAR package checks, and release documentation for the GUI
-  polish work. Updated display metadata, Forge metadata, build contract, documentation, and verifier examples to
-  `Beta-0.10.8.9.5.5v` / numeric `0.10.8.9.5.5`.
+- Replaced active selectable palette rendering with one neutral-dark Theme authority and a blue-only positive accent.
+  Existing `appearance.settingsTheme`, `darkMode`, and accent keys still load/save for old configuration compatibility,
+  but no visible selector or active Theme branch uses them.
+- Merged **Sky VeLor · Settings** into the header, made the lower strip search-only, narrowed the rail, and removed
+  READY/OPTIONAL chips, chevrons/count disclosures, and parent-row expanders. Children render directly under their
+  owners; right-side controls share a scale-tested alignment policy.
+- Added scale-1–4 rail/reflow/control-edge/no-overlap contracts, a scoped hardcoded-GUI-colour allowlist test, release
+  JAR package checks, and updated GUI documentation. Updated display metadata, Forge metadata, build contract,
+  documentation, and verifier examples to `Beta-0.10.8.9.5.5v` / numeric `0.10.8.9.5.5`.
 - **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input pass remains required for visual confirmation.
 
 ## Beta-0.10.8.9.5v — 2026-10-23

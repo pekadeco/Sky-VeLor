@@ -141,7 +141,7 @@ public final class AppleSlider extends Widget {
             UIRender.ring(end, cy, outer, Math.max(knobR + 0.4f, outer - 0.9f),
                     UIRender.withAlpha(Theme.accent, valuePulse * 0.24f));
         }
-        UIRender.circle(end, cy, knobR, active ? 0xFFFFFFFF : Theme.textTertiary);
+        UIRender.circle(end, cy, knobR, active ? Theme.CONTROL_KNOB : Theme.textTertiary);
         UIRender.circle(end, cy, knobR - 1.2f, active ? Theme.accent : Theme.track);
         if (showValue) {
             String text = labelFormatter == null ? value() + suffix : labelFormatter.apply(value());
@@ -154,7 +154,7 @@ public final class AppleSlider extends Widget {
         }
         if (!active) {
             UIRender.roundRect(x, y, w, h,
-                    GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, w, h), 0x24000000, 0x24000000, 0f);
+                    GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, w, h), Theme.SURFACE_DISABLED, Theme.SURFACE_DISABLED, 0f);
         }
         endAnimatedDraw();
     }

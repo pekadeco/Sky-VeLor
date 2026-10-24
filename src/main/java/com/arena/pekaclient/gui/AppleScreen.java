@@ -7,9 +7,8 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 
 /**
- * Shared base for every Apple-style screen (the settings hub and the HUD editor). The window buttons
- * are in {@link WindowDots}.
- * It holds the helpers both screens need, so the design system lives in one place.
+ * Shared base for every native settings/editor screen. It holds the helpers those screens need, so the design system
+ * stays in one place.
  */
 public abstract class AppleScreen extends GuiScreen {
 

@@ -2,15 +2,16 @@ package com.arena.pekaclient.render;
 
 import com.arena.pekaclient.config.AppleSettings;
 
-/** Checks legacy palettes and the persisted Black & Blue shell remain readable and distinct. */
+/** Headless contract for the one fixed neutral-dark/blue GUI theme and its compatibility boundary. */
 public final class ThemeTests {
 
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        existingThemePalettesRemainCompatible();
-        blackBlueThemeUsesTheCompleteDarkBluePalette();
+        fixedThemeIgnoresLegacyPaletteChoices();
+        geometryAndMotionAreCentralTokens();
+        semanticStatusColorsRemainPurposeBound();
         System.out.println();
         System.out.println("theme: passed " + passed + ", failed " + failed);
         if (failed > 0) {
@@ -18,55 +19,70 @@ public final class ThemeTests {
         }
     }
 
-    private static void existingThemePalettesRemainCompatible() {
-        AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_FOREST_CYAN;
+    private static void fixedThemeIgnoresLegacyPaletteChoices() {
         AppleSettings.glassOpacityOn = true;
-        AppleSettings.glassOpacity = AppleSettings.DEFAULT_GLASS_OPACITY;
-        AppleSettings.darkMode = true;
-        Theme.refresh();
-        check("dark panels use the established transparent default",
-                alpha(Theme.windowTop) == Math.round(AppleSettings.DEFAULT_GLASS_OPACITY * 2.55f));
-        check("dark cards remain translucent", alpha(Theme.card) < 255 && alpha(Theme.cardHover) < 255);
-        check("dark controls retain visible fills", alpha(Theme.buttonFill) > 0 && alpha(Theme.buttonHover) > 0);
-
+        AppleSettings.glassOpacity = 82;
+        AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_FOREST_CYAN;
         AppleSettings.darkMode = false;
+        AppleSettings.accent = 4;
         Theme.refresh();
-        check("light panel top is softer than white", rgb(Theme.windowTop) == 0xF1F1F5);
-        check("light panel bottom is soft gray", rgb(Theme.windowBottom) == 0xE8E8EF);
-        check("light panels reveal the world", alpha(Theme.windowTop) < 255);
-        check("light cards are translucent off-white", rgb(Theme.card) == 0xE8E8EE && alpha(Theme.card) < 255);
-        check("light hover remains modestly brighter", rgb(Theme.cardHover) == 0xF2F2F6
-                && alpha(Theme.cardHover) > alpha(Theme.card));
-        check("light buttons stay opaque and readable", alpha(Theme.buttonFill) == 255
-                && rgb(Theme.buttonFill) == 0xE5E5EA);
-        check("light popup avoids pure white", rgb(Theme.popup) == 0xF1F1F5);
-        check("light foreground retains dark contrast", Theme.textPrimary == 0xFF1C1C1E);
-    }
+        int top = Theme.windowTop;
+        int bottom = Theme.windowBottom;
+        int card = Theme.card;
+        int control = Theme.buttonFill;
 
-    private static void blackBlueThemeUsesTheCompleteDarkBluePalette() {
         AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_BLACK_BLUE;
-        AppleSettings.darkMode = false; // Black & Blue intentionally owns its near-black surfaces regardless of this legacy choice.
-        AppleSettings.glassOpacity = 90;
+        AppleSettings.darkMode = true;
+        AppleSettings.accent = 2;
         Theme.refresh();
-        check("Black & Blue has near-black window surfaces", rgb(Theme.windowTop) == 0x090E16
-                && rgb(Theme.windowBottom) == 0x05080D);
-        check("Black & Blue uses readable light text", Theme.textPrimary == 0xFFF2F7FF
-                && Theme.textSecondary == 0xFFB4C6D9 && Theme.textTertiary == 0xFF7894B0);
-        check("Black & Blue fixes a blue-cyan accent", Theme.accent == 0xFF28B9FF);
-        check("Black & Blue covers cards controls borders and popups", Theme.card == 0xFF0D1622
-                && Theme.buttonFill == 0xFF101C2B && Theme.border == 0xFF234C70 && Theme.popup == 0xFF0A121D);
-        check("reference shell uses the same persisted Black & Blue palette", referencePaletteMatchesBlackBlue());
 
-        // Leave static state in the default compatibility position for independently-run legacy tests.
+        check("legacy palette key does not fork the active window surface", Theme.windowTop == top
+                && Theme.windowBottom == bottom);
+        check("legacy palette key does not fork cards or controls", Theme.card == card && Theme.buttonFill == control);
+        check("one fixed positive accent is blue", Theme.accent == Theme.ACCENT_BLUE
+                && Theme.ACCENT_BLUE == 0xFF2F7DFF);
+        check("neutral dark token values drive resolved surfaces", rgb(Theme.windowTop) == Theme.SURFACE_TOP_RGB
+                && rgb(Theme.windowBottom) == Theme.SURFACE_BOTTOM_RGB && Theme.card == Theme.SURFACE_CARD
+                && Theme.buttonHover == Theme.SURFACE_CONTROL_HOVER);
+        check("allowed opacity preference still changes only window alpha", alpha(Theme.windowTop) == Math.round(82f * 2.55f));
+
+        // Leave static compatibility state at its normal defaults for independently-run suites.
         AppleSettings.settingsTheme = AppleSettings.DEFAULT_SETTINGS_THEME;
         AppleSettings.darkMode = true;
+        AppleSettings.accent = 0;
+        AppleSettings.glassOpacity = AppleSettings.DEFAULT_GLASS_OPACITY;
+        AppleSettings.glassOpacityOn = false;
         Theme.refresh();
     }
 
-    private static boolean referencePaletteMatchesBlackBlue() {
-        Theme.applyReferenceSettingsPalette();
-        return Theme.accent == 0xFF28B9FF && rgb(Theme.windowTop) == 0x090E16
-                && Theme.popup == 0xFF0A121D && Theme.textPrimary == 0xFFF2F7FF;
+    private static void geometryAndMotionAreCentralTokens() {
+        check("GuiStyle spacing is a Theme facade", GuiStyle.SPACE_4 == Theme.SPACE_4
+                && GuiStyle.SPACE_8 == Theme.SPACE_8 && GuiStyle.SPACE_12 == Theme.SPACE_12
+                && GuiStyle.SPACE_16 == Theme.SPACE_16);
+        check("GuiStyle radii are a Theme facade", GuiStyle.RADIUS_WINDOW == Theme.RADIUS_WINDOW
+                && GuiStyle.RADIUS_CARD == Theme.RADIUS_CARD && GuiStyle.RADIUS_BUTTON == Theme.RADIUS_BUTTON);
+        check("all visible motion durations stay in the subtle 120 to 180 ms range",
+                inRange(Theme.MOTION_HOVER_MS) && inRange(Theme.MOTION_PRESS_MS) && inRange(Theme.MOTION_TOGGLE_MS)
+                        && inRange(Theme.MOTION_TAB_MS) && inRange(Theme.MOTION_SLIDER_MS)
+                        && inRange(Theme.MOTION_PULSE_MS));
+        check("GuiMotion is a Theme timing facade", GuiMotion.HOVER_SETTLE_MS == Theme.MOTION_HOVER_MS
+                && GuiMotion.PRESS_SETTLE_MS == Theme.MOTION_PRESS_MS
+                && GuiMotion.TOGGLE_SETTLE_MS == Theme.MOTION_TOGGLE_MS
+                && GuiMotion.TAB_SETTLE_MS == Theme.MOTION_TAB_MS
+                && GuiMotion.SLIDER_SETTLE_MS == Theme.MOTION_SLIDER_MS
+                && GuiMotion.PULSE_SETTLE_MS == Theme.MOTION_PULSE_MS);
+    }
+
+    private static void semanticStatusColorsRemainPurposeBound() {
+        check("warnings and critical errors retain dedicated semantic tokens",
+                Theme.STATUS_WARNING != Theme.ACCENT_BLUE && Theme.STATUS_CRITICAL != Theme.ACCENT_BLUE
+                        && Theme.STATUS_UNAVAILABLE != Theme.ACCENT_BLUE);
+        check("shared utility surfaces are tokenized", Theme.NOTE_PANEL != 0 && Theme.LEAP_CARD != 0
+                && Theme.CHAT_PREVIEW_SURFACE != 0 && Theme.LOADING_BLUE != 0 && Theme.DEBUG_HOT != 0);
+    }
+
+    private static boolean inRange(int millis) {
+        return millis >= 120 && millis <= 180;
     }
 
     private static int alpha(int color) {
@@ -74,7 +90,7 @@ public final class ThemeTests {
     }
 
     private static int rgb(int color) {
-        return color & 0xFFFFFF;
+        return color & Theme.RGB_MASK;
     }
 
     private static void check(String name, boolean ok) {

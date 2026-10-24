@@ -1,6 +1,8 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.render.GuiMotion;
 import com.arena.pekaclient.render.GuiStyle;
+import com.arena.pekaclient.render.Theme;
 
 /**
  * The only geometry authority for Sky VeLor-owned settings/editor/chat panels. This class intentionally has no
@@ -118,9 +120,9 @@ public final class GuiLayoutToolkit {
         }
         public void update(float seconds, boolean smooth) {
             target = clamp(target, 0f, maximum);
-            if (!smooth) { value = target; return; }
-            float k = 1f - (float)Math.exp(-Math.max(0f, Math.min(.1f, seconds)) * 16f);
-            value += (target - value) * k;
+            if (!smooth || !Theme.animations) { value = target; return; }
+            // Scroll settling shares the same named 120–180 ms motion vocabulary as controls instead of a local rate.
+            value = GuiMotion.ease(value, target, seconds, true, Theme.MOTION_SLIDER_MS, Theme.speed);
             if (Math.abs(target - value) < .05f) value = target;
             value = clamp(value, 0f, maximum);
         }

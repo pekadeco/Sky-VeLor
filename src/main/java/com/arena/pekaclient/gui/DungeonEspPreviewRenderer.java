@@ -41,8 +41,8 @@ public final class DungeonEspPreviewRenderer {
         float centerX = x + width * .43f;
         float baseline = y + height * .72f;
         drawRotatingMobModel(category, centerX, baseline, modelScale, nowNanos,
-                style == null ? 0xFFFFFFFF : opaque(style.color));
-        drawBox(style, style == null ? 0xFFFFFF : style.color, x + width * .72f, y + height - 27f,
+                style == null ? Theme.OPAQUE_WHITE : opaque(style.color));
+        drawBox(style, style == null ? Theme.RGB_MASK : style.color, x + width * .72f, y + height - 27f,
                 Math.max(13f, Math.min(width * .12f, 26f)), entityHeight, 1.0f);
     }
 
@@ -59,11 +59,11 @@ public final class DungeonEspPreviewRenderer {
         float badgeW = contentWidth + 8f;
         float badgeX = x + Math.max(10f, Math.min(width - badgeW - 8f, width * .51f));
         float badgeY = y + 25f;
-        UIRender.roundRect(badgeX, badgeY, badgeW, 13f, 3f, 0xD8121215, 0xD8121215, 0f);
+        UIRender.roundRect(badgeX, badgeY, badgeW, 13f, 3f, Theme.TOOLTIP, Theme.TOOLTIP, 0f);
         UIRender.rect(badgeX + 2f, badgeY, Math.max(1f, badgeW - 4f), 1f, opaque(style.color));
         UIRender.text(font, title, badgeX + 4f, badgeY + 3f, opaque(style.color), .72f, true);
         if (distanceWidth > 0) {
-            UIRender.text(font, distance, badgeX + 4f + titleWidth + 4f, badgeY + 3f, 0xFFF2F2F7, .72f, true);
+            UIRender.text(font, distance, badgeX + 4f + titleWidth + 4f, badgeY + 3f, Theme.TEXT_PRIMARY, .72f, true);
         }
     }
 
@@ -87,7 +87,7 @@ public final class DungeonEspPreviewRenderer {
     /** Small category-heading preview sharing the actual ESP styled-box renderer. */
     public static void drawMobThumbnail(String category, DungeonEspSettings.Style style,
                                         float x, float y, float width, float height) {
-        drawBox(style, style == null ? 0xFFFFFF : style.color, x + width * .5f, y + height - 1f,
+        drawBox(style, style == null ? Theme.RGB_MASK : style.color, x + width * .5f, y + height - 1f,
                 Math.max(3f, Math.min(width * .48f, 8f)), mobHeight(category), 1.0f);
     }
 
@@ -185,7 +185,7 @@ public final class DungeonEspPreviewRenderer {
         GlStateManager.popMatrix();
     }
 
-    private static int opaque(int color) { return 0xFF000000 | (color & 0xFFFFFF); }
+    private static int opaque(int color) { return Theme.OPAQUE_BLACK | (color & Theme.RGB_MASK); }
 
     private static DungeonEspCategory displayCategory(String id) {
         if ("starred".equals(id) || "global".equals(id)) return DungeonEspCategory.STARRED;

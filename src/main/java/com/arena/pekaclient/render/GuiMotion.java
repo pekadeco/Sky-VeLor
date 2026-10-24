@@ -8,12 +8,12 @@ package com.arena.pekaclient.render;
  * a screen is closed. Callers pass whether their GUI is currently open; a closed GUI snaps to its resting value.</p>
  */
 public final class GuiMotion {
-    public static final int HOVER_SETTLE_MS = 140;
-    public static final int PRESS_SETTLE_MS = 120;
-    public static final int TOGGLE_SETTLE_MS = 150;
-    public static final int TAB_SETTLE_MS = 160;
-    public static final int SLIDER_SETTLE_MS = 150;
-    public static final int PULSE_SETTLE_MS = 150;
+    public static final int HOVER_SETTLE_MS = Theme.MOTION_HOVER_MS;
+    public static final int PRESS_SETTLE_MS = Theme.MOTION_PRESS_MS;
+    public static final int TOGGLE_SETTLE_MS = Theme.MOTION_TOGGLE_MS;
+    public static final int TAB_SETTLE_MS = Theme.MOTION_TAB_MS;
+    public static final int SLIDER_SETTLE_MS = Theme.MOTION_SLIDER_MS;
+    public static final int PULSE_SETTLE_MS = Theme.MOTION_PULSE_MS;
 
     private static final float LOG_TWENTY = 2.9957323f;
 

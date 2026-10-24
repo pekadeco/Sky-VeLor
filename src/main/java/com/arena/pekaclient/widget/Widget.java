@@ -186,7 +186,7 @@ public abstract class Widget {
     protected int mixAlpha(int color, float amount) {
         int alpha = color >>> 24;
         int next = Math.min(255, Math.max(0, Math.round(alpha * amount)));
-        return (next << 24) | (color & 0x00FFFFFF);
+        return (next << 24) | (color & Theme.RGB_MASK);
     }
 
     protected void drawBorder(float radius, int color) {

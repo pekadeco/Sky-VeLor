@@ -285,7 +285,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
             UIRender.roundRectBorder(panel.x, panel.y, panel.w, panel.h, Theme.radius,
                     Theme.windowTop, Theme.windowBottom, Theme.border);
             UIRender.rect(panel.x + 1f, panel.y + TITLE_H, panel.w - 2f, 1f, Theme.divider);
-            WindowDots.draw(panel.x + 16f, panel.y + 17f, mouseX, mouseY, 0b001, false);
+            FocusedHeaderCloseButton.draw(panel.x + 16f, panel.y + 17f, mouseX, mouseY);
 
             FontRenderer font = fr();
             UIRender.text(font, spec.title, panel.x + 42f, panel.y + 12.5f, Theme.textPrimary, 1.05f, false);
@@ -398,7 +398,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         UIRender.roundRect(tx, ty, tw, 20f, 10f, fill, fill, .4f);
         float knob = 16f;
         float knobX = enabled ? tx + tw - knob - 2f : tx + 2f;
-        UIRender.circle(knobX + knob * .5f, ty + 10f, knob * .5f, 0xFFFFFFFF);
+        UIRender.circle(knobX + knob * .5f, ty + 10f, knob * .5f, Theme.OPAQUE_WHITE);
     }
 
     /** Plain section-heading navigation; no nested tree/dropdowns are created here. */
@@ -531,7 +531,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         if (button != 0) return;
         if (handleOpenDropdownClick(mouseX, mouseY)) return;
         if (!panel.contains(mouseX, mouseY)) { backToParent(); return; }
-        if (WindowDots.hit(mouseX, mouseY, panel.x + 16f, panel.y + 17f, 0b001) == WindowDots.CLOSE) {
+        if (FocusedHeaderCloseButton.contains(mouseX, mouseY, panel.x + 16f, panel.y + 17f)) {
             backToParent();
             return;
         }

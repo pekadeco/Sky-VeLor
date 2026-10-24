@@ -203,7 +203,7 @@ public final class UIRender {
             return c;
         }
         int a = (int) (((c >>> 24) & 0xFF) * alphaMul);
-        return (a << 24) | (c & 0xFFFFFF);
+        return (a << 24) | (c & Theme.RGB_MASK);
     }
 
     public static int mix(int a, int b, float t) {
@@ -218,7 +218,7 @@ public final class UIRender {
     }
 
     public static int withAlpha(int c, float a) {
-        return (Math.round(clamp01(a) * 255f) << 24) | (c & 0xFFFFFF);
+        return (Math.round(clamp01(a) * 255f) << 24) | (c & Theme.RGB_MASK);
     }
 
     public static float clamp01(float v) {
@@ -428,9 +428,9 @@ public final class UIRender {
             int i0 = gradientAt(top, bottom, inner.y(point), gradientHeight);
             int i1 = gradientAt(top, bottom, inner.y(next), gradientHeight);
             int o1 = gradientAt(top, bottom, outer.y(next) - (outer.height - gradientHeight) * .5f,
-                    gradientHeight) & 0x00FFFFFF;
+                    gradientHeight) & Theme.RGB_MASK;
             int o0 = gradientAt(top, bottom, outer.y(point) - (outer.height - gradientHeight) * .5f,
-                    gradientHeight) & 0x00FFFFFF;
+                    gradientHeight) & Theme.RGB_MASK;
             vtx(wr, innerX + inner.x(point), innerY + inner.y(point), i0);
             vtx(wr, innerX + inner.x(next), innerY + inner.y(next), i1);
             vtx(wr, outerX + outer.x(next), outerY + outer.y(next), o1);
@@ -443,7 +443,7 @@ public final class UIRender {
     private static void drawSolidFeather(WorldRenderer wr, RoundedRectGeometry.Geometry inner, float innerX,
                                          float innerY, RoundedRectGeometry.Geometry outer, float outerX, float outerY,
                                          int color) {
-        int transparent = color & 0x00FFFFFF;
+        int transparent = color & Theme.RGB_MASK;
         for (int point = 0; point < inner.pointCount; point++) {
             int next = (point + 1) % inner.pointCount;
             vtx(wr, innerX + inner.x(point), innerY + inner.y(point), color);
@@ -464,7 +464,7 @@ public final class UIRender {
         if (!shadows) {
             return;
         }
-        roundRect(x - 2f, y + 3f, w + 4f, h + 4f, r + 2f, 0x40000000, 0x40000000, 9f);
+        roundRect(x - 2f, y + 3f, w + 4f, h + 4f, r + 2f, Theme.SHADOW, Theme.SHADOW, 9f);
     }
 
     public static void circle(float cx, float cy, float r, int color) {
@@ -652,9 +652,9 @@ public final class UIRender {
         float centerY = y + shape.height * .5f;
         for (int point = 0; point < shape.pointCount; point++) {
             int next = (point + 1) % shape.pointCount;
-            vtx(wr, centerX, centerY, 0xFFFFFFFF);
-            vtx(wr, x + shape.x(point), y + shape.y(point), 0xFFFFFFFF);
-            vtx(wr, x + shape.x(next), y + shape.y(next), 0xFFFFFFFF);
+            vtx(wr, centerX, centerY, Theme.OPAQUE_WHITE);
+            vtx(wr, x + shape.x(point), y + shape.y(point), Theme.OPAQUE_WHITE);
+            vtx(wr, x + shape.x(next), y + shape.y(next), Theme.OPAQUE_WHITE);
         }
         close();
     }

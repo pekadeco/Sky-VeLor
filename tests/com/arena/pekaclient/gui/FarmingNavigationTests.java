@@ -46,9 +46,10 @@ public final class FarmingNavigationTests {
         check("Visuals keeps HUD and Item Animation config routes",
                 ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
                         && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
-        check("Dungeon and System keys retain their existing destinations",
+        check("Dungeon and the retained System appearance keys retain their destinations",
                 ownerOf("terminal-assist") == ReferenceSettingsCatalog.Tab.DUNGEON
-                        && ownerOf("appearance-theme") == ReferenceSettingsCatalog.Tab.SYSTEM);
+                        && ownerOf("appearance-corners") == ReferenceSettingsCatalog.Tab.SYSTEM
+                        && ownerOf("appearance-opacity") == ReferenceSettingsCatalog.Tab.SYSTEM);
     }
 
     private static ReferenceSettingsCatalog.Tab ownerOf(String id) {

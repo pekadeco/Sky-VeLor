@@ -4,7 +4,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 
 ## Features
 
-- Settings hub and movable HUD editor with dark and light themes; click an on-screen HUD element to select it, including dimmed disabled placeholders.
+- Settings hub and movable HUD editor with one neutral-dark visual system and blue interaction accent; click an on-screen HUD element to select it, including dimmed disabled placeholders.
 - Smooth, frame-rate-independent UI motion: soft hover and press feedback, animated toggles and sliders, a sliding segmented selector, a gently appearing dropdown, and responsive search-field focus.
 - Rounded animated buttons in the main/pause menu and Quick Note screen, with distinct primary, secondary and destructive styles.
 - Spirit Leap teammate picker, class labels, player heads and isolated preview.
@@ -37,12 +37,18 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Made the main settings desktop smoother and draggable by its title bar. Shared bounded layout geometry keeps drawing,
   hit testing, scrolling, dropdowns, compact navigation, controls, resizing, larger/minimized modes, and a visible
   world border aligned after movement.
-- Added selectable persisted **Settings Theme** choices: existing **Forest & Cyan** or new **Black & Blue**. Black &
-  Blue applies near-black surfaces, blue/cyan accents, light readable text, and subtle borders/cards consistently to
-  the main shell, navigation, controls, dropdowns, popups, and focused settings surfaces.
+- One `Theme` token authority now supplies the neutral-dark surfaces, blue-only positive accent, semantic warning/
+  error states, type scale, 4/8/12/16 spacing, radii, shadow/dim layers, and 120–180 ms motion. Legacy
+  `appearance.settingsTheme`, `darkMode`, and accent values still load safely for configuration compatibility, but no
+  visible selector or active renderer branch uses them.
+- Merged the product title into the header as **Sky VeLor · Settings**, reduced the rail, and made the second strip a
+  compact search-only toolbar. Parent rows have direct child controls—no READY/OPTIONAL badges, chevrons, counts, or
+  expandable state—and all right-side controls share one alignment policy.
 - Hardened HUD Editor/HUD Hub Editor rendering cleanup. Shared GUI/OpenGL state, clipping, item/entity previews,
   element matrix/alpha, and editor hover flags now restore through exception-safe cleanup; returning parent settings
-  screens reapply their selected palette so repeated transitions do not retain a corrupted color/state.
+  screens reapply the fixed Theme so repeated transitions do not retain a corrupted color/state.
+- GUI renderer-facing hexadecimal colors are restricted by a standalone test to `render/Theme.java`; legacy
+  configuration palette arrays and feature-owned world/ESP colors remain outside that GUI rendering allowlist.
 - Kept **LIVE PERFORMANCE** as Home-only telemetry with equal FPS, Java-memory, and local-ping cards, a fixed
   twice-per-second history ring, value bars and sparklines. Removed all in-game FPS/memory/ping HUD registration,
   editor routes and defaults; legacy `fps-display.*`, `ping-display.*`, `memory-display.*`, and `stats.*` keys are

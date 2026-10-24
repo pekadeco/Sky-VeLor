@@ -576,24 +576,33 @@ def main():
     hud_manager_raw = raw_of('hud/HudManager')
     item_slots_raw = raw_of('hud/ItemSlots')
     category_shell_tokens = (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'No farming features yet', b'Visuals',
-                             b'System', b'Settings theme', b'Forest & Cyan', b'Black & Blue')
-    category_screen_tokens = (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'fullscreenWindow',
-                              b'window-fullscreen', b'window-close', b'roundedClipBegin', b'drawFarmingEmpty')
+                             b'System', b'Neutral dark surfaces', b'Corner radius', b'Panel opacity')
+    category_screen_tokens = (b'refreshReferenceTheme', b'windowOffsetX', b'fullscreenWindow',
+                              b'window-fullscreen', b'window-close', b'roundedClipBegin', b'drawFarmingEmpty',
+                              b'SettingsControlLayout', 'Sky VeLor · Settings'.encode('utf-8'))
+    # Old palette keys remain parsable/persistable for compatibility even though the active renderer deliberately
+    # ignores them in favour of the fixed neutral-dark / blue Theme.
     category_settings_tokens = (b'appearance.settingsTheme', b'SETTINGS_THEME_BLACK_BLUE', b'SETTINGS_THEME_FOREST_CYAN',
                                 b'settings.window.fullscreen')
-    missing_catalog = [value.decode('ascii') for value in category_shell_tokens if value not in reference_catalog_raw]
-    missing_screen = [value.decode('ascii') for value in category_screen_tokens if value not in settings_screen_raw]
-    missing_settings = [value.decode('ascii') for value in category_settings_tokens if value not in apple_settings_raw]
+    missing_catalog = [value.decode('utf-8') for value in category_shell_tokens if value not in reference_catalog_raw]
+    missing_screen = [value.decode('utf-8') for value in category_screen_tokens if value not in settings_screen_raw]
+    missing_settings = [value.decode('utf-8') for value in category_settings_tokens if value not in apple_settings_raw]
+    legacy_shell_clutter = (b'HIT_ADVANCED' in settings_screen_raw or b'Advanced settings shown' in settings_screen_raw
+                            or b'drawStateChip' in settings_screen_raw or b'drawChevron' in settings_screen_raw
+                            or b'expandedRows' in settings_screen_raw)
+    fixed_theme = (b'applyNeutralDark' in theme_raw and b'ACCENT_BLUE' in theme_raw
+                   and b'applyBlackBluePalette' not in theme_raw)
+    hidden_palette_selectors = (b'appearance-theme' not in reference_catalog_raw
+                                and b'appearance-accent' not in reference_catalog_raw
+                                and b'appearance-theme' not in settings_screen_raw
+                                and b'appearance-accent' not in settings_screen_raw)
     direct_category_shell = (not missing_catalog and not missing_screen and not missing_settings
-                             and b'HIT_ADVANCED' not in settings_screen_raw
-                             and b'Advanced settings shown' not in settings_screen_raw
-                             and b'applyBlackBluePalette' in theme_raw)
+                             and not legacy_shell_clutter and fixed_theme and hidden_palette_selectors)
     r.check(direct_category_shell,
-            'direct category shell removes the visible Advanced gate and persists Forest & Cyan or Black & Blue',
-            'missing catalog=%s screen=%s settings=%s legacyGate=%s themeHelper=%s' %
-            (missing_catalog, missing_screen, missing_settings,
-             b'HIT_ADVANCED' in settings_screen_raw or b'Advanced settings shown' in settings_screen_raw,
-             b'applyBlackBluePalette' in theme_raw))
+            'direct category shell uses one neutral-dark blue Theme with direct child controls and no visible palette selectors',
+            'missing catalog=%s screen=%s settings=%s clutter=%s fixedTheme=%s selectorsHidden=%s' %
+            (missing_catalog, missing_screen, missing_settings, legacy_shell_clutter, fixed_theme,
+             hidden_palette_selectors))
     r.check(all(value in settings_screen_raw for value in
                 (b'SettingsRailLayout', b'SettingsPageLayout', b'Settings rail', b'Settings card', b'Settings row'))
                 and all(value in rail_layout_raw for value in (b'ENTRY_HEIGHT', b'ENTRY_GAP', b'COMPACT_COLUMNS'))

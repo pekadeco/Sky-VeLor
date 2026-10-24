@@ -69,10 +69,16 @@ public final class FeatureSettingsUiModelTests {
         check("Item Animation retains inline sliders and reset", itemAnimation != null && itemAnimation.children.size() == 6
                 && "item-animation-size".equals(itemAnimation.children.get(0).id)
                 && "item-animation-reset".equals(itemAnimation.children.get(5).id));
-        ReferenceSettingsCatalog.Setting settingsTheme = ReferenceSettingsCatalog.find("appearance-theme");
-        check("Settings Theme exposes both persisted palette choices", settingsTheme != null
-                && settingsTheme.control == ReferenceSettingsCatalog.Control.CHOICE
-                && Arrays.equals(new String[]{"Forest & Cyan", "Black & Blue"}, settingsTheme.choices));
+        ReferenceSettingsCatalog.Setting corners = ReferenceSettingsCatalog.find("appearance-corners");
+        ReferenceSettingsCatalog.Setting opacity = ReferenceSettingsCatalog.find("appearance-opacity");
+        check("Appearance exposes only the retained geometry and opacity controls", corners != null && opacity != null
+                && corners.control == ReferenceSettingsCatalog.Control.SLIDER
+                && opacity.control == ReferenceSettingsCatalog.Control.SLIDER);
+        check("legacy palette, base-surface and accent selectors are absent from the visible catalog",
+                ReferenceSettingsCatalog.find("appearance-theme") == null
+                        && ReferenceSettingsCatalog.find("appearance") == null
+                        && ReferenceSettingsCatalog.find("appearance-accent") == null
+                        && !catalogUsesChoice());
     }
 
     private static void allCurrentRoutesRemainReachable() {
@@ -134,6 +140,18 @@ public final class FeatureSettingsUiModelTests {
                 && !screen.contains("window-red") && !screen.contains("DRAG TITLE BAR")
                 && "pekadeco".equals(AppleSettingsScreen.PROFILE_CREATOR)
                 && Arrays.equals(new String[]{"ii88w", "whiteShadow"}, AppleSettingsScreen.PROFILE_CONTRIBUTORS));
+        check("header owns the merged Settings title and a compact search-only toolbar", screen.contains("Sky VeLor · Settings")
+                && screen.contains("TOOLBAR_H") && !screen.contains("compactVersion"));
+        check("main rows use the shared right-control policy and have no chips or expanders",
+                screen.contains("SettingsControlLayout") && !screen.contains("drawStateChip")
+                        && !screen.contains("drawChevron") && !screen.contains("expandedRows")
+                        && !screen.contains("HIT_DISCLOSURE"));
+        check("palette selectors are not present in the main shell bytecode", !screen.contains("appearance-theme")
+                && !screen.contains("appearance-accent"));
+        String appearanceEditor = classText("com.arena.pekaclient.gui.FeatureSettingsEditors");
+        check("focused Appearance editor retains radius and opacity but not legacy selectors",
+                appearanceEditor.contains("Corner Radius") && appearanceEditor.contains("Panel Opacity")
+                        && !appearanceEditor.contains("Settings Theme") && !appearanceEditor.contains("Accent Color"));
     }
 
     private static void responsiveGeometryStaysBounded() {
@@ -152,6 +170,22 @@ public final class FeatureSettingsUiModelTests {
         List<String> names = new ArrayList<String>();
         for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(tab)) names.add(card.title);
         return names;
+    }
+
+    private static boolean catalogUsesChoice() {
+        for (ReferenceSettingsCatalog.Tab tab : ReferenceSettingsCatalog.TABS) {
+            for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(tab)) {
+                if (usesChoice(card.settings)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean usesChoice(List<ReferenceSettingsCatalog.Setting> settings) {
+        for (ReferenceSettingsCatalog.Setting setting : settings) {
+            if (setting.control == ReferenceSettingsCatalog.Control.CHOICE || usesChoice(setting.children)) return true;
+        }
+        return false;
     }
 
     private static ReferenceSettingsCatalog.Tab ownerOf(String id) {

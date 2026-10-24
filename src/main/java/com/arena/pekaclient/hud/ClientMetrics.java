@@ -1,5 +1,6 @@
 package com.arena.pekaclient.hud;
 
+import com.arena.pekaclient.render.Theme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.network.NetworkPlayerInfo;
@@ -11,11 +12,11 @@ import net.minecraft.client.network.NetworkPlayerInfo;
  */
 public final class ClientMetrics {
     public static final long REFRESH_MILLIS = 500L;
-    /** Blue is the neutral healthy state; accent green is intentionally not used by the polished shell. */
-    public static final int COLOR_GOOD = 0xFF0A84FF;
-    public static final int COLOR_WARN = 0xFFFFB347;
-    public static final int COLOR_BAD = 0xFFFF453A;
-    public static final int COLOR_UNKNOWN = 0xFF9AA6B5;
+    /** Blue is the neutral healthy state; warning/error colours are reserved for semantic status only. */
+    public static final int COLOR_GOOD = Theme.ACCENT_BLUE;
+    public static final int COLOR_WARN = Theme.STATUS_WARNING;
+    public static final int COLOR_BAD = Theme.STATUS_CRITICAL;
+    public static final int COLOR_UNKNOWN = Theme.STATUS_UNAVAILABLE;
 
     /** Fixed labels avoid an allocation while a live card is redrawn between two samples. */
     public enum Status {

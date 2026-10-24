@@ -496,7 +496,7 @@ public final class ChatEditorScreen extends AppleScreen {
         UIRender.text(fr(), "LIVE PREVIEW", previewX, y + 35f, Theme.textTertiary, .72f, false);
         if (tabStatus.length() > 0) {
             UIRender.text(fr(), fitActive(tabStatus, Math.max(1f, w - 24f), .64f), x + 12f, y + 24f,
-                    tabStatusError ? 0xFFFF453A : Theme.textTertiary, .64f, false);
+                    tabStatusError ? Theme.STATUS_CRITICAL : Theme.textTertiary, .64f, false);
         }
         UIRender.rect(x + 1f, y + 44f, w - 2f, 1f, Theme.divider);
         float scale = Minecraft.getMinecraft().gameSettings.guiScale == 0 ? 1f
@@ -651,14 +651,14 @@ public final class ChatEditorScreen extends AppleScreen {
         if (value.startsWith("0x") || value.startsWith("0X")) value = value.substring(2);
         try {
             int parsed = (int) Long.parseLong(value, 16);
-            return parsed >= 0 && parsed <= 0xFFFFFF ? Integer.valueOf(parsed) : null;
+            return parsed >= 0 && parsed <= Theme.RGB_MASK ? Integer.valueOf(parsed) : null;
         } catch (RuntimeException ignored) {
             return null;
         }
     }
 
     private static String colourText(int colour) {
-        String value = Integer.toHexString(colour & 0xFFFFFF).toUpperCase(java.util.Locale.ROOT);
+        String value = Integer.toHexString(colour & Theme.RGB_MASK).toUpperCase(java.util.Locale.ROOT);
         StringBuilder out = new StringBuilder("#");
         for (int i = value.length(); i < 6; i++) out.append('0');
         return out.append(value).toString();

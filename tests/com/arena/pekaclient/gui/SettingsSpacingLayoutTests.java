@@ -32,13 +32,13 @@ public final class SettingsSpacingLayoutTests {
             float screenH = 720f / scale;
             GuiLayoutToolkit.Rect panel = ReferenceSettingsWindowLayout.layout(new GuiLayoutToolkit.Rect(), screenW, screenH,
                     false);
-            float toolbar = panel.w < 360f ? 34f : (panel.w < 520f ? 65f : 43f);
+            float toolbar = 34f; // Stage B: title is in the header; the compact second strip is search-only.
             float bodyY = panel.y + SettingsShellLayout.HEADER_HEIGHT + toolbar;
             float bodyH = Math.max(1f, panel.h - SettingsShellLayout.HEADER_HEIGHT - toolbar);
             boolean compact = SettingsRailLayout.shouldCompact(panel.w, bodyH, 6);
             float railX = compact ? panel.x + GuiStyle.SPACE_4 : panel.x;
             float railY = compact ? bodyY + GuiStyle.SPACE_4 : bodyY;
-            float railW = compact ? panel.w - GuiStyle.SPACE_8 : Math.min(158f, Math.max(92f, panel.w * .25f));
+            float railW = compact ? panel.w - GuiStyle.SPACE_8 : Math.min(132f, Math.max(92f, panel.w * .21f));
             float railH = compact ? Math.max(1f, Math.min(bodyH - GuiStyle.SPACE_4, SettingsRailLayout.compactHeight(6))) : bodyH;
             SettingsRailLayout.Rail rail = new SettingsRailLayout.Rail(6);
             SettingsRailLayout.layout(rail, railX, railY, railW, railH, compact);

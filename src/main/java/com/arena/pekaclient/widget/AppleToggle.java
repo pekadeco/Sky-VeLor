@@ -41,7 +41,7 @@ public final class AppleToggle extends Widget {
         float state = initialized ? animatedOn : (value() ? 1f : 0f);
         int fill = UIRender.mix(Theme.track, Theme.accent, state);
         if (contains(mouseX, mouseY) && enabled) {
-            fill = UIRender.mix(fill, 0xFFFFFFFF, hoverAmount * 0.16f);
+            fill = UIRender.mix(fill, Theme.OPAQUE_WHITE, hoverAmount * 0.16f);
         }
         if (!enabled) {
             fill = UIRender.mix(fill, Theme.windowBottom, 0.45f);
@@ -62,7 +62,7 @@ public final class AppleToggle extends Widget {
                     UIRender.withAlpha(Theme.accent, clickPulse * 0.25f));
         }
         UIRender.circle(kx + knob * 0.5f, y + h * 0.5f, knob * 0.5f,
-                enabled ? 0xFFFFFFFF : 0xFFB4B4B8);
+                enabled ? Theme.OPAQUE_WHITE : Theme.TEXT_DISABLED);
         endAnimatedDraw();
     }
 

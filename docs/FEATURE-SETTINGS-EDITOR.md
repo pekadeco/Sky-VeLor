@@ -32,9 +32,10 @@ Hub surface.
   Home quick controls reflow to one column instead of overlapping icons, text, and controls.
 - `/velor layoutdebug` records the measured settings rail, card, row, Home quick-control, and Profile bounds. It is
   diagnostic-only and does not alter saved settings or layout behavior.
-- The toolbar contains product/version chrome and global **Search settings**. The visible **Advanced** button and its
-  reserved width were removed. Formerly Advanced-marked cards, child rows, and search results remain directly visible;
-  `Optional` is informational only and never filters a control.
+- The header owns the merged **Sky VeLor · Settings** title plus exactly the 24 px Fullscreen and Close icons. The
+  compact second strip is search-only. The visible **Advanced** button and its reserved width were removed; parent
+  child rows render directly below their owner with no READY/OPTIONAL badge, chevron/count disclosure, or expandable
+  state. Formerly Advanced-marked cards, child rows, and search results remain directly visible.
 - The whole shell is clipped to its one equal-radius rounded outer window; its nested scroll viewport owns wheel,
   Shift fine-wheel, touch/mouse drag, page, Home and End scrolling. A dedicated scrollbar gutter prevents thumb/text
   overlap, final cards have 12 px bottom padding, and a short edge fade marks clipped continuation. `Ctrl+F` or `/`
@@ -44,9 +45,9 @@ Hub surface.
   bars, and sparklines. They are the only FPS/memory/ping display; no in-game metric HUD is registered.
 - The rail **Profile** control opens a themed compact popup listing creator **pekadeco** and contributors **ii88w** and
   **whiteShadow**. Its X, Escape, and outside click close it.
-- **Settings Theme** persists either the established **Forest & Cyan** shell or **Black & Blue**. Black & Blue uses
-  near-black surfaces, blue/cyan accents, light text, subtle borders/cards, and the same palette in main controls,
-  navigation, dropdowns, popups, and focused settings editors.
+- `render/Theme.java` is the one token authority: neutral-dark surfaces, blue-only positive interaction accent,
+  semantic warning/error/unavailable states, type scale, 4/8/12/16 spacing, radii, shadows/dim layers, and
+  120–180 ms GUI motion. Visible Appearance controls intentionally retain only Corner radius and Panel opacity.
 
 ## Category ownership and current runtime routes
 
@@ -60,7 +61,7 @@ Hub surface.
 | Dungeon | Run tools / Floor VII / Highlights / Party sync | Existing Dungeon Map, terminal, Spirit Leap, M7, ESP, boss HUD and sync routes |
 | Farming | No farming features yet | Audited empty state only; no crop setting, counter, display, config key, or automation was fabricated |
 | Visuals | HUD Hub / Item Animation | Direct-canvas HUD Editor, Player Doll, Inventory HUD, Item Animation and focused routes |
-| System | Appearance / Performance / General | Settings Theme, legacy appearance sliders, performance and shared scrolling routes |
+| System | Appearance / Performance / General | Fixed Theme geometry/opacity controls, performance and shared scrolling routes |
 | System | Diagnostics / About | Command/sync diagnostics, version and client-side safety information |
 
 `ReferenceSettingsCatalog` is the immutable presentation inventory. It contains the rail/card order, search synonyms,
@@ -73,14 +74,15 @@ editor inventory for established ESP controls.
 Search uses each setting's id, label, description, keywords, and inline child copy. Results identify the owning
 rail/card while retaining the same live control and focused route. Existing owners remain authoritative:
 `AppleSettings`, `AssistSettings`, `ChatQolSettings`, `DungeonEspSettings`, `M7Settings`, `ItemLockSwapSettings`, and
-each HUD element. The additive `appearance.settingsTheme` key defaults missing legacy configurations to Forest & Cyan
-and bounds saved values to the two supported choices. `settings.window.fullscreen` persists only the shell mode; a
-missing old key safely opens the responsive small window.
+each HUD element. Historic `appearance.settingsTheme`, `darkMode`, and accent keys remain readable and bounded so old
+configuration files are not damaged; the active Theme deliberately ignores those legacy palette choices and renders
+one neutral-dark/blue system. `settings.window.fullscreen` persists only the shell mode; a missing old key safely opens
+the responsive small window.
 
-HUD Editor/HUD Hub Editor transitions preserve the selected palette and shared OpenGL/UI state:
+HUD Editor/HUD Hub Editor transitions preserve the fixed Theme and shared OpenGL/UI state:
 
-- The parent settings screen reapplies its reference palette in `initGui` and before every draw, so a returned child
-  cannot leave the parent on a generic or tinted palette.
+- The parent settings screen reapplies the fixed Theme in `initGui` and before every draw, so a returned child cannot
+  leave the parent on a generic or tinted palette.
 - `UIRender` has a neutral GUI restoration baseline. HUD frames, editor frames, scissor blocks, hovered-editor flags,
   element matrices/alpha, inventory-item passes, entity previews, and direct held-item previews use `finally` cleanup.
 - `HudManager`, `HudElement`, `ItemSlots`, `PlayerPreview`, and `HudEditorScreen` restore state even when a live
@@ -101,10 +103,15 @@ explicit saved choice.
   ignored, without enabling a replacement display.
 - Existing Dungeon ESP detection, entity filters, styles, cached doors, badges, and focused-editor live preview remain
   available through Dungeon → Highlights.
-- Headless contracts cover exact six-tab order, category/config-key ownership, ungated search/children, Farming's
-  searchable audited empty state, 4/8/12/16 spacing, scale-1–4 rail/header reachability/constant gaps/no-overlap,
-  one-column narrow reflow, rounded shell clip/gutter/final-padding geometry, Home metric format/unknown-ping/ring
-  bounds, Black & Blue persistence/palette, drag/clamp geometry, and rendered state-restoration contracts.
+- Headless contracts cover exact six-tab order, category/config-key ownership, ungated search/direct children,
+  Farming's searchable audited empty state, 4/8/12/16 spacing, scale-1–4 rail/header/control-edge reachability and
+  no-overlap, one-column narrow reflow, rounded shell clip/gutter/final-padding geometry, fixed Theme behavior,
+  absence of chips/expanders/palette selectors, Home metric format/unknown-ping/ring bounds, drag/clamp geometry, and
+  rendered state-restoration contracts.
+- `HardcodedGuiColorTests` scopes renderer-facing `gui`, `widget`, `notes`, `hud`, and `render` source. Its only
+  direct hexadecimal-colour allowlist entry is `render/Theme.java`. Configuration-owned legacy palette arrays are
+  intentionally outside that scan because they are load-compatibility data, not active GUI rendering; feature/world
+  colour values (for example configurable ESP styles) likewise remain outside this GUI-only boundary.
 
 The release workflow runs Java 8 Forge compilation/reobfuscation, the standalone test suite, release-JAR verification,
 and source-ZIP verification. These checks do **not** start Minecraft. Rendering, input feel, and gameplay remain **NOT
