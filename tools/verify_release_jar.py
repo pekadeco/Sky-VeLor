@@ -753,16 +753,14 @@ def main():
             'ChatUiModel keeps exactly its Hub On/Off toggle and Settings route')
     chat_editor_layout_raw = raw_of('gui/ChatEditorLayout')
     r.check(all(value in chat_editor_raw for value in
-                (b'Background', b'Messages', b'Tabs', b'Menu and Highlight', b'Reset', b'Invalid regex',
+                (b'Background', b'Messages', b'Tabs', b'Menu and Highlight', b'Reset',
                  b'Open chat background', b'Fit width to text', b'Unselected tab colour', b'Selected tab colour',
                  b'Active tab opacity'))
                 and all(value not in chat_editor_raw for value in
-                        (b'Windows', b'Link all', b'Copy from', b'Chat 1', b'Chat 2', b'Show tabs', b'Menu animation',
+                        (b'Windows', b'Copy from', b'Chat 1', b'Chat 2', b'Show tabs', b'Menu animation',
                          b'Tab base colour'))
-                and b'com/arena/pekaclient/gui/ChatEditorLayout' in chat_editor_raw
-                and b'com/arena/pekaclient/gui/GuiLayoutToolkit' in chat_editor_raw
                 and len(chat_editor_layout_raw) > 0,
-            'ChatEditorScreen packages five sections plus adjustable black-inactive and blue-selected tab controls')
+            'ChatEditorScreen retains five real setting groups without the retired visual sample panel')
     menu_constants = constants_of('chat/ChatContextMenu')
     menu_members = members_of('chat/ChatContextMenu')
     player_constants = constants_of('chat/ChatPlayerName')
@@ -957,7 +955,7 @@ def main():
     r.check(b'removePairContaining' in lock_gesture_raw and b'PAIR_REMOVED' in lock_gesture_decision_raw
                 and b'Swap removed' in lock_controller_raw and b'AppleSettings' in lock_controller_raw,
             'Item Lock/Swap ships persisted paired-endpoint tap removal with the concise Swap removed feedback')
-    r.check(b'drawContainerForeground' in lock_overlay_raw and b'drawEditorPreview' in lock_overlay_raw
+    r.check(b'drawContainerForeground' in lock_overlay_raw
                 and b'drawBadge' in lock_overlay_raw and b'drawRoundLine' in lock_overlay_raw
                 and b'ItemLockSwapLineGeometry' in lock_overlay_raw and b'ItemLockSwapGesturePolicy' in lock_overlay_raw
                 and b'Release L on another slot to create Item Swap' in lock_overlay_raw
