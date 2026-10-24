@@ -48,7 +48,7 @@ import java.util.function.Supplier;
  */
 public class AppleSettingsScreen extends AppleScreen {
 
-    static final String[] DESTINATION_NAMES = {"Home", "Quality of Life", "Mining", "Slayer", "Fishing", "Dungeon", "HUD Hub", "System"};
+    static final String[] DESTINATION_NAMES = {"Home", "Gameplay", "Dungeon", "Farming", "Visuals", "System"};
     static final String PROFILE_CREATOR = "pekadeco";
     static final String[] PROFILE_CONTRIBUTORS = {"ii88w", "whiteShadow"};
     private static final float CHROME_H = 17f;
@@ -70,7 +70,7 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final int HIT_ROUTE = 5;
     private static final int HIT_CHOICE = 6;
     private static final int HIT_HOME_TOGGLE = 7;
-    private static final int HIT_HOME_QUALITY_OF_LIFE = 8;
+    private static final int HIT_HOME_GAMEPLAY = 8;
     private static final int HIT_WINDOW_GREEN = 9;
     private static final int HIT_WINDOW_YELLOW = 10;
     private static final int HIT_WINDOW_RED = 11;
@@ -493,6 +493,8 @@ public class AppleSettingsScreen extends AppleScreen {
                 y = drawSearchResults(y, mouseInView ? mouseX : -10000, mouseInView ? mouseY : -10000);
             } else if (activeTab == ReferenceSettingsCatalog.Tab.HOME) {
                 y = drawHome(y, mouseInView ? mouseX : -10000, mouseInView ? mouseY : -10000);
+            } else if (activeTab == ReferenceSettingsCatalog.Tab.FARMING) {
+                y = drawFarmingEmpty(y);
             } else {
                 y = drawTab(y, mouseInView ? mouseX : -10000, mouseInView ? mouseY : -10000, activeTab);
             }
@@ -505,6 +507,7 @@ public class AppleSettingsScreen extends AppleScreen {
     private float measuredContentHeight() {
         if (!search.isEmpty()) return measureSearchResults();
         if (activeTab == ReferenceSettingsCatalog.Tab.HOME) return measureHome();
+        if (activeTab == ReferenceSettingsCatalog.Tab.FARMING) return fr().FONT_HEIGHT + 2f;
         return measureTab(activeTab);
     }
 
@@ -515,6 +518,12 @@ public class AppleSettingsScreen extends AppleScreen {
         float max = Math.max(1f, scroll.maximum());
         float y = viewport.y + 4f + (track - thumb) * (scroll.value() / max);
         UIRender.roundRect(viewport.right() - 3f, y, 2f, thumb, 1f, Theme.textTertiary, Theme.textTertiary, .5f);
+    }
+
+    /** This page deliberately has no card, control, placeholder setting or footer until a real farming owner exists. */
+    private float drawFarmingEmpty(float y) {
+        UIRender.text(fr(), "No farming features yet", contentX, y + 1f, Theme.textSecondary, 1f, false);
+        return y + fr().FONT_HEIGHT + 2f;
     }
 
     private float drawTab(float y, int mouseX, int mouseY, ReferenceSettingsCatalog.Tab tab) {
@@ -978,11 +987,11 @@ public class AppleSettingsScreen extends AppleScreen {
         y += 10f;
 
         UIRender.text(fr(), "QUICK CONTROLS", contentX, centeredTextY(y, 12f, .61f), Theme.textTertiary, .61f, false);
-        String allQualityOfLife = "all quality of life ->";
-        float allX = contentX + contentW - fr().getStringWidth(allQualityOfLife) * .61f;
-        UIRender.text(fr(), allQualityOfLife, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
-        registerHit("home-quality-of-life", HIT_HOME_QUALITY_OF_LIFE, allX - 2f, y - 1f,
-                fr().getStringWidth(allQualityOfLife) * .61f + 4f, 14f, null, "");
+        String allGameplay = "all gameplay ->";
+        float allX = contentX + contentW - fr().getStringWidth(allGameplay) * .61f;
+        UIRender.text(fr(), allGameplay, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
+        registerHit("home-gameplay", HIT_HOME_GAMEPLAY, allX - 2f, y - 1f,
+                fr().getStringWidth(allGameplay) * .61f + 4f, 14f, null, "");
         y += 13f;
 
         float gap = 6f;
@@ -1386,8 +1395,8 @@ public class AppleSettingsScreen extends AppleScreen {
             afterSettingChanged();
             return;
         }
-        if (hit.type == HIT_HOME_QUALITY_OF_LIFE) {
-            activeTab = ReferenceSettingsCatalog.Tab.QUALITY_OF_LIFE;
+        if (hit.type == HIT_HOME_GAMEPLAY) {
+            activeTab = ReferenceSettingsCatalog.Tab.GAMEPLAY;
             scroll.reset();
         }
     }
@@ -1439,7 +1448,7 @@ public class AppleSettingsScreen extends AppleScreen {
                 Theme.textPrimary, .72f, false);
     }
 
-    /** Compact profile information popover; it is intentionally not a sixth navigation destination. */
+    /** Compact profile information popover; it is intentionally not a seventh navigation destination. */
     private void drawProfilePopup() {
         if (!profileOpen || minimizedWindow) return;
         float popupW = Math.min(278f, Math.max(210f, panel.w - 24f));
@@ -1718,26 +1727,22 @@ public class AppleSettingsScreen extends AppleScreen {
             UIRender.line(x, y + 6f, x + 6f, y + 1f, 1.2f, color);
             UIRender.line(x + 6f, y + 1f, x + 12f, y + 6f, 1.2f, color);
             UIRender.rect(x + 2f, y + 6f, 8f, 6f, color);
-        } else if (tab == ReferenceSettingsCatalog.Tab.QUALITY_OF_LIFE) {
+        } else if (tab == ReferenceSettingsCatalog.Tab.GAMEPLAY) {
             UIRender.ring(x + 6f, y + 6f, 5f, 3.6f, color);
             UIRender.line(x + 6f, y + 6f, x + 10f, y + 3f, 1.2f, color);
-        } else if (tab == ReferenceSettingsCatalog.Tab.MINING) {
-            UIRender.line(x + 1f, y + 2f, x + 11f, y + 12f, 1.4f, color);
-            UIRender.line(x + 8f, y + 1f, x + 12f, y + 5f, 1.4f, color);
-            UIRender.line(x + 1f, y + 8f, x + 5f, y + 12f, 1.4f, color);
-        } else if (tab == ReferenceSettingsCatalog.Tab.SLAYER) {
-            UIRender.line(x + 2f, y + 11f, x + 10f, y + 3f, 1.7f, color);
-            UIRender.line(x + 7f, y + 2f, x + 11f, y + 6f, 1f, color);
-        } else if (tab == ReferenceSettingsCatalog.Tab.FISHING) {
-            UIRender.ring(x + 5f, y + 6f, 4.5f, 3.3f, color);
-            UIRender.triangle(x + 8f, y + 6f, x + 13f, y + 3f, x + 13f, y + 9f, color);
-            UIRender.circle(x + 4f, y + 5f, .8f, color);
         } else if (tab == ReferenceSettingsCatalog.Tab.DUNGEON) {
             UIRender.rect(x + 1f, y + 2f, 10f, 8f, UIRender.withAlpha(color, .38f));
-            UIRender.roundRectRing(x + 1f, y + 2f, 10f, 8f, 1f, 1f, color);
+            UIRender.roundRectRing(x + 1f, y + 2f, 10f, 8f, 1f, GuiStyle.OUTLINE, color);
             UIRender.line(x + 3f, y + 11f, x + 9f, y + 11f, 1f, color);
-        } else if (tab == ReferenceSettingsCatalog.Tab.HUD_HUB) {
-            UIRender.roundRectRing(x, y + 1f, 12f, 9f, 1f, 1f, color);
+        } else if (tab == ReferenceSettingsCatalog.Tab.FARMING) {
+            // Wheat/sprout: a stem plus two opposite leaves, recognizable without allocating a texture.
+            UIRender.line(x + 6f, y + 12f, x + 6f, y + 4f, 1.2f, color);
+            UIRender.line(x + 6f, y + 7f, x + 2f, y + 4f, 1.2f, color);
+            UIRender.line(x + 6f, y + 5f, x + 10f, y + 2f, 1.2f, color);
+            UIRender.circle(x + 2f, y + 4f, 1.7f, UIRender.withAlpha(color, .75f));
+            UIRender.circle(x + 10f, y + 2f, 1.7f, UIRender.withAlpha(color, .75f));
+        } else if (tab == ReferenceSettingsCatalog.Tab.VISUALS) {
+            UIRender.roundRectRing(x, y + 1f, 12f, 9f, 1f, GuiStyle.OUTLINE, color);
             UIRender.line(x + 4f, y + 12f, x + 8f, y + 12f, 1f, color);
         } else {
             UIRender.circle(x + 6f, y + 6f, 2f, color);

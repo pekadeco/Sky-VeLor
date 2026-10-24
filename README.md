@@ -21,13 +21,13 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Refined the existing native Forge desktop without replacing its identity, dependencies, saved settings, HUD Editor,
   HUD Hub Editor, Item Animation, Dungeon ESP, or established focused editors. No browser runtime, React dependency,
   GUI library, or unrelated feature was added.
-- Replaced the five-item rail with direct existing-setting destinations: **Home**, **Quality of Life**, **Mining**,
-  **Slayer**, **Fishing**, **Dungeon**, **HUD Hub**, and **System**. Mining, Slayer, and Fishing contain only their
-  existing relevant controls. No Farming tab is shown because this source has no real farming control; Mining Assistant
-  was not mislabelled or moved into Farming.
-- Renamed visible navigation consistently: **Gameplay** is now **Quality of Life** and **Visuals** is now **HUD Hub**.
-  Search and inline children remain reachable, including former Advanced-marked controls; the visible **Advanced**
-  button was removed and its toolbar space was reclaimed by search.
+- The direct six-tab rail is **Home**, **Gameplay**, **Dungeon**, **Farming**, **Visuals**, and **System**.
+  Gameplay groups the existing Comfort, Inventory, Chat, Shortcuts, Mining, Slayer, and Fishing cards; Visuals retains
+  HUD and Item Animation routes. Their configuration owners and keys are unchanged.
+- Farming follows Dungeon with a wheat/sprout icon and is searchable. The source audit found no genuine crop/farming
+  counter or display to move, so its page intentionally shows only **No farming features yet**. It adds no automation,
+  macro, clicker, block-breaking, or movement behavior. Search and inline children remain reachable, including former
+  Advanced-marked controls; the visible **Advanced** button was removed and its toolbar space was reclaimed by search.
 - Made the main settings desktop smoother and draggable by its title bar. Shared bounded layout geometry keeps drawing,
   hit testing, scrolling, dropdowns, compact navigation, controls, resizing, larger/minimized modes, and a visible
   world border aligned after movement.
@@ -108,7 +108,7 @@ The only JAR allowed in that source archive is the required Gradle wrapper.
 
 ## Item Lock and Item Swap
 
-Open **Quality of Life → Inventory → Item Lock and Swap → Open details**. The feature is on by default and uses **L** by default (the
+Open **Gameplay → Inventory → Item Lock and Swap → Open details**. The feature is on by default and uses **L** by default (the
 key can be rebound there or in Controls). Hover a player-inventory position **A**, press and hold the key, move the
 pointer to **B**, then release the key — no mouse click is part of pairing. Releasing over an **unpaired** A toggles
 that position lock at any hold duration; releasing over empty space cancels unchanged. Locks persist for hotbar `0–8`,
@@ -134,7 +134,7 @@ rather than implying protection.
 
 ## Item Animation Settings
 
-**Item Animation** is reached from **HUD Hub → Item Animation**; its master switch has inline size/tempo/offset controls and **Open Item Animation** keeps the established, non-draggable HUD-editor renderer panel available.
+**Item Animation** is reached from **Visuals → Item Animation**; its master switch has inline size/tempo/offset controls and **Open Item Animation** keeps the established, non-draggable HUD-editor renderer panel available.
 It provides live X/Y/Z offsets (stored in hundredths of a render unit, clamped to -150 through 150), Size
 (30–200%), and Animation Speed (25–400%). Every slider has a visible numeric value and a nearby exact-value field; Enter
 applies and saves a typed value. **Reset Item Animation** restores X/Y/Z to 0 and Size/Speed to 100%.

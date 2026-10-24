@@ -18,8 +18,8 @@ public final class QualityOfLifeUiModelTests {
         List<ChatUiModel.Entry> chat = ChatUiModel.buildQolModel();
         List<ItemAnimationUiModel.Entry> itemAnimation = ItemAnimationUiModel.buildQualityOfLifeModel();
 
-        check("Quality of Life retains the Comfort card",
-                "Comfort".equals(ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.QUALITY_OF_LIFE).get(0).title));
+        check("Gameplay retains the existing Comfort card",
+                "Comfort".equals(ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.GAMEPLAY).get(0).title));
         check("Comfort starts with direct toggle/slider controls", quality.size() == 4
                 && "no-block-particles".equals(quality.get(0).getId()) && quality.get(0).isToggle()
                 && "disable-hotbar-scrolling".equals(quality.get(1).getId())
@@ -29,9 +29,9 @@ public final class QualityOfLifeUiModelTests {
                 && "auto-sprint".equals(quality.get(3).getId()) && quality.get(3).isToggle()
                 && "Sprints automatically while you hold forward.".equals(quality.get(3).getDescription()));
         check("Comfort direct control ids are not duplicated", uniqueQualityIds(quality));
-        check("reference rail starts at Home then Quality of Life", AppleSettingsScreen.destinationNames().length == 8
+        check("reference rail starts at Home then Gameplay", AppleSettingsScreen.destinationNames().length == 6
                 && "Home".equals(AppleSettingsScreen.destinationNames()[0])
-                && "Quality of Life".equals(AppleSettingsScreen.destinationNames()[1]));
+                && "Gameplay".equals(AppleSettingsScreen.destinationNames()[1]));
         check("main settings shell has a rail rather than expandable section navigation",
                 AppleSettingsScreen.mainNavigationDepth() == 0);
 

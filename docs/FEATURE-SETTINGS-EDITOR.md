@@ -11,10 +11,12 @@ verifiers.
 button. `AppleHubScreen` remains only as a binary-compatible alias for an old caller and no longer renders a legacy
 Hub surface.
 
-- The direct rail order is **Home**, **Quality of Life**, **Mining**, **Slayer**, **Fishing**, **Dungeon**, **HUD Hub**,
-  **System**. Each destination is backed by existing settings or an existing focused editor.
-- No Farming destination is displayed: the repository has no genuine farming control. Mining Assistant controls remain
-  in **Mining**, rather than being relabelled or moved into an empty Farming placeholder.
+- The direct rail order is exactly **Home**, **Gameplay**, **Dungeon**, **Farming**, **Visuals**, **System**.
+  Gameplay and Visuals regroup existing presentation cards only; their setting ids, configuration owners, and focused
+  editors remain unchanged.
+- Farming follows Dungeon with a wheat/sprout rail glyph and is indexed by global search. The repository has no genuine
+  crop/farming control, counter, or display to move, so its page displays only **No farming features yet**. Mining
+  Assistant controls remain Mining functionality inside **Gameplay**; no farming automation is introduced.
 - Normal desktop mode starts centered at 85% of available width and 82% of available height until its fixed maximum.
   It can be dragged by the title bar; its offset is clamped to leave a visible world border. Green toggles
   normal/larger layout, yellow minimizes/restores a compact strip, red closes, and window/controls/hitboxes are all
@@ -39,15 +41,13 @@ Hub surface.
 | Rail destination | Card | Current visible routes and owner |
 | --- | --- | --- |
 | Home | Live Performance / Quick controls | Cached FPS, Java memory, ping; Sprint, Terminal, Chat, Hand quick toggles |
-| Quality of Life | Comfort | No Block Particles, hotbar-wheel guard, Hurt Camera Shake, Auto Sprint |
-| Quality of Life | Inventory | Item Lock and Swap plus badges/line route; Inventory Assist and its focused editor |
-| Quality of Life | Chat | Chat QoL master and inline controls; Chat Settings route |
-| Quality of Life | Shortcuts | Wardrobe/Pets focused route; directly visible optional controls |
-| Mining | Mining | Mining BPS, Mining Assistant, Puzzler and Mining HUD routes |
-| Slayer | Slayer | Slayer history, timer, pricing and Slayer HUD route |
-| Fishing | Fishing | Catch counter, Fishing HUD, Sea Creature HP, Jawbus and nearby encounter alerts |
+| Gameplay | Comfort | No Block Particles, hotbar-wheel guard, Hurt Camera Shake, Auto Sprint |
+| Gameplay | Inventory | Item Lock and Swap plus badges/line route; Inventory Assist and its focused editor |
+| Gameplay | Chat | Chat QoL master and inline controls; Chat Settings route |
+| Gameplay | Shortcuts / Mining / Slayer / Fishing | Existing shortcuts, Mining BPS/Assistant/Puzzler/HUD, Slayer routes, catch counter, Fishing HUD, Sea Creature HP, Jawbus and nearby encounter alerts |
 | Dungeon | Run tools / Floor VII / Highlights / Party sync | Existing Dungeon Map, terminal, Spirit Leap, M7, ESP, boss HUD and sync routes |
-| HUD Hub | HUD Hub / Item Animation | Direct-canvas HUD Editor, Stats Display, Player Doll, Inventory HUD, Item Animation and focused routes |
+| Farming | No farming features yet | Audited empty state only; no crop setting, counter, display, config key, or automation was fabricated |
+| Visuals | HUD Hub / Item Animation | Direct-canvas HUD Editor, Stats Display, Player Doll, Inventory HUD, Item Animation and focused routes |
 | System | Appearance / Performance / General | Settings Theme, legacy appearance sliders, performance and shared scrolling routes |
 | System | Diagnostics / About | Read-only client metrics, command/sync diagnostics, version and client-side safety information |
 
@@ -83,13 +83,13 @@ explicit saved choice.
 
 - The only restored **in-game** metric group is **Stats Display**: **FRAME RATE**, **MINING**, and **MEMORY**. The
   Home live-performance card is settings-only and does not replace it.
-- Stats Display remains opt-in on a fresh configuration. The **HUD Hub** card exposes visibility/editor routes, and the
-  HUD editor shows disabled elements as selectable faded placeholders.
+- Stats Display remains opt-in on a fresh configuration. The **Visuals** HUD card exposes visibility/editor routes, and
+  the HUD editor shows disabled elements as selectable faded placeholders.
 - Existing Dungeon ESP detection, entity filters, styles, cached doors, badges, and focused-editor live preview remain
   available through Dungeon → Highlights.
-- Headless contracts cover the direct rail/category ownership, ungated search/children, nonempty Mining/Slayer/Fishing
-  categories, absence of a fabricated Farming tab, Black & Blue persistence/palette, drag/clamp geometry, and rendered
-  state-restoration contracts.
+- Headless contracts cover exact six-tab order, category/config-key ownership, ungated search/children, Farming's
+  searchable audited empty state, Black & Blue persistence/palette, drag/clamp geometry, and rendered state-restoration
+  contracts.
 
 The release workflow runs Java 8 Forge compilation/reobfuscation, the standalone test suite, release-JAR verification,
 and source-ZIP verification. These checks do **not** start Minecraft. Rendering, input feel, and gameplay remain **NOT

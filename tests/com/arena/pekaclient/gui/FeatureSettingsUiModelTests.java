@@ -27,36 +27,40 @@ public final class FeatureSettingsUiModelTests {
     }
 
     private static void categoryRailContainsOnlyBackedDestinations() {
-        String[] expected = {"Home", "Quality of Life", "Mining", "Slayer", "Fishing", "Dungeon", "HUD Hub", "System"};
-        check("settings rail has the direct real-category destinations", Arrays.equals(expected,
+        String[] expected = {"Home", "Gameplay", "Dungeon", "Farming", "Visuals", "System"};
+        check("settings rail has the exact six requested destinations", Arrays.equals(expected,
                 AppleSettingsScreen.destinationNames()));
-        check("catalog tabs have the same direct destination order", ReferenceSettingsCatalog.TABS.length == expected.length
+        check("catalog tabs have the same exact destination order", ReferenceSettingsCatalog.TABS.length == expected.length
                 && ReferenceSettingsCatalog.TABS[0] == ReferenceSettingsCatalog.Tab.HOME
-                && ReferenceSettingsCatalog.TABS[1] == ReferenceSettingsCatalog.Tab.QUALITY_OF_LIFE
-                && ReferenceSettingsCatalog.TABS[2] == ReferenceSettingsCatalog.Tab.MINING
-                && ReferenceSettingsCatalog.TABS[3] == ReferenceSettingsCatalog.Tab.SLAYER
-                && ReferenceSettingsCatalog.TABS[4] == ReferenceSettingsCatalog.Tab.FISHING
-                && ReferenceSettingsCatalog.TABS[6] == ReferenceSettingsCatalog.Tab.HUD_HUB
-                && ReferenceSettingsCatalog.TABS[7] == ReferenceSettingsCatalog.Tab.SYSTEM);
+                && ReferenceSettingsCatalog.TABS[1] == ReferenceSettingsCatalog.Tab.GAMEPLAY
+                && ReferenceSettingsCatalog.TABS[2] == ReferenceSettingsCatalog.Tab.DUNGEON
+                && ReferenceSettingsCatalog.TABS[3] == ReferenceSettingsCatalog.Tab.FARMING
+                && ReferenceSettingsCatalog.TABS[4] == ReferenceSettingsCatalog.Tab.VISUALS
+                && ReferenceSettingsCatalog.TABS[5] == ReferenceSettingsCatalog.Tab.SYSTEM);
         check("Home catalog describes live performance rather than presets", ReferenceSettingsCatalog.Tab.HOME.caption
                 .contains("Live performance") && !ReferenceSettingsCatalog.Tab.HOME.caption.contains("Preset"));
         check("main shell is a rail, not retired expandable navigation", AppleSettingsScreen.mainNavigationDepth() == 0);
     }
 
     private static void categoryCardsKeepExistingControlsInTheirRealAreas() {
-        check("Quality of Life keeps Comfort, Inventory, Chat and Shortcuts", cardNames(ReferenceSettingsCatalog.Tab.QUALITY_OF_LIFE)
-                .equals(Arrays.asList("Comfort", "Inventory", "Chat", "Shortcuts")));
-        check("Mining is a nonempty existing-control category", cardNames(ReferenceSettingsCatalog.Tab.MINING)
-                .equals(Arrays.asList("Mining")) && ReferenceSettingsCatalog.find("mining-assistant-settings") != null
-                && ownerOf("mining-assistant-settings") == ReferenceSettingsCatalog.Tab.MINING);
-        check("Slayer is a nonempty existing-control category", cardNames(ReferenceSettingsCatalog.Tab.SLAYER)
-                .equals(Arrays.asList("Slayer")) && ownerOf("slayer-hud-route") == ReferenceSettingsCatalog.Tab.SLAYER);
-        check("Fishing is a nonempty existing-control category", cardNames(ReferenceSettingsCatalog.Tab.FISHING)
-                .equals(Arrays.asList("Fishing")) && ownerOf("fishing-hud-route") == ReferenceSettingsCatalog.Tab.FISHING);
-        check("HUD Hub owns HUD and Item Animation", cardNames(ReferenceSettingsCatalog.Tab.HUD_HUB)
+        check("Gameplay groups existing Comfort, Inventory, Chat, Shortcuts, Mining, Slayer and Fishing cards",
+                cardNames(ReferenceSettingsCatalog.Tab.GAMEPLAY).equals(Arrays.asList(
+                        "Comfort", "Inventory", "Chat", "Shortcuts", "Mining", "Slayer", "Fishing")));
+        check("Gameplay preserves existing mining, Slayer and fishing setting owners",
+                ownerOf("mining-assistant-settings") == ReferenceSettingsCatalog.Tab.GAMEPLAY
+                        && ownerOf("slayer-hud-route") == ReferenceSettingsCatalog.Tab.GAMEPLAY
+                        && ownerOf("fishing-hud-route") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
+        check("Farming is a deliberate empty page, not a fake configuration surface",
+                ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.FARMING).isEmpty()
+                        && ReferenceSettingsCatalog.find("farming-empty") == null);
+        List<ReferenceSettingsCatalog.Match> farming = ReferenceSettingsCatalog.search("farming");
+        check("Farming remains discoverable from settings search", farming.size() == 1
+                && farming.get(0).tab == ReferenceSettingsCatalog.Tab.FARMING
+                && "No farming features yet".equals(farming.get(0).setting.label));
+        check("Visuals owns the retained HUD and Item Animation cards", cardNames(ReferenceSettingsCatalog.Tab.VISUALS)
                 .equals(Arrays.asList("HUD Hub", "Item Animation"))
-                && ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.HUD_HUB
-                && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.HUD_HUB);
+                && ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
+                && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
         check("Dungeon has Run tools/Floor VII/Highlights/Party sync cards", cardNames(ReferenceSettingsCatalog.Tab.DUNGEON)
                 .equals(Arrays.asList("Run tools", "Floor VII", "Highlights", "Party sync")));
         check("System has Appearance through About cards", cardNames(ReferenceSettingsCatalog.Tab.SYSTEM)
@@ -69,7 +73,6 @@ public final class FeatureSettingsUiModelTests {
         check("Settings Theme exposes both persisted palette choices", settingsTheme != null
                 && settingsTheme.control == ReferenceSettingsCatalog.Control.CHOICE
                 && Arrays.equals(new String[]{"Forest & Cyan", "Black & Blue"}, settingsTheme.choices));
-        check("no empty Farming placeholder is fabricated without a real farm setting", !hasTabNamed("FARMING"));
     }
 
     private static void allCurrentRoutesRemainReachable() {

@@ -30,6 +30,7 @@ call :run com.arena.pekaclient.gui.GuiLayoutToolkitTests || goto fail
 call :run com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
 call :run com.arena.pekaclient.gui.FeatureSettingsUiModelTests || goto fail
+call :run com.arena.pekaclient.gui.FarmingNavigationTests || goto fail
 call :run com.arena.pekaclient.gui.ReleaseClaimsTests || goto fail
 call :run com.arena.pekaclient.chat.ClipboardChainTests || goto fail
 call :run com.arena.pekaclient.chat.ChatPlayerNameTests || goto fail

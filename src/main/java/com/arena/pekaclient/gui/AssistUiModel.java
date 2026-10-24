@@ -11,7 +11,7 @@ import java.util.List;
 public final class AssistUiModel {
 
     public static final String SECTION_QUALITY_OF_LIFE = "Quality of Life";
-    /** Mining Assistant is mining functionality; this model deliberately never claims a Farming surface exists. */
+    /** Mining Assistant remains mining functionality inside Gameplay; it is never reclassified as a crop feature. */
     public static final String SECTION_MINING = "Mining";
     public static final String SECTION_DUNGEON = "Dungeon";
     /** @deprecated The Hub has no tab strip; use {@link #SECTION_QUALITY_OF_LIFE}. */

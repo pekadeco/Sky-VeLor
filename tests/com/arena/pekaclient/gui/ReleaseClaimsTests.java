@@ -49,12 +49,14 @@ public final class ReleaseClaimsTests {
     }
 
     private static void referenceShellHasRequiredBehavior() {
-        String[] destinations = {"Home", "Quality of Life", "Mining", "Slayer", "Fishing", "Dungeon", "HUD Hub", "System"};
+        String[] destinations = {"Home", "Gameplay", "Dungeon", "Farming", "Visuals", "System"};
         check("reference shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
         check("reference screen class is packaged", classExists("com.arena.pekaclient.gui.AppleSettingsScreen"));
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
         check("screen has global search without an Advanced-button state", screen.contains("Search settings")
                 && !screen.contains("Advanced settings shown") && !screen.contains("Advanced settings hidden"));
+        check("Farming page packages its audited empty-state message and rail destination",
+                screen.contains("No farming features yet") && screen.contains("FARMING"));
         check("screen uses one clipped settings viewport", screen.contains("scissorBegin")
                 && screen.contains("GuiLayoutToolkit$Scroll"));
         check("screen packages title-bar drag and Black and Blue theme ownership", screen.contains("DRAG TITLE BAR")

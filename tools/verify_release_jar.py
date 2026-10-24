@@ -567,9 +567,10 @@ def main():
     hud_element_raw = raw_of('hud/HudElement')
     hud_manager_raw = raw_of('hud/HudManager')
     item_slots_raw = raw_of('hud/ItemSlots')
-    category_shell_tokens = (b'Quality of Life', b'Mining', b'Slayer', b'Fishing', b'HUD Hub', b'Settings theme',
-                             b'Forest & Cyan', b'Black & Blue')
-    category_screen_tokens = (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'DRAG TITLE BAR')
+    category_shell_tokens = (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'No farming features yet', b'Visuals',
+                             b'System', b'Settings theme', b'Forest & Cyan', b'Black & Blue')
+    category_screen_tokens = (b'appearance-theme', b'refreshReferenceTheme', b'windowOffsetX', b'DRAG TITLE BAR',
+                              b'drawFarmingEmpty')
     category_settings_tokens = (b'appearance.settingsTheme', b'SETTINGS_THEME_BLACK_BLUE', b'SETTINGS_THEME_FOREST_CYAN')
     missing_catalog = [value.decode('ascii') for value in category_shell_tokens if value not in reference_catalog_raw]
     missing_screen = [value.decode('ascii') for value in category_screen_tokens if value not in settings_screen_raw]
@@ -653,7 +654,7 @@ def main():
                 and all(value in flat_model_raw for value in
                         (b'simple', b'slider', b'editor-route', b'editor-button'))
                 and all(value in settings_surface_raw for value in
-                        (b'Home', b'Quality of Life', b'Mining', b'Slayer', b'Fishing', b'Dungeon', b'HUD Hub', b'System',
+                        (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'No farming features yet', b'Visuals', b'System',
                          b'HUD Editor', b'Stats Display'))
                 and b'Item Animation' in raw_of('gui/ItemAnimationUiModel')
                 and b'Stats Display' in raw_of('gui/GuiSettingsAuditModel')

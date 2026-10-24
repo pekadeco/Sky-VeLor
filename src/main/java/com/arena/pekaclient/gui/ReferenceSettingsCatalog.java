@@ -11,19 +11,19 @@ import java.util.Locale;
  *
  * <p>The catalog deliberately describes presentation only: ids resolve to the existing Sky VeLor configuration
  * owners and focused editors in {@link AppleSettingsScreen}. It never introduces a second persistence schema.
- * Home is an aggregate/live-summary surface; Quality of Life, Mining, Slayer, Fishing, Dungeon, HUD Hub and System
- * are direct destinations. Cards and inline detail rows keep every existing route visible without a second gate.</p>
+ * Home is an aggregate/live-summary surface; Gameplay groups existing comfort, mining, Slayer and fishing cards,
+ * Dungeon and Visuals retain their real routes, and System owns appearance. Farming is intentionally empty unless
+ * a genuine crop/farming owner exists. Cards and inline detail rows keep every existing route visible without a
+ * second gate.</p>
  */
 public final class ReferenceSettingsCatalog {
 
     public enum Tab {
         HOME("Home", "Live performance and the handful of switches you touch most."),
-        QUALITY_OF_LIFE("Quality of Life", "Comfort, inventory, chat and optional shortcuts for everyday play."),
-        MINING("Mining", "Mining readouts and the existing local mining assistant controls."),
-        SLAYER("Slayer", "Local Slayer history, timer, pricing and HUD controls."),
-        FISHING("Fishing", "Existing counters, creature readouts and local encounter alerts."),
+        GAMEPLAY("Gameplay", "Existing comfort, mining, Slayer and fishing controls in one direct channel."),
         DUNGEON("Dungeon", "Everything that should only be alive inside Catacombs."),
-        HUD_HUB("HUD Hub", "Movable HUD elements and first-person Item Animation controls."),
+        FARMING("Farming", "No farming features yet"),
+        VISUALS("Visuals", "Movable HUD elements and first-person Item Animation controls."),
         SYSTEM("System", "Appearance, performance and the settings you rarely need.");
 
         public final String label;
@@ -127,7 +127,7 @@ public final class ReferenceSettingsCatalog {
         }
     }
 
-    /** Native destination order; each category is backed by an existing settings owner. */
+    /** Native destination order; Farming is the deliberate audited empty-state exception. */
     public static final Tab[] TABS = Tab.values();
 
     /**
@@ -314,6 +314,15 @@ public final class ReferenceSettingsCatalog {
                                     "reset hand", true, "Reset")))
     );
 
+    /** Gameplay only reorganizes existing presentation cards; every setting id and configuration owner stays intact. */
+    private static final List<Card> GAMEPLAY = merge(QUALITY_OF_LIFE, MINING, SLAYER, FISHING);
+    /** Audit result: this source tree has no crop/farming counter, display or configuration owner to move. */
+    private static final List<Card> FARMING = Collections.emptyList();
+    private static final List<Card> VISUALS = HUD_HUB;
+    /** Search can discover the deliberate empty Farming page without creating a fake persisted setting. */
+    private static final Setting FARMING_SEARCH_RESULT = info("farming-empty", "No farming features yet", "", "farming crop wheat sprout");
+    private static final Card FARMING_SEARCH_CARD = card("farming-empty", "Farming", "", false, "", FARMING_SEARCH_RESULT);
+
     private static final List<Card> SYSTEM = cards(
             card("appearance", "Appearance", "The Apple surfaces: theme, glass, corners, accent and density.", false, "",
                     choice("appearance-theme", "Settings theme", "Keep the existing forest/cyan surfaces, or use deep black with blue and cyan accents.",
@@ -363,12 +372,10 @@ public final class ReferenceSettingsCatalog {
     public static List<Card> cards(Tab tab) {
         if (tab == null) return HOME;
         switch (tab) {
-            case QUALITY_OF_LIFE: return QUALITY_OF_LIFE;
-            case MINING: return MINING;
-            case SLAYER: return SLAYER;
-            case FISHING: return FISHING;
+            case GAMEPLAY: return GAMEPLAY;
             case DUNGEON: return DUNGEON;
-            case HUD_HUB: return HUD_HUB;
+            case FARMING: return FARMING;
+            case VISUALS: return VISUALS;
             case SYSTEM: return SYSTEM;
             default: return HOME;
         }
@@ -405,6 +412,11 @@ public final class ReferenceSettingsCatalog {
         List<Match> matches = new ArrayList<Match>();
         for (Tab tab : TABS) {
             if (tab == Tab.HOME) continue;
+            if (tab == Tab.FARMING) {
+                // A search hit exposes the real empty state but does not manufacture a control or configuration key.
+                if (matches(FARMING_SEARCH_RESULT, query)) matches.add(new Match(tab, FARMING_SEARCH_CARD, FARMING_SEARCH_RESULT));
+                continue;
+            }
             for (Card card : cards(tab)) {
                 for (Setting setting : card.settings) {
                     if (matches(setting, query)) matches.add(new Match(tab, card, setting));
@@ -482,6 +494,15 @@ public final class ReferenceSettingsCatalog {
 
     private static Setting info(String id, String label, String description, String keywords) {
         return new Setting(id, label, description, keywords, Control.INFO, false, "", 0, 0, 0, "", null);
+    }
+
+    /** Combines immutable presentation groups once at class load; it never copies or changes a setting owner. */
+    private static List<Card> merge(List<Card>... groups) {
+        List<Card> merged = new ArrayList<Card>();
+        if (groups != null) {
+            for (List<Card> group : groups) if (group != null) merged.addAll(group);
+        }
+        return Collections.unmodifiableList(merged);
     }
 
     private static List<Card> cards(Card... cards) {
