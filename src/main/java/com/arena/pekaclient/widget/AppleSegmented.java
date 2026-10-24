@@ -1,5 +1,7 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -39,14 +41,14 @@ public final class AppleSegmented extends Widget {
             displayedIndex = target;
             indexInitialized = true;
         } else {
-            displayedIndex = approach(displayedIndex, target, dt, 20f);
+            displayedIndex = ease(displayedIndex, target, dt, GuiMotion.TAB_SETTLE_MS);
         }
     }
 
     @Override
     public void draw(int mouseX, int mouseY) {
         beginAnimatedDraw(0.02f, 0.035f, 0.018f);
-        float radius = Math.min(Theme.radius * 0.6f, h * 0.5f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, Theme.buttonFill, Theme.buttonFill, 0.4f);
         if (options.length == 0) {
             drawBorder(radius, Theme.border);

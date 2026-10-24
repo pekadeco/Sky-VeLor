@@ -1,5 +1,7 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import org.lwjgl.input.Keyboard;
@@ -91,9 +93,10 @@ public final class AppleSlider extends Widget {
             displayedFraction = target;
             fractionInitialized = true;
         } else {
-            displayedFraction = approach(displayedFraction, target, dt, pressed ? 42f : 18f);
+            displayedFraction = ease(displayedFraction, target, dt,
+                    pressed ? GuiMotion.PRESS_SETTLE_MS : GuiMotion.SLIDER_SETTLE_MS);
         }
-        valuePulse = approach(valuePulse, 0f, dt, 9f);
+        valuePulse = ease(valuePulse, 0f, dt, GuiMotion.PULSE_SETTLE_MS);
     }
 
     private void setFromX(float px) {
@@ -130,10 +133,10 @@ public final class AppleSlider extends Widget {
         UIRender.roundRect(trackLeft, cy - radius, Math.max(0f, end - trackLeft), radius * 2f, radius,
                 active ? Theme.accent : Theme.textTertiary,
                 active ? Theme.accent : Theme.textTertiary, 0.4f);
-        float animatedHover = Theme.animations && active ? hoverAmount : 0f;
-        float animatedValue = Theme.animations ? valuePulse : 0f;
+        float animatedHover = animationsActive() && active ? hoverAmount : 0f;
+        float animatedValue = animationsActive() ? valuePulse : 0f;
         float knobR = 4f + animatedHover * 0.35f + animatedValue * 0.45f;
-        if (active && Theme.animations && valuePulse > 0.015f) {
+        if (active && animationsActive() && valuePulse > 0.015f) {
             float outer = knobR + 1.1f + (1f - valuePulse) * 1.1f;
             UIRender.ring(end, cy, outer, Math.max(knobR + 0.4f, outer - 0.9f),
                     UIRender.withAlpha(Theme.accent, valuePulse * 0.24f));
@@ -150,7 +153,8 @@ public final class AppleSlider extends Widget {
                     y + Math.max(0f, (h - textHeight() * .8f) * .15f), color, 0.8f, false);
         }
         if (!active) {
-            UIRender.roundRect(x, y, w, h, 4f, 0x24000000, 0x24000000, 0f);
+            UIRender.roundRect(x, y, w, h,
+                    GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, w, h), 0x24000000, 0x24000000, 0f);
         }
         endAnimatedDraw();
     }

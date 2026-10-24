@@ -1,5 +1,6 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -26,7 +27,7 @@ public final class AppleButton extends Widget {
             fill = UIRender.mix(fill, Theme.windowBottom, 0.45f);
         }
 
-        float radius = Math.min(Theme.radius * 0.65f, h * 0.5f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_BUTTON, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.5f);
         if (!primary) {
             drawBorder(radius, Theme.border);

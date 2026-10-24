@@ -1,5 +1,6 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import org.lwjgl.input.Keyboard;
@@ -34,7 +35,7 @@ public final class AppleKeybindButton extends Widget {
     public void draw(int mouseX, int mouseY) {
         beginAnimatedDraw(0.02f, 0.035f, 0.018f);
         int fill = UIRender.mix(Theme.buttonFill, Theme.buttonHover, hovered && enabled ? 0.55f : 0f);
-        float radius = Math.min(Theme.radius * 0.6f, h * 0.5f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.4f);
         String label;
         int color;

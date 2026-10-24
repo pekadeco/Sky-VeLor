@@ -16,23 +16,13 @@ import org.lwjgl.opengl.GL11;
  * scissor). No shaders, FBOs, VBOs, stencil or extensions, so it runs on desktop GL
  * and on Android launchers such as PojavLauncher (GL4ES).
  *
- * Rounded shapes are triangle fans with a 1-px analytic feather for anti-aliasing.
- * All scratch buffers are static, so drawing does not allocate.
+ * Rounded shapes use cached triangle-fan perimeters with a one-GUI-pixel analytic feather for anti-aliasing.
+ * Geometry is allocated only on a bounded cache miss, never in a warmed render loop.
  */
 public final class UIRender {
 
-    public static final int MAX_SEG = 8;
-    private static final int MAX_POINTS = 4 * (MAX_SEG + 1);
-
-    /** Unit-circle vectors per corner, precomputed for every segment count. */
-    private static final float[][] UX = new float[MAX_SEG + 1][];
-    private static final float[][] UY = new float[MAX_SEG + 1][];
-
-    private static final float[] PX = new float[MAX_POINTS];
-    private static final float[] PY = new float[MAX_POINTS];
-    private static final float[] QX = new float[MAX_POINTS];
-    private static final float[] QY = new float[MAX_POINTS];
-    private static final int[] PC = new int[MAX_POINTS];
+    /** Compatibility quality ceiling; cached rounded geometry owns the actual precomputed arc points. */
+    public static final int MAX_SEG = RoundedRectGeometry.MAX_SEGMENTS;
 
     /** Global opacity multiplier for everything drawn (used for fades). */
     public static float alphaMul = 1f;
@@ -47,21 +37,6 @@ public final class UIRender {
     private static int frameDepth;
     private static final float[] SAVED_ALPHA = new float[8];
     private static final boolean[] SAVED_BATCH_MODE = new boolean[8];
-
-    static {
-        for (int s = 1; s <= MAX_SEG; s++) {
-            int n = 4 * (s + 1);
-            UX[s] = new float[n];
-            UY[s] = new float[n];
-            for (int g = 0; g < 4; g++) {
-                for (int i = 0; i <= s; i++) {
-                    double a = Math.toRadians(180.0 + 90.0 * g + 90.0 * i / s);
-                    UX[s][g * (s + 1) + i] = (float) Math.cos(a);
-                    UY[s][g * (s + 1) + i] = (float) Math.sin(a);
-                }
-            }
-        }
-    }
 
     private UIRender() {
     }
@@ -277,131 +252,177 @@ public final class UIRender {
     }
 
     /**
-     * Anti-aliased rounded rectangle with a vertical gradient (top to bottom).
-     * @param feather width in pixels of the soft edge; 0 for hard edges. Also used for shadows.
+     * Compatibility facade for a uniformly rounded, vertically shaded surface. The shared renderer always applies
+     * the one-GUI-pixel fringe to non-square corners; a larger caller feather remains useful for shadows.
      */
     public static void roundRect(float x, float y, float w, float h, float r,
                                  int top, int bottom, float feather) {
-        if (w <= 0f || h <= 0f) {
-            return;
-        }
-        int t = col(top);
-        int b = col(bottom);
-        if (((t | b) >>> 24) == 0) {
-            return;
-        }
-        float maxR = Math.min(w, h) * 0.5f;
-        if (r > maxR) {
-            r = maxR;
-        }
-        if (r < 0f) {
-            r = 0f;
-        }
-        int s = segmentsFor(r);
-        int per = s + 1;
-        int m = 4 * per;
-        float[] ux = UX[s];
-        float[] uy = UY[s];
-        float invH = 1f / h;
-        boolean f = feather > 0f;
-
-        for (int k = 0; k < m; k++) {
-            int g = k / per;
-            float ccx = (g == 0 || g == 3) ? x + r : x + w - r;
-            float ccy = (g < 2) ? y + r : y + h - r;
-            float px = ccx + r * ux[k];
-            float py = ccy + r * uy[k];
-            PX[k] = px;
-            PY[k] = py;
-            PC[k] = mix(t, b, (py - y) * invH);
-            if (f) {
-                float rr = r + feather;
-                QX[k] = ccx + rr * ux[k];
-                QY[k] = ccy + rr * uy[k];
-            }
-        }
-
-        float cx = x + w * 0.5f;
-        float cy = y + h * 0.5f;
-        int cc = mix(t, b, 0.5f);
-        WorldRenderer wr = open();
-        for (int k = 0; k < m; k++) {
-            int k2 = (k + 1) % m;
-            vtx(wr, cx, cy, cc);
-            vtx(wr, PX[k], PY[k], PC[k]);
-            vtx(wr, PX[k2], PY[k2], PC[k2]);
-        }
-        if (f) {
-            for (int k = 0; k < m; k++) {
-                int k2 = (k + 1) % m;
-                int z0 = PC[k] & 0x00FFFFFF;
-                int z2 = PC[k2] & 0x00FFFFFF;
-                vtx(wr, PX[k], PY[k], PC[k]);
-                vtx(wr, PX[k2], PY[k2], PC[k2]);
-                vtx(wr, QX[k2], QY[k2], z2);
-                vtx(wr, PX[k], PY[k], PC[k]);
-                vtx(wr, QX[k2], QY[k2], z2);
-                vtx(wr, QX[k], QY[k], z0);
-            }
-        }
-        close();
+        roundedRectInternal(x, y, w, h, r, r, r, r, top, bottom, 0, 0f, true, false, feather);
     }
-
-    /** Rounded rectangle with a 1-px border colour. */
-    public static void roundRectBorder(float x, float y, float w, float h, float r,
-                                       int top, int bottom, int border) {
-        roundRect(x, y, w, h, r, border, border, 1f);
-        roundRect(x + 1f, y + 1f, w - 2f, h - 2f, Math.max(0f, r - 1f), top, bottom, 1f);
-    }
-
-    private static final float[] RING_OX = new float[4 * (MAX_SEG + 1)];
-    private static final float[] RING_OY = new float[4 * (MAX_SEG + 1)];
-    private static final float[] RING_IX = new float[4 * (MAX_SEG + 1)];
-    private static final float[] RING_IY = new float[4 * (MAX_SEG + 1)];
 
     /**
-     * Rounded outline of thickness {@code t}, drawn inside the rectangle (x, y, w, h).
-     * Unlike {@link #roundRectBorder}, this does not fill the interior, so it works with a transparent
-     * background. Built as quads between an outer and an inner perimeter. Does not allocate.
+     * The single rounded-rectangle primitive for all Sky VeLor GUI surfaces.
+     *
+     * <p>Every corner can have a distinct radius. Fill and outline are independently optional, radii are clamped by
+     * {@link RoundedRectGeometry}, and cached perimeters are reused by dimensions/radii/quality rather than rebuilt
+     * in the render loop. Coordinates are logical Minecraft GUI pixels, so the GUI transform naturally preserves
+     * the thin anti-alias fringe at GUI scales 1 through 4.</p>
      */
-    public static void roundRectRing(float x, float y, float w, float h, float r, float t, int color) {
-        int c = col(color);
-        if ((c >>> 24) == 0 || w <= t * 2f || h <= t * 2f) {
-            return;
-        }
-        float maxR = Math.min(w, h) * 0.5f;
-        if (r > maxR) {
-            r = maxR;
-        }
-        if (r < 0f) {
-            r = 0f;
-        }
-        float ri = Math.max(0f, r - t);
-        int s = segmentsFor(r);
-        int per = s + 1;
-        int m = 4 * per;
-        float[] ux = UX[s];
-        float[] uy = UY[s];
-        for (int k = 0; k < m; k++) {
-            int g = k / per;
-            float ccx = (g == 0 || g == 3) ? x + r : x + w - r;
-            float ccy = (g < 2) ? y + r : y + h - r;
-            RING_OX[k] = ccx + r * ux[k];
-            RING_OY[k] = ccy + r * uy[k];
-            RING_IX[k] = ccx + ri * ux[k];
-            RING_IY[k] = ccy + ri * uy[k];
-        }
+    public static void roundedRect(float x, float y, float w, float h,
+                                   float topLeft, float topRight, float bottomRight, float bottomLeft,
+                                   int topFill, int bottomFill, int outline, float outlineWidth,
+                                   boolean drawFill, boolean drawOutline) {
+        roundedRectInternal(x, y, w, h, topLeft, topRight, bottomRight, bottomLeft,
+                topFill, bottomFill, outline, outlineWidth, drawFill, drawOutline, GuiStyle.AA_FRINGE);
+    }
+
+    /** Rounded rectangle with a one-GUI-pixel outline, rendered by {@link #roundedRect}. */
+    public static void roundRectBorder(float x, float y, float w, float h, float r,
+                                       int top, int bottom, int border) {
+        roundedRect(x, y, w, h, r, r, r, r, top, bottom, border, GuiStyle.OUTLINE, true, true);
+    }
+
+    /** Rounded outline rendered by the shared primitive; it has no opaque interior. */
+    public static void roundRectRing(float x, float y, float w, float h, float r, float thickness, int color) {
+        roundedRect(x, y, w, h, r, r, r, r, 0, 0, color, thickness, false, true);
+    }
+
+    private static void roundedRectInternal(float x, float y, float w, float h,
+                                            float topLeft, float topRight, float bottomRight, float bottomLeft,
+                                            int topFill, int bottomFill, int outline, float outlineWidth,
+                                            boolean requestedFill, boolean requestedOutline, float requestedFringe) {
+        if (w <= 0f || h <= 0f) return;
+        int fillTop = col(topFill);
+        int fillBottom = col(bottomFill);
+        int outlineColor = col(outline);
+        boolean drawFill = requestedFill && ((fillTop | fillBottom) >>> 24) != 0;
+        boolean drawOutline = requestedOutline && (outlineColor >>> 24) != 0 && outlineWidth > 0f;
+        if (!drawFill && !drawOutline) return;
+
+        float largest = Math.max(Math.max(Math.max(0f, topLeft), Math.max(0f, topRight)),
+                Math.max(Math.max(0f, bottomRight), Math.max(0f, bottomLeft)));
+        int segments = RoundedRectGeometry.segmentsFor(largest, segCap);
+        RoundedRectGeometry.Geometry outer = RoundedRectGeometry.get(w, h, topLeft, topRight, bottomRight,
+                bottomLeft, segments);
         WorldRenderer wr = open();
-        for (int k = 0; k < m; k++) {
-            int k2 = (k + 1) % m;
-            vtx(wr, RING_OX[k], RING_OY[k], c);
-            vtx(wr, RING_OX[k2], RING_OY[k2], c);
-            vtx(wr, RING_IX[k2], RING_IY[k2], c);
-            vtx(wr, RING_OX[k], RING_OY[k], c);
-            vtx(wr, RING_IX[k2], RING_IY[k2], c);
-            vtx(wr, RING_IX[k], RING_IY[k], c);
+        if (drawFill) {
+            drawGradientFill(wr, outer, x, y, h, fillTop, fillBottom);
+        }
+
+        float inset = Math.min(Math.max(0f, outlineWidth), Math.min(w, h) * .5f);
+        RoundedRectGeometry.Geometry inner = null;
+        if (drawOutline) {
+            if (inset >= Math.min(w, h) * .5f) {
+                // A tiny box cannot have a transparent middle. Its outline is its whole visible surface.
+                drawSolidFill(wr, outer, x, y, outlineColor);
+            } else {
+                inner = RoundedRectGeometry.get(w - inset * 2f, h - inset * 2f,
+                        Math.max(0f, outer.topLeft - inset), Math.max(0f, outer.topRight - inset),
+                        Math.max(0f, outer.bottomRight - inset), Math.max(0f, outer.bottomLeft - inset), segments);
+                drawSolidRing(wr, outer, x, y, inner, x + inset, y + inset, outlineColor);
+            }
+        }
+
+        boolean hasCurve = outer.topLeft > 0f || outer.topRight > 0f || outer.bottomRight > 0f || outer.bottomLeft > 0f;
+        float fringe = hasCurve ? Math.max(GuiStyle.AA_FRINGE, requestedFringe) : Math.max(0f, requestedFringe);
+        if (fringe > 0f) {
+            RoundedRectGeometry.Geometry fringeOuter = RoundedRectGeometry.get(w + fringe * 2f, h + fringe * 2f,
+                    outer.topLeft + fringe, outer.topRight + fringe, outer.bottomRight + fringe,
+                    outer.bottomLeft + fringe, segments);
+            if (drawOutline) {
+                drawSolidFeather(wr, outer, x, y, fringeOuter, x - fringe, y - fringe, outlineColor);
+            } else {
+                drawGradientFeather(wr, outer, x, y, fringeOuter, x - fringe, y - fringe, h, fillTop, fillBottom);
+            }
+            // Transparent-outline interiors also need a soft inner edge; filled cards already transition to fill.
+            if (!drawFill && inner != null && inner.width > fringe * 2f && inner.height > fringe * 2f) {
+                RoundedRectGeometry.Geometry innerFade = RoundedRectGeometry.get(inner.width - fringe * 2f,
+                        inner.height - fringe * 2f, Math.max(0f, inner.topLeft - fringe),
+                        Math.max(0f, inner.topRight - fringe), Math.max(0f, inner.bottomRight - fringe),
+                        Math.max(0f, inner.bottomLeft - fringe), segments);
+                drawSolidFeather(wr, inner, x + inset, y + inset, innerFade,
+                        x + inset + fringe, y + inset + fringe, outlineColor);
+            }
         }
         close();
+    }
+
+    private static void drawGradientFill(WorldRenderer wr, RoundedRectGeometry.Geometry shape, float x, float y,
+                                         float height, int top, int bottom) {
+        float cx = x + shape.width * .5f;
+        float cy = y + shape.height * .5f;
+        int center = mix(top, bottom, .5f);
+        for (int point = 0; point < shape.pointCount; point++) {
+            int next = (point + 1) % shape.pointCount;
+            int a = gradientAt(top, bottom, shape.y(point), height);
+            int b = gradientAt(top, bottom, shape.y(next), height);
+            vtx(wr, cx, cy, center);
+            vtx(wr, x + shape.x(point), y + shape.y(point), a);
+            vtx(wr, x + shape.x(next), y + shape.y(next), b);
+        }
+    }
+
+    private static void drawSolidFill(WorldRenderer wr, RoundedRectGeometry.Geometry shape, float x, float y, int color) {
+        float cx = x + shape.width * .5f;
+        float cy = y + shape.height * .5f;
+        for (int point = 0; point < shape.pointCount; point++) {
+            int next = (point + 1) % shape.pointCount;
+            vtx(wr, cx, cy, color);
+            vtx(wr, x + shape.x(point), y + shape.y(point), color);
+            vtx(wr, x + shape.x(next), y + shape.y(next), color);
+        }
+    }
+
+    private static void drawSolidRing(WorldRenderer wr, RoundedRectGeometry.Geometry outer, float outerX, float outerY,
+                                      RoundedRectGeometry.Geometry inner, float innerX, float innerY, int color) {
+        for (int point = 0; point < outer.pointCount; point++) {
+            int next = (point + 1) % outer.pointCount;
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), color);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), color);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), color);
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), color);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), color);
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), color);
+        }
+    }
+
+    private static void drawGradientFeather(WorldRenderer wr, RoundedRectGeometry.Geometry inner, float innerX,
+                                            float innerY, RoundedRectGeometry.Geometry outer, float outerX,
+                                            float outerY, float gradientHeight, int top, int bottom) {
+        for (int point = 0; point < inner.pointCount; point++) {
+            int next = (point + 1) % inner.pointCount;
+            int i0 = gradientAt(top, bottom, inner.y(point), gradientHeight);
+            int i1 = gradientAt(top, bottom, inner.y(next), gradientHeight);
+            int o1 = gradientAt(top, bottom, outer.y(next) - (outer.height - gradientHeight) * .5f,
+                    gradientHeight) & 0x00FFFFFF;
+            int o0 = gradientAt(top, bottom, outer.y(point) - (outer.height - gradientHeight) * .5f,
+                    gradientHeight) & 0x00FFFFFF;
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), i0);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), i1);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), o1);
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), i0);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), o1);
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), o0);
+        }
+    }
+
+    private static void drawSolidFeather(WorldRenderer wr, RoundedRectGeometry.Geometry inner, float innerX,
+                                         float innerY, RoundedRectGeometry.Geometry outer, float outerX, float outerY,
+                                         int color) {
+        int transparent = color & 0x00FFFFFF;
+        for (int point = 0; point < inner.pointCount; point++) {
+            int next = (point + 1) % inner.pointCount;
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), color);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), color);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), transparent);
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), color);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), transparent);
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), transparent);
+        }
+    }
+
+    private static int gradientAt(int top, int bottom, float y, float height) {
+        return mix(top, bottom, clamp01(y / Math.max(.0001f, height)));
     }
 
     /** Soft, cheap drop shadow: one feathered rounded rect offset downwards. */
@@ -474,17 +495,6 @@ public final class UIRender {
         vtx(wr, x2, y2, c);
         vtx(wr, x3, y3, c);
         close();
-    }
-
-    private static int segmentsFor(float r) {
-        int s = Math.round(r * 0.6f);
-        if (s < 1) {
-            s = 1;
-        }
-        if (s > segCap) {
-            s = segCap;
-        }
-        return s;
     }
 
     // ------------------------------------------------------------------ text

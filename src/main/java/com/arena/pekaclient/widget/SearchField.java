@@ -1,5 +1,7 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import org.lwjgl.input.Keyboard;
@@ -61,7 +63,7 @@ public final class SearchField extends Widget {
 
     @Override
     protected void updateWidget(float dt) {
-        focusAmount = approach(focusAmount, focused ? 1f : 0f, dt, 16f);
+        focusAmount = ease(focusAmount, focused ? 1f : 0f, dt, GuiMotion.HOVER_SETTLE_MS);
     }
 
     public boolean keyTyped(char typedChar, int keyCode) {
@@ -98,7 +100,7 @@ public final class SearchField extends Widget {
         beginAnimatedDraw(0.012f, 0.02f, 0.008f);
         float hover = !focused && enabled ? hoverAmount : 0f;
         int fill = UIRender.mix(Theme.buttonFill, Theme.buttonHover, hover);
-        float radius = Math.min(Theme.radius * 0.55f, h * 0.5f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.3f);
         int border = UIRender.mix(Theme.border, Theme.accent, focusAmount);
         UIRender.roundRectRing(x, y, w, h, radius, 1f, border);

@@ -1,6 +1,8 @@
 package com.arena.pekaclient.widget;
 
 import com.arena.pekaclient.gui.GuiDebugOverlay;
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -52,7 +54,7 @@ public final class AppleDropdown extends Widget {
         beginAnimatedDraw(0.025f, 0.04f, 0.02f);
         float hover = enabled ? hoverAmount : 0f;
         int fill = UIRender.mix(Theme.buttonFill, Theme.buttonHover, hover * 0.5f);
-        float radius = Math.min(Theme.radius * 0.6f, h * 0.5f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.4f);
         String label = options.length == 0 ? "—" : options[selected()];
         if (label == null) label = "";
@@ -138,7 +140,7 @@ public final class AppleDropdown extends Widget {
         float dt = lastPopupFrame == 0L ? 1f / 60f : Math.min(0.1f, (now - lastPopupFrame) / 1.0e9f);
         lastPopupFrame = now;
         float reveal = 1f;
-        if (Theme.animations && popupOpenedAt != 0L) {
+        if (animationsActive() && popupOpenedAt != 0L) {
             reveal = (now - popupOpenedAt) / 180000000f;
             reveal = UIRender.clamp01(reveal);
             reveal = 1f - (1f - reveal) * (1f - reveal) * (1f - reveal);
@@ -152,7 +154,7 @@ public final class AppleDropdown extends Widget {
         GuiDebugOverlay.recordControl("AppleDropdown popup", popupX, popupY, popupW, popupH);
         float previousAlpha = UIRender.alphaMul;
         UIRender.alphaMul = previousAlpha * reveal;
-        float radius = Math.min(Theme.radius * 0.75f, 10f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_POPUP, Theme.radius, popupW, popupH);
         UIRender.shadow(popupX, popupY, popupW, popupH, radius);
         UIRender.roundRect(popupX, popupY, popupW, popupH, radius, Theme.popup, Theme.popup, 0.5f);
         drawBorderAt(popupX, popupY, popupW, popupH, radius, Theme.border);
@@ -164,16 +166,12 @@ public final class AppleDropdown extends Widget {
             boolean hot = mouseX >= popupX && mouseX < popupX + popupW
                     && mouseY >= rowY && mouseY < rowY + popupRowHeight;
             float targetHover = hot ? 1f : 0f;
-            if (!Theme.animations) {
+            if (!animationsActive()) {
                 rowHover[index] = targetHover;
             } else {
-                float speed = 1f - (float) Math.exp(-dt * 20f * Math.max(0.1f, Theme.speed));
-                rowHover[index] += (targetHover - rowHover[index]) * speed;
-                if (Math.abs(targetHover - rowHover[index]) < 0.01f) {
-                    rowHover[index] = targetHover;
-                }
+                rowHover[index] = ease(rowHover[index], targetHover, dt, GuiMotion.HOVER_SETTLE_MS);
             }
-            float rowScale = Theme.animations ? 1f + rowHover[index] * 0.012f : 1f;
+            float rowScale = animationsActive() ? 1f + rowHover[index] * 0.012f : 1f;
             boolean rowTransform = Math.abs(rowScale - 1f) > 0.0005f;
             if (rowTransform) {
                 UIRender.pushScaleAt(popupX + popupW * 0.5f, rowY + popupRowHeight * 0.5f, rowScale);

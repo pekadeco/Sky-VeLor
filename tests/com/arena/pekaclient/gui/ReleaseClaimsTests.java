@@ -17,6 +17,7 @@ public final class ReleaseClaimsTests {
         vanillaFontSurfaceHasNoCustomFontSubsystem();
         hudEditorHasNoTargetSidebar();
         referenceShellHasRequiredBehavior();
+        sharedRoundedRendererIsPackaged();
         editorStateCleanupIsPackaged();
         retainedControlsKeepTheirOwners();
         removedPrototypeEntriesStayRemoved();
@@ -61,6 +62,14 @@ public final class ReleaseClaimsTests {
                 && screen.contains("refreshReferenceTheme"));
         check("old Hub is compatibility-only", classText("com.arena.pekaclient.gui.AppleHubScreen")
                 .contains("AppleSettingsScreen"));
+    }
+
+    private static void sharedRoundedRendererIsPackaged() {
+        String renderer = classText("com.arena.pekaclient.render.UIRender");
+        check("shared cached rounded geometry is packaged", classExists("com.arena.pekaclient.render.RoundedRectGeometry")
+                && classExists("com.arena.pekaclient.render.GuiStyle") && classExists("com.arena.pekaclient.render.GuiMotion"));
+        check("all fill and outline facades route through one rounded primitive", renderer.contains("RoundedRectGeometry")
+                && renderer.contains("roundedRect") && renderer.contains("roundRectBorder") && renderer.contains("roundRectRing"));
     }
 
     private static void editorStateCleanupIsPackaged() {

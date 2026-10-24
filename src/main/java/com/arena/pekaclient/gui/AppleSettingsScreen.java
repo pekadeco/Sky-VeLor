@@ -10,6 +10,8 @@ import com.arena.pekaclient.hud.ClientMetrics;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
@@ -92,6 +94,9 @@ public class AppleSettingsScreen extends AppleScreen {
     private final GuiLayoutToolkit.Rect profileClose = new GuiLayoutToolkit.Rect();
 
     private ReferenceSettingsCatalog.Tab activeTab;
+    /** Per-tab selection fades are screen-owned and allocated once; no animation survives a closed GUI. */
+    private final float[] tabSelection = new float[ReferenceSettingsCatalog.TABS.length];
+    private boolean tabSelectionInitialized;
     private boolean compactRail;
     private boolean expandedWindow;
     private boolean minimizedWindow;
@@ -179,6 +184,7 @@ public class AppleSettingsScreen extends AppleScreen {
         // here as an idempotent owner action so repeated editor round-trips cannot tint this screen incorrectly.
         refreshReferenceTheme();
         refreshLayout();
+        updateTabSelection(dt);
         scroll.update(dt, AppleSettings.smoothScrolling);
         updateSearchAndWidgets(dt);
 
@@ -274,9 +280,24 @@ public class AppleSettingsScreen extends AppleScreen {
         }
     }
 
+    /** Eases only while this native settings screen is the open Minecraft GUI. */
+    private void updateTabSelection(float dt) {
+        boolean guiOpen = Minecraft.getMinecraft().currentScreen == this && Theme.animations;
+        for (int i = 0; i < tabSelection.length; i++) {
+            float target = ReferenceSettingsCatalog.TABS[i] == activeTab ? 1f : 0f;
+            if (!tabSelectionInitialized) {
+                tabSelection[i] = target;
+            } else {
+                tabSelection[i] = GuiMotion.ease(tabSelection[i], target, dt, guiOpen,
+                        GuiMotion.TAB_SETTLE_MS, Theme.speed);
+            }
+        }
+        tabSelectionInitialized = true;
+    }
+
     private void drawShell(int mouseX, int mouseY) {
         visibleHits.clear();
-        float outerRadius = Math.max(8f, Math.min(14f, Theme.radius));
+        float outerRadius = GuiStyle.radius(GuiStyle.RADIUS_WINDOW, Theme.radius, panel.w, panel.h);
         UIRender.shadow(panel.x, panel.y, panel.w, panel.h, outerRadius);
         UIRender.roundRectBorder(panel.x, panel.y, panel.w, panel.h, outerRadius,
                 Theme.windowBottom, Theme.windowBottom, Theme.border);
@@ -365,8 +386,9 @@ public class AppleSettingsScreen extends AppleScreen {
             UIRender.rect(railX + 1f, railY, railW, railH, railFill);
             UIRender.line(railX + railW, railY, railX + railW, railY + railH, 1f, Theme.divider);
         } else {
-            UIRender.roundRect(railX, railY, railW, railH, 5f, railFill, railFill, .35f);
-            UIRender.roundRectRing(railX, railY, railW, railH, 5f, 1f, Theme.border);
+            float railRadius = GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, railW, railH);
+            UIRender.roundRect(railX, railY, railW, railH, railRadius, railFill, railFill, .35f);
+            UIRender.roundRectRing(railX, railY, railW, railH, railRadius, GuiStyle.OUTLINE, Theme.border);
         }
         int tabCount = ReferenceSettingsCatalog.TABS.length;
         float footerReserve = compactRail ? 21f : 58f;
@@ -392,9 +414,14 @@ public class AppleSettingsScreen extends AppleScreen {
                 h = Math.max(18f, Math.min(26f, slotH - 3f));
             }
             boolean active = activeTab == tab;
-            int fill = active ? UIRender.withAlpha(Theme.accent, .13f) : 0x00000000;
-            if (active || inside(mouseX, mouseY, x, y, w, h)) {
-                UIRender.roundRect(x, y, w, h, 5f, fill == 0 ? Theme.card : fill, fill == 0 ? Theme.card : fill, .25f);
+            float selected = tabSelectionInitialized ? tabSelection[i] : (active ? 1f : 0f);
+            boolean hovered = inside(mouseX, mouseY, x, y, w, h);
+            if (selected > .001f || hovered) {
+                int idle = hovered ? Theme.cardHover : Theme.card;
+                int selectedFill = UIRender.withAlpha(Theme.accent, .13f);
+                int fill = UIRender.mix(idle, selectedFill, selected);
+                UIRender.roundRect(x, y, w, h,
+                        GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, w, h), fill, fill, .25f);
             }
             boolean showLabel = !compactRail || w > 68f;
             float iconX = compactRail && showLabel ? x + 5f
@@ -427,7 +454,8 @@ public class AppleSettingsScreen extends AppleScreen {
         float w = railW - 16f;
         UIRender.line(railX + 9f, y - 7f, railX + railW - 9f, y - 7f, 1f, Theme.divider);
         boolean hovered = inside(mouseX, mouseY, x, y, w, h);
-        UIRender.roundRectBorder(x, y, w, h, 5f, hovered ? Theme.cardHover : Theme.card,
+        UIRender.roundRectBorder(x, y, w, h,
+                GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, w, h), hovered ? Theme.cardHover : Theme.card,
                 hovered ? Theme.cardHover : Theme.card, profileOpen ? Theme.accent : Theme.border);
         drawProfileGlyph(x + 8f, y + 11f, profileOpen ? Theme.accent : Theme.textSecondary);
         UIRender.text(fr(), "PROFILE", x + 25f, y + 7f, Theme.textTertiary, .58f, false);
@@ -441,7 +469,8 @@ public class AppleSettingsScreen extends AppleScreen {
         float w = railW - 8f;
         float h = 15f;
         boolean hovered = inside(mouseX, mouseY, x, y, w, h);
-        UIRender.roundRect(x, y, w, h, 4f, hovered ? Theme.cardHover : Theme.buttonFill,
+        UIRender.roundRect(x, y, w, h,
+                GuiStyle.radius(GuiStyle.RADIUS_BUTTON, Theme.radius, w, h), hovered ? Theme.cardHover : Theme.buttonFill,
                 hovered ? Theme.cardHover : Theme.buttonFill, .2f);
         drawProfileGlyph(x + 7f, y + 3f, profileOpen ? Theme.accent : Theme.textTertiary);
         UIRender.text(fr(), "PROFILE", x + 18f, centeredTextY(y, h, .57f),
@@ -544,11 +573,12 @@ public class AppleSettingsScreen extends AppleScreen {
     private float drawCard(float y, int mouseX, int mouseY, ReferenceSettingsCatalog.Tab tab,
                            ReferenceSettingsCatalog.Card card) {
         float h = measureCard(card);
-        float radius = Math.max(5f, Math.min(10f, Theme.radius * .72f));
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, h);
         UIRender.roundRectBorder(contentX, y, contentW, h, radius, Theme.card, Theme.card, Theme.border);
         float iconX = contentX + CARD_PAD;
         float iconY = y + CARD_PAD;
-        UIRender.roundRect(iconX, iconY, 23f, 23f, 5f, Theme.buttonFill, Theme.buttonFill, .25f);
+        UIRender.roundRect(iconX, iconY, 23f, 23f,
+                GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, 23f, 23f), Theme.buttonFill, Theme.buttonFill, .25f);
         drawCardGlyph(card.id, iconX + 6f, iconY + 6f, Theme.accent);
         float cardTextBlockH = fr().FONT_HEIGHT * .88f + 3f + fr().FONT_HEIGHT * .72f;
         float cardTextY = y + (46f - cardTextBlockH) * .5f;
@@ -747,13 +777,15 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private void drawRouteButton(ReferenceSettingsCatalog.Setting setting, float x, float y, float w, float h) {
-        UIRender.roundRectBorder(x, y, w, h, 4f, Theme.buttonFill, Theme.buttonFill, Theme.border);
+        UIRender.roundRectBorder(x, y, w, h,
+                GuiStyle.radius(GuiStyle.RADIUS_BUTTON, Theme.radius, w, h), Theme.buttonFill, Theme.buttonFill, Theme.border);
         String label = fit(fr(), setting.actionLabel, Math.max(1f, (w - 8f) / .68f));
         UIRender.text(fr(), label, x + 5f, centeredTextY(y, h, .68f), Theme.textSecondary, .68f, false);
     }
 
     private void drawChoiceControl(ReferenceSettingsCatalog.Setting setting, float x, float y, float w) {
-        UIRender.roundRectBorder(x, y, w, 21f, 5f, Theme.buttonFill, Theme.buttonFill, Theme.border);
+        UIRender.roundRectBorder(x, y, w, 21f,
+                GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, 21f), Theme.buttonFill, Theme.buttonFill, Theme.border);
         float total = 0f;
         for (String value : setting.choices) total += fr().getStringWidth(value) * .67f + 11f;
         float cursor = x + Math.max(2f, (w - total) * .5f);
@@ -937,7 +969,7 @@ public class AppleSettingsScreen extends AppleScreen {
         String saved = "SAVES ON CLOSE";
         float pillW = fr().getStringWidth(saved) * .58f + 12f;
         float pillX = contentX + Math.max(0f, contentW - pillW);
-        UIRender.roundRect(pillX, y + 3f, pillW, 15f, 7f,
+        UIRender.roundRect(pillX, y + 3f, pillW, 15f, GuiStyle.pillRadius(Theme.radius, pillW, 15f),
                 UIRender.withAlpha(Theme.accent, .12f), UIRender.withAlpha(Theme.accent, .12f), .2f);
         UIRender.text(fr(), saved, pillX + 6f, centeredTextY(y + 3f, 15f, .58f), Theme.accent, .58f, false);
         y += 37f;
@@ -965,7 +997,8 @@ public class AppleSettingsScreen extends AppleScreen {
             float x = contentX + col * (quickW + gap);
             float py = y + row * (quickH + gap);
             boolean checked = booleanValue(ids[i]);
-            UIRender.roundRectBorder(x, py, quickW, quickH, 6f, Theme.card, Theme.card, Theme.border);
+            UIRender.roundRectBorder(x, py, quickW, quickH,
+                    GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, quickW, quickH), Theme.card, Theme.card, Theme.border);
             UIRender.roundRect(x + 7f, py + (quickH - 20f) * .5f, 20f, 20f, 4f,
                     Theme.buttonFill, Theme.buttonFill, .2f);
             drawQuickGlyph(i, x + 12f, py + (quickH - 10f) * .5f, checked ? Theme.accent : Theme.textTertiary);
@@ -981,7 +1014,8 @@ public class AppleSettingsScreen extends AppleScreen {
         y += quickH * 2f + gap + 12f;
 
         float noticeH = 48f;
-        UIRender.roundRectBorder(contentX, y, contentW, noticeH, 6f, Theme.card, Theme.card, Theme.border);
+        UIRender.roundRectBorder(contentX, y, contentW, noticeH,
+                GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, noticeH), Theme.card, Theme.card, Theme.border);
         drawShieldGlyph(contentX + 10f, y + 11f, Theme.accent);
         UIRender.text(fr(), "Safe by default", contentX + 27f, y + 9f, Theme.textPrimary, .76f, false);
         drawWrapped("Network sync, automated clicks, and opt-in assists stay off until you explicitly choose them.",
@@ -992,7 +1026,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private float drawHomePerformance(float y) {
         ClientMetrics.Snapshot snapshot = clientMetrics.snapshot(System.currentTimeMillis());
         float h = homePerformanceHeight();
-        UIRender.roundRectBorder(contentX, y, contentW, h, 7f, Theme.card, Theme.card, Theme.border);
+        UIRender.roundRectBorder(contentX, y, contentW, h,
+                GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, h), Theme.card, Theme.card, Theme.border);
         UIRender.text(fr(), "LIVE PERFORMANCE", contentX + 10f, y + 8f, Theme.textTertiary, .61f, false);
         String cadence = "LOCAL · 0.5 s";
         UIRender.text(fr(), cadence, contentX + contentW - fr().getStringWidth(cadence) * .54f - 10f, y + 8f,
@@ -1020,7 +1055,8 @@ public class AppleSettingsScreen extends AppleScreen {
 
     /** Uses the cached strings from ClientMetrics.Snapshot; unknown/disconnected ping remains the honest -- ms. */
     private void drawHomeMetric(float x, float y, float w, float h, String label, String value, int valueColor) {
-        UIRender.roundRect(x, y, w, h, 4f, Theme.buttonFill, Theme.buttonFill, .22f);
+        UIRender.roundRect(x, y, w, h,
+                GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, w, h), Theme.buttonFill, Theme.buttonFill, .22f);
         UIRender.text(fr(), label, x + 7f, y + 5f, Theme.textTertiary, .52f, false);
         float valueScale = h < 34f ? .68f : .74f;
         UIRender.text(fr(), value, x + 7f, y + h - fr().FONT_HEIGHT * valueScale - 4f, valueColor, valueScale, false);
@@ -1052,7 +1088,8 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         for (ReferenceSettingsCatalog.Match match : matches) {
             float h = measureSearchMatch(match);
-            UIRender.roundRectBorder(contentX, y, contentW, h, 6f, Theme.card, Theme.card, Theme.border);
+            UIRender.roundRectBorder(contentX, y, contentW, h,
+                    GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, h), Theme.card, Theme.card, Theme.border);
             String owner = match.tab.label + "  >  " + match.card.title;
             UIRender.text(fr(), fit(fr(), owner, (contentW - 20f) / .61f), contentX + 10f, y + 7f, Theme.textTertiary, .61f, false);
             UIRender.line(contentX + 1f, y + 18f, contentX + contentW - 1f, y + 18f, 1f, Theme.divider);

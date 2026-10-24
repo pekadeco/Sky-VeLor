@@ -1,5 +1,7 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -29,7 +31,7 @@ public final class AppleToggle extends Widget {
             animatedOn = target;
             initialized = true;
         } else {
-            animatedOn = approach(animatedOn, target, dt, pressed ? 28f : 18f);
+            animatedOn = ease(animatedOn, target, dt, GuiMotion.TOGGLE_SETTLE_MS);
         }
     }
 
@@ -44,7 +46,7 @@ public final class AppleToggle extends Widget {
         if (!enabled) {
             fill = UIRender.mix(fill, Theme.windowBottom, 0.45f);
         }
-        float radius = h * 0.5f;
+        float radius = GuiStyle.pillRadius(Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.5f);
         float pad = 2f;
         float knob = h - pad * 2f;
@@ -54,7 +56,7 @@ public final class AppleToggle extends Widget {
         if (pressed && contains(mouseX, mouseY)) {
             kx = clamp(mouseX - knob * 0.5f, left, right);
         }
-        if (Theme.animations && clickPulse > 0.015f && enabled) {
+        if (animationsActive() && clickPulse > 0.015f && enabled) {
             float outer = knob * 0.5f + 2f + (1f - clickPulse) * 1.2f;
             UIRender.ring(kx + knob * 0.5f, y + h * 0.5f, outer, outer - 0.9f,
                     UIRender.withAlpha(Theme.accent, clickPulse * 0.25f));

@@ -65,6 +65,7 @@ call :run com.arena.pekaclient.itemlockswap.ItemLockSwapLineGeometryTests || got
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSwapPolicyTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapTransformerTests || goto fail
 call :run com.arena.pekaclient.render.ThemeTests || goto fail
+call :run com.arena.pekaclient.render.RoundedRectGeometryTests || goto fail
 call :run com.arena.pekaclient.hud.DollConfigTests || goto fail
 call :run com.arena.pekaclient.feature.LeapClassTests || goto fail
 call :run com.arena.pekaclient.feature.SpiritLeapTests || goto fail

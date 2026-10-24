@@ -58,6 +58,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapLineGeometryTe
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSwapPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapTransformerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.ThemeTests
+java -cp "$OUT:$CP" com.arena.pekaclient.render.RoundedRectGeometryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.DollConfigTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.SpiritLeapTests
