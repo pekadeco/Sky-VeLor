@@ -23,7 +23,8 @@ public final class HomeMetricHistoryTests {
         ClientMetrics.Snapshot first = reader.snapshot(0L);
         check("first GUI Home sample records", history.record(first));
         check("same painted frame does not append", !history.record(first) && history.size() == 1);
-        provider.set(31, 151, 460L, 512L);
+        // 461 / 512 is just above the documented 90% critical memory boundary.
+        provider.set(31, 151, 461L, 512L);
         ClientMetrics.Snapshot beforeBoundary = reader.snapshot(499L);
         check("reader remains cached before 500 ms", beforeBoundary == first && !history.record(beforeBoundary));
         ClientMetrics.Snapshot refreshed = reader.snapshot(500L);
