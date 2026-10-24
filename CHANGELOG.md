@@ -1,5 +1,25 @@
 # Changelog
 
+## Beta-0.10.8.9.5.5v — 2026-10-24
+
+- Added one shared cached, per-corner rounded-rectangle primitive for Sky VeLor GUI surfaces. It clamps each radius,
+  emits filled/outlined geometry with a one-GUI-pixel anti-alias fringe, and is used by the settings shell/cards/controls,
+  editor and preview surfaces, popups/tooltips, click menu, and chat background. Named radii and 120–180 ms GUI-open
+  hover, toggle-slide, and tab easing keep the visual language consistent without changing feature behavior.
+- Added the exact direct rail order **Home**, **Gameplay**, **Dungeon**, **Farming**, **Visuals**, **System**. Gameplay
+  groups existing Quality of Life, Mining, Slayer, and Fishing presentation cards; Visuals retains HUD Hub and Item
+  Animation presentation. Existing IDs, config owners, routes, and persisted keys remain unchanged.
+- Audited Farming: no genuine crop/farming counter, display, or config owner exists in this source, so the Farming move
+  list is empty. Its wheat/sprout destination is searchable and its page intentionally says only **No farming features
+  yet**. No farming automation, macro, auto-clicking, auto-breaking, or movement behavior was added.
+- Applied the shared 4/8/12/16 GUI-pixel spacing scale: 30 px full-rail and 28 px compact-rail destinations use exact
+  4 px gaps; Profile is bottom-docked; cards/rows use 8 px gaps and 12 px padding; narrow settings and Home controls
+  reflow to one column. `/velor layoutdebug` now registers clipped settings rail, Profile, card, row, and Home bounds.
+- Added scale-1–4 rail/reflow/no-overlap contracts, release-JAR package checks, and release documentation for the GUI
+  polish work. Updated display metadata, Forge metadata, build contract, documentation, and verifier examples to
+  `Beta-0.10.8.9.5.5v` / numeric `0.10.8.9.5.5`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input pass remains required for visual confirmation.
+
 ## Beta-0.10.8.9.5v — 2026-10-23
 
 - Fixed the main settings desktop lifecycle and rendering cleanup around HUD Editor/HUD Hub Editor transitions. Shared UI/OpenGL frame state, scissor state, item/entity previews, HUD-element matrix/alpha, inventory item passes, and editor-only hover flags now have exception-safe restoration; the returned parent reapplies its selected palette on init and draw.
