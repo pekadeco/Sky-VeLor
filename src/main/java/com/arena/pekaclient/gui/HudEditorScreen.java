@@ -17,13 +17,8 @@ import com.arena.pekaclient.widget.SearchField;
 import com.arena.pekaclient.widget.Widget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
-import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.init.Items;
-import net.minecraft.item.ItemStack;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -283,10 +278,6 @@ public final class HudEditorScreen extends AppleScreen {
     private long lastNs;
     private int scaleKey = -1;
     private float sf = 2f;
-    private int previewTextX = Integer.MIN_VALUE;
-    private int previewTextY = Integer.MIN_VALUE;
-    private int previewTextZ = Integer.MIN_VALUE;
-    private String previewPositionText = "";
 
     // Layout (GUI pixels, recomputed every frame).
     private float wx;
@@ -435,7 +426,7 @@ public final class HudEditorScreen extends AppleScreen {
         ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
-        // The editor combines HUD primitives, entity previews and vanilla item rendering. Always leave a neutral
+        // The editor combines HUD primitives and entity rendering. Always leave a neutral
         // GUI baseline behind; an AppleSettingsScreen parent reapplies its fixed Theme on init/draw.
         UIRender.restoreVanillaGuiState();
     }
@@ -701,24 +692,6 @@ public final class HudEditorScreen extends AppleScreen {
     private static String formatExactValue(ItemAnimationValue value, int raw) {
         return value == ItemAnimationValue.X || value == ItemAnimationValue.Y || value == ItemAnimationValue.Z
                 ? formatOffset(raw) : Integer.toString(raw);
-    }
-
-    private String itemAnimationPreviewPositionText() {
-        int x = Math.round(ItemAnimation.getX() * 100f);
-        int y = Math.round(ItemAnimation.getY() * 100f);
-        int z = Math.round(ItemAnimation.getZ() * 100f);
-        if (x != previewTextX || y != previewTextY || z != previewTextZ) {
-            previewTextX = x;
-            previewTextY = y;
-            previewTextZ = z;
-            previewPositionText = "X " + signedOffset(x) + "  Y " + signedOffset(y) + "  Z " + signedOffset(z);
-        }
-        return previewPositionText;
-    }
-
-    private static String signedOffset(int value) {
-        String text = formatOffset(value);
-        return value > 0 ? "+" + text : text;
     }
 
     private void clearItemAnimationPositionFields() {
@@ -1139,8 +1112,7 @@ public final class HudEditorScreen extends AppleScreen {
 
         ScaledResolution sr = new ScaledResolution(mc);
         HudManager.renderEditor(sr, mx, my);
-        drawDungeonMapEditorPreview(mx, my);
-        drawItemAnimationEditorPreview(mc);
+        drawDungeonMapPlacementCanvas(mx, my);
 
         UIRender.beginFrame();
         try {
@@ -1159,7 +1131,7 @@ public final class HudEditorScreen extends AppleScreen {
         }
     }
 
-    /** Thin rounded ring around the selected HUD target or the dedicated map preview. */
+    /** Thin rounded ring around the selected HUD target or the dedicated map placement canvas. */
     private void drawSelection() {
         if (target == EditorTarget.ITEM_ANIMATION) {
             return;
@@ -1295,8 +1267,8 @@ public final class HudEditorScreen extends AppleScreen {
         changed();
     }
 
-    /** A controllable preview is available even outside a dungeon, where the live map has no server item to draw. */
-    private void drawDungeonMapEditorPreview(int mx, int my) {
+    /** A placement canvas stays available outside a dungeon, where no server map item can be drawn. */
+    private void drawDungeonMapPlacementCanvas(int mx, int my) {
         int[] bounds = new int[3];
         dungeonMapBounds(bounds);
         int x = bounds[0], y = bounds[1], size = bounds[2];
@@ -1325,82 +1297,6 @@ public final class HudEditorScreen extends AppleScreen {
                     x + 7, y + size - 14, Theme.textSecondary, 0.8f, false);
         } finally {
             UIRender.endFrame();
-        }
-    }
-
-    /**
-     * A real held-item icon preview keeps Item Animation inspectable while the editor covers the world/hand. It is
-     * intentionally a renderer preview rather than a draggable HUD element; X/Y/size are applied live, and Z is
-     * shown both numerically and as a subtle depth-scale cue. The authoritative hand still uses the ASM hook.
-     */
-    private boolean itemAnimationPreviewVisible() {
-        float panelX = width - 160f;
-        return target == EditorTarget.ITEM_ANIMATION && width >= 330 && panelX >= cardX + cardW + 8f;
-    }
-
-    private boolean inItemAnimationPreview(int mx, int my) {
-        return itemAnimationPreviewVisible() && inside(mx, my, width - 160f, barY + BAR_H + 10f, 148f, 74f);
-    }
-
-    private void drawItemAnimationEditorPreview(Minecraft mc) {
-        if (!itemAnimationPreviewVisible()) {
-            return;
-        }
-        final float panelW = 148f;
-        final float panelH = 74f;
-        final float panelX = width - panelW - 12f;
-        final float panelY = barY + BAR_H + 10f;
-        final ItemStack held = mc.thePlayer == null ? null : mc.thePlayer.getHeldItem();
-        final RenderItem itemRenderer = mc.getRenderItem();
-
-        UIRender.beginFrame();
-        try {
-            UIRender.shadow(panelX, panelY, panelW, panelH, Theme.radius * 0.8f);
-            UIRender.roundRectBorder(panelX, panelY, panelW, panelH, Theme.radius * 0.8f,
-                    Theme.windowTop, Theme.windowBottom, Theme.border);
-            UIRender.text(fr(), "LIVE HELD-ITEM PREVIEW", panelX + 9f, panelY + 8f,
-                    Theme.textPrimary, 0.8f, false);
-            UIRender.text(fr(), itemAnimationPreviewPositionText(), panelX + 9f, panelY + panelH - 13f,
-                    Theme.textSecondary, 0.75f, false);
-            int iconWell = UIRender.withAlpha(Theme.buttonFill, .62f);
-            UIRender.roundRect(panelX + 96f, panelY + 23f, 39f, 31f, 5f,
-                    iconWell, iconWell, 0.4f);
-            if (held == null) {
-                UIRender.text(fr(), "Empty hand", panelX + 14f, panelY + 37f,
-                        Theme.textTertiary, 0.8f, false);
-            }
-        } finally {
-            UIRender.endFrame();
-        }
-
-        if (held == null || itemRenderer == null) {
-            return;
-        }
-        // Render Minecraft's real held ItemStack model, not a synthetic placeholder. The direct hook leaves map
-        // paths fully vanilla, so this preview does too. Z has no practical depth in flat GUI projection.
-        boolean map = held.getItem() == Items.filled_map || held.getItem() == Items.map;
-        float previewScale = map ? 1.0F : ItemAnimation.getSize() * (1.0F + ItemAnimation.getZ() * 0.12F);
-        previewScale = Math.max(0.35F, Math.min(2.25F, previewScale));
-        float iconX = panelX + 106f + (map ? 0.0F : ItemAnimation.getX() * 24f);
-        float iconY = panelY + 29f - (map ? 0.0F : ItemAnimation.getY() * 24f);
-        GlStateManager.pushMatrix();
-        try {
-            GlStateManager.translate(iconX, iconY, 200f);
-            GlStateManager.scale(previewScale, previewScale, 1f);
-            GlStateManager.enableRescaleNormal();
-            GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-            GlStateManager.enableDepth();
-            RenderHelper.enableGUIStandardItemLighting();
-            itemRenderer.renderItemAndEffectIntoGUI(held, 0, 0);
-        } finally {
-            RenderHelper.disableStandardItemLighting();
-            GlStateManager.disableRescaleNormal();
-            GlStateManager.disableDepth();
-            GlStateManager.disableBlend();
-            GlStateManager.popMatrix();
-            // The following inspector frame expects UIRender's texture-free state, even if RenderItem failed.
-            UIRender.restoreFrameState();
         }
     }
 
@@ -1441,9 +1337,6 @@ public final class HudEditorScreen extends AppleScreen {
         // Canvas targets deliberately win before inspector hit testing: no sidebar/list is needed to reach a
         // disabled placeholder or an element stacked underneath another one.
         applyFocusedItemAnimationExact();
-        if (inItemAnimationPreview(mx, my)) {
-            return;
-        }
         int[] mapBounds = new int[3];
         dungeonMapBounds(mapBounds);
         if (mx >= mapBounds[0] && mx <= mapBounds[0] + mapBounds[2]

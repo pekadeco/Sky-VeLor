@@ -82,6 +82,10 @@ public final class ReleaseClaimsTests {
         check("chat and ESP preview-only classes remain absent", !classExists("com.arena.pekaclient.gui.ChatEditorPreview")
                 && !classExists("com.arena.pekaclient.gui.DungeonEspPreviewRenderer")
                 && !classExists("com.arena.pekaclient.gui.LeapPreviewData"));
+        String hudEditor = classText("com.arena.pekaclient.gui.HudEditorScreen");
+        check("Item Animation retains Preview Swing without an editor item sample surface",
+                hudEditor.contains("previewSwing") && !hudEditor.contains("LIVE HELD-ITEM PREVIEW")
+                        && !hudEditor.contains("drawItemAnimationEditorPreview"));
         check("retired feature routes are not reintroduced", ReferenceSettingsCatalog.find("hud-stats") == null
                 && ReferenceSettingsCatalog.find("item-protection") == null
                 && ReferenceSettingsCatalog.find("no-hurt-cam") == null);
