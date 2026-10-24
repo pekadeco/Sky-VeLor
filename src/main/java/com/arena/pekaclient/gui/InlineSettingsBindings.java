@@ -125,7 +125,8 @@ final class InlineSettingsBindings {
         if ("qn-command".equals(id)) return AppleSettings.qnCommand;
 
         DungeonEspSettings.Style style = styleForToggle(id);
-        return style != null && style.enabled;
+        if (style == null) return false;
+        return id != null && id.endsWith("-walls") ? style.throughWalls : style.enabled;
     }
 
     static void setBoolean(String id, boolean value) {
@@ -227,7 +228,10 @@ final class InlineSettingsBindings {
         else if ("qn-command".equals(id)) AppleSettings.qnCommand = value;
         else {
             DungeonEspSettings.Style style = styleForToggle(id);
-            if (style != null) style.enabled = value;
+            if (style != null) {
+                if (id != null && id.endsWith("-walls")) style.throughWalls = value;
+                else style.enabled = value;
+            }
         }
     }
 
