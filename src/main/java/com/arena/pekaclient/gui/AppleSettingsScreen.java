@@ -81,6 +81,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final int HIT_PROFILE_CLOSE = 11;
     private static final int HIT_DISCLOSURE = 12;
     private static final int HIT_SEARCH_RESULT = 13;
+    /** Derived RGB mask for formatting existing Chat colour values without introducing a render colour token. */
+    private static final int RGB_MASK = (1 << 24) - 1;
 
     private final GuiScreen parent;
     private final SearchField search = new SearchField("Search settings...");
@@ -1900,7 +1902,7 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private static String colourText(int color) {
-        return String.format(java.util.Locale.ROOT, "#%06X", color & 0xFFFFFF);
+        return String.format(java.util.Locale.ROOT, "#%06X", color & RGB_MASK);
     }
 
     private static Integer parseColour(String value) {
