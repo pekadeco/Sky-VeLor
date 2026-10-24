@@ -61,7 +61,7 @@ public final class ReleaseClaimsTests {
         check("screen clips its full rounded shell plus one settings viewport", screen.contains("roundedClipBegin")
                 && screen.contains("scissorBegin") && screen.contains("GuiLayoutToolkit$Scroll"));
         check("screen packages title-bar drag, fullscreen persistence and one Theme-owned shell", screen.contains("smallWindowOffsetX")
-                && screen.contains("settingsWindowFullscreen") && screen.contains("Sky VeLor · Settings")
+                && screen.contains("settingsWindowFullscreen") && screen.contains("Sky VeLor") && screen.contains("Settings")
                 && screen.contains("SettingsControlLayout") && screen.contains("refreshReferenceTheme")
                 && !screen.contains("appearance-theme") && !screen.contains("appearance-accent"));
         check("old Hub is compatibility-only", classText("com.arena.pekaclient.gui.AppleHubScreen")

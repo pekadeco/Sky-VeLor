@@ -140,8 +140,9 @@ public final class FeatureSettingsUiModelTests {
                 && !screen.contains("window-red") && !screen.contains("DRAG TITLE BAR")
                 && "pekadeco".equals(AppleSettingsScreen.PROFILE_CREATOR)
                 && Arrays.equals(new String[]{"ii88w", "whiteShadow"}, AppleSettingsScreen.PROFILE_CONTRIBUTORS));
-        check("header owns the merged Settings title and a compact search-only toolbar", screen.contains("Sky VeLor · Settings")
-                && screen.contains("TOOLBAR_H") && !screen.contains("compactVersion"));
+        // classText is byte-oriented, so assert the ASCII portions around the rendered middle-dot separator.
+        check("header owns the merged Settings title and a compact search-only toolbar", screen.contains("Sky VeLor")
+                && screen.contains("Settings") && screen.contains("TOOLBAR_H") && !screen.contains("compactVersion"));
         check("main rows use the shared right-control policy and have no chips or expanders",
                 screen.contains("SettingsControlLayout") && !screen.contains("drawStateChip")
                         && !screen.contains("drawChevron") && !screen.contains("expandedRows")

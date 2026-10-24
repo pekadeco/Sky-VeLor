@@ -135,7 +135,7 @@ public final class ReferenceSettingsCatalog {
      * Player Dollars and Inventory Search entries from the stale prototype; current Sky VeLor owners remain intact.
      */
     public static final String[] REQUIRED_ROUTE_IDS = {
-            "appearance", "mod-settings", "performance",
+            "mod-settings", "performance",
             "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "auto-sprint",
             "inventory-assist", "movement-shortcuts", "item-lock-swap", "chat-qol", "commands",
             "item-animation", "hud-editor", "hud-player-doll", "hud-inventory",
