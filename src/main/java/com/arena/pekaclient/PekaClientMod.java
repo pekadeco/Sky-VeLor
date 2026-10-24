@@ -72,7 +72,7 @@ import org.lwjgl.input.Keyboard;
  *  - a loading screen that runs Sky VeLor's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,
  *  - all-rarity fishing counters, Festival best, Sea Creature HP and the Lord Jawbus alert,
- *  - an opt-in Default Chat QoL layer with attached All/Party/Reply/custom tabs and one focused editor.
+ *  - an opt-in Default Chat QoL layer with attached All/Party/Reply/custom tabs and inline settings groups.
  * HUD/world features use standard Forge 1.8.9 events. Item Animation has one isolated Forge coremod hook around
  * Minecraft's real first-person hand renderer and equipped-progress update; it does not replace renderers, mutate
  * final fields, or change entity/world/gameplay rendering.

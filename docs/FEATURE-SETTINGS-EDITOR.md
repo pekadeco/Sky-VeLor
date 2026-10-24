@@ -1,118 +1,126 @@
-# Reference settings shell and editor reachability — Beta-0.10.8.9.6v
+# Inline settings inventory — Beta-0.10.8.9.7v
 
-This document audits the native Minecraft 1.8.9 Forge settings implementation. The approved
-`analyze-sky-velor-mod-code.zip` reference informed the layout and interaction contract; no browser runtime, React,
-or third-party GUI framework is shipped. Distributable artifacts still require the Java 8 Forge build and release
-verifiers.
+Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The approved
+`analyze-sky-velor-mod-code.zip` reference informed the presentation contract only; the release
+ships no browser runtime, React code, or third-party GUI framework.
 
-## Refined shell contract
+## Settings contract
 
-`AppleSettingsScreen` is the visible settings entry point for the keybind, `/sv` command path, and main/pause menu
-button. `AppleHubScreen` remains only as a binary-compatible alias for an old caller and no longer renders a legacy
-Hub surface.
+`AppleSettingsScreen` is the single visible feature-settings surface for the keybind, `/sv`,
+and menu entry points. Its fixed sidebar order is:
 
-- The direct rail order is exactly **Home**, **Gameplay**, **Dungeon**, **Farming**, **Visuals**, **System**.
-  Gameplay and Visuals regroup existing presentation cards only; their setting ids, configuration owners, and focused
-  editors remain unchanged.
-- Farming follows Dungeon with a wheat/sprout rail glyph and is indexed by global search. The repository has no genuine
-  crop/farming control, counter, or display to move, so its page displays only **No farming features yet**. Mining
-  Assistant controls remain Mining functionality inside **Gameplay**; no farming automation is introduced.
-- Normal desktop mode starts centered at 85% of available width and 82% of available height until its fixed maximum.
-  It can be dragged by the clear header area; its offset is clamped to leave a visible world border. The header has
-  exactly **Fullscreen** and **Close** 24 px icon targets with hover/state tooltips. Fullscreen persists through
-  `settings.window.fullscreen`; returning to small mode restores the in-memory dragged position.
-- One shared per-corner rounded-rectangle primitive draws the shell, rail, cards, controls, fields, pills, popups,
-  previews, tooltips, chat click menu, and chat background. It clamps radii to each box, reuses cached geometry,
-  applies a one-GUI-pixel anti-alias fringe, and shares named window/card/button/pill radii. Hover, toggle, and tab
-  easing settle only while a GUI is open.
-- The shared layout scale is **4 / 8 / 12 / 16 GUI px**. Full rails use 30 px destinations with exact 4 px gaps;
-  compact rails use a visible two-row, three-column 28 px grid with the same gaps, so all six destinations remain
-  reachable at GUI scales 1–4. The Profile footer is docked at the rail bottom rather than being spaced between tabs.
-  Page cards/rows use 8 px gaps and 12 px padding. Below the usable content-width threshold, settings controls and
-  Home quick controls reflow to one column instead of overlapping icons, text, and controls.
-- `/velor layoutdebug` records the measured settings rail, card, row, Home quick-control, and Profile bounds. It is
-  diagnostic-only and does not alter saved settings or layout behavior.
-- The header owns the merged **Sky VeLor · Settings** title plus exactly the 24 px Fullscreen and Close icons. The
-  compact second strip is search-only. The visible **Advanced** button and its reserved width were removed; parent
-  child rows render directly below their owner with no READY/OPTIONAL badge, chevron/count disclosure, or expandable
-  state. Formerly Advanced-marked cards, child rows, and search results remain directly visible.
-- The whole shell is clipped to its one equal-radius rounded outer window; its nested scroll viewport owns wheel,
-  Shift fine-wheel, touch/mouse drag, page, Home and End scrolling. A dedicated scrollbar gutter prevents thumb/text
-  overlap, final cards have 12 px bottom padding, and a short edge fade marks clipped continuation. `Ctrl+F` or `/`
-  focuses search; Escape clears focused search before closing the screen.
-- Home has no setup presets. Its equal **LIVE PERFORMANCE** FPS, Java-memory, and local-tab-list ping cards read the
-  cached `ClientMetrics.Reader`, record only its 500 ms generations in a fixed ring, and render large values, status,
-  bars, and sparklines. They are the only FPS/memory/ping display; no in-game metric HUD is registered.
-- The rail **Profile** control opens a themed compact popup listing creator **pekadeco** and contributors **ii88w** and
-  **whiteShadow**. Its X, Escape, and outside click close it.
-- `render/Theme.java` is the one token authority: neutral-dark surfaces, blue-only positive interaction accent,
-  semantic warning/error/unavailable states, type scale, 4/8/12/16 spacing, radii, shadows/dim layers, and
-  120–180 ms GUI motion. Visible Appearance controls intentionally retain only Corner radius and Panel opacity.
+**Home → Gameplay → Dungeon → Farming → Mining → Fishing → Visuals → System**.
 
-## Category ownership and current runtime routes
+Every feature owner is a collapsed-by-default inline dropdown. The presentation state is stored
+separately under `ui.feature.dropdown.<catalog-id>` by `FeatureUiState` /
+`FeatureUiPreferences`; it never replaces or migrates a feature configuration key. A missing
+presentation value means closed. Search indexes nested labels, ids, descriptions, and keywords;
+choosing a result changes to its tab and opens every parent dropdown needed to reveal it.
 
-| Rail destination | Card | Current visible routes and owner |
+Feature rows use the standard small right-aligned `AppleToggle` pill (`38 × 20` GUI pixels) or a
+disclosure dropdown. A disabled master dims dependent rows without disabling their established
+controls, so users can adjust a value before re-enabling its owner. Sliders, choices, text fields,
+reset/copy actions, and the two permitted editor launches appear only inside the relevant dropdown.
+
+Only these settings actions open a screen:
+
+1. **HUD Editor** — the existing HUD layout editor, including the existing dungeon-map canvas and
+   HUD-element placement controls.
+2. **Item Animation Editor** — the existing first-person renderer editor, including the real
+   hand controls and real **Preview Swing** action.
+
+There are no feature-specific settings screens, detail screens, controls-launch buttons, or
+map-settings-launch buttons. Existing key binding instructions point to Minecraft Controls.
+
+## Old-to-new feature table
+
+| Previous presentation owner | New inline location | Retained values / actions |
 | --- | --- | --- |
-| Home | Live Performance / Quick controls | Cached FPS, Java memory, ping; Sprint, Terminal, Chat, Hand quick toggles |
-| Gameplay | Comfort | No Block Particles, hotbar-wheel guard, Hurt Camera Shake, Auto Sprint |
-| Gameplay | Inventory | Item Lock and Swap plus badges/line route; Inventory Assist and its focused editor |
-| Gameplay | Chat | Chat QoL master and inline controls; Chat Settings route |
-| Gameplay | Shortcuts / Mining / Slayer / Fishing | Existing shortcuts, Mining BPS/Assistant/Puzzler/HUD, Slayer routes, catch counter, Fishing HUD, Sea Creature HP, Jawbus and nearby encounter alerts |
-| Dungeon | Run tools / Floor VII / Highlights / Party sync | Existing Dungeon Map, terminal, Spirit Leap, M7, ESP, boss HUD and sync routes |
-| Farming | No farming features yet | Audited empty state only; no crop setting, counter, display, config key, or automation was fabricated |
-| Visuals | HUD Hub / Item Animation | Direct-canvas HUD Editor, Player Doll, Inventory HUD, Item Animation and focused routes |
-| System | Appearance / Performance / General | Fixed Theme geometry/opacity controls, performance and shared scrolling routes |
-| System | Diagnostics / About | Command/sync diagnostics, version and client-side safety information |
+| Appearance focused editor | System → Appearance | Corner radius and panel opacity switches/values; Reset Appearance |
+| Performance focused editor | System → Performance | Curve quality, shadows, animation switch/speed, adaptive quality, performance boost; Reset Performance |
+| Mod Settings focused editor | System → Interface | Scroll speed and smooth scrolling; Reset Interface |
+| Inventory Assist focused editor | Gameplay → Inventory and Chat → Inventory Assist | Potion panel, Roman numerals, tooltip scrolling, rarity highlight; Reset Inventory Assist |
+| Item Lock / Swap focused editor | Gameplay → Inventory and Chat → Item Lock and Swap | Master, existing Controls guidance, cooldown, badges, line options, clear locks/pairs, full reset |
+| Chat editor | Gameplay → Inventory and Chat → Chat QoL | Background, Messages, Tabs, Menu and Highlight, Reset; custom-tab add/edit/order/delete and group/all resets |
+| Movement shortcuts focused editor | Gameplay → Inventory and Chat → Movement and Shortcuts | Wardrobe and Pets switches; Reset Movement Shortcuts |
+| Slayer focused editor | Gameplay → Inventory and Chat → Slayer Tracker | Master, Boss Timer, Price Drops, `/setprice` guidance, per-family history clears, reset |
+| Dungeon Map route | Dungeon → Run Tools → Dungeon Map | Master, rotation, names, puzzle labels, scale/zoom, party announcement; placement remains in HUD Editor |
+| Terminal Helper focused editor | Dungeon → Run Tools → Terminal Helper | No-master status dropdown: visual helpers, auto click, hide/prevent incorrect choices, waypoints, scale, reset |
+| Spirit Leap focused editor | Dungeon → Run Tools → Spirit Leap Picker | Master, key switch, reset |
+| Boss HUD route | Dungeon → Run Tools → Boss Health HUD | Master and HUD Editor placement guidance |
+| M7 focused editor | Dungeon → Floor VII → Floor VII Overlay | Overlay, relic areas, dragon alert, Click in Order, Boss Hitboxes, Dragon Hitboxes, reset |
+| Dungeon ESP focused editors | Dungeon → Dungeon ESP → Mob ESP / Door ESP | Existing global limits and presets; compact per-Mob style tables; shared Door Style and Blood Door colour; no sample panel |
+| Dungeon Sync route | Dungeon → Party Sync | Master, diagnostics, existing endpoint guidance |
+| Mining Assistant route | Mining → Mining Speed / Mining Assistant | BPS HUD switch, ability alert, Puzzler helper, assistant HUD, reset |
+| Catch/Fishing routes | Fishing → Fishing Tracker | Catch Counter/Festival/reset, Sea Creature Health HUD, Jawbus and nearby encounter alerts |
+| HUD routes | Visuals → HUD | HUD Editor launch plus Player Doll and Inventory HUD owners |
+| Item Animation route | Visuals → Item Animation | Master and Item Animation Editor launch; all renderer controls remain in that permitted editor |
+| Commands focused editor | System → Commands | `/sv`, `/qn`, diagnostics guidance, reset |
 
-`ReferenceSettingsCatalog` is the immutable presentation inventory. It contains the rail/card order, search synonyms,
-inline children, and every current route that must remain accessible. `FeatureSettingsUiModel` is a non-rendered audit
-projection, not a second menu model or configuration schema. `DungeonEspUiModel` remains the detailed non-rendered
-editor inventory for established ESP controls.
+## Channel placement
 
-## Persistence, rendering cleanup, and editor transitions
+- **Mining**: Mining Speed/BPS and Mining Assistant moved from the broader Gameplay presentation
+  channel to **Mining** only. Their existing `HudManager`/`AssistSettings` owners and keys remain
+  unchanged.
+- **Fishing**: Catch Counter, Sea Creature Health, Jawbus, and nearby-encounter controls moved to
+  **Fishing** only. Their `AppleSettings`, `FishingStats`, and HUD owners remain unchanged.
+- **Farming**: the repository has no genuine crop/farming feature to move. It deliberately shows
+  only **No farming features yet**; no crop automation, macros, auto-clicking, auto-breaking, or
+  movement behavior was introduced.
+- **Uncertain placement kept conservative**: Slayer remains Gameplay, Terminal/M7/ESP remain
+  Dungeon, and HUD/Item Animation remain Visuals.
 
-Search uses each setting's id, label, description, keywords, and inline child copy. Results identify the owning
-rail/card while retaining the same live control and focused route. Existing owners remain authoritative:
-`AppleSettings`, `AssistSettings`, `ChatQolSettings`, `DungeonEspSettings`, `M7Settings`, `ItemLockSwapSettings`, and
-each HUD element. Historic `appearance.settingsTheme`, `darkMode`, and accent keys remain readable and bounded so old
-configuration files are not damaged; the active Theme deliberately ignores those legacy palette choices and renders
-one neutral-dark/blue system. `settings.window.fullscreen` persists only the shell mode; a missing old key safely opens
-the responsive small window.
+## Requested grouped surfaces
 
-HUD Editor/HUD Hub Editor transitions preserve the fixed Theme and shared OpenGL/UI state:
+- **Chat QoL** contains exactly **Background**, **Messages**, **Tabs**, **Menu and Highlight**, and
+  **Reset**. Custom tab fields are edited in Tabs and save directly through `ChatQolSettings`.
+- **Terminal Helper** is deliberately a status dropdown rather than a synthetic master feature;
+  each existing terminal setting remains independently opt-in.
+- **Mob ESP** keeps the compact Global/Mob Category style hierarchy. Each category exposes color,
+  render mode, Through Walls, outline width/opacity, fill opacity, and the existing session-only
+  copy/apply actions.
+- **Door ESP** keeps Door Scope, key/distance options, presets/reset, the single shared Door Style
+  (color, mode, Through Walls, width, outline opacity, fill opacity), and Blood Door color. It does
+  not invent Mob-only clipboard actions for doors.
+- **Item Lock and Swap**, **Fishing**, **Dungeon Map**, **Spirit Leap**, **Boss HUD**, **M7**,
+  **Auto Sprint**, and **Hurt Camera Shake** retain their original settings owners and runtime paths.
 
-- The parent settings screen reapplies the fixed Theme in `initGui` and before every draw, so a returned child cannot
-  leave the parent on a generic or tinted palette.
-- `UIRender` has a neutral GUI restoration baseline. HUD frames, editor frames, scissor blocks, hovered-editor flags,
-  element matrices/alpha, inventory-item passes, entity previews, and direct held-item previews use `finally` cleanup.
-- `HudManager`, `HudElement`, `ItemSlots`, `PlayerPreview`, and `HudEditorScreen` restore state even when a live
-  preview renderer fails. This is automated/source-contract coverage, not a substitute for an in-game render pass.
+## Removed-only presentation code
 
-The .4v fresh-default audit remains deliberately fresh-install-only: Roman numerals, tooltip scrolling, and rarity
-highlighting may default on for an empty configuration; a populated older configuration never gains a behavior merely
-because it lacks a new key. Dungeon Sync, terminal automatic clicks, Auto Sprint, shortcuts, party chat actions,
-nearby encounter titles, M7 overlays/solvers, and fresh Dungeon ESP remain opt-in. Schema v3 does not overwrite an
-explicit saved choice.
+Retired code consists solely of presentation/sample paths and obsolete focused-editor models:
 
-## Home metric and verification scope
+- Chat sample/demo/send-test/automatic sample controls and their screen/model/layout.
+- Inventory/Swap sample cards, Dungeon ESP hitbox sample panels, Door sample panels, and the
+  Spirit Leap local sample data path.
+- Generic focused feature-editor, settings-audit, chat, ESP, fishing, quality-of-life, and mod
+  settings model/screen classes.
 
-- **FPS**, **Java memory**, and **ping** are displayed only by Home's LIVE PERFORMANCE cards. Their reader is queried
-  while Home is open, refreshes at most once per 500 ms, and appends to a fixed 24-sample ring only for a new snapshot.
-- No `StatsHud`, metric HUD-editor target, Visuals route, default, render-event overlay, or active persisted metric
-  key remains. Historical `fps-display.*`, `ping-display.*`, `memory-display.*`, and `stats.*` keys are consumed and
-  ignored, without enabling a replacement display.
-- Existing Dungeon ESP detection, entity filters, styles, cached doors, and badges remain
-  available through Dungeon → Highlights.
-- Headless contracts cover exact six-tab order, category/config-key ownership, ungated search/direct children,
-  Farming's searchable audited empty state, 4/8/12/16 spacing, scale-1–4 rail/header/control-edge reachability and
-  no-overlap, one-column narrow reflow, rounded shell clip/gutter/final-padding geometry, fixed Theme behavior,
-  absence of chips/expanders/palette selectors, Home metric format/unknown-ping/ring bounds, drag/clamp geometry, and
-  rendered state-restoration contracts.
-- `HardcodedGuiColorTests` scopes renderer-facing `gui`, `widget`, `notes`, `hud`, and `render` source. Its only
-  direct hexadecimal-colour allowlist entry is `render/Theme.java`. Configuration-owned legacy palette arrays are
-  intentionally outside that scan because they are load-compatibility data, not active GUI rendering; feature/world
-  colour values (for example configurable ESP styles) likewise remain outside this GUI-only boundary.
+The Item Animation renderer remains intact. Its real `Preview Swing` starts only the temporary local
+hand-render path; it does not send input, packets, or gameplay actions. The editor contains no held-item
+sample card.
 
-The release workflow runs Java 8 Forge compilation/reobfuscation, the standalone test suite, release-JAR verification,
-and source-ZIP verification. These checks do **not** start Minecraft. Rendering, input feel, and gameplay remain **NOT
-tested in-game** until a real Minecraft 1.8.9 Forge pass is available.
+## Screenshot and shell behavior
+
+The compact **Safe by default** notice is one line with its icon. The fullscreen control uses a
+crisp corner-bracket glyph and persists only `settings.window.fullscreen`. Sky VeLor does not draw
+or reserve external launcher MOUSE/GUI indicators; those belong to the launcher, not this client
+GUI. The shell is rounded/clipped, draggable in small mode, and uses a single scroll viewport.
+
+## Automated coverage and release boundary
+
+Headless tests cover the eight-tab order, empty Farming channel, owner/config-key bridges,
+old-property loading, collapsed disclosure persistence, parent-expanding search, option inventory,
+allowed editor boundaries, ESP tables, standard toggle dimensions, and scale-1–4 row geometry.
+`tools/verify_release_jar.py` checks the packaged class boundary: retired focused editor/sample
+classes must be absent; inline catalog/binding classes and retained runtime owners must be present.
+
+Build with Java 8 Forge and verify the result, for example:
+
+```sh
+python3 tools/verify_release_jar.py \
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.7v.jar \
+  --version Beta-0.10.8.9.7v --mcmod-version 0.10.8.9.7
+```
+
+The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are **NOT tested
+in-game**.

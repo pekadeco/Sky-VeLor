@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Headless ownership model for the Item Lock and Item Swap focused editor. */
+/** Headless ownership model for the Item Lock and Item Swap inline settings owner. */
 public final class ItemLockSwapUiModel {
 
     public static final String SECTION_TITLE = "Item Lock and Item Swap";

@@ -1,5 +1,28 @@
 # Changelog
 
+## Beta-0.10.8.9.7v — 2026-10-24
+
+- Replaced retired feature-specific settings screens with persisted, collapsed inline dropdowns in
+  `AppleSettingsScreen` and `ReferenceSettingsCatalog`. Existing feature owners and configuration keys remain
+  unchanged; disclosure only is stored under additive `ui.feature.dropdown.<id>` keys.
+- Set the exact eight-destination order to **Home**, **Gameplay**, **Dungeon**, **Farming**, **Mining**,
+  **Fishing**, **Visuals**, **System**. Moved genuine Mining and Fishing controls to their matching channels;
+  Farming remains the explicit **No farming features yet** empty state with no automation added.
+- Preserved every former settings value/action inline: Chat's five groups and custom tabs, Item Lock / Swap,
+  Slayer, Terminal Helper, Spirit Leap, map, Boss HUD, M7, compact Mob/Door ESP, Dungeon Sync, mining,
+  fishing, appearance/performance/interface/commands resets, and direct owner bindings.
+- Removed generic focused-editor, Chat, ESP, Fishing, quality-of-life, and mod-settings presentation classes along
+  with sample/demo-only chat, inventory/swap, ESP/door, Spirit Leap, and held-item editor surfaces. Only HUD Editor
+  and Item Animation Editor remain reachable; Item Animation retains the real hand renderer and Preview Swing.
+- Standardized feature-master pills to `38 × 20`, made search reveal collapsed ancestors, retained dimmed-but-editable
+  dependent options, made Terminal Helper a no-master status dropdown, and added persisted disclosure, old-owner,
+  option inventory, ESP table, scale-1–4 geometry, and allowed-editor regression coverage.
+- Applied the Safe-by-default one-line layout and corner-bracket fullscreen glyph. Sky VeLor does not draw external
+  launcher MOUSE/GUI indicators.
+- Updated display metadata, generated Forge metadata, build contract, verifier examples, documentation, and archive
+  references to `Beta-0.10.8.9.7v` / numeric `0.10.8.9.7`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input/gameplay pass remains required.
+
 ## Beta-0.10.8.9.6v — 2026-10-24
 
 - Finalized the native Forge settings polish with one neutral-dark `Theme` token authority, blue-only positive
