@@ -6,9 +6,9 @@ import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.gui.FontRenderer;
 
 /**
- * Shared visual primitives for the live Default Chat replacement and its editor preview.  Keeping the
- * configured colours, opacities, rounded surfaces, tab accents, hover rows and context-menu drawing in
- * one renderer means the preview is a real rendering surface, not a separately styled mockup.
+ * Shared visual primitives for the live Default Chat replacement. Keeping configured colours, opacities,
+ * rounded surfaces, tab accents, hover rows and context-menu drawing in one renderer prevents a separately
+ * styled settings-only mockup.
  */
 public final class ChatSurfaceRenderer {
     private ChatSurfaceRenderer() { }

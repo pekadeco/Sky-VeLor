@@ -20,49 +20,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Shared focused-settings surface.
- *
- * <p>The left side is always the one scrollable settings column.  When a feature has a meaningful
- * visual surface, the remaining right side is a clipped, non-interactive Live Preview; a feature
- * without one deliberately uses the whole width for settings rather than showing an empty mockup.
- * Widgets still write their live configuration owners directly, so there is no Apply/Save staging
- * state and no second preview copy of any setting.</p>
+ * Shared focused-settings surface used temporarily while feature controls are being consolidated into
+ * the primary settings dropdowns. It keeps one full-width settings column and writes each owner directly.
  */
 public final class FeatureSettingsEditorScreen extends AppleScreen {
     public interface EntryFactory {
         void build(Category category, List<Entry> entries);
-    }
-
-    /** A preview receives the exact live settings owner and is drawn only while this editor is open. */
-    public interface Preview {
-        /** The object/class which owns the values used by the live renderer for this category. */
-        Object settingsObject(String categoryId);
-        /** Draw in the already clipped preview viewport. Implementations must not allocate per frame. */
-        void draw(PreviewContext context);
-    }
-
-    /** Reused frame context; preview implementations must never retain it. */
-    public static final class PreviewContext {
-        public String categoryId = "";
-        public float x, y, width, height;
-        public int mouseX, mouseY;
-        public float partialTicks;
-        public long nowNanos;
-        public FontRenderer font;
-
-        private void set(String category, float px, float py, float pw, float ph, int mx, int my,
-                         float partial, long now, FontRenderer renderer) {
-            categoryId = category == null ? "" : category;
-            x = px;
-            y = py;
-            width = pw;
-            height = ph;
-            mouseX = mx;
-            mouseY = my;
-            partialTicks = partial;
-            nowNanos = now;
-            font = renderer;
-        }
     }
 
     public interface ResetAction {
@@ -133,18 +96,16 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         public final String subtitle;
         public final List<Category> categories;
         public final EntryFactory entries;
-        public final Preview preview;
         public final ResetAction reset;
 
         public Spec(String id, String title, String subtitle, List<Category> categories,
-                    EntryFactory entries, Preview preview, ResetAction reset) {
+                    EntryFactory entries, ResetAction reset) {
             this.id = id == null ? "settings" : id;
             this.title = title == null ? "Feature Settings" : title;
             this.subtitle = subtitle == null ? "" : subtitle;
             this.categories = categories == null ? Collections.<Category>emptyList()
                     : Collections.unmodifiableList(new ArrayList<Category>(categories));
             this.entries = entries;
-            this.preview = preview;
             this.reset = reset;
         }
     }
@@ -155,11 +116,6 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private static final float CATEGORY_H = 42f;
     private static final float ENTRY_H = 42f;
     private static final float GAP = 6f;
-    /** A 150px slider needs a real label column; the preview yields gracefully before controls do. */
-    private static final float SETTINGS_RATIO = .48f;
-    private static final float MIN_SETTINGS_WITH_PREVIEW = 330f;
-    private static final float MIN_PREVIEW_WIDTH = 250f;
-
     private final GuiScreen parent;
     private final Spec spec;
     private final List<Entry> entries = new ArrayList<Entry>();
@@ -169,14 +125,10 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private final GuiLayoutToolkit.Rect content = new GuiLayoutToolkit.Rect();
     /** Category section headings. Kept separate from the scrollable setting rows. */
     private final GuiLayoutToolkit.Rect left = new GuiLayoutToolkit.Rect();
-    /** Right-hand preview only; never a duplicate settings pane. */
-    private final GuiLayoutToolkit.Rect right = new GuiLayoutToolkit.Rect();
-    private final GuiLayoutToolkit.Rect previewBounds = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect entriesView = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect row = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect label = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect control = new GuiLayoutToolkit.Rect();
-    private final PreviewContext previewContext = new PreviewContext();
     private final AppleButton back;
     private final AppleButton reset;
     private String selectedId;
@@ -184,9 +136,6 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     private long lastNs;
     private float scaleFactor = 1f;
     private boolean dirtyEntries = true;
-    private boolean previewAvailable = true;
-    /** False only on narrow GUI scales where a full-width settings column is more usable than a tiny preview. */
-    private boolean previewVisible;
     private String status = "";
 
     public FeatureSettingsEditorScreen(GuiScreen parent, Spec spec) {
@@ -196,7 +145,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     /** Opens a routed child category while retaining the remembered category for ordinary openings. */
     public FeatureSettingsEditorScreen(GuiScreen parent, Spec spec, String requestedCategory) {
         this.parent = parent;
-        this.spec = spec == null ? new Spec("settings", "Feature Settings", "", null, null, null, null) : spec;
+        this.spec = spec == null ? new Spec("settings", "Feature Settings", "", null, null, null) : spec;
         String fallback = this.spec.categories.isEmpty() ? "" : this.spec.categories.get(0).id;
         selectedId = requestedCategory == null || requestedCategory.length() == 0
                 ? FeatureUiPreferences.selection(this.spec.id, fallback) : requestedCategory;
@@ -207,11 +156,6 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
     }
 
     public String selectedCategoryId() { return selectedId; }
-
-    /** Test and diagnostics hook proving a preview and live renderer share the same settings owner. */
-    Object previewSettingsIdentity() {
-        return spec.preview == null ? null : spec.preview.settingsObject(selectedId);
-    }
 
     private Category category(String id) {
         for (Category category : spec.categories) if (category.id.equals(id)) return category;
@@ -226,7 +170,6 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         dirtyEntries = true;
         openDropdown = null;
         status = "";
-        previewAvailable = true;
     }
 
     private void rebuildEntries() {
@@ -289,12 +232,12 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
 
             FontRenderer font = fr();
             UIRender.text(font, spec.title, panel.x + 42f, panel.y + 12.5f, Theme.textPrimary, 1.05f, false);
-            String heading = previewVisible ? "Settings + Live Preview" : "Settings";
+            String heading = "Settings";
             UIRender.text(font, heading, panel.right() - PAD - font.getStringWidth(heading) * .78f,
                     panel.y + 13.5f, Theme.textTertiary, .78f, false);
             drawSubtitle(font);
             drawNavigation(mouseX, mouseY, font);
-            drawSettings(mouseX, mouseY, partialTicks, now, font);
+            drawSettings(mouseX, mouseY, font);
             drawBottomBar(mouseX, mouseY, font);
             if (openDropdown != null) {
                 openDropdown.drawPopup(mouseX, mouseY, panel.y, panel.bottom(), panel.right(), panel.x);
@@ -317,15 +260,13 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         float contentTop = panel.y + TITLE_H + PAD + 18f;
         content.set(panel.x + PAD, contentTop, panel.w - PAD * 2f,
                 Math.max(1f, panel.bottom() - PAD - BOTTOM_H - GAP - contentTop));
-        previewVisible = GuiLayoutToolkit.splitResponsiveLivePreview(content, SETTINGS_RATIO, GAP,
-                MIN_SETTINGS_WITH_PREVIEW, MIN_PREVIEW_WIDTH, spec.preview != null, left, right);
+        left.set(content.x, content.y, content.w, content.h);
         float settingsW = left.w;
         float categoryH = Math.min(Math.max(42f, content.h * .30f), Math.max(42f, spec.categories.size() * CATEGORY_H + 8f));
         if (content.h < 115f) categoryH = Math.min(categoryH, Math.max(26f, content.h * .38f));
         left.set(left.x, left.y, settingsW, Math.min(categoryH, content.h));
         entriesView.set(content.x, Math.min(content.bottom(), left.bottom() + GAP), settingsW,
                 Math.max(1f, content.bottom() - Math.min(content.bottom(), left.bottom() + GAP)));
-        previewBounds.set(right.x, right.y, right.w, right.h);
         navigationScroll.setMaximum(Math.max(0f, spec.categories.size() * CATEGORY_H + 8f - left.h));
 
         back.x = panel.x + PAD;
@@ -369,7 +310,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         UIRender.rect(panel.x + 1f, back.y - 7f, panel.w - 2f, 1f, Theme.divider);
         back.draw(mouseX, mouseY);
         reset.draw(mouseX, mouseY);
-        String hint = previewVisible ? "Live Preview — changes apply instantly." : "Changes apply instantly.";
+        String hint = "Changes apply instantly.";
         float hintX = reset.x + reset.w + 10f;
         UIRender.text(font, fit(font, hint, panel.right() - PAD - hintX), hintX, back.y + 7f,
                 Theme.textTertiary, .80f, false);
@@ -436,8 +377,7 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         }
     }
 
-    private void drawSettings(int mouseX, int mouseY, float partialTicks, long now, FontRenderer font) {
-        if (previewVisible && spec.preview != null) drawPreview(mouseX, mouseY, partialTicks, now, font);
+    private void drawSettings(int mouseX, int mouseY, FontRenderer font) {
         UIRender.scissorBegin(entriesView.x, entriesView.y, entriesView.w, entriesView.h, scaleFactor);
         try {
             float cursor = entriesView.y - scroll.value();
@@ -461,43 +401,6 @@ public final class FeatureSettingsEditorScreen extends AppleScreen {
         if (entries.isEmpty()) {
             String empty = "No settings in this section.";
             UIRender.text(font, empty, entriesView.x + 8f, entriesView.y + 18f, Theme.textTertiary, .85f, false);
-        }
-    }
-
-    private void drawPreview(int mouseX, int mouseY, float partialTicks, long now, FontRenderer font) {
-        UIRender.roundRectBorder(previewBounds.x, previewBounds.y, previewBounds.w, previewBounds.h,
-                Math.max(4f, Theme.radius - 4f), Theme.card, Theme.card, Theme.border);
-        UIRender.text(font, "LIVE PREVIEW", previewBounds.x + 10f, previewBounds.y + 9f,
-                Theme.textTertiary, .72f, false);
-        if (!previewAvailable) {
-            String unavailable = "Preview unavailable";
-            UIRender.text(font, unavailable, previewBounds.x + (previewBounds.w - font.getStringWidth(unavailable) * .9f) * .5f,
-                    previewBounds.y + previewBounds.h * .5f, Theme.textTertiary, .9f, false);
-            return;
-        }
-        boolean clipped = false;
-        try {
-            // Preview renderers may use a world-style Tessellator/GL path. Flush the Apple UI batch before entering
-            // it, and restore the exact 2D UI state below so a preview can never hide or depth-clip real controls.
-            UIRender.flush();
-            UIRender.scissorBegin(previewBounds.x + 1f, previewBounds.y + 18f,
-                    Math.max(1f, previewBounds.w - 2f), Math.max(1f, previewBounds.h - 19f), scaleFactor);
-            clipped = true;
-            previewContext.set(selectedId, previewBounds.x + 1f, previewBounds.y + 19f,
-                    Math.max(1f, previewBounds.w - 2f), Math.max(1f, previewBounds.h - 20f),
-                    mouseX, mouseY, partialTicks, now, font);
-            spec.preview.draw(previewContext);
-        } catch (RuntimeException | LinkageError unavailable) {
-            // A missing renderer/world/mod hook must never block access to the real settings column.
-            previewAvailable = false;
-        } finally {
-            try {
-                if (clipped) UIRender.scissorEnd();
-            } finally {
-                // Dungeon previews deliberately use live styled-box rendering, which changes depth, texture and blend
-                // state. The next settings row must resume as a 2D Apple UI even if that preview failed halfway through.
-                UIRender.restoreFrameState();
-            }
         }
     }
 

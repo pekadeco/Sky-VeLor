@@ -12,29 +12,6 @@ import java.util.List;
 /** Focused Feature Settings Editor specifications for the existing Dungeon ESP configuration schema. */
 public final class DungeonEspEditorSpecs {
     private static final StyleClipboard CLIPBOARD = new StyleClipboard();
-    /** Preview adapters use the exact Style instances consumed by DungeonEspRenderBatch. */
-    private static final FeatureSettingsEditorScreen.Preview MOB_PREVIEW = new FeatureSettingsEditorScreen.Preview() {
-        @Override public Object settingsObject(String categoryId) {
-            DungeonEspSettings.Style style = mobStyle(categoryId);
-            return style == null ? DungeonEspSettings.starred : style;
-        }
-        @Override public void draw(FeatureSettingsEditorScreen.PreviewContext context) {
-            DungeonEspSettings.Style style = mobStyle(context.categoryId);
-            DungeonEspPreviewRenderer.drawMob(context.categoryId,
-                    style == null ? DungeonEspSettings.starred : style,
-                    context.x, context.y, context.width, context.height, context.font, context.nowNanos);
-        }
-    };
-    private static final FeatureSettingsEditorScreen.Preview DOOR_PREVIEW = new FeatureSettingsEditorScreen.Preview() {
-        @Override public Object settingsObject(String categoryId) { return DungeonEspSettings.doors; }
-        @Override public void draw(FeatureSettingsEditorScreen.PreviewContext context) {
-            int color = "blood".equals(context.categoryId) ? DungeonEspSettings.bloodDoorColor
-                    : DungeonEspSettings.doors.color;
-            DungeonEspPreviewRenderer.drawDoor(context.categoryId, DungeonEspSettings.doors, color,
-                    context.x, context.y, context.width, context.height, context.font);
-        }
-    };
-
     private DungeonEspEditorSpecs() { }
 
     public static FeatureSettingsEditorScreen mobEditor(GuiScreen parent) {
@@ -77,8 +54,8 @@ public final class DungeonEspEditorSpecs {
                 () -> DungeonEspSettings.otherMobs.enabled, value -> DungeonEspSettings.otherMobs.enabled = value,
                 DungeonEspSettings.otherMobs));
         return new FeatureSettingsEditorScreen.Spec("mob-esp", "Mob ESP Settings",
-                "Select a category; its switch and hitbox preview stay visible on the left.", categories,
-                DungeonEspEditorSpecs::buildMobEntries, MOB_PREVIEW,
+                "Select a category and edit its cached render style.", categories,
+                DungeonEspEditorSpecs::buildMobEntries,
                 DungeonEspSettings::resetDefaults);
     }
 
@@ -95,8 +72,8 @@ public final class DungeonEspEditorSpecs {
                 () -> DungeonEspSettings.showBloodDoors, value -> DungeonEspSettings.showBloodDoors = value,
                 () -> DungeonEspSettings.bloodDoorColor));
         return new FeatureSettingsEditorScreen.Spec("door-esp", "Door ESP Settings",
-                "Select a door category; its switch and cached-prism preview stay visible on the left.", categories,
-                DungeonEspEditorSpecs::buildDoorEntries, DOOR_PREVIEW,
+                "Select a door category and edit its cached render style.", categories,
+                DungeonEspEditorSpecs::buildDoorEntries,
                 DungeonEspSettings::resetDefaults);
     }
 
@@ -104,17 +81,14 @@ public final class DungeonEspEditorSpecs {
                                                                       java.util.function.Supplier<Boolean> getter,
                                                                       java.util.function.Consumer<Boolean> setter,
                                                                       final DungeonEspSettings.Style style) {
-        return new FeatureSettingsEditorScreen.Category(id, title, description, getter, setter,
-                (x, y, width, height) -> DungeonEspPreviewRenderer.drawMobThumbnail(id, style, x, y, width, height));
+        return new FeatureSettingsEditorScreen.Category(id, title, description, getter, setter, null);
     }
 
     private static FeatureSettingsEditorScreen.Category doorCategory(final String id, String title, String description,
                                                                        java.util.function.Supplier<Boolean> getter,
                                                                        java.util.function.Consumer<Boolean> setter,
                                                                        final java.util.function.IntSupplier color) {
-        return new FeatureSettingsEditorScreen.Category(id, title, description, getter, setter,
-                (x, y, width, height) -> DungeonEspPreviewRenderer.drawDoorThumbnail(id, DungeonEspSettings.doors,
-                        color.getAsInt(), x, y, width, height));
+        return new FeatureSettingsEditorScreen.Category(id, title, description, getter, setter, null);
     }
 
     private static void buildMobEntries(FeatureSettingsEditorScreen.Category category,

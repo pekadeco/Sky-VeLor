@@ -71,7 +71,6 @@ public final class ChatEditorScreen extends AppleScreen {
     private final SearchField filterText = field("Filter text");
     private final SearchField sendPrefix = field("Optional send prefix, e.g. /pc");
     private final SearchField tabColour = field("#FF9F0A");
-    private final SearchField sampleText = field("Sample line to test");
     private final SearchField hoverColour = field("#FFFFFF");
     private final SearchField compactCounterColour = field("#AAAAAA");
 
@@ -80,10 +79,6 @@ public final class ChatEditorScreen extends AppleScreen {
     private final AppleToggle tabVisible;
     private final AppleToggle tabSound;
     private final List<AppleDropdown> dropdowns = new ArrayList<AppleDropdown>();
-    /** Editor-only renderer state; it never owns or copies ChatQolSettings. */
-    private final ChatEditorPreview.State previewState = new ChatEditorPreview.State();
-    private final AppleButton previewSend = new AppleButton("Send test", 72f, 22f, true, previewState::sendTest);
-    private final AppleToggle previewAuto = new AppleToggle(previewState::autoMessages, previewState::setAutoMessages);
     private final AppleButton back;
     private final AppleButton resetAll;
 
@@ -99,10 +94,6 @@ public final class ChatEditorScreen extends AppleScreen {
     private float viewY;
     private float viewW;
     private float viewH;
-    private float previewX;
-    private float previewY;
-    private float previewW;
-    private float previewH;
     private float fontHeight = 9f;
     private float rowHeight = ChatEditorLayout.ROW_H;
     private float headerHeight = ChatEditorLayout.HEADER_H;
@@ -118,7 +109,6 @@ public final class ChatEditorScreen extends AppleScreen {
         resetAll = new AppleButton("Reset", 66f, 22f, false, () -> {
             ChatQolSettings.resetDefaults();
             editingTabId = ChatTabs.ALL;
-            previewState.sendTest();
             syncFields(true);
             tabStatus = "Chat defaults restored.";
             tabStatusError = false;
@@ -207,8 +197,6 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.TABS, "Send prefix", sendPrefix));
         entries.add(new Entry(ChatEditorLayout.TABS, "Custom accent colour", tabColour));
         entries.add(new Entry(ChatEditorLayout.TABS, "Message sound", tabSound));
-        entries.add(new Entry(ChatEditorLayout.TABS, "Test filter", new AppleButton("Test", 60f, 22f, false,
-                this::testFilter)));
         entries.add(new Entry(ChatEditorLayout.TABS, "Save tab", new AppleButton("Save", 60f, 22f, true,
                 this::saveTab)));
         entries.add(new Entry(ChatEditorLayout.TABS, "Move left", new AppleButton("←", 44f, 22f, false,
@@ -308,28 +296,6 @@ public final class ChatEditorScreen extends AppleScreen {
         if (result.success) syncFields(true);
     }
 
-    private void testFilter() {
-        ChatTabs.Tab tab = currentTab();
-        if (tab == null) return;
-        ChatTabs.Tab draft = tab.copy();
-        if (!tab.builtIn()) {
-            if (!draft.setFilter(filterTypeIndex(), filterText.text())) {
-                tabStatus = "Invalid regex: " + draft.validationError();
-                tabStatusError = true;
-                return;
-            }
-        }
-        String sample = sampleText.text();
-        if (sample.trim().length() == 0) {
-            tabStatus = "Enter a sample line first.";
-            tabStatusError = true;
-            return;
-        }
-        boolean match = draft.matches(sample);
-        tabStatus = match ? "Matches this tab; it also remains in All." : "Does not match this tab.";
-        tabStatusError = false;
-    }
-
     private boolean tabVisibleState() { return currentTab() != null && currentTab().enabled(); }
     private boolean tabSoundState() { return draftSound; }
 
@@ -422,27 +388,14 @@ public final class ChatEditorScreen extends AppleScreen {
         }
         viewX = x + 9f;
         viewY = y + 53f;
-        float innerW = Math.max(1f, w - 18f);
-        viewW = Math.max(112f, innerW * .35f);
-        viewW = Math.min(innerW, viewW);
+        viewW = Math.max(1f, w - 18f);
         viewH = Math.max(1f, h - 92f);
-        previewX = viewX + viewW + 7f;
-        previewY = viewY;
-        previewW = Math.max(1f, x + w - 9f - previewX);
-        previewH = viewH;
         back.x = x + 9f;
         back.y = y + h - 29f;
         back.w = Math.min(back.preferredWidth(), 70f);
         resetAll.x = back.x + back.w + 6f;
         resetAll.y = back.y;
         resetAll.w = Math.min(resetAll.preferredWidth(), 72f);
-        previewSend.x = previewX + 8f;
-        previewSend.y = previewY + 5f;
-        previewSend.w = Math.min(previewSend.preferredWidth(), Math.max(46f, previewW * .24f));
-        previewAuto.x = previewSend.x + previewSend.w + 6f;
-        previewAuto.y = previewSend.y + 1f;
-        previewAuto.w = Math.min(42f, Math.max(26f, previewW * .14f));
-        previewAuto.h = 20f;
         ChatEditorLayout.update(layout, viewX, viewY, viewW, viewH, expanded, headerHeight, rowHeights,
                 dropdownSpace, editorScroll.value());
         editorScroll.setMaximum(layout.maxScroll);
@@ -481,8 +434,6 @@ public final class ChatEditorScreen extends AppleScreen {
         lastNs = now;
         updateLayout(dt);
         for (Entry entry : entries) if (entryVisible(entry)) entry.widget.update(dt);
-        previewSend.update(dt);
-        previewAuto.update(dt);
         back.update(dt);
         resetAll.update(dt);
         drawDefaultBackground();
@@ -493,7 +444,6 @@ public final class ChatEditorScreen extends AppleScreen {
         UIRender.roundRectRing(x, y, w, h, Theme.radius, 1f, Theme.border);
         UIRender.text(fr(), "Chat Settings", x + 12f, y + 11f, Theme.textPrimary, 1f, false);
         UIRender.text(fr(), "Settings", viewX, y + 35f, Theme.textTertiary, .72f, false);
-        UIRender.text(fr(), "LIVE PREVIEW", previewX, y + 35f, Theme.textTertiary, .72f, false);
         if (tabStatus.length() > 0) {
             UIRender.text(fr(), fitActive(tabStatus, Math.max(1f, w - 24f), .64f), x + 12f, y + 24f,
                     tabStatusError ? Theme.STATUS_CRITICAL : Theme.textTertiary, .64f, false);
@@ -501,16 +451,6 @@ public final class ChatEditorScreen extends AppleScreen {
         UIRender.rect(x + 1f, y + 44f, w - 2f, 1f, Theme.divider);
         float scale = Minecraft.getMinecraft().gameSettings.guiScale == 0 ? 1f
                 : new net.minecraft.client.gui.ScaledResolution(Minecraft.getMinecraft()).getScaleFactor();
-        UIRender.roundRectBorder(previewX, previewY, previewW, previewH, Math.max(4f, Theme.radius - 4f),
-                Theme.card, Theme.card, Theme.border);
-        previewSend.draw(mx, my);
-        UIRender.text(fr(), "Auto", previewAuto.x + previewAuto.w + 4f, previewAuto.y + 6f,
-                Theme.textSecondary, .72f, false);
-        previewAuto.draw(mx, my);
-        UIRender.scissorBegin(previewX + 1f, previewY + 30f, Math.max(1f, previewW - 2f),
-                Math.max(1f, previewH - 31f), scale);
-        ChatEditorPreview.draw(previewState, previewX, previewY + 27f, previewW, previewH - 28f, mx, my, fr(), now);
-        UIRender.scissorEnd();
         UIRender.scissorBegin(viewX, viewY, viewW, viewH, scale);
         drawSectionsAndEntries(mx, my);
         UIRender.scissorEnd();
@@ -573,11 +513,6 @@ public final class ChatEditorScreen extends AppleScreen {
         if (handleOpenDropdownClick(mx, my)) return;
         if (back.contains(mx, my)) { active = back; active.onPress(mx, my); return; }
         if (resetAll.contains(mx, my)) { active = resetAll; active.onPress(mx, my); return; }
-        if (previewSend.contains(mx, my)) { active = previewSend; active.onPress(mx, my); return; }
-        if (previewAuto.contains(mx, my)) { active = previewAuto; active.onPress(mx, my); return; }
-        if (inside(mx, my, previewX, previewY, previewW, previewH)) {
-            if (previewState.click(mx, my)) return;
-        }
         for (int section = 0; section < ChatEditorLayout.SECTION_COUNT; section++) {
             ChatEditorLayout.Rect header = layout.headers[section];
             if (inside(mx, my, header.x, header.y, header.w, header.h)) {

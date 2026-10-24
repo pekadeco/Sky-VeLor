@@ -58,7 +58,6 @@ public final class Theme {
     public static final int DEBUG_THIN = 0xC8E85D5D;
     public static final int DEBUG_HOT = 0xFFFF4545;
     public static final int DEBUG_FILL = 0x35FF4545;
-    public static final int CHAT_PREVIEW_SURFACE = 0x8A111822;
     public static final int CHAT_PREVIEW_INPUT = 0xA1000000;
     public static final int CHAT_PREVIEW_HINT = 0xFFAAB4C3;
     public static final int CHAT_PREVIEW_TAB = 0xFF86D9FF;

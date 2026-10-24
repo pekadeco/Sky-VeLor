@@ -178,7 +178,7 @@ public abstract class HudElement {
             UIRender.alphaMul = priorAlpha * (opacity / 100f) * extraAlpha;
             drawContent();
         } finally {
-            // Every element shares the editor's matrix/opacity state. Restore both even if a live preview/item
+            // Every element shares the editor's matrix/opacity state. Restore both even if a live item
             // renderer fails, otherwise following cards and the parent GUI inherit the wrong scale or tint.
             UIRender.flush();
             UIRender.alphaMul = priorAlpha;

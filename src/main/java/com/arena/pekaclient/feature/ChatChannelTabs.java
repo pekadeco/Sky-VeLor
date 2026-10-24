@@ -569,7 +569,7 @@ public final class ChatChannelTabs {
         UIRender.beginFrame();
         if (hasMessageBackground && opacity > 0) {
             ChatRenderGeometry.Rect background = backgroundTransition.rect;
-            // The editor preview invokes this same shared surface primitive with the same ChatQolSettings object.
+            // The live chat path owns this shared surface primitive and its established ChatQolSettings values.
             ChatSurfaceRenderer.drawMessageBackground(background.x, background.y, background.w, background.h, opacity);
         }
         UIRender.scissorBegin(2f, viewportTop, width, viewportH, resolution.getScaleFactor());

@@ -78,7 +78,7 @@ public final class ThemeTests {
                 Theme.STATUS_WARNING != Theme.ACCENT_BLUE && Theme.STATUS_CRITICAL != Theme.ACCENT_BLUE
                         && Theme.STATUS_UNAVAILABLE != Theme.ACCENT_BLUE);
         check("shared utility surfaces are tokenized", Theme.NOTE_PANEL != 0 && Theme.LEAP_CARD != 0
-                && Theme.CHAT_PREVIEW_SURFACE != 0 && Theme.LOADING_BLUE != 0 && Theme.DEBUG_HOT != 0);
+                && Theme.LOADING_BLUE != 0 && Theme.DEBUG_HOT != 0);
     }
 
     private static boolean inRange(int millis) {

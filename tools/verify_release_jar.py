@@ -85,7 +85,6 @@ REQUIRED_CLASSES = [
     'gui/FeatureSettingsEditorScreen',
     'gui/FeatureSettingsEditors',
     'gui/DungeonEspEditorSpecs',
-    'gui/DungeonEspPreviewRenderer',
     'config/FeatureUiPreferences',
     'gui/DungeonEspUiModel',
     'gui/QualityOfLifeUiModel',
@@ -93,7 +92,6 @@ REQUIRED_CLASSES = [
     'gui/ChatUiModel',
     'gui/ChatEditorLayout',
     'gui/ChatEditorScreen',
-    'gui/ChatEditorPreview',
     'gui/GuiLayoutToolkit',
     'gui/ModSettingsScreen',
     'notes/QuickNoteLayout',
@@ -477,6 +475,10 @@ def main():
         path = MOD_PACKAGE + cls + '.class'
         return zf.read(path) if path in names else b''
 
+    r.check(all(MOD_PACKAGE + value + '.class' not in names for value in
+                ('gui/ChatEditorPreview', 'gui/DungeonEspPreviewRenderer')),
+            'retired editor sample-panel classes are absent from the release jar')
+
     # --- Assist and retained migration proof --------------------------------
     # Presence alone is not enough: these checks tie persisted safe-default controls, reference-shell labels,
     # lifecycle, guarded terminal path, and privacy-constrained sync transport together in the jar.
@@ -561,11 +563,9 @@ def main():
     esp_tracker_raw = raw_of('dungeonesp/DungeonEspTracker')
     esp_command_raw = raw_of('command/ItemDebugCommand')
     esp_editor_raw = raw_of('gui/DungeonEspEditorSpecs')
-    esp_preview_raw = raw_of('gui/DungeonEspPreviewRenderer')
     esp_batch_raw = raw_of('dungeonesp/DungeonEspRenderBatch')
     esp_display_raw = raw_of('dungeonesp/DungeonEspMobDisplay')
     esp_editor_screen_raw = raw_of('gui/FeatureSettingsEditorScreen')
-    layout_toolkit_raw = raw_of('gui/GuiLayoutToolkit')
     rail_layout_raw = raw_of('gui/SettingsRailLayout')
     page_layout_raw = raw_of('gui/SettingsPageLayout')
     gui_style_raw = raw_of('render/GuiStyle')
@@ -626,9 +626,8 @@ def main():
                         (b'Enable Dungeon ESP', b'Force Render All Mobs in Room', b'Wither Door',
                          b'Blood Door Color', b'Default Preset', b'Subtle Preset', b'Apply Copied Style',
                          b'Apply This Style to All'))
-                and all(value in esp_preview_raw for value in (b'drawStyledBox', b'drawMobThumbnail', b'drawDoorThumbnail'))
                 and b'drawStyledBox' in esp_batch_raw,
-            'flat Dungeon rows route every ESP control through shared Mob/Door editors and shared live-style previews')
+            'Dungeon ESP settings retain every cached Mob/Door control without a standalone visual sample panel')
     r.check(all(value in esp_editor_raw for value in (b'Mob Category Labels', b'Maximum Mob Labels'))
                 and all(value in esp_hub_constants for value in ('Mob Category Labels', 'Maximum Mob Labels'))
                 and all(value in esp_batch_raw for value in
@@ -636,10 +635,9 @@ def main():
                 and all(value in esp_display_raw for value in (b'MINIBOSS', b'SPECIAL', b'ENDERMAN', b'HARD_LABEL_CAP')),
             'Mob ESP packages bounded hierarchy labels, collision-aware layout and world-render state restoration')
     r.check(all(value in esp_editor_screen_raw for value in
-                (b'splitResponsiveLivePreview', b'previewVisible', b'restoreFrameState'))
-                and b'splitResponsiveLivePreview' in layout_toolkit_raw
+                (b'entriesView', b'left', b'GuiLayoutToolkit'))
                 and b'restoreFrameState' in ui_render_raw,
-            'Dungeon ESP editor preserves usable full-width controls on compact GUIs and restores 2D state after preview rendering')
+            'Dungeon ESP editor keeps one full-width controls column while shared renderer state remains recoverable')
     # ReobfJar remaps Minecraft class names, so inspect durable Sky VeLor fields/strings rather than MCP class names.
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
@@ -772,7 +770,6 @@ def main():
     menu_state_members = members_of('chat/ChatMenuState')
     tabs_raw = raw_of('feature/ChatChannelTabs')
     chat_surface_raw = raw_of('feature/ChatSurfaceRenderer')
-    chat_preview_raw = raw_of('gui/ChatEditorPreview')
     copy_menu_raw = raw_of('feature/ChatChannelTabs$CopyMenu')
     tabs_model_raw = raw_of('feature/ChatTabs')
     geometry_raw = raw_of('chat/ChatRenderGeometry')
@@ -813,14 +810,14 @@ def main():
     interaction_members = members_of('feature/ChatInteractionModel$Menu')
     r.check('setAnimationMillis' not in interaction_members and 'openAmount' not in interaction_members,
             'context menu opens and closes instantly while retaining only row-hover easing')
-    chat_visual_raw = tabs_raw + chat_surface_raw + chat_preview_raw
+    chat_visual_raw = tabs_raw + chat_surface_raw
     r.check(all(value in chat_visual_raw for value in (b'backgroundOpenFullArea', b'backgroundFitWidth',
                                                         b'tabInactiveColor', b'tabBackgroundColor', b'tabOpacity',
                                                         b'tabActiveOpacity'))
-                and b'ChatSurfaceRenderer' in tabs_raw and b'ChatSurfaceRenderer' in chat_preview_raw
+                and b'ChatSurfaceRenderer' in tabs_raw and b'ChatSurfaceRenderer' in chat_surface_raw
                 and b'BackgroundTransition' in geometry_raw and b'messageBackground' in geometry_raw
                 and b'tabs.always' in settings_raw_chat and b'menu.animation' in settings_raw_chat,
-            'message-only background, tabs, hover and menu share the live Chat surface renderer with the editor preview')
+            'message-only background, tabs, hover and menu share the production Chat surface renderer')
     r.check(all(value in tabs_model_raw for value in
                 (b'custom-', b'Invalid regex', b'Contains text', b'Starts with', b'Regex', b'partyCommandLine',
                  b'joined the party', b'party was disbanded', b'party members'))

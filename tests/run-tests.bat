@@ -87,13 +87,11 @@ call :run com.arena.pekaclient.feature.ChatTabsTests || goto fail
 call :run com.arena.pekaclient.feature.ChatTabClosePolicyTests || goto fail
 call :run com.arena.pekaclient.feature.ChatInteractionModelTests || goto fail
 call :run com.arena.pekaclient.gui.ChatQolLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.LivePreviewEditorTests || goto fail
 call :run com.arena.pekaclient.notes.QuickNoteLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.QualityOfLifeUiModelTests || goto fail
 call :run com.arena.pekaclient.gui.ItemAnimationReachabilityTests || goto fail
 call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPaletteTests || goto fail
-call :run com.arena.pekaclient.gui.LeapPreviewDataTests || goto fail
 call :run com.arena.pekaclient.hud.ClientMetricsTests || goto fail
 call :run com.arena.pekaclient.hud.ClientMetricTextTests || goto fail
 call :run com.arena.pekaclient.startup.StartupTimingTests || goto fail

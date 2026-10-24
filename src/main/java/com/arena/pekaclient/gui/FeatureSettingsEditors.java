@@ -7,7 +7,6 @@ import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
-import com.arena.pekaclient.itemlockswap.ItemLockSwapOverlay;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.slayer.SlayerType;
@@ -27,21 +26,7 @@ import java.util.List;
  * Each widget writes its established owner directly; this class introduces no replacement config schema.
  */
 public final class FeatureSettingsEditors {
-    /** Uses the same ItemLockSwapOverlay primitives and static settings owner as live inventories/hotbar. */
-    private static final FeatureSettingsEditorScreen.Preview ITEM_LOCK_SWAP_PREVIEW =
-            new FeatureSettingsEditorScreen.Preview() {
-                @Override public Object settingsObject(String categoryId) { return ItemLockSwapSettings.class; }
-                @Override public void draw(FeatureSettingsEditorScreen.PreviewContext context) {
-                    ItemLockSwapOverlay.drawEditorPreview(context.x, context.y, context.width, context.height, context.font);
-                }
-            };
-
     private FeatureSettingsEditors() { }
-
-    /** Package-visible headless contract for the live Item Lock & Swap preview owner. */
-    static Object itemLockSwapPreviewSettingsIdentity() {
-        return ITEM_LOCK_SWAP_PREVIEW.settingsObject("settings");
-    }
 
     public static FeatureSettingsEditorScreen appearance(GuiScreen parent) {
         return editor(parent, "appearance", "Appearance Settings", "Neutral dark surfaces, blue focus, corners and panel opacity.",
@@ -72,7 +57,7 @@ public final class FeatureSettingsEditors {
     public static FeatureSettingsEditorScreen itemLockSwap(GuiScreen parent) {
         return editor(parent, "item-lock-swap", "Item Lock and Swap Settings",
                 "Locks, pairs, badges and persistent pair-center lines.",
-                (category, entries) -> itemLockEntries(parent, entries), ITEM_LOCK_SWAP_PREVIEW,
+                (category, entries) -> itemLockEntries(parent, entries),
                 FeatureSettingsEditors::resetItemLockSwap);
     }
 
@@ -87,7 +72,7 @@ public final class FeatureSettingsEditors {
     }
 
     public static FeatureSettingsEditorScreen spiritLeap(GuiScreen parent) {
-        return editor(parent, "spirit-leap", "Spirit Leap GUI Settings", "Menu replacement, key shortcut and isolated preview.",
+        return editor(parent, "spirit-leap", "Spirit Leap GUI Settings", "Menu replacement and key shortcut.",
                 (category, entries) -> spiritLeapEntries(parent, entries), FeatureSettingsEditors::resetSpiritLeap);
     }
 
@@ -102,7 +87,7 @@ public final class FeatureSettingsEditors {
         categories.add(category("bosses", "Boss Hitboxes", "Maxor, Storm, Goldor and Necron"));
         categories.add(category("dragons", "Dragon Hitboxes", "Five Floor VII dragons"));
         return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec("m7-overlay", "Floor VII (M7) Overlay Settings",
-                "Choose an overlay category on the left.", categories, FeatureSettingsEditors::m7Entries, null,
+                "Choose an overlay category on the left.", categories, FeatureSettingsEditors::m7Entries,
                 FeatureSettingsEditors::resetM7));
     }
 
@@ -116,22 +101,15 @@ public final class FeatureSettingsEditors {
         categories.add(category("settings", "Settings", "Timer and pricing"));
         categories.add(category("history", "Clear History", "Individual Slayer histories"));
         return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec("slayer-simple", "Slayer Tracker Settings",
-                "Tracker HUD styling remains in Slayer HUD Settings.", categories, FeatureSettingsEditors::slayerEntries, null,
+                "Tracker HUD styling remains in Slayer HUD Settings.", categories, FeatureSettingsEditors::slayerEntries,
                 FeatureSettingsEditors::resetSlayer));
     }
 
     private static FeatureSettingsEditorScreen editor(GuiScreen parent, String id, String title, String subtitle,
                                                        FeatureSettingsEditorScreen.EntryFactory entries,
                                                        FeatureSettingsEditorScreen.ResetAction reset) {
-        return editor(parent, id, title, subtitle, entries, null, reset);
-    }
-
-    private static FeatureSettingsEditorScreen editor(GuiScreen parent, String id, String title, String subtitle,
-                                                       FeatureSettingsEditorScreen.EntryFactory entries,
-                                                       FeatureSettingsEditorScreen.Preview preview,
-                                                       FeatureSettingsEditorScreen.ResetAction reset) {
         return new FeatureSettingsEditorScreen(parent, new FeatureSettingsEditorScreen.Spec(id, title, subtitle,
-                Collections.singletonList(category("settings", "Settings", "Feature controls")), entries, preview, reset));
+                Collections.singletonList(category("settings", "Settings", "Feature controls")), entries, reset));
     }
 
     private static FeatureSettingsEditorScreen.Category category(String id, String title, String description) {
@@ -276,9 +254,6 @@ public final class FeatureSettingsEditors {
                 value -> AppleSettings.leapMenu = value));
         entries.add(toggle("Use Spirit Leap Key", "Set the key in Controls, Sky VeLor; hold a Spirit Leap item first.",
                 () -> AppleSettings.leapKey, value -> AppleSettings.leapKey = value));
-        entries.add(FeatureSettingsEditorScreen.Entry.action("Preview Spirit Leap GUI",
-                "Opens the isolated 2x2 picker with no packets or teleports.", "Preview",
-                () -> Minecraft.getMinecraft().displayGuiScreen(LeapScreen.createPreview(parent))));
     }
 
     private static void terminalEntries(FeatureSettingsEditorScreen.Category ignored,

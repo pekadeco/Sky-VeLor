@@ -78,8 +78,8 @@
 
 ## Beta-0.10.8.9.2v — 2026-10-23
 
-- Fixed the focused **Dungeon ESP Settings** editor regression introduced by its live preview: preview renderers now flush before using their world-style GL path and the screen restores Apple UI depth, texture, blend, cull, alpha, and color state before drawing controls. A failed preview cannot leave the settings pane clipped or depth-hidden.
-- Made the focused editor responsive: when a Minecraft GUI scale cannot fit both a readable settings column and preview, it uses one full-width scrollable settings column. Wide windows retain the Live Preview with a minimum-width control column. Existing category scrolling, dropdowns, Back/Reset behavior, remembered selection, direct configuration owners, and save-on-close behavior remain.
+- Fixed the focused **Dungeon ESP Settings** editor regression introduced by its secondary visual sample: preview renderers now flush before using their world-style GL path and the screen restores Apple UI depth, texture, blend, cull, alpha, and color state before drawing controls. A failed preview cannot leave the settings pane clipped or depth-hidden.
+- Made the focused editor responsive: when a Minecraft GUI scale cannot fit both a readable settings column and preview, it uses one full-width scrollable settings column. Wide windows retain the secondary visual sample with a minimum-width control column. Existing category scrolling, dropdowns, Back/Reset behavior, remembered selection, direct configuration owners, and save-on-close behavior remain.
 - Redesigned **Dungeon Mob ESP** display without changing detection: cached/interpolated boxes retain each category's existing style, while a bounded hierarchy-first category badge identifies **MINIBOSS**, **SPECIAL**, **ENDERMAN**, **SKELETOR**, **STARRED**, or **HOSTILE** targets. Badges use each category color, a restrained contrast backing, existing through-wall behavior, closest-first ordering within a category priority, and short world-space lanes to avoid needless overlap.
 - Added persisted **Mob Category Labels** and **Maximum Mob Labels** controls (default on / 16), while retaining the existing independent **Distance Text** setting as an optional distance suffix. Disabling category labels restores the old distance-only behavior; Default/Subtle presets use readable 16/10 badge budgets.
 - Kept detector/filter behavior, category styles, box/tracer controls, door ESP, cached scans, range caps, and stale/dead-target cleanup intact. `/velor espdebug` now reports the live rendered badge count alongside tracked/rendered entities.
@@ -88,7 +88,7 @@
 
 ## Beta-0.10.8.9v — 2026-10-23
 
-- Rebuilt the focused settings editors around a responsive scrollable settings pane and scissored Live Preview surface; previews update the real shared state immediately.
+- Rebuilt the focused settings editors around a responsive scrollable settings pane and scissored secondary visual sample surface; previews update the real shared state immediately.
 - Moved cached local FPS, tab-list Ping, and used/max Java heap telemetry into color-coded **General** GUI cards. Retired FPS/Ping/Memory HUD elements and their old keys are safely ignored.
 - Historical category wording that placed Mining Assistant under **Farming** was superseded by the direct **Mining** ownership audit; no Farming category is claimed without a genuine farming control.
 - Added the reproducible `SkyVeLor-1.8.9-Beta-0.10.8.9v-source.zip` source delivery. CI creates it with a rooted `git archive` allow-list, verifies it with `tools/verify_source_zip.py`, uploads it as an artifact, and publishes exactly the JAR, delivery ZIP, and source ZIP in `dist/`.

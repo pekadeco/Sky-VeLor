@@ -73,62 +73,6 @@ public final class ItemLockSwapOverlay {
         UIRender.endFrame();
     }
 
-    /**
-     * Editor-only visual sample. It intentionally calls the same badge and rounded-line primitives as
-     * inventory/hotbar rendering, but never reads or mutates a real container, lock, pair, packet or key state.
-     */
-    public static void drawEditorPreview(float x, float y, float width, float height,
-                                         net.minecraft.client.gui.FontRenderer font) {
-        if (font == null || width < 24f || height < 24f) return;
-        float slot = Math.max(10f, Math.min(18f, Math.min(width / 15f, height / 10f)));
-        float gap = Math.max(1f, slot * .12f);
-        float hotbarW = slot * 9f + gap * 8f;
-        float baseX = x + Math.max(4f, (width - hotbarW) * .5f);
-        float hotbarY = y + height - slot - 9f;
-        float gridX = baseX;
-        float gridY = Math.max(y + 25f, hotbarY - (slot + gap) * 3f - 7f);
-        // Three inventory rows and a real-looking hotbar use only shape slots so the preview is safe everywhere.
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                float sx = gridX + column * (slot + gap);
-                float sy = gridY + row * (slot + gap);
-                drawPreviewSlot(sx, sy, slot, (row * 9 + column) % 5);
-            }
-        }
-        for (int column = 0; column < 9; column++) {
-            float sx = baseX + column * (slot + gap);
-            drawPreviewSlot(sx, hotbarY, slot, (column + 2) % 5);
-        }
-        // Armor column sits next to the inventory exactly as it does in player inventory surfaces.
-        float armorX = Math.max(x + 4f, gridX - slot - gap - 4f);
-        for (int armor = 0; armor < 4; armor++) drawPreviewSlot(armorX, gridY + armor * (slot + gap), slot, armor);
-
-        // Sampled lock/pair identities deliberately exercise tint/opacity/line width even in an empty real config.
-        drawRoundLine(gridX + slot * .5f, gridY + slot * .5f,
-                gridX + (slot + gap) * 4f + slot * .5f, gridY + (slot + gap) * 2f + slot * .5f,
-                ItemLockSwapSettings.swapLineWidth(),
-                UIRender.withAlpha(ItemLockSwapSettings.effectiveSwapLineColor(), ItemLockSwapSettings.swapLineAlpha()));
-        drawRoundLine(baseX + slot * .5f, hotbarY + slot * .5f,
-                baseX + (slot + gap) * 6f + slot * .5f, hotbarY + slot * .5f,
-                ItemLockSwapSettings.swapLineWidth(),
-                UIRender.withAlpha(ItemLockSwapSettings.effectiveSwapLineColor(), ItemLockSwapSettings.swapLineAlpha()));
-        drawBadge(gridX, gridY, true, 0, font);
-        drawBadge(gridX + (slot + gap) * 4f, gridY + (slot + gap) * 2f, false, 1, font);
-        drawBadge(baseX, hotbarY, false, 2, font);
-        drawBadge(baseX + (slot + gap) * 6f, hotbarY, true, 0, font);
-        drawBadge(armorX, gridY + (slot + gap), true, 0, font);
-        UIRender.text(font, "Inventory  •  hotbar  •  armor", x + 8f, y + 7f, 0xFFE1E8F4, .72f, false);
-    }
-
-    private static void drawPreviewSlot(float x, float y, float size, int itemVariant) {
-        UIRender.roundRectBorder(x, y, size, size, Math.max(1f, size * .12f), 0xB51C2430, 0xB51C2430, 0xFF566171);
-        int item = itemVariant == 0 ? 0xFF6EC7E8 : itemVariant == 1 ? 0xFFE8BE63
-                : itemVariant == 2 ? 0xFF90D278 : itemVariant == 3 ? 0xFFC689E8 : 0xFFE6E9ED;
-        float inset = Math.max(2f, size * .22f);
-        UIRender.roundRect(x + inset, y + inset, size - inset * 2f, size - inset * 2f,
-                Math.max(1f, size * .12f), item, item, .4f);
-    }
-
     private static void drawPersistentPairLines(Container container, EntityPlayerSP player, int hovered) {
         int color = UIRender.withAlpha(ItemLockSwapSettings.effectiveSwapLineColor(), ItemLockSwapSettings.swapLineAlpha());
         float width = ItemLockSwapSettings.swapLineWidth();
@@ -216,7 +160,7 @@ public final class ItemLockSwapOverlay {
         UIRender.circle(x2, y2, radius, color);
     }
 
-    /** Draws no badge at all for normal positions; live and preview rendering use this exact primitive. */
+    /** Draws no badge at all for normal positions; live inventory and hotbar rendering share this primitive. */
     private static void drawBadge(float slotX, float slotY, int index) {
         drawBadge(slotX, slotY, ItemLockSwapSettings.isLocked(index), ItemLockSwapSettings.pairNumber(index), mcFont());
     }

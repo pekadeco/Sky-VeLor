@@ -42,7 +42,7 @@ public final class ChatEditorLayout {
         public final Rect[] bodies = new Rect[SECTION_COUNT];
         public final Rect[][] rows = new Rect[SECTION_COUNT][];
         private final GuiLayoutToolkit.Sections shared = new GuiLayoutToolkit.Sections(SECTION_COUNT);
-        /** Reused update scratch arrays keep the editor/preview frame allocation-free. */
+        /** Reused update scratch arrays keep the editor frame allocation-free. */
         private final float[] bodyHeights = new float[SECTION_COUNT];
         private final float[] openness = new float[SECTION_COUNT];
         public float contentH;

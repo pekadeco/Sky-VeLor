@@ -58,7 +58,7 @@ public final class LeapLayout {
 
     /**
      * Responsive card height. It follows the card width for a landscape rectangle, then shrinks as needed to fit
-     * every row, the preview label, and safe margins on short screens.
+     * every row, any reserved top inset, and safe margins on short screens.
      */
     public static int cardHeight(int screenWidth, int screenHeight, int rows, int topInset) {
         if (rows <= 0) {

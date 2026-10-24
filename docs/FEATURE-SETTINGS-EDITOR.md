@@ -101,7 +101,7 @@ explicit saved choice.
 - No `StatsHud`, metric HUD-editor target, Visuals route, default, render-event overlay, or active persisted metric
   key remains. Historical `fps-display.*`, `ping-display.*`, `memory-display.*`, and `stats.*` keys are consumed and
   ignored, without enabling a replacement display.
-- Existing Dungeon ESP detection, entity filters, styles, cached doors, badges, and focused-editor live preview remain
+- Existing Dungeon ESP detection, entity filters, styles, cached doors, and badges remain
   available through Dungeon → Highlights.
 - Headless contracts cover exact six-tab order, category/config-key ownership, ungated search/direct children,
   Farming's searchable audited empty state, 4/8/12/16 spacing, scale-1–4 rail/header/control-edge reachability and

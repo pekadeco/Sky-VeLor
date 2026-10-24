@@ -80,13 +80,11 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabClosePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatInteractionModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatQolLayoutTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.LivePreviewEditorTests
 java -cp "$OUT:$CP" com.arena.pekaclient.notes.QuickNoteLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.QualityOfLifeUiModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ItemAnimationReachabilityTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPaletteTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPreviewDataTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ClientMetricsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.ClientMetricTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.startup.StartupTimingTests
