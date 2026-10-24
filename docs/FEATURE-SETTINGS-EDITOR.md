@@ -1,4 +1,4 @@
-# Reference settings shell and editor reachability — Beta-0.10.8.9.5.5v
+# Reference settings shell and editor reachability — Beta-0.10.8.9.6v
 
 This document audits the native Minecraft 1.8.9 Forge settings implementation. The approved
 `analyze-sky-velor-mod-code.zip` reference informed the layout and interaction contract; no browser runtime, React,

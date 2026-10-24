@@ -1,5 +1,21 @@
 # Changelog
 
+## Beta-0.10.8.9.6v — 2026-10-24
+
+- Finalized the native Forge settings polish with one neutral-dark `Theme` token authority, blue-only positive
+  interaction accent, semantic status colors, shared type/spacing/radius/shadow tokens, and 120–180 ms control motion.
+- Merged **Sky VeLor · Settings** into the primary header, retained exactly Fullscreen and Close there, narrowed the
+  rail, made the lower strip search-only, and replaced traffic-light child-editor chrome with explicit neutral Close
+  icons. Parent child controls are direct: READY/OPTIONAL chips, chevrons/count disclosures, and expanders are gone.
+- Removed visible legacy theme/base-surface/accent selectors while retaining Corner radius and Panel opacity. Historic
+  appearance keys continue to load and save safely, but do not fork active GUI rendering.
+- Added scale-1–4 right-control/no-overlap proof, Theme/config regression coverage, a scoped hardcoded-GUI-colour
+  allowlist test, and release verifier/documentation updates. No gameplay or feature behavior changed beyond the
+  previously documented removal of the in-game FPS/memory/ping HUD output.
+- Updated display metadata, generated Forge metadata, build contract, verifier examples, and documentation to
+  `Beta-0.10.8.9.6v` / numeric `0.10.8.9.6`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input pass remains required for visual confirmation.
+
 ## Beta-0.10.8.9.5.5v — 2026-10-24
 
 - Added one shared cached, per-corner rounded-rectangle primitive for Sky VeLor GUI surfaces. It clamps each radius,

@@ -1,4 +1,4 @@
-# Sky VeLor — Beta-0.10.8.9.5.5v
+# Sky VeLor — Beta-0.10.8.9.6v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD, a settings hub, dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, and Item Animation for the first-person held item.
 
@@ -16,7 +16,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - Opt-in Default Chat QoL: sequence-ordered retained-message history, rounded message-only background, grouped hover/three-action captured menu, smooth scrolling, and attached open-chat All/Party/Reply/custom filter tabs without split chat windows.
 - Optional mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, and privacy-conscious Dungeon Sync assists; network, automated-click, and input/gameplay assists remain explicit opt-ins.
 
-## Beta-0.10.8.9.5.5v update — GUI fixes and improvements
+## Beta-0.10.8.9.6v update — GUI fixes and improvements
 
 - Refined the existing native Forge desktop without replacing its identity, dependencies, saved settings, HUD Editor,
   HUD Hub Editor, Item Animation, Dungeon ESP, or established focused editors. No browser runtime, React dependency,
@@ -101,7 +101,7 @@ that file by mistake, which is why nothing it claimed to add worked.
 Confirm the artifact before publishing:
 
 ```sh
-python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.5.5v.jar --version Beta-0.10.8.9.5.5v --mcmod-version 0.10.8.9.5.5
+python3 tools/verify_release_jar.py build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.6v.jar --version Beta-0.10.8.9.6v --mcmod-version 0.10.8.9.6
 ```
 
 It checks the version metadata, that every expected mod class is present, that no unrelated project
@@ -109,15 +109,15 @@ file or nested archive was packaged, and — decisively — that the classes ref
 by SRG name with no development names left. The generated `build/` and `.gradle/` directories are
 temporary and should not be included in source ZIPs.
 
-The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.5.5v-source.zip`. It is generated with a
-curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.5.5v-source/` root prefix;
-use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.5.5v` to verify its contents.
+The release also publishes `SkyVeLor-1.8.9-Beta-0.10.8.9.6v-source.zip`. It is generated with a
+curated `git archive` allow-list under the `SkyVeLor-1.8.9-Beta-0.10.8.9.6v-source/` root prefix;
+use `python3 tools/verify_source_zip.py <archive> --version Beta-0.10.8.9.6v` to verify its contents.
 The only JAR allowed in that source archive is the required Gradle wrapper.
 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.5.5v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.6v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Item Lock and Item Swap
