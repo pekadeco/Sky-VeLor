@@ -35,7 +35,7 @@ call :run com.arena.pekaclient.gui.SettingsSpacingLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.SettingsControlLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HardcodedGuiColorTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
-call :run com.arena.pekaclient.gui.FeatureSettingsUiModelTests || goto fail
+call :run com.arena.pekaclient.gui.InlineSettingsCatalogTests || goto fail
 call :run com.arena.pekaclient.gui.FarmingNavigationTests || goto fail
 call :run com.arena.pekaclient.gui.ReleaseClaimsTests || goto fail
 call :run com.arena.pekaclient.chat.ClipboardChainTests || goto fail
@@ -60,9 +60,9 @@ call :run com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests || goto f
 call :run com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.WitherDoorCacheTests || goto fail
-call :run com.arena.pekaclient.gui.DungeonEspUiModelTests || goto fail
-call :run com.arena.pekaclient.gui.DungeonEspEditorSpecsTests || goto fail
-call :run com.arena.pekaclient.gui.AssistUiModelTests || goto fail
+call :run com.arena.pekaclient.gui.InlineEspCatalogTests || goto fail
+call :run com.arena.pekaclient.gui.InlineSettingsBindingsTests || goto fail
+call :run com.arena.pekaclient.gui.InlineOptionPreservationTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapProtectionPolicyTests || goto fail
@@ -86,9 +86,9 @@ call :run com.arena.pekaclient.feature.SwingEasingTests || goto fail
 call :run com.arena.pekaclient.feature.ChatTabsTests || goto fail
 call :run com.arena.pekaclient.feature.ChatTabClosePolicyTests || goto fail
 call :run com.arena.pekaclient.feature.ChatInteractionModelTests || goto fail
-call :run com.arena.pekaclient.gui.ChatQolLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.InlineDropdownLayoutTests || goto fail
 call :run com.arena.pekaclient.notes.QuickNoteLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.QualityOfLifeUiModelTests || goto fail
+call :run com.arena.pekaclient.gui.InlineOwnerBindingsTests || goto fail
 call :run com.arena.pekaclient.gui.ItemAnimationReachabilityTests || goto fail
 call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.LeapPaletteTests || goto fail

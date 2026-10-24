@@ -4,7 +4,11 @@ import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.config.DungeonEspSettings;
+import com.arena.pekaclient.config.FeatureUiPreferences;
 import com.arena.pekaclient.dungeon.M7Settings;
+import com.arena.pekaclient.chat.ChatMenuPolicy;
+import com.arena.pekaclient.feature.ChatChannelTabs;
+import com.arena.pekaclient.feature.ChatTabs;
 import com.arena.pekaclient.hud.ClientMetrics;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
@@ -14,6 +18,7 @@ import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
+import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleSlider;
 import com.arena.pekaclient.widget.AppleToggle;
 import com.arena.pekaclient.widget.SearchField;
@@ -45,7 +50,7 @@ import java.util.function.Supplier;
  */
 public class AppleSettingsScreen extends AppleScreen {
 
-    static final String[] DESTINATION_NAMES = {"Home", "Gameplay", "Dungeon", "Farming", "Visuals", "System"};
+    static final String[] DESTINATION_NAMES = {"Home", "Gameplay", "Dungeon", "Farming", "Mining", "Fishing", "Visuals", "System"};
     static final String PROFILE_CREATOR = "pekadeco";
     static final String[] PROFILE_CONTRIBUTORS = {"ii88w", "whiteShadow"};
     private static final float CHROME_H = SettingsShellLayout.HEADER_HEIGHT;
@@ -61,21 +66,21 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float ROW_PAD_Y = GuiStyle.SPACE_8;
     private static final float CONTROL_GAP = GuiStyle.SPACE_8;
     private static final float WHEEL_STEP = 84f;
-    private static final String[] HOME_QUICK_IDS = {"auto-sprint", "terminal-assist", "chat-qol", "item-animation"};
+    private static final String[] HOME_QUICK_IDS = {"auto-sprint", "terminal-hints", "chat-qol", "item-animation"};
     private static final String[] HOME_QUICK_LABELS = {"Sprint", "Terminal", "Chat", "Hand"};
-    private static final String[] HOME_QUICK_DETAILS = {"Only while forward is held", "Passive slot outline", "Attached filter tabs", "First-person animation"};
+    private static final String[] HOME_QUICK_DETAILS = {"Only while forward is held", "Visual helper status", "Attached filter tabs", "First-person animation"};
 
     private static final int HIT_NAV = 1;
     private static final int HIT_SEARCH_CLEAR = 2;
     private static final int HIT_CONTROL = 3;
-    private static final int HIT_ROUTE = 4;
-    private static final int HIT_CHOICE = 5;
     private static final int HIT_HOME_TOGGLE = 6;
     private static final int HIT_HOME_GAMEPLAY = 7;
     private static final int HIT_WINDOW_FULLSCREEN = 8;
     private static final int HIT_WINDOW_CLOSE = 9;
     private static final int HIT_PROFILE = 10;
     private static final int HIT_PROFILE_CLOSE = 11;
+    private static final int HIT_DISCLOSURE = 12;
+    private static final int HIT_SEARCH_RESULT = 13;
 
     private final GuiScreen parent;
     private final SearchField search = new SearchField("Search settings...");
@@ -90,6 +95,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private final Map<String, Hit> knownHits = new HashMap<String, Hit>();
     private final List<Hit> visibleHits = new ArrayList<Hit>();
     private final Map<String, TextMeasure> textMeasures = new HashMap<String, TextMeasure>();
+    /** Inline text controls (currently Chat colour/custom-tab fields) remain in their owning dropdown. */
+    private final Map<String, SearchField> inlineTextControls = new HashMap<String, SearchField>();
     private final GuiLayoutToolkit.Rect panel = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect viewport = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect profilePopup = new GuiLayoutToolkit.Rect();
@@ -132,6 +139,9 @@ public class AppleSettingsScreen extends AppleScreen {
     private float windowGrabY;
     private String toast = "";
     private long toastUntilNs;
+    private String editingChatTabId = ChatTabs.ALL;
+    private int draftChatFilterType = ChatTabs.CONTAINS;
+    private boolean draftChatSound;
 
     /** Opens Home. */
     public AppleSettingsScreen(GuiScreen parent) {
@@ -144,6 +154,13 @@ public class AppleSettingsScreen extends AppleScreen {
         this.activeTab = initialTab == null ? ReferenceSettingsCatalog.Tab.HOME : initialTab;
         this.fullscreenWindow = AppleSettings.settingsWindowFullscreen;
         refreshReferenceTheme();
+    }
+
+    /** Opens Gameplay with the persisted inline Chat owner and its Tabs group disclosed. */
+    public static AppleSettingsScreen openChatSettings(GuiScreen parent) {
+        FeatureUiPreferences.setDropdownOpen("chat-qol", true);
+        FeatureUiPreferences.setDropdownOpen("chat-tabs-group", true);
+        return new AppleSettingsScreen(parent, ReferenceSettingsCatalog.Tab.GAMEPLAY);
     }
 
     /** Native replacement destination order, exposed for headless regression coverage. */
@@ -174,6 +191,7 @@ public class AppleSettingsScreen extends AppleScreen {
         super.onGuiClosed();
         draggingWindow = false;
         Keyboard.enableRepeatEvents(false);
+        commitInlineTextFields();
         AppleSettings.save();
         HudManager.save();
         Theme.refresh();
@@ -227,7 +245,7 @@ public class AppleSettingsScreen extends AppleScreen {
         SettingsShellLayout.layoutHeader(shellHeader, panel);
 
         // Product identity is merged into the header. The second strip stays one compact search row at every width,
-        // preserving room for the six destinations and avoiding a duplicate title/version hierarchy.
+        // preserving room for the eight destinations and avoiding a duplicate title/version hierarchy.
         toolbarH = TOOLBAR_H;
         float bodyY = panel.y + CHROME_H + toolbarH;
         float bodyH = Math.max(1f, panel.h - CHROME_H - toolbarH);
@@ -316,6 +334,8 @@ public class AppleSettingsScreen extends AppleScreen {
             drawContent(mouseX, mouseY);
             drawToast();
             drawProfilePopup();
+            // Value dropdowns render above clipped rows but remain inside the one settings window.
+            drawOpenDropdown(mouseX, mouseY, panel.y + CHROME_H, panel.bottom(), panel.right(), panel.x);
         } finally {
             UIRender.roundedClipEnd();
         }
@@ -682,53 +702,77 @@ public class AppleSettingsScreen extends AppleScreen {
     private float drawSetting(float y, int mouseX, int mouseY, ReferenceSettingsCatalog.Tab tab,
                               ReferenceSettingsCatalog.Card card, ReferenceSettingsCatalog.Setting setting,
                               boolean child) {
+        return drawSetting(y, mouseX, mouseY, tab, card, setting, child, false);
+    }
+
+    /** Draws one simple-toggle or collapsed-dropdown row; child value controls remain in the disclosed owner. */
+    private float drawSetting(float y, int mouseX, int mouseY, ReferenceSettingsCatalog.Tab tab,
+                              ReferenceSettingsCatalog.Card card, ReferenceSettingsCatalog.Setting setting,
+                              boolean child, boolean dimmed) {
+        boolean disclosure = setting.isDropdown();
+        boolean open = disclosure && FeatureUiPreferences.dropdownOpen(setting.id);
         float rowH = measureSetting(setting, child);
         float x = contentX;
         float rowW = contentW;
         recordViewportRow("Settings row " + setting.id, x, y, rowW, rowH);
-        int divider = Theme.divider;
-        UIRender.line(x + 1f, y, x + rowW - 1f, y, 1f, divider);
+        UIRender.line(x + 1f, y, x + rowW - 1f, y, 1f, Theme.divider);
+
         float padX = child ? ROW_PAD_X + 14f : ROW_PAD_X;
         float leftX = x + padX;
         float controlW = controlWidth(setting);
         float labelW = narrowRows ? rowW - padX * 2f : Math.max(42f, rowW - padX - ROW_PAD_X - controlW - CONTROL_GAP);
         float labelY = y + ROW_PAD_Y;
+        int primary = dimmed ? Theme.textTertiary : Theme.textPrimary;
+        int secondary = dimmed ? Theme.textTertiary : Theme.textSecondary;
         UIRender.text(fr(), fit(fr(), setting.label, labelW / Theme.TYPE_HEADING), leftX, labelY,
-                Theme.textPrimary, Theme.TYPE_HEADING, false);
-        float descriptionY = labelY + 11f;
-        drawWrapped(setting.description, leftX, descriptionY, labelW, Theme.textSecondary, Theme.TYPE_BODY, 2);
+                primary, Theme.TYPE_HEADING, false);
+        drawWrapped(setting.description, leftX, labelY + 11f, labelW, secondary, Theme.TYPE_BODY, 2);
 
-        // Child controls remain directly visible in their owner row. This removes READY/OPTIONAL badges and the
-        // extra chevron-plus-option-count expander without hiding a real setting behind another interaction.
-        boolean hasChildren = setting.hasChildren();
         float controlX;
         float controlY;
         if (narrowRows) {
             controlX = leftX;
-            controlY = SettingsControlLayout.stackedY(y, rowH, controlHeight(setting), 7f);
+            controlY = SettingsControlLayout.stackedY(y, baseSettingHeight(setting, child), controlHeight(setting), 7f);
         } else {
             controlX = SettingsControlLayout.rightX(x, rowW, ROW_PAD_X, controlW);
             controlY = Math.max(y + 6f, SettingsControlLayout.centeredY(y,
                     baseSettingHeight(setting, child), controlHeight(setting)));
         }
-        drawControl(setting, controlX, controlY, controlW, mouseX, mouseY);
+
+        // Register the disclosure first. A right-aligned control is registered after it and therefore retains its
+        // own smaller hit target; clicking the rest of the row only opens/closes the owning dropdown.
+        if (disclosure) {
+            registerHit("dropdown:" + setting.id, HIT_DISCLOSURE, x + 1f, y + 1f, rowW - 2f,
+                    baseSettingHeight(setting, child) - 1f, setting, "");
+        }
+        float alpha = UIRender.alphaMul;
+        if (dimmed) UIRender.alphaMul = alpha * .58f;
+        try {
+            drawControl(setting, controlX, controlY, controlW, mouseX, mouseY);
+        } finally {
+            UIRender.alphaMul = alpha;
+        }
+        if (disclosure) drawDisclosureGlyph(controlX + (setting.hasMasterToggle() ? 5f : Math.max(3f, controlW - 10f)),
+                controlY + Math.max(8f, controlHeight(setting) * .5f), open, dimmed ? Theme.textTertiary : Theme.textSecondary);
 
         float cursor = y + baseSettingHeight(setting, child);
-        if (hasChildren) {
-            float areaY = cursor;
+        float popupReservation = reserveValueDropdown(setting, controlX, controlY, controlW, cursor);
+        cursor += popupReservation;
+        if (open) {
             float childBlockH = childBlockHeight(setting);
-            UIRender.rect(x + 1f, areaY, rowW - 2f, childBlockH, Theme.windowBottom);
-            UIRender.line(leftX + 2f, areaY + 5f, leftX + 2f, areaY + childBlockH - 6f, 1f, Theme.divider);
+            UIRender.rect(x + 1f, cursor, rowW - 2f, childBlockH, Theme.windowBottom);
+            UIRender.line(leftX + 2f, cursor + 5f, leftX + 2f, cursor + childBlockH - 6f, 1f, Theme.divider);
+            boolean childrenDimmed = dimmed || (setting.hasMasterToggle() && !InlineSettingsBindings.booleanValue(setting.id));
             for (ReferenceSettingsCatalog.Setting nested : setting.children) {
-                cursor = drawSetting(cursor, mouseX, mouseY, tab, card, nested, true);
+                cursor = drawSetting(cursor, mouseX, mouseY, tab, card, nested, true, childrenDimmed);
             }
         }
         return y + rowH;
     }
 
     private float measureSetting(ReferenceSettingsCatalog.Setting setting, boolean child) {
-        float h = baseSettingHeight(setting, child);
-        if (setting.hasChildren()) h += childBlockHeight(setting);
+        float h = baseSettingHeight(setting, child) + valueDropdownReservation(setting);
+        if (setting.isDropdown() && FeatureUiPreferences.dropdownOpen(setting.id)) h += childBlockHeight(setting);
         return h;
     }
 
@@ -740,43 +784,56 @@ public class AppleSettingsScreen extends AppleScreen {
         int lines = cachedLines(setting.id, setting.description, labelW, Theme.TYPE_BODY, 2);
         float textH = 10f + lines * 8f;
         float base = Math.max(textH, controlHeight(setting)) + ROW_PAD_Y * 2f - 1f;
-        if (narrowRows) base += controlHeight(setting) + 5f;
+        if (narrowRows && setting.control != ReferenceSettingsCatalog.Control.INFO
+                && setting.control != ReferenceSettingsCatalog.Control.DROPDOWN) base += controlHeight(setting) + 5f;
         return Math.max(31f, base);
+    }
+
+    /** Reserve a real flow block for an open value dropdown so it cannot paint across another option row. */
+    private float valueDropdownReservation(ReferenceSettingsCatalog.Setting setting) {
+        Widget widget = controls.get(setting.id);
+        return widget == openDropdown && widget instanceof AppleDropdown
+                ? ((AppleDropdown) widget).reservedPopupHeight() + 3f : 0f;
+    }
+
+    private float reserveValueDropdown(ReferenceSettingsCatalog.Setting setting, float controlX, float controlY,
+                                       float controlW, float afterRowY) {
+        Widget widget = controls.get(setting.id);
+        if (widget != openDropdown || !(widget instanceof AppleDropdown)) return 0f;
+        AppleDropdown dropdown = (AppleDropdown) widget;
+        float reserve = dropdown.reservedPopupHeight() + 3f;
+        dropdown.reservePopup(controlX, afterRowY + 2f, controlW, Math.max(0f, reserve - 3f));
+        return reserve;
     }
 
     private float childBlockHeight(ReferenceSettingsCatalog.Setting parentSetting) {
         float h = 6f;
-        for (ReferenceSettingsCatalog.Setting child : parentSetting.children) {
-            h += measureSetting(child, true);
-        }
+        for (ReferenceSettingsCatalog.Setting child : parentSetting.children) h += measureSetting(child, true);
         return h + 5f;
     }
 
     private float controlWidth(ReferenceSettingsCatalog.Setting setting) {
         float available = Math.max(1f, contentW - ROW_PAD_X * 2f);
-        switch (setting.control) {
-            case TOGGLE:
-                return Math.min(available, setting.actionLabel.length() == 0 ? 38f : (narrowRows ? 104f : 112f));
-            case SLIDER:
-                return Math.min(available, narrowRows ? Math.max(80f, available) : Math.min(160f, Math.max(82f, contentW * .34f)));
-            case ACTION:
-                return Math.min(available, Math.max(42f, Math.min(116f, fr().getStringWidth(setting.actionLabel) + 19f)));
-            case CHOICE:
-                return choiceWidth(setting);
-            default:
-                return Math.min(available, 12f);
+        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
+            // A master dropdown reserves room for its disclosure, but every actual switch remains the same 38 x 20 pill.
+            return Math.min(available, setting.isDropdown() ? 56f : 38f);
         }
-    }
-
-    private float choiceWidth(ReferenceSettingsCatalog.Setting setting) {
-        float width = 5f;
-        for (String choice : setting.choices) width += fr().getStringWidth(choice) * .67f + 11f;
-        return Math.min(narrowRows ? contentW - ROW_PAD_X * 2f : Math.max(52f, contentW * .44f), Math.max(52f, width));
+        if (setting.control == ReferenceSettingsCatalog.Control.DROPDOWN) return Math.min(available, 22f);
+        if (setting.control == ReferenceSettingsCatalog.Control.SLIDER) {
+            return Math.min(available, narrowRows ? Math.max(80f, available) : Math.min(160f, Math.max(82f, contentW * .34f)));
+        }
+        if (setting.control == ReferenceSettingsCatalog.Control.TEXT || setting.control == ReferenceSettingsCatalog.Control.CHOICE) {
+            return Math.min(available, narrowRows ? Math.max(110f, available) : Math.min(170f, Math.max(104f, contentW * .36f)));
+        }
+        if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
+            return Math.min(available, Math.max(42f, Math.min(132f, fr().getStringWidth(setting.actionLabel) + 19f)));
+        }
+        return Math.min(available, 16f);
     }
 
     private float controlHeight(ReferenceSettingsCatalog.Setting setting) {
         if (setting.control == ReferenceSettingsCatalog.Control.SLIDER) return 24f;
-        if (setting.control == ReferenceSettingsCatalog.Control.CHOICE) return 21f;
+        if (setting.control == ReferenceSettingsCatalog.Control.INFO || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN) return 20f;
         return 21f;
     }
 
@@ -786,58 +843,36 @@ public class AppleSettingsScreen extends AppleScreen {
             UIRender.text(fr(), "—", x, centeredTextY(y, controlHeight(setting), .9f), Theme.textTertiary, .9f, false);
             return;
         }
-        if (setting.control == ReferenceSettingsCatalog.Control.CHOICE) {
-            drawChoiceControl(setting, x, y, w);
-            return;
-        }
+        if (setting.control == ReferenceSettingsCatalog.Control.DROPDOWN) return;
         Widget widget = controlFor(setting);
         if (widget == null) return;
-        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE && setting.actionLabel.length() > 0 && w >= 84f) {
-            float toggleW = Math.min(38f, w);
-            float toggleX = x + w - toggleW;
-            float routeW = Math.max(1f, w - toggleW - 6f);
-            drawRouteButton(setting, x, y, routeW, 20f);
-            widget.x = toggleX;
+        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
+            float toggleW = 38f;
+            widget.x = x + w - toggleW;
             widget.y = y;
             widget.w = toggleW;
             widget.h = 20f;
             widget.draw(mouseX, mouseY);
-            registerHit("route:" + setting.id, HIT_ROUTE, x, y, routeW, 20f, setting, "");
-            registerHit("control:" + setting.id, HIT_CONTROL, toggleX, y, toggleW, 20f, setting, "");
-        } else {
-            widget.x = x;
-            widget.y = y;
-            widget.w = w;
-            widget.h = controlHeight(setting);
-            widget.draw(mouseX, mouseY);
-            registerHit("control:" + setting.id, HIT_CONTROL, x, y, w, widget.h, setting, "");
+            recordViewportControl("Settings toggle " + setting.id, widget.x, widget.y, widget.w, widget.h);
+            registerHit("control:" + setting.id, HIT_CONTROL, widget.x, widget.y, widget.w, widget.h, setting, "");
+            return;
         }
+        widget.x = x;
+        widget.y = y;
+        widget.w = w;
+        widget.h = controlHeight(setting);
+        widget.draw(mouseX, mouseY);
+        recordViewportControl("Settings control " + setting.id, widget.x, widget.y, widget.w, widget.h);
+        registerHit("control:" + setting.id, HIT_CONTROL, x, y, w, widget.h, setting, "");
     }
 
-    private void drawRouteButton(ReferenceSettingsCatalog.Setting setting, float x, float y, float w, float h) {
-        UIRender.roundRectBorder(x, y, w, h,
-                GuiStyle.radius(GuiStyle.RADIUS_BUTTON, Theme.radius, w, h), Theme.buttonFill, Theme.buttonFill, Theme.border);
-        String label = fit(fr(), setting.actionLabel, Math.max(1f, (w - 8f) / .68f));
-        UIRender.text(fr(), label, x + 5f, centeredTextY(y, h, .68f), Theme.textSecondary, .68f, false);
-    }
-
-    private void drawChoiceControl(ReferenceSettingsCatalog.Setting setting, float x, float y, float w) {
-        UIRender.roundRectBorder(x, y, w, 21f,
-                GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, 21f), Theme.buttonFill, Theme.buttonFill, Theme.border);
-        float total = 0f;
-        for (String value : setting.choices) total += fr().getStringWidth(value) * .67f + 11f;
-        float cursor = x + Math.max(2f, (w - total) * .5f);
-        int selected = choiceValue(setting.id);
-        for (int i = 0; i < setting.choices.length; i++) {
-            String choice = setting.choices[i];
-            float optionW = fr().getStringWidth(choice) * .67f + 11f;
-            if (i == selected) {
-                UIRender.roundRect(cursor, y + 2f, optionW - 1f, 17f, 3f, Theme.cardHover, Theme.cardHover, .2f);
-            }
-            UIRender.text(fr(), choice, cursor + 5f, centeredTextY(y, 21f, .67f),
-                    i == selected ? Theme.textPrimary : Theme.textSecondary, .67f, false);
-            registerHit("choice:" + setting.id + ":" + i, HIT_CHOICE, cursor, y, optionW, 21f, setting, Integer.toString(i));
-            cursor += optionW;
+    private void drawDisclosureGlyph(float x, float y, boolean open, int color) {
+        if (open) {
+            UIRender.line(x - 3f, y - 1f, x, y + 2f, 1.1f, color);
+            UIRender.line(x, y + 2f, x + 3f, y - 1f, 1.1f, color);
+        } else {
+            UIRender.line(x - 1f, y - 3f, x + 2f, y, 1.1f, color);
+            UIRender.line(x + 2f, y, x - 1f, y + 3f, 1.1f, color);
         }
     }
 
@@ -858,17 +893,36 @@ public class AppleSettingsScreen extends AppleScreen {
                     }, new IntConsumer() {
                         @Override public void accept(int value) { setInt(setting.id, value); }
                     }).fineStep(1);
+        } else if (setting.control == ReferenceSettingsCatalog.Control.CHOICE) {
+            created = new AppleDropdown(setting.choices, null, 150f, 22f,
+                    new IntSupplier() {
+                        @Override public int getAsInt() { return choiceValue(setting.id); }
+                    }, new IntConsumer() {
+                        @Override public void accept(int value) { setChoice(setting.id, value); }
+                    });
+        } else if (setting.control == ReferenceSettingsCatalog.Control.TEXT) {
+            created = textControl(setting.id, setting.label);
         } else if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
-            created = new AppleButton(setting.actionLabel.length() == 0 ? "Open" : setting.actionLabel,
-                    Math.max(58f, Math.min(116f, fr().getStringWidth(setting.actionLabel) + 19f)), 21f, false,
+            created = new AppleButton(setting.actionLabel.length() == 0 ? "Apply" : setting.actionLabel,
+                    Math.max(42f, Math.min(132f, fr().getStringWidth(setting.actionLabel) + 19f)), 21f, false,
                     new Runnable() {
-                        @Override public void run() { openRoute(setting.id); }
+                        @Override public void run() { performInlineAction(setting.id); }
                     });
         } else {
             return null;
         }
         controls.put(setting.id, created);
         return created;
+    }
+
+    private SearchField textControl(String id, String label) {
+        SearchField field = inlineTextControls.get(id);
+        if (field == null) {
+            field = new SearchField(label);
+            inlineTextControls.put(id, field);
+            syncInlineTextControl(id, field);
+        }
+        return field;
     }
 
     private int cachedLines(String id, String text, float maximum, float scale, int cap) {
@@ -964,6 +1018,7 @@ public class AppleSettingsScreen extends AppleScreen {
         final GuiLayoutToolkit.Rect rect = new GuiLayoutToolkit.Rect();
         int type;
         ReferenceSettingsCatalog.Setting setting;
+        ReferenceSettingsCatalog.Match match;
         String data;
     }
 
@@ -976,7 +1031,22 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         hit.type = type;
         hit.setting = setting;
+        hit.match = null;
         hit.data = data == null ? "" : data;
+        hit.rect.set(x, y, w, h);
+        visibleHits.add(hit);
+    }
+
+    private void registerSearchHit(String key, ReferenceSettingsCatalog.Match match, float x, float y, float w, float h) {
+        Hit hit = knownHits.get(key);
+        if (hit == null) {
+            hit = new Hit();
+            knownHits.put(key, hit);
+        }
+        hit.type = HIT_SEARCH_RESULT;
+        hit.setting = match == null ? null : match.setting;
+        hit.match = match;
+        hit.data = "";
         hit.rect.set(x, y, w, h);
         visibleHits.add(hit);
     }
@@ -1041,13 +1111,13 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         y += SettingsPageLayout.gridHeight(HOME_QUICK_IDS.length, quickColumns, quickH) + GuiStyle.SPACE_12;
 
-        float noticeH = 48f;
+        float noticeH = 30f;
         UIRender.roundRectBorder(contentX, y, contentW, noticeH,
                 GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, noticeH), Theme.card, Theme.card, Theme.border);
-        drawShieldGlyph(contentX + 10f, y + 11f, Theme.accent);
-        UIRender.text(fr(), "Safe by default", contentX + 27f, y + 9f, Theme.textPrimary, .76f, false);
-        drawWrapped("Network sync, automated clicks, and opt-in assists stay off until you explicitly choose them.",
-                contentX + 10f, y + 22f, contentW - 20f, Theme.textSecondary, .63f, 2);
+        drawShieldGlyph(contentX + 10f, y + 9f, Theme.accent);
+        String safety = "Safe by default — network sync and opt-in assists stay off until you choose them.";
+        UIRender.text(fr(), fit(fr(), safety, Math.max(1f, (contentW - 31f) / .68f)), contentX + 26f,
+                centeredTextY(y, noticeH, .68f), Theme.textSecondary, .68f, false);
         return y + noticeH + GAP + SettingsShellLayout.FINAL_CARD_PADDING;
     }
 
@@ -1130,7 +1200,7 @@ public class AppleSettingsScreen extends AppleScreen {
         float quickH = narrowRows ? 42f : 39f;
         int quickColumns = SettingsPageLayout.columnsFor(contentW);
         return 37f + homePerformanceHeight() + GAP + 13f + SettingsPageLayout.gridHeight(HOME_QUICK_IDS.length, quickColumns, quickH)
-                + GuiStyle.SPACE_12 + 48f + GAP + SettingsShellLayout.FINAL_CARD_PADDING;
+                + GuiStyle.SPACE_12 + 30f + GAP + SettingsShellLayout.FINAL_CARD_PADDING;
     }
 
     private float drawSearchResults(float y, int mouseX, int mouseY) {
@@ -1145,20 +1215,29 @@ public class AppleSettingsScreen extends AppleScreen {
                 fr().getStringWidth(clear) * .7f + 4f, 13f, null, "");
         y += 33f;
         if (matches.isEmpty()) {
-            drawEmpty(y, "Try \"lock\", \"leap\", \"particles\", \"theme\" or \"terminal\".");
+            drawEmpty(y, "Try \"lock\", \"leap\", \"particles\", \"map\" or \"terminal\".");
             return y + 66f + SettingsShellLayout.FINAL_CARD_PADDING;
         }
         for (ReferenceSettingsCatalog.Match match : matches) {
             float h = measureSearchMatch(match);
             UIRender.roundRectBorder(contentX, y, contentW, h,
                     GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, h), Theme.card, Theme.card, Theme.border);
-            String owner = match.tab.label + "  >  " + match.card.title;
+            String owner = match.tab.label + "  >  " + match.card.title + searchParentSuffix(match);
             UIRender.text(fr(), fit(fr(), owner, (contentW - 20f) / .61f), contentX + 10f, y + 7f, Theme.textTertiary, .61f, false);
-            UIRender.line(contentX + 1f, y + 18f, contentX + contentW - 1f, y + 18f, 1f, Theme.divider);
-            drawSetting(y + 18f, mouseX, mouseY, match.tab, match.card, match.setting, false);
+            UIRender.text(fr(), fit(fr(), match.setting.label, (contentW - 20f) / .86f), contentX + 10f, y + 20f,
+                    Theme.textPrimary, .86f, false);
+            UIRender.text(fr(), fit(fr(), match.setting.description, (contentW - 20f) / .61f), contentX + 10f, y + 32f,
+                    Theme.textSecondary, .61f, false);
+            registerSearchHit("search-result:" + match.setting.id + ":" + y, match, contentX, y, contentW, h);
             y += h + CARD_GAP;
         }
         return y + SettingsShellLayout.FINAL_CARD_PADDING;
+    }
+
+    private String searchParentSuffix(ReferenceSettingsCatalog.Match match) {
+        if (match == null || match.parents.isEmpty()) return "";
+        ReferenceSettingsCatalog.Setting parent = match.parents.get(match.parents.size() - 1);
+        return "  >  " + parent.label;
     }
 
     private float measureSearchResults() {
@@ -1170,7 +1249,7 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float measureSearchMatch(ReferenceSettingsCatalog.Match match) {
-        return 18f + measureSetting(match.setting, false);
+        return 49f;
     }
 
     // ------------------------------------------------------------------ Input and accessibility
@@ -1178,7 +1257,11 @@ public class AppleSettingsScreen extends AppleScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int button) throws IOException {
         if (button != 0) return;
-        if (handleOpenDropdownClick(mouseX, mouseY)) return;
+        if (handleOpenDropdownClick(mouseX, mouseY)) {
+            clearInlineTextFocus();
+            afterSettingChanged();
+            return;
+        }
         Hit hit = hitAt(mouseX, mouseY);
 
         // The compact profile popover owns its entire z-layer: its X and an outside click are the two clear exits.
@@ -1199,6 +1282,7 @@ public class AppleSettingsScreen extends AppleScreen {
             return;
         }
         if (isTitleBar(mouseX, mouseY)) {
+            clearInlineTextFocus();
             // Keep the pointer's grab point rather than snapping the window origin under it. The layout policy
             // performs the visible-world clamp, and every child coordinate will be rebuilt on the next draw.
             draggingWindow = true;
@@ -1209,27 +1293,38 @@ public class AppleSettingsScreen extends AppleScreen {
             return;
         }
         if (search.contains(mouseX, mouseY)) {
+            clearInlineTextFocus();
             search.setFocused(true);
             return;
         }
         if (hit != null && hit.type == HIT_SEARCH_CLEAR) {
+            clearInlineTextFocus();
             search.clear();
             search.setFocused(true);
             return;
         }
         if (hit != null && hit.type == HIT_PROFILE) {
+            clearInlineTextFocus();
             profileOpen = true;
             search.setFocused(false);
             return;
         }
         if (hit != null && hit.type == HIT_NAV) {
+            clearInlineTextFocus();
             selectTab(hit.data);
             return;
         }
         search.setFocused(false);
+        clearInlineTextFocus();
         if (!viewport.contains(mouseX, mouseY)) return;
         pendingHit = hit;
         activeWidget = hit != null && hit.type == HIT_CONTROL && hit.setting != null ? controlFor(hit.setting) : null;
+        if (activeWidget instanceof SearchField) {
+            ((SearchField) activeWidget).setFocused(true);
+            activeWidget = null;
+            pendingHit = null;
+            return;
+        }
         gestureActive = true;
         sliderEngaged = false;
         gesture.begin(activeWidget, mouseX, mouseY, scroll.value());
@@ -1313,6 +1408,11 @@ public class AppleSettingsScreen extends AppleScreen {
                 widget.onPress((int) gesture.startX, (int) gesture.startY);
             }
             widget.onRelease(mouseX, mouseY, tap && widget.contains(mouseX, mouseY));
+            if (tap && widget instanceof AppleDropdown) {
+                AppleDropdown dropdown = (AppleDropdown) widget;
+                openDropdown = openDropdown == dropdown ? null : dropdown;
+                if (openDropdown != null) dropdown.onExpand();
+            }
             if (tap) afterSettingChanged();
         } else if (tap && pendingHit != null && pendingHit.rect.contains(mouseX, mouseY)) {
             activateHit(pendingHit);
@@ -1341,6 +1441,14 @@ public class AppleSettingsScreen extends AppleScreen {
         if (profileOpen && keyCode == Keyboard.KEY_ESCAPE) {
             profileOpen = false;
             return;
+        }
+        SearchField inlineFocused = focusedInlineText();
+        if (inlineFocused != null) {
+            if (keyCode == Keyboard.KEY_ESCAPE) {
+                inlineFocused.setFocused(false);
+                return;
+            }
+            if (inlineFocused.keyTyped(typedChar, keyCode)) return;
         }
         if (search.isFocused()) {
             if (keyCode == Keyboard.KEY_ESCAPE) {
@@ -1415,17 +1523,15 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private void activateHit(Hit hit) {
-        if (hit.type == HIT_ROUTE && hit.setting != null) {
-            openRoute(hit.setting.id);
+        if (hit == null) return;
+        if (hit.type == HIT_DISCLOSURE && hit.setting != null) {
+            boolean open = !FeatureUiPreferences.dropdownOpen(hit.setting.id);
+            FeatureUiPreferences.setDropdownOpen(hit.setting.id, open);
+            if (open) showToast(hit.setting.label + " expanded");
             return;
         }
-        if (hit.type == HIT_CHOICE && hit.setting != null) {
-            try {
-                setChoice(hit.setting.id, Integer.parseInt(hit.data));
-                afterSettingChanged();
-            } catch (NumberFormatException ignored) {
-                // The click target is screen-owned; a malformed stale target safely does nothing.
-            }
+        if (hit.type == HIT_SEARCH_RESULT && hit.match != null) {
+            expandSearchResult(hit.match);
             return;
         }
         if (hit.type == HIT_HOME_TOGGLE) {
@@ -1437,6 +1543,35 @@ public class AppleSettingsScreen extends AppleScreen {
             activeTab = ReferenceSettingsCatalog.Tab.GAMEPLAY;
             scroll.reset();
         }
+    }
+
+    private void expandSearchResult(ReferenceSettingsCatalog.Match match) {
+        if (match == null) return;
+        activeTab = match.tab;
+        for (ReferenceSettingsCatalog.Setting parent : match.parents) {
+            if (parent.isDropdown()) FeatureUiPreferences.setDropdownOpen(parent.id, true);
+        }
+        if (match.setting.isDropdown()) FeatureUiPreferences.setDropdownOpen(match.setting.id, true);
+        search.clear();
+        search.setFocused(false);
+        scroll.reset();
+        showToast(match.setting.label + " opened");
+    }
+
+    private void clearInlineTextFocus() {
+        boolean changedFocus = false;
+        for (SearchField field : inlineTextControls.values()) {
+            changedFocus |= field.isFocused();
+            field.setFocused(false);
+        }
+        // Palette text fields write their existing owners as soon as the user leaves the field; malformed hex stays
+        // visibly editable and leaves the last valid configuration value intact.
+        if (changedFocus) commitInlineTextFields();
+    }
+
+    private SearchField focusedInlineText() {
+        for (SearchField field : inlineTextControls.values()) if (field.isFocused()) return field;
+        return null;
     }
 
     private void selectTab(String tabName) {
@@ -1514,224 +1649,269 @@ public class AppleSettingsScreen extends AppleScreen {
     // ------------------------------------------------------------------ Existing setting owners
 
     private boolean booleanValue(String id) {
-        if ("no-block-particles".equals(id)) return AppleSettings.noBlockParticles;
-        if ("disable-hotbar-scrolling".equals(id)) return AppleSettings.disableHotbarScrolling;
-        if ("auto-sprint".equals(id)) return AssistSettings.autoSprint;
-        if ("item-lock-swap".equals(id)) return ItemLockSwapSettings.enabled;
-        if ("item-lock-icons".equals(id)) return ItemLockSwapSettings.showLockIcons;
-        if ("item-lock-hotbar".equals(id)) return ItemLockSwapSettings.showIconsOnHotbar;
-        if ("hide-potions".equals(id)) return AssistSettings.hidePotionEffects;
-        if ("roman-numerals".equals(id)) return AssistSettings.romanNumerals;
-        if ("tooltip-scroll".equals(id)) return AssistSettings.tooltipScroll;
-        if ("rarity-highlight".equals(id)) return AssistSettings.rarityHighlight;
-        if ("chat-qol".equals(id)) return ChatQolSettings.enabled;
-        if ("chat-tabs".equals(id)) return ChatQolSettings.tabsEnabled;
-        if ("chat-smooth".equals(id)) return ChatQolSettings.smoothMessages;
-        if ("chat-hover".equals(id)) return ChatQolSettings.hoverHighlight;
-        if ("mining-bps".equals(id)) return HudManager.MINING.enabled;
-        if ("mining-ability-alert".equals(id)) return AssistSettings.miningAbilityAlert;
-        if ("mining-puzzler".equals(id)) return AssistSettings.miningPuzzlerMarker;
-        if ("mining-assistant-hud".equals(id)) return HudManager.MINING_ASSIST.enabled;
-        if ("slayer-tracker".equals(id)) return AppleSettings.slayerTracker;
-        if ("slayer-hud-route".equals(id)) return HudManager.SLAYER.enabled;
-        if ("slayer-boss-timer".equals(id)) return AppleSettings.slayerBossTimer;
-        if ("slayer-pricing".equals(id)) return AppleSettings.slayerPricing;
-        if ("sea-hp-hud-route".equals(id)) return HudManager.SEA_HP.enabled;
-        if ("jawbus".equals(id)) return AppleSettings.fishingJawbusAlert;
-        if ("nearby-encounters".equals(id)) return AppleSettings.fishingNearbyEncounterAlert;
-        if ("wardrobe-shortcut".equals(id)) return AssistSettings.wardrobeShortcut;
-        if ("pets-shortcut".equals(id)) return AssistSettings.petsShortcut;
-        if ("dungeon-map".equals(id)) return AppleSettings.dungeonMap;
-        if ("dungeon-map-rotate".equals(id)) return AppleSettings.dungeonMapRotate;
-        if ("terminal-assist".equals(id)) return AssistSettings.terminalHints;
-        if ("terminal-hints".equals(id)) return AssistSettings.terminalHints;
-        if ("terminal-hide-wrong".equals(id)) return AssistSettings.terminalHideIncorrect;
-        if ("terminal-prevent-clicks".equals(id)) return AssistSettings.terminalPreventWrongClicks;
-        if ("terminal-auto-click".equals(id)) return AssistSettings.terminalAutoClick;
-        if ("terminal-waypoints".equals(id)) return AssistSettings.terminalWaypoints;
-        if ("spirit-leap".equals(id)) return AppleSettings.leapMenu;
-        if ("leap-key".equals(id)) return AppleSettings.leapKey;
-        if ("dungeon-boss-hud".equals(id)) return HudManager.DUNGEON_BOSS_HP.enabled;
-        if ("m7-overlay".equals(id)) return M7Settings.isOverlayEnabled();
-        if ("dragon-alerts".equals(id)) return M7Settings.isDragonKillAlertEnabled();
-        if ("m7-areas".equals(id)) return M7Settings.isStatueZonesEnabled();
-        if ("dungeon-sync-enabled".equals(id)) return AssistSettings.dungeonSync;
-        if ("dungeon-sync-debug".equals(id)) return AssistSettings.dungeonSyncDebug;
-        if ("hud-player-doll".equals(id)) return HudManager.DOLL.enabled;
-        if ("hud-inventory".equals(id)) return HudManager.INVENTORY.enabled;
-        if ("item-animation".equals(id)) return AppleSettings.itemAnimationEnabled;
-        if ("performance-boost".equals(id)) return AppleSettings.experimentalPerformance;
-        if ("animations".equals(id)) return AppleSettings.animations;
-        if ("adaptive-quality".equals(id)) return AppleSettings.adaptive;
-        if ("shadows".equals(id)) return AppleSettings.shadows;
-        if ("smooth-scrolling".equals(id)) return AppleSettings.smoothScrolling;
-        if ("mob-esp-enabled".equals(id)) return DungeonEspSettings.enabled;
-        if ("door-esp-enabled".equals(id)) return DungeonEspSettings.doorsEnabled;
-        return false;
+        if ("chat-tab-visible".equals(id)) {
+            ChatTabs.Tab tab = currentChatTab();
+            return tab != null && tab.enabled();
+        }
+        if ("chat-tab-sound".equals(id)) return draftChatSound;
+        return InlineSettingsBindings.booleanValue(id);
     }
 
     private void setBoolean(String id, boolean value) {
-        if ("no-block-particles".equals(id)) AppleSettings.noBlockParticles = value;
-        else if ("disable-hotbar-scrolling".equals(id)) AppleSettings.disableHotbarScrolling = value;
-        else if ("auto-sprint".equals(id)) AssistSettings.autoSprint = value;
-        else if ("item-lock-swap".equals(id)) ItemLockSwapSettings.enabled = value;
-        else if ("item-lock-icons".equals(id)) ItemLockSwapSettings.showLockIcons = value;
-        else if ("item-lock-hotbar".equals(id)) ItemLockSwapSettings.showIconsOnHotbar = value;
-        else if ("hide-potions".equals(id)) AssistSettings.hidePotionEffects = value;
-        else if ("roman-numerals".equals(id)) AssistSettings.romanNumerals = value;
-        else if ("tooltip-scroll".equals(id)) AssistSettings.tooltipScroll = value;
-        else if ("rarity-highlight".equals(id)) AssistSettings.rarityHighlight = value;
-        else if ("chat-qol".equals(id)) ChatQolSettings.enabled = value;
-        else if ("chat-tabs".equals(id)) ChatQolSettings.tabsEnabled = value;
-        else if ("chat-smooth".equals(id)) ChatQolSettings.smoothMessages = value;
-        else if ("chat-hover".equals(id)) ChatQolSettings.hoverHighlight = value;
-        else if ("mining-bps".equals(id)) HudManager.MINING.enabled = value;
-        else if ("mining-ability-alert".equals(id)) AssistSettings.miningAbilityAlert = value;
-        else if ("mining-puzzler".equals(id)) AssistSettings.miningPuzzlerMarker = value;
-        else if ("mining-assistant-hud".equals(id)) HudManager.MINING_ASSIST.enabled = value;
-        else if ("slayer-tracker".equals(id)) AppleSettings.slayerTracker = value;
-        else if ("slayer-hud-route".equals(id)) HudManager.SLAYER.enabled = value;
-        else if ("slayer-boss-timer".equals(id)) AppleSettings.slayerBossTimer = value;
-        else if ("slayer-pricing".equals(id)) AppleSettings.slayerPricing = value;
-        else if ("sea-hp-hud-route".equals(id)) HudManager.SEA_HP.enabled = value;
-        else if ("jawbus".equals(id)) AppleSettings.fishingJawbusAlert = value;
-        else if ("nearby-encounters".equals(id)) AppleSettings.fishingNearbyEncounterAlert = value;
-        else if ("wardrobe-shortcut".equals(id)) AssistSettings.wardrobeShortcut = value;
-        else if ("pets-shortcut".equals(id)) AssistSettings.petsShortcut = value;
-        else if ("dungeon-map".equals(id)) AppleSettings.dungeonMap = value;
-        else if ("dungeon-map-rotate".equals(id)) AppleSettings.dungeonMapRotate = value;
-        else if ("terminal-assist".equals(id) || "terminal-hints".equals(id)) AssistSettings.terminalHints = value;
-        else if ("terminal-hide-wrong".equals(id)) AssistSettings.terminalHideIncorrect = value;
-        else if ("terminal-prevent-clicks".equals(id)) AssistSettings.terminalPreventWrongClicks = value;
-        else if ("terminal-auto-click".equals(id)) AssistSettings.terminalAutoClick = value;
-        else if ("terminal-waypoints".equals(id)) AssistSettings.terminalWaypoints = value;
-        else if ("spirit-leap".equals(id)) AppleSettings.leapMenu = value;
-        else if ("leap-key".equals(id)) AppleSettings.leapKey = value;
-        else if ("dungeon-boss-hud".equals(id)) HudManager.DUNGEON_BOSS_HP.enabled = value;
-        else if ("m7-overlay".equals(id)) M7Settings.setOverlayEnabled(value);
-        else if ("dragon-alerts".equals(id)) M7Settings.setDragonKillAlertEnabled(value);
-        else if ("m7-areas".equals(id)) M7Settings.setStatueZonesEnabled(value);
-        else if ("dungeon-sync-enabled".equals(id)) AssistSettings.dungeonSync = value;
-        else if ("dungeon-sync-debug".equals(id)) AssistSettings.dungeonSyncDebug = value;
-        else if ("hud-player-doll".equals(id)) HudManager.DOLL.enabled = value;
-        else if ("hud-inventory".equals(id)) HudManager.INVENTORY.enabled = value;
-        else if ("item-animation".equals(id)) AppleSettings.itemAnimationEnabled = value;
-        else if ("performance-boost".equals(id)) AppleSettings.experimentalPerformance = value;
-        else if ("animations".equals(id)) AppleSettings.animations = value;
-        else if ("adaptive-quality".equals(id)) AppleSettings.adaptive = value;
-        else if ("shadows".equals(id)) AppleSettings.shadows = value;
-        else if ("smooth-scrolling".equals(id)) AppleSettings.smoothScrolling = value;
-        else if ("mob-esp-enabled".equals(id)) DungeonEspSettings.enabled = value;
-        else if ("door-esp-enabled".equals(id)) DungeonEspSettings.doorsEnabled = value;
+        if ("chat-tab-visible".equals(id)) {
+            ChatTabs.Tab tab = currentChatTab();
+            if (tab != null) ChatQolSettings.setTabVisible(tab.id(), value);
+            return;
+        }
+        if ("chat-tab-sound".equals(id)) {
+            draftChatSound = value;
+            return;
+        }
+        InlineSettingsBindings.setBoolean(id, value);
+        if (("chat-qol".equals(id) || "chat-tabs".equals(id)) && !value) ChatChannelTabs.disableAndRestoreAll();
     }
 
     private int intValue(String id) {
-        if ("hurt-camera-shake".equals(id)) return AssistSettings.hurtCameraShake;
-        if ("item-animation-size".equals(id)) return AppleSettings.itemAnimationSize;
-        if ("item-animation-speed".equals(id)) return AppleSettings.itemAnimationSpeed;
-        if ("item-animation-x".equals(id)) return AppleSettings.itemAnimationX;
-        if ("item-animation-y".equals(id)) return AppleSettings.itemAnimationY;
-        if ("item-animation-z".equals(id)) return AppleSettings.itemAnimationZ;
-        if ("appearance-corners".equals(id)) return AppleSettings.cornerRadius;
-        if ("appearance-opacity".equals(id)) return AppleSettings.glassOpacity;
-        if ("global-scroll".equals(id)) return AppleSettings.scrollSpeed;
-        return 0;
+        return InlineSettingsBindings.intValue(id);
     }
 
     private void setInt(String id, int value) {
-        if ("hurt-camera-shake".equals(id)) AssistSettings.hurtCameraShake = clamp(value, 0, 100);
-        else if ("item-animation-size".equals(id)) AppleSettings.itemAnimationSize = clamp(value,
-                AppleSettings.ITEM_ANIMATION_SIZE_MIN_PERCENT, AppleSettings.ITEM_ANIMATION_SIZE_MAX_PERCENT);
-        else if ("item-animation-speed".equals(id)) AppleSettings.itemAnimationSpeed = clamp(value,
-                AppleSettings.ITEM_ANIMATION_SPEED_MIN_PERCENT, AppleSettings.ITEM_ANIMATION_SPEED_MAX_PERCENT);
-        else if ("item-animation-x".equals(id)) AppleSettings.itemAnimationX = clamp(value,
-                AppleSettings.ITEM_ANIMATION_OFFSET_MIN, AppleSettings.ITEM_ANIMATION_OFFSET_MAX);
-        else if ("item-animation-y".equals(id)) AppleSettings.itemAnimationY = clamp(value,
-                AppleSettings.ITEM_ANIMATION_OFFSET_MIN, AppleSettings.ITEM_ANIMATION_OFFSET_MAX);
-        else if ("item-animation-z".equals(id)) AppleSettings.itemAnimationZ = clamp(value,
-                AppleSettings.ITEM_ANIMATION_OFFSET_MIN, AppleSettings.ITEM_ANIMATION_OFFSET_MAX);
-        else if ("appearance-corners".equals(id)) AppleSettings.cornerRadius = clamp(value, 4, 18);
-        else if ("appearance-opacity".equals(id)) AppleSettings.glassOpacity = clamp(value, 60, 100);
-        else if ("global-scroll".equals(id)) AppleSettings.scrollSpeed = clamp(value, 50, 300);
+        InlineSettingsBindings.setInt(id, value);
         refreshReferenceTheme();
     }
 
     private int choiceValue(String id) {
-        // The focused system now has one neutral-dark, blue-accent visual language. This remains a safe fallback for
-        // any future non-appearance segmented choice without reviving legacy palette selectors.
-        return 0;
+        if ("chat-tab-filter-type".equals(id)) return draftChatFilterType;
+        return InlineSettingsBindings.choiceValue(id);
     }
 
     private void setChoice(String id, int value) {
-        // No mutable palette choices remain in the main shell. Keep the handler harmless for a stale click target.
+        if ("chat-tab-filter-type".equals(id)) {
+            draftChatFilterType = ChatTabs.normalizeFilterType(value);
+            return;
+        }
+        InlineSettingsBindings.setChoice(id, value);
         refreshReferenceTheme();
     }
 
-    private void openRoute(String id) {
-        if ("item-animation-reset".equals(id)) {
-            AppleSettings.itemAnimationSize = AppleSettings.DEFAULT_ITEM_ANIMATION_SIZE;
-            AppleSettings.itemAnimationSpeed = AppleSettings.DEFAULT_ITEM_ANIMATION_SPEED;
-            AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
-            AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
-            AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
-            showToast("Item animation reset to vanilla");
+    /** Executes a retained value action; only the two explicitly permitted editor destinations open a new screen. */
+    private void performInlineAction(String id) {
+        if ("open-hud-editor".equals(id)) {
+            Minecraft.getMinecraft().displayGuiScreen(new HudEditorScreen(this));
             return;
         }
-        Minecraft minecraft = Minecraft.getMinecraft();
-        if ("hud-editor".equals(id)) {
-            minecraft.displayGuiScreen(new HudEditorScreen(this));
-        } else if ("hud-player-doll".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openElement(this, HudManager.DOLL));
-        } else if ("hud-inventory".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openElement(this, HudManager.INVENTORY));
-        } else if ("item-animation".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openItemAnimation(this));
-        } else if ("item-lock-swap".equals(id) || "item-swap-lines".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.itemLockSwap(this));
-        } else if ("inventory-assist".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.inventoryAssist(this));
-        } else if ("chat-qol".equals(id)) {
-            minecraft.displayGuiScreen(new ChatEditorScreen(this));
-        } else if ("mining-bps".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openElement(this, HudManager.MINING));
-        } else if ("mining-assistant-settings".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.miningAssistant(this));
-        } else if ("slayer-tracker".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.slayer(this));
-        } else if ("slayer-hud-route".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SLAYER));
-        } else if ("fishing-hud-route".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openElement(this, HudManager.FISHING));
-        } else if ("catch-counter".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.catchCounter(this));
-        } else if ("sea-hp-hud-route".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openElement(this, HudManager.SEA_HP));
-        } else if ("movement-shortcuts".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.movementShortcuts(this));
-        } else if ("dungeon-map".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openDungeonMap(this));
-        } else if ("terminal-assist".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.terminalAssist(this));
-        } else if ("spirit-leap".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.spiritLeap(this));
-        } else if ("dungeon-boss-hud".equals(id)) {
-            minecraft.displayGuiScreen(HudEditorScreen.openElement(this, HudManager.DUNGEON_BOSS_HP));
-        } else if ("m7-overlay".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.m7Overlay(this));
-        } else if ("door-esp".equals(id)) {
-            minecraft.displayGuiScreen(DungeonEspEditorSpecs.doorEditor(this));
-        } else if ("mob-esp".equals(id)) {
-            minecraft.displayGuiScreen(DungeonEspEditorSpecs.mobEditor(this));
-        } else if ("appearance".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.appearance(this));
-        } else if ("performance".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.performance(this));
-        } else if ("mod-settings".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.modSettings(this));
-        } else if ("commands".equals(id) || "sync-diagnostics".equals(id) || "dungeon-sync-debug".equals(id)) {
-            minecraft.displayGuiScreen(FeatureSettingsEditors.commands(this));
-        } else {
-            showToast("This setting is already available on this screen");
+        if ("item-animation-open-editor".equals(id)) {
+            Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openItemAnimation(this));
+            return;
+        }
+        if (handleChatAction(id)) return;
+        if (InlineSettingsBindings.runAction(id)) {
+            showToast("Applied " + actionToastLabel(id));
+            return;
+        }
+        showToast("This option is informational");
+    }
+
+    private String actionToastLabel(String id) {
+        ReferenceSettingsCatalog.Setting setting = ReferenceSettingsCatalog.find(id);
+        return setting == null ? "setting" : setting.label;
+    }
+
+    private ChatTabs.Tab currentChatTab() {
+        ChatTabs.Tab tab = ChatQolSettings.tab(editingChatTabId);
+        if (tab == null) {
+            editingChatTabId = ChatTabs.ALL;
+            tab = ChatQolSettings.tab(editingChatTabId);
+        }
+        return tab;
+    }
+
+    private boolean handleChatAction(String id) {
+        if (id == null || !id.startsWith("chat-")) return false;
+        if ("chat-tab-previous".equals(id)) {
+            cycleChatTab(-1);
+            return true;
+        }
+        if ("chat-tab-next".equals(id)) {
+            cycleChatTab(1);
+            return true;
+        }
+        if ("chat-tab-add".equals(id)) {
+            ChatQolSettings.Result result = ChatQolSettings.addCustomTab("Custom tab");
+            if (result.success) editingChatTabId = result.id;
+            syncChatTextControls();
+            showToast(result.message);
+            return true;
+        }
+        if ("chat-tab-save".equals(id)) {
+            saveChatTab();
+            return true;
+        }
+        if ("chat-tab-left".equals(id)) {
+            ChatQolSettings.moveTab(editingChatTabId, -1);
+            syncChatTextControls();
+            showToast("Tab moved left");
+            return true;
+        }
+        if ("chat-tab-right".equals(id)) {
+            ChatQolSettings.moveTab(editingChatTabId, 1);
+            syncChatTextControls();
+            showToast("Tab moved right");
+            return true;
+        }
+        if ("chat-tab-delete".equals(id)) {
+            ChatTabs.Tab tab = currentChatTab();
+            if (tab == null || tab.builtIn()) {
+                showToast("Built-in tabs cannot be deleted");
+            } else {
+                ChatQolSettings.deleteCustomTab(tab.id());
+                editingChatTabId = ChatTabs.ALL;
+                syncChatTextControls();
+                showToast("Custom tab deleted");
+            }
+            return true;
+        }
+        if ("chat-reset-all".equals(id)) {
+            ChatQolSettings.resetDefaults();
+            editingChatTabId = ChatTabs.ALL;
+            syncChatTextControls();
+            showToast("Chat QoL reset");
+            return true;
+        }
+        if ("chat-reset-background".equals(id)) {
+            ChatQolSettings.resetBackground();
+            syncChatTextControls();
+            showToast("Chat background reset");
+            return true;
+        }
+        if ("chat-reset-messages".equals(id)) {
+            ChatQolSettings.resetMessages();
+            syncChatTextControls();
+            showToast("Chat messages reset");
+            return true;
+        }
+        if ("chat-reset-tabs".equals(id)) {
+            ChatQolSettings.resetTabs();
+            editingChatTabId = ChatTabs.ALL;
+            syncChatTextControls();
+            showToast("Chat tabs reset");
+            return true;
+        }
+        if ("chat-reset-menu".equals(id)) {
+            ChatQolSettings.resetMenuHighlight();
+            syncChatTextControls();
+            showToast("Chat menu reset");
+            return true;
+        }
+        return false;
+    }
+
+    private void cycleChatTab(int direction) {
+        java.util.List<ChatTabs.Tab> tabs = ChatQolSettings.tabs();
+        if (tabs.isEmpty()) return;
+        int at = 0;
+        for (int i = 0; i < tabs.size(); i++) {
+            if (tabs.get(i).id().equals(editingChatTabId)) { at = i; break; }
+        }
+        int next = (at + direction) % tabs.size();
+        if (next < 0) next += tabs.size();
+        editingChatTabId = tabs.get(next).id();
+        syncChatTextControls();
+        showToast("Editing " + tabs.get(next).name());
+    }
+
+    private void saveChatTab() {
+        commitInlineTextFields();
+        ChatTabs.Tab tab = currentChatTab();
+        if (tab == null) return;
+        if (tab.builtIn()) {
+            ChatQolSettings.setTabVisible(tab.id(), booleanValue("chat-tab-visible"));
+            showToast(tab.name() + " visibility saved");
+            return;
+        }
+        Integer colour = parseColour(textValue("chat-tab-accent-color"));
+        if (colour == null) {
+            showToast("Enter a valid tab colour");
+            return;
+        }
+        ChatQolSettings.Result result = ChatQolSettings.updateCustomTab(tab.id(), textValue("chat-tab-name"),
+                draftChatFilterType, textValue("chat-tab-filter-text"), textValue("chat-tab-send-prefix"),
+                colour.intValue(), draftChatSound, booleanValue("chat-tab-visible"));
+        if (result.success) syncChatTextControls();
+        showToast(result.message);
+    }
+
+    private String textValue(String id) {
+        SearchField field = inlineTextControls.get(id);
+        return field == null ? "" : field.text();
+    }
+
+    private void syncInlineTextControl(String id, SearchField field) {
+        if (field == null || field.isFocused()) return;
+        if ("chat-background-color".equals(id)) field.setText(colourText(ChatQolSettings.backgroundColor));
+        else if ("chat-tab-inactive-color".equals(id)) field.setText(colourText(ChatQolSettings.tabInactiveColor));
+        else if ("chat-tab-selected-color".equals(id)) field.setText(colourText(ChatQolSettings.tabBackgroundColor));
+        else if ("chat-compact-counter-color".equals(id)) field.setText(colourText(ChatQolSettings.compactCounterColor));
+        else if ("chat-hover-color".equals(id)) field.setText(colourText(ChatQolSettings.hoverColor));
+        else {
+            ChatTabs.Tab tab = currentChatTab();
+            if (tab == null) return;
+            if ("chat-tab-name".equals(id)) field.setText(tab.name());
+            else if ("chat-tab-filter-text".equals(id)) field.setText(tab.filterText());
+            else if ("chat-tab-send-prefix".equals(id)) field.setText(tab.sendPrefix());
+            else if ("chat-tab-accent-color".equals(id)) field.setText(colourText(tab.colour()));
+        }
+    }
+
+    private void syncChatTextControls() {
+        ChatTabs.Tab tab = currentChatTab();
+        if (tab != null) {
+            draftChatFilterType = tab.filterType();
+            draftChatSound = tab.sound();
+        }
+        for (java.util.Map.Entry<String, SearchField> entry : inlineTextControls.entrySet()) {
+            syncInlineTextControl(entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void commitInlineTextFields() {
+        commitColour("chat-background-color", new java.util.function.IntConsumer() {
+            @Override public void accept(int value) { ChatQolSettings.backgroundColor = value; }
+        });
+        commitColour("chat-tab-inactive-color", new java.util.function.IntConsumer() {
+            @Override public void accept(int value) { ChatQolSettings.tabInactiveColor = value; }
+        });
+        commitColour("chat-tab-selected-color", new java.util.function.IntConsumer() {
+            @Override public void accept(int value) { ChatQolSettings.tabBackgroundColor = value; }
+        });
+        commitColour("chat-compact-counter-color", new java.util.function.IntConsumer() {
+            @Override public void accept(int value) { ChatQolSettings.compactCounterColor = value; }
+        });
+        commitColour("chat-hover-color", new java.util.function.IntConsumer() {
+            @Override public void accept(int value) { ChatQolSettings.hoverColor = value; }
+        });
+    }
+
+    private void commitColour(String id, java.util.function.IntConsumer setter) {
+        SearchField field = inlineTextControls.get(id);
+        if (field == null || setter == null) return;
+        Integer color = parseColour(field.text());
+        if (color != null) setter.accept(color.intValue());
+    }
+
+    private static String colourText(int color) {
+        return String.format(java.util.Locale.ROOT, "#%06X", color & 0xFFFFFF);
+    }
+
+    private static Integer parseColour(String value) {
+        if (value == null) return null;
+        String raw = value.trim();
+        if (raw.startsWith("#")) raw = raw.substring(1);
+        if (raw.length() != 6) return null;
+        try {
+            return Integer.valueOf(Integer.parseInt(raw, 16));
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 
@@ -1760,6 +1940,14 @@ public class AppleSettingsScreen extends AppleScreen {
             UIRender.line(x + 6f, y + 5f, x + 10f, y + 2f, 1.2f, color);
             UIRender.circle(x + 2f, y + 4f, 1.7f, UIRender.withAlpha(color, .75f));
             UIRender.circle(x + 10f, y + 2f, 1.7f, UIRender.withAlpha(color, .75f));
+        } else if (tab == ReferenceSettingsCatalog.Tab.MINING) {
+            UIRender.line(x + 2f, y + 2f, x + 10f, y + 10f, 1.3f, color);
+            UIRender.line(x + 8f, y + 2f, x + 11f, y + 5f, 1.3f, color);
+            UIRender.line(x + 2f, y + 8f, x + 5f, y + 11f, 1.3f, color);
+        } else if (tab == ReferenceSettingsCatalog.Tab.FISHING) {
+            UIRender.line(x + 6f, y + 1f, x + 6f, y + 9f, 1.1f, color);
+            UIRender.line(x + 6f, y + 2f, x + 10f, y + 4f, 1.1f, color);
+            UIRender.ring(x + 6f, y + 10f, 2.7f, 1.7f, color);
         } else if (tab == ReferenceSettingsCatalog.Tab.VISUALS) {
             UIRender.roundRectRing(x, y + 1f, 12f, 9f, 1f, GuiStyle.OUTLINE, color);
             UIRender.line(x + 4f, y + 12f, x + 8f, y + 12f, 1f, color);

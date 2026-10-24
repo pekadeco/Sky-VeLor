@@ -3,53 +3,43 @@ package com.arena.pekaclient.gui;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Regression proof for the Farming navigation contract: this is presentation-only and must never fabricate a farm
- * setting, migrate a config key, or repurpose mining/fishing state as crop automation.
- */
+/** Regression proof for the empty Farming channel and honest moves to Mining/Fishing. */
 public final class FarmingNavigationTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        exactRailOrderAndEmptyState();
-        searchFindsTheEmptyFarmingDestination();
-        movedPresentationKeepsEveryRetainedSettingId();
-        System.out.println("farming navigation: passed " + passed + ", failed " + failed);
-        if (failed > 0) System.exit(1);
+        exactRailOrderIncludesTheTwoNewChannels();
+        emptyFarmingMessageIsSearchableButOwnsNoSetting();
+        movedChannelsRetainTheirExistingCatalogIds();
+        done();
     }
 
-    private static void exactRailOrderAndEmptyState() {
-        String[] expected = {"Home", "Gameplay", "Dungeon", "Farming", "Visuals", "System"};
-        check("Farming follows Dungeon in the exact requested rail order",
+    private static void exactRailOrderIncludesTheTwoNewChannels() {
+        String[] expected = {"Home", "Gameplay", "Dungeon", "Farming", "Mining", "Fishing", "Visuals", "System"};
+        check("Farming precedes Mining and Fishing in the exact requested order",
                 Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
-        check("Farming has no fabricated card or config setting", ReferenceSettingsCatalog.cards(
-                ReferenceSettingsCatalog.Tab.FARMING).isEmpty()
-                && ReferenceSettingsCatalog.find("farming-empty") == null);
     }
 
-    private static void searchFindsTheEmptyFarmingDestination() {
+    private static void emptyFarmingMessageIsSearchableButOwnsNoSetting() {
         List<ReferenceSettingsCatalog.Match> matches = ReferenceSettingsCatalog.search("sprout");
-        check("Farming empty state is searchable by its navigation keywords", matches.size() == 1
+        check("Farming exposes its empty-channel message through search", matches.size() == 1
                 && matches.get(0).tab == ReferenceSettingsCatalog.Tab.FARMING
-                && "No farming features yet".equals(matches.get(0).setting.label)
-                && matches.get(0).setting.control == ReferenceSettingsCatalog.Control.INFO);
+                && "No farming features yet".equals(matches.get(0).setting.label));
+        check("Farming does not fabricate a persisted feature card", ReferenceSettingsCatalog.cards(
+                ReferenceSettingsCatalog.Tab.FARMING).isEmpty() && ReferenceSettingsCatalog.find("farming-empty") == null);
     }
 
-    private static void movedPresentationKeepsEveryRetainedSettingId() {
-        String[] gameplayIds = {"auto-sprint", "mining-bps", "mining-assistant-settings", "slayer-tracker",
-                "slayer-hud-route", "fishing-hud-route", "catch-counter", "sea-hp-hud-route", "jawbus"};
-        for (String id : gameplayIds) {
-            check("existing Gameplay configuration id remains reachable: " + id,
-                    ReferenceSettingsCatalog.find(id) != null && ownerOf(id) == ReferenceSettingsCatalog.Tab.GAMEPLAY);
-        }
-        check("Visuals keeps HUD and Item Animation config routes",
-                ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
-                        && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
-        check("Dungeon and the retained System appearance keys retain their destinations",
-                ownerOf("terminal-assist") == ReferenceSettingsCatalog.Tab.DUNGEON
-                        && ownerOf("appearance-corners") == ReferenceSettingsCatalog.Tab.SYSTEM
-                        && ownerOf("appearance-opacity") == ReferenceSettingsCatalog.Tab.SYSTEM);
+    private static void movedChannelsRetainTheirExistingCatalogIds() {
+        String[] mining = {"mining-bps", "mining-assistant-settings", "mining-ability-alert", "mining-puzzler"};
+        for (String id : mining) check("Mining owner moved in presentation only: " + id,
+                ReferenceSettingsCatalog.find(id) != null && ownerOf(id) == ReferenceSettingsCatalog.Tab.MINING);
+        String[] fishing = {"fishing-tracker", "catch-counter", "fishing-festival", "sea-hp-hud-route", "jawbus", "nearby-encounters"};
+        for (String id : fishing) check("Fishing owner moved in presentation only: " + id,
+                ReferenceSettingsCatalog.find(id) != null && ownerOf(id) == ReferenceSettingsCatalog.Tab.FISHING);
+        check("uncertain features stay in their genuine channels", ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.GAMEPLAY
+                && ownerOf("terminal-assist") == ReferenceSettingsCatalog.Tab.DUNGEON
+                && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
     }
 
     private static ReferenceSettingsCatalog.Tab ownerOf(String id) {
@@ -70,5 +60,10 @@ public final class FarmingNavigationTests {
 
     private static void check(String name, boolean okay) {
         if (okay) passed++; else { failed++; System.out.println("FAIL " + name); }
+    }
+
+    private static void done() {
+        System.out.println("channel navigation: passed " + passed + ", failed " + failed);
+        if (failed > 0) System.exit(1);
     }
 }

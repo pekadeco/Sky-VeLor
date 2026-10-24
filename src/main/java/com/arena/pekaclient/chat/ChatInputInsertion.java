@@ -47,7 +47,7 @@ public final class ChatInputInsertion {
      * are replaced while their typed message body is retained.
      */
     public static Result messagePlayer(String existing, String playerName) {
-        String name = ChatPlayerName.extract("From " + (playerName == null ? "" : playerName) + ": preview");
+        String name = ChatPlayerName.extract("From " + (playerName == null ? "" : playerName) + ": example");
         if (name.length() == 0) return new Result(bounded(existing), bounded(existing).length(), false);
         String before = bounded(existing);
         Matcher oldCommand = PRIVATE_COMMAND.matcher(before);

@@ -487,8 +487,8 @@ public final class DungeonEspRenderBatch {
 
     /**
      * Emits either the fill or outline geometry for one box using the exact live style object. The batched renderer
-     * calls this method for every cached target; the settings preview calls it too, so a mode, opacity or width is
-     * never approximated by a second visual implementation.
+     * calls this method for every cached target, so a mode, opacity or width is never approximated by a second
+     * visual implementation.
      *
      * <p>The caller owns GL state and Tessellator begin/draw calls. Passing {@code fill=true} requires a quad
      * writer; passing false requires a line writer.</p>

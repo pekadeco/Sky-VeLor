@@ -51,16 +51,13 @@ public final class Theme {
     public static final int NEUTRAL_DOT = TEXT_TERTIARY;
     public static final int NOTICE_WARNING = STATUS_WARNING;
 
-    /** Non-interactive semantic surfaces shared by previews, debug diagnostics and app-specific utility screens. */
+    /** Non-interactive semantic surfaces shared by diagnostics and app-specific utility screens. */
     public static final int SHADOW = 0x40000000;
     public static final int DIM = 0x4C000000;
     public static final int TOOLTIP = 0xF0161C27;
     public static final int DEBUG_THIN = 0xC8E85D5D;
     public static final int DEBUG_HOT = 0xFFFF4545;
     public static final int DEBUG_FILL = 0x35FF4545;
-    public static final int CHAT_PREVIEW_INPUT = 0xA1000000;
-    public static final int CHAT_PREVIEW_HINT = 0xFFAAB4C3;
-    public static final int CHAT_PREVIEW_TAB = 0xFF86D9FF;
     public static final int LOADING_BLACK = OPAQUE_BLACK;
     public static final int LOADING_BLUE = 0xFF0B2350;
     public static final int LOADING_DEEP_BLUE = LOADING_BLUE;

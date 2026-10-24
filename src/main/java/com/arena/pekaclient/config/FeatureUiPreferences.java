@@ -18,6 +18,9 @@ public final class FeatureUiPreferences {
         STATE.setSelection(editorId, selection);
     }
 
+    public static boolean dropdownOpen(String featureId) { return STATE.dropdownOpen(featureId); }
+    public static void setDropdownOpen(String featureId, boolean open) { STATE.setDropdownOpen(featureId, open); }
+
     public static void load(Properties settings) { STATE.load(settings); }
     public static void save(Properties settings) { STATE.save(settings); }
 }

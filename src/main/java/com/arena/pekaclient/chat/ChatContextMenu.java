@@ -16,7 +16,7 @@ public final class ChatContextMenu {
     /** Uses the captured message's sender. Invalid/system messages deliberately retain only the two copy actions. */
     public void setPlayerName(String value) {
         // The recipient stays captured for the action, but the visible third row is deliberately the fixed label.
-        playerName = ChatPlayerName.extract("From " + (value == null ? "" : value) + ": preview");
+        playerName = ChatPlayerName.extract("From " + (value == null ? "" : value) + ": example");
     }
 
     public String playerName() { return playerName; }

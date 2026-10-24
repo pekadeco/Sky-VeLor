@@ -7,24 +7,23 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Immutable presentation catalog ported from the supplied DeepSeek GUI reference.
+ * Immutable presentation catalog for the native settings shell.
  *
- * <p>The catalog deliberately describes presentation only: ids resolve to the existing Sky VeLor configuration
- * owners and focused editors in {@link AppleSettingsScreen}. It never introduces a second persistence schema.
- * Home is an aggregate/live-summary surface; Gameplay groups existing comfort, mining, Slayer and fishing cards,
- * Dungeon and Visuals retain their real routes, and System owns appearance. Farming is intentionally empty unless
- * a genuine crop/farming owner exists. Cards and inline detail rows keep every existing route visible without a
- * second gate.</p>
+ * <p>This catalog never owns a feature value. Every id is resolved by {@link AppleSettingsScreen} to an existing
+ * configuration owner, HUD element, or established runtime action. The top level intentionally contains only
+ * small toggle rows and collapsed dropdown rows; value controls live inside their owning dropdown.</p>
  */
 public final class ReferenceSettingsCatalog {
 
     public enum Tab {
         HOME("Home", "Live performance and the handful of switches you touch most."),
-        GAMEPLAY("Gameplay", "Existing comfort, mining, Slayer and fishing controls in one direct channel."),
-        DUNGEON("Dungeon", "Everything that should only be alive inside Catacombs."),
+        GAMEPLAY("Gameplay", "Comfort, inventory, chat and shortcuts."),
+        DUNGEON("Dungeon", "Dungeon-only maps, helpers, overlays and ESP."),
         FARMING("Farming", "No farming features yet"),
-        VISUALS("Visuals", "Movable HUD elements and first-person Item Animation controls."),
-        SYSTEM("System", "Appearance, performance and the settings you rarely need.");
+        MINING("Mining", "Existing mining readouts and local helpers."),
+        FISHING("Fishing", "Existing catch, encounter and sea-creature controls."),
+        VISUALS("Visuals", "HUD layout and first-person item animation."),
+        SYSTEM("System", "Appearance, performance, input and diagnostics.");
 
         public final String label;
         public final String caption;
@@ -35,8 +34,9 @@ public final class ReferenceSettingsCatalog {
         }
     }
 
+    /** Child-control types. Top-level settings use only {@link #TOGGLE} or {@link #DROPDOWN}. */
     public enum Control {
-        TOGGLE, SLIDER, ACTION, CHOICE, INFO
+        TOGGLE, SLIDER, ACTION, CHOICE, INFO, DROPDOWN, TEXT
     }
 
     public static final class Setting {
@@ -46,7 +46,7 @@ public final class ReferenceSettingsCatalog {
         public final String keywords;
         public final Control control;
         public final boolean advanced;
-        /** A compact route label; non-empty means the existing focused owner is also reachable from this row. */
+        /** Label for a value action, never a focused-feature-editor route. */
         public final String actionLabel;
         public final int min;
         public final int max;
@@ -73,25 +73,14 @@ public final class ReferenceSettingsCatalog {
             this.children = immutable(children);
         }
 
-        public boolean hasChildren() {
-            return !children.isEmpty();
-        }
+        public boolean hasChildren() { return !children.isEmpty(); }
+        public boolean isDropdown() { return control == Control.DROPDOWN || hasChildren(); }
+        public boolean hasMasterToggle() { return control == Control.TOGGLE; }
+        public int visibleChildCount() { return children.size(); }
 
-        public int visibleChildCount() {
-            return children.size();
-        }
-
-        /** Source-compatible overload; the removed Advanced gate does not hide inline settings. */
-        @Deprecated
-        public boolean hasChildren(boolean ignoredAdvancedFlag) {
-            return hasChildren();
-        }
-
-        /** Source-compatible overload; the removed Advanced gate does not hide inline settings. */
-        @Deprecated
-        public int visibleChildCount(boolean ignoredAdvancedFlag) {
-            return visibleChildCount();
-        }
+        /** Compatibility for old model readers; presentation no longer has an Advanced visibility gate. */
+        @Deprecated public boolean hasChildren(boolean ignored) { return hasChildren(); }
+        @Deprecated public int visibleChildCount(boolean ignored) { return visibleChildCount(); }
     }
 
     public static final class Card {
@@ -115,247 +104,298 @@ public final class ReferenceSettingsCatalog {
         }
     }
 
+    /** A search result carries every collapsed owner that must open before its option is visible. */
     public static final class Match {
         public final Tab tab;
         public final Card card;
         public final Setting setting;
+        public final List<Setting> parents;
 
-        private Match(Tab tab, Card card, Setting setting) {
+        private Match(Tab tab, Card card, Setting setting, List<Setting> parents) {
             this.tab = tab;
             this.card = card;
             this.setting = setting;
+            this.parents = Collections.unmodifiableList(new ArrayList<Setting>(parents));
         }
     }
 
-    /** Native destination order; Farming is the deliberate audited empty-state exception. */
-    public static final Tab[] TABS = Tab.values();
-
-    /**
-     * Existing routes that must remain in the reference shell. This explicitly excludes retired No Hurt Cam,
-     * Player Dollars and Inventory Search entries from the stale prototype; current Sky VeLor owners remain intact.
-     */
+    /** Required direct owners; ids are presentation ids, not replacement configuration keys. */
     public static final String[] REQUIRED_ROUTE_IDS = {
-            "mod-settings", "performance",
             "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "auto-sprint",
-            "inventory-assist", "movement-shortcuts", "item-lock-swap", "chat-qol", "commands",
-            "item-animation", "hud-editor", "hud-player-doll", "hud-inventory",
-            "mining-bps", "mining-assistant-settings", "door-esp", "mob-esp", "dungeon-sync-enabled",
-            "m7-overlay", "spirit-leap", "terminal-assist", "dungeon-boss-hud", "dungeon-map",
-            "dungeon-sync-debug", "slayer-tracker", "slayer-hud-route", "jawbus", "nearby-encounters",
-            "catch-counter", "fishing-hud-route", "sea-hp-hud-route"
+            "item-lock-swap", "inventory-assist", "chat-qol", "movement-shortcuts", "slayer-tracker",
+            "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "m7-overlay",
+            "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
+            "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "item-animation",
+            "system-appearance", "system-performance", "system-general", "system-commands"
     };
 
+    /** Native destination order. Farming is deliberately empty until a real owner exists. */
+    public static final Tab[] TABS = Tab.values();
+
     private static final List<Card> HOME = Collections.emptyList();
-    private static final List<Card> QUALITY_OF_LIFE = cards(
-            card("comfort", "Comfort", "Tiny adjustments that remove friction without changing how the game plays.",
-                    false, "",
+
+    private static final List<Card> GAMEPLAY = cards(
+            card("comfort", "Comfort", "Small local changes that do not alter ordinary play.", false, "",
                     toggle("no-block-particles", "Quiet block particles",
-                            "Hide only digging and crack particles when a block breaks.", "particles digging cracks", false),
+                            "Hide only digging and crack particles when a block breaks.", "particles digging cracks"),
                     toggle("disable-hotbar-scrolling", "Lock hotbar to keys",
-                            "Ignore the mouse wheel while playing so the selected slot never jumps.", "mouse wheel hotbar", false),
-                    slider("hurt-camera-shake", "Hurt Camera Shake",
-                            "Scale the local vanilla hurt-camera tilt from 0% to 100%.", "damage camera tilt", false,
-                            0, 100, 1, "%"),
-                    toggle("auto-sprint", "Sprint while holding forward",
-                            "Uses only the normal sprint key while vanilla conditions allow it. No extra packets.",
-                            "sprint movement", true)),
-            card("inventory", "Inventory", "Locks, paired swaps and optional local tooltip helpers.", false, "",
-                    routeToggle("item-lock-swap", "Item Lock and Swap",
-                            "Lock a player-inventory position, or pair two slots for a safe swap.",
-                            "lock pairing badges", false, "Open details",
-                            toggle("item-lock-icons", "Show lock badges", "Draw a small padlock on locked positions.",
-                                    "lock icons", false),
-                            toggle("item-lock-hotbar", "Badges on the hotbar", "Keep lock badges visible while inventory is closed.",
-                                    "hotbar icons", false),
-                            action("item-swap-lines", "Swap connection lines", "Configure when paired-slot lines are drawn.",
-                                    "swap lines", false, "Open details")),
-                    routeAction("inventory-assist", "Inventory Assist",
-                            "Potion-panel and tooltip helpers stay local to your inventory.",
-                            "tooltips potion rarity", false, "Open details",
-                            toggle("hide-potions", "Hide potion panel", "Keep the inventory layout clean when effects are active.",
-                                    "potion effects", false),
-                            toggle("roman-numerals", "Roman tooltip levels", "Render common enchanted-book levels as Roman numerals.",
-                                    "enchant lore", false),
-                            toggle("tooltip-scroll", "Scrollable tooltips", "Scroll long item lore instead of letting it run off screen.",
-                                    "lore scroll", false),
-                            toggle("rarity-highlight", "Rarity highlights", "A subtle tint on item slots based on rarity.",
-                                    "rarity item", false))),
-            card("chat", "Chat", "Readable messages, attached filters and one captured message menu.", false, "",
-                    routeToggle("chat-qol", "Chat QoL",
-                            "Rounded messages, smooth scrolling and attached All / Party / Reply filters.",
-                            "chat tabs smooth hover", false, "Open chat settings",
-                            toggle("chat-tabs", "Filter tabs", "Keep channel tabs attached to open chat instead of a second window.",
-                                    "party reply", false),
-                            toggle("chat-smooth", "Smooth message motion", "Fade and slide new messages in without moving old ones.",
-                                    "animations messages", false),
-                            toggle("chat-hover", "Highlight hovered line", "Use a quiet background on the message under the pointer.",
-                                    "hover highlight", false))),
-            card("shortcuts", "Shortcuts", "Optional command keys. Nothing is bound on a fresh install.", true, "",
-                    routeAction("movement-shortcuts", "Wardrobe and Pets", "Configure optional local shortcut routes.",
-                            "wardrobe pets", false, "Open details",
-                            toggle("wardrobe-shortcut", "Wardrobe shortcut", "Unbound by default. Choose a key in Controls.",
-                                    "wardrobe key", false),
-                            toggle("pets-shortcut", "Pets shortcut", "Unbound by default. Choose a key in Controls.",
-                                    "pets key", false)))
+                            "Ignore the mouse wheel while playing so the selected slot never jumps.", "mouse wheel hotbar"),
+                    dropdown("hurt-camera", "Hurt camera", "Local vanilla hurt-camera tilt.", "damage camera tilt",
+                            slider("hurt-camera-shake", "Hurt Camera Shake", "Scale the local vanilla tilt.",
+                                    "damage camera tilt", 0, 100, 1, "%")),
+                    toggle("auto-sprint", "Auto Sprint", "Sprints only while forward is held and vanilla allows it.",
+                            "sprint movement")),
+            card("inventory-chat", "Inventory and Chat", "All existing helpers stay local and configurable.", false, "",
+                    masterDropdown("item-lock-swap", "Item Lock and Swap",
+                            "Locks player-inventory positions and pairs two slots for a safe swap.", "lock pairing badges",
+                            info("item-lock-key", "Item Lock & Swap key", "Configure the existing binding in Minecraft Controls, Sky VeLor.", "key controls"),
+                            slider("item-lock-cooldown", "Swap Cooldown", "Time between manual pair swaps.", "swap cooldown", 5, 50, 1, ""),
+                            toggle("item-lock-icons", "Show Lock Icons", "Padlock and numbered pair badges in player inventory slots.", "lock icons"),
+                            toggle("item-lock-hotbar", "Show Icons on Hotbar", "Keep indicators visible in the in-game hotbar.", "hotbar icons"),
+                            toggle("item-lock-message", "Blocked Message", "Chat feedback when an action is blocked or a pair changes.", "message"),
+                            choice("item-lock-badge-color", "Badge Tint", "Badge colour.", "badge color",
+                                    new String[]{"Gold", "Blue", "Purple", "Green", "Orange", "Teal"}),
+                            slider("item-lock-badge-opacity", "Badge Transparency", "Badge opacity.", "badge opacity", 20, 100, 5, "%"),
+                            choice("item-lock-line-mode", "Swap Line Mode", "Always visible, on hover, or hidden.", "swap lines",
+                                    new String[]{"Always", "On hover", "Off"}),
+                            choice("item-lock-line-color", "Swap Line Tint", "Tint for persistent pair-center lines.", "swap line color",
+                                    new String[]{"Gold", "Blue", "Purple", "Green", "Orange", "Teal"}),
+                            slider("item-lock-line-opacity", "Swap Line Transparency", "Persistent pair-line opacity.", "swap line opacity", 20, 100, 5, "%"),
+                            slider("item-lock-line-width", "Swap Line Thickness", "Rounded persistent pair-line thickness.", "swap line width", 1, 4, 1, " px"),
+                            action("item-lock-clear-locks", "Clear Locks", "Removes every saved position lock.", "clear locks", "Clear Locks"),
+                            action("item-lock-clear-pairs", "Clear Pairs", "Removes every saved item-swap pair.", "clear pairs", "Clear Pairs"),
+                            action("item-lock-reset", "Reset Item Lock and Swap", "Restore the existing lock, badge, line and key defaults.", "lock reset", "Reset")),
+                    dropdown("inventory-assist", "Inventory Assist", "Potion-panel and tooltip helpers stay local.",
+                            "tooltips potion rarity",
+                            toggle("hide-potions", "Hide Potion Effects in Inventory", "Keep the inventory layout clean when effects are active.", "potion effects"),
+                            toggle("roman-numerals", "Roman Numerals in Tooltips", "Render common enchanted-book levels as Roman numerals.", "enchant lore"),
+                            toggle("tooltip-scroll", "Scrollable Item Tooltips", "Scroll long item lore instead of letting it run off screen.", "lore scroll"),
+                            toggle("rarity-highlight", "Item Rarity Highlight", "A subtle tint on item slots based on rarity.", "rarity item"),
+                            action("inventory-assist-reset", "Reset Inventory Assist", "Restore the existing inventory-helper defaults.", "inventory reset", "Reset")),
+                    masterDropdown("chat-qol", "Chat QoL", "Readable messages and attached filter tabs.", "chat tabs smooth hover",
+                            dropdown("chat-background-group", "Background", "Message background colour, opacity and shape.", "chat background",
+                                    text("chat-background-color", "Background colour", "Hex colour, for example #000000.", "background color"),
+                                    slider("chat-background-open-opacity", "Open opacity", "Opacity while chat is open.", "chat open opacity", 0, 100, 5, "%"),
+                                    slider("chat-background-closed-opacity", "Closed opacity", "Opacity while chat is closed.", "chat closed opacity", 0, 100, 5, "%"),
+                                    slider("chat-background-radius", "Corner radius", "Rounded message background radius.", "chat radius", 0, 12, 1, " px"),
+                                    choice("chat-background-open-area", "Open chat background", "Fit to messages or fill the full open area.", "chat area",
+                                            new String[]{"Fit to messages", "Full area"}),
+                                    toggle("chat-background-fit-width", "Fit width to text", "Use the message width for the background.", "chat width")),
+                            dropdown("chat-messages-group", "Messages", "Motion, fading and compact message details.", "chat messages",
+                                    slider("chat-message-animation", "Message animation", "Animation duration; zero disables it.", "message motion", 0, 600, 20, " ms"),
+                                    slider("chat-fade-seconds", "Fade-out", "Seconds until ordinary messages fade; zero disables it.", "message fade", 0, 60, 1, " s"),
+                                    toggle("chat-smooth", "Use smooth messages", "Fade and slide new messages in without moving old ones.", "smooth messages"),
+                                    toggle("chat-compact", "Compact messages", "Show compact message counters.", "compact messages"),
+                                    text("chat-compact-counter-color", "Compact counter colour", "Hex colour for compact counters.", "counter color")),
+                            dropdown("chat-tabs-group", "Tabs", "Attached All / Party / Reply tabs and custom tab editing.", "chat tabs custom",
+                                    toggle("chat-tabs", "Use chat tabs", "Keep filters attached to open chat instead of a second window.", "party reply"),
+                                    text("chat-tab-inactive-color", "Unselected tab colour", "Hex colour for inactive tabs.", "tab color"),
+                                    text("chat-tab-selected-color", "Selected tab colour", "Hex colour for selected tabs.", "tab color"),
+                                    slider("chat-tab-opacity", "Tab opacity", "Inactive tab opacity.", "tab opacity", 0, 100, 1, "%"),
+                                    slider("chat-tab-active-opacity", "Active tab opacity", "Selected tab opacity.", "tab opacity", 0, 100, 1, "%"),
+                                    action("chat-tab-previous", "Editing tab", "Select the previous existing tab.", "tab previous", "Previous"),
+                                    action("chat-tab-next", "Next tab", "Select the next existing tab.", "tab next", "Next"),
+                                    toggle("chat-tab-visible", "Visible", "Show the currently selected tab.", "tab visible"),
+                                    action("chat-tab-add", "Add custom tab", "Add one custom tab using the values below.", "tab add", "Add"),
+                                    text("chat-tab-name", "Name", "Custom tab name.", "tab name"),
+                                    choice("chat-tab-filter-type", "Filter type", "Text matching rule for a custom tab.", "tab filter",
+                                            new String[]{"Contains text", "Starts with", "Regex"}),
+                                    text("chat-tab-filter-text", "Filter text", "Text or regular expression for the custom tab.", "tab filter"),
+                                    text("chat-tab-send-prefix", "Send prefix", "Optional send prefix, for example /pc.", "tab prefix"),
+                                    text("chat-tab-accent-color", "Custom accent colour", "Hex colour for this custom tab.", "tab accent"),
+                                    toggle("chat-tab-sound", "Message sound", "Play the tab's existing message sound.", "tab sound"),
+                                    action("chat-tab-save", "Save tab", "Save visibility and custom-tab values.", "tab save", "Save"),
+                                    action("chat-tab-left", "Move left", "Move the selected tab earlier.", "tab move", "←"),
+                                    action("chat-tab-right", "Move right", "Move the selected tab later.", "tab move", "→"),
+                                    action("chat-tab-delete", "Delete custom", "Delete the selected custom tab; built-in tabs remain.", "tab delete", "Delete")),
+                            dropdown("chat-menu-group", "Menu and Highlight", "Hover emphasis and captured-message menu input.", "chat menu highlight",
+                                    toggle("chat-hover", "Use hover highlight", "Use a quiet background on the message under the pointer.", "hover highlight"),
+                                    text("chat-hover-color", "Highlight colour", "Hex hover-highlight colour.", "hover color"),
+                                    slider("chat-hover-opacity", "Highlight opacity", "Hover-highlight opacity.", "hover opacity", 0, 100, 5, "%"),
+                                    choice("chat-menu-mode", "Open menu with", "Choose the existing captured-message menu input.", "chat menu",
+                                            new String[]{"Right click", "Left click", "Both"})),
+                            dropdown("chat-reset-group", "Reset", "Restore one existing group or all Chat QoL settings.", "chat reset",
+                                    action("chat-reset-all", "Reset all Chat QoL", "Restore every existing Chat QoL setting and tab.", "reset all", "Reset All"),
+                                    action("chat-reset-background", "Reset background", "Restore background settings.", "reset", "Reset"),
+                                    action("chat-reset-messages", "Reset messages", "Restore message settings.", "reset", "Reset"),
+                                    action("chat-reset-tabs", "Reset tabs", "Restore tabs and select All.", "reset", "Reset"),
+                                    action("chat-reset-menu", "Reset menu/highlight", "Restore menu and hover settings.", "reset", "Reset"))),
+                    dropdown("movement-shortcuts", "Movement and Shortcuts", "Optional command-key routes; unbound by default.", "wardrobe pets",
+                            toggle("wardrobe-shortcut", "Wardrobe Shortcut", "Use the established optional Wardrobe route.", "wardrobe key"),
+                            toggle("pets-shortcut", "Pets Shortcut", "Use the established optional Pets route.", "pets key"),
+                            action("movement-shortcuts-reset", "Reset Movement Shortcuts", "Restore the existing shortcut defaults.", "shortcuts reset", "Reset")),
+                    masterDropdown("slayer-tracker", "Slayer Tracker", "Track rare drops, price totals and the quest timer.", "slayer drops price timer",
+                            toggle("slayer-boss-timer", "Boss Timer", "Count from boss spawn to Slayer quest completion.", "slayer timer"),
+                            toggle("slayer-pricing", "Price Drops", "Show priced drops and allow the existing /setprice command.", "slayer price"),
+                            info("slayer-set-price", "Set a Price", "Use /setprice for the held item, or /setprice <item name> <price>.", "setprice"),
+                            dropdown("slayer-history", "Clear History", "Clear drops and profit for one tracked Slayer family.", "slayer clear history",
+                                    action("slayer-clear-spider", "Spider", "Clear Spider drops and profit.", "spider clear", "Clear"),
+                                    action("slayer-clear-revenant", "Revenant", "Clear Revenant drops and profit.", "revenant zombie clear", "Clear"),
+                                    action("slayer-clear-blaze", "Blaze", "Clear Blaze drops and profit.", "blaze clear", "Clear"),
+                                    action("slayer-clear-wolf", "Wolf", "Clear Wolf drops and profit.", "wolf sven clear", "Clear"),
+                                    action("slayer-clear-enderman", "Enderman", "Clear Enderman drops and profit.", "enderman voidgloom clear", "Clear")),
+                            action("slayer-reset", "Reset Slayer Tracker", "Restore the existing timer and pricing defaults.", "slayer reset", "Reset")))
     );
 
-
+    private static final List<Card> DUNGEON = cards(
+            card("run-tools", "Run Tools", "Map, terminal, leap and boss information for a dungeon run.", false, "",
+                    masterDropdown("dungeon-map", "Dungeon Map", "Room shapes, puzzle labels and party heads on a cached map.", "map rooms party",
+                            toggle("dungeon-map-rotate", "Rotate to facing", "Keep the current room pointing up.", "map rotate"),
+                            toggle("dungeon-map-player-names", "Show player names", "Show names for party heads on the map.", "map names"),
+                            toggle("dungeon-map-puzzle-name", "Show puzzle name", "Show parsed puzzle names.", "map puzzle"),
+                            toggle("dungeon-map-scale-on", "Use map scale", "Enable the saved map scale value.", "map scale"),
+                            slider("dungeon-map-scale", "Map scale", "Map pixel scale.", "map scale", 70, 250, 5, "%"),
+                            slider("dungeon-map-zoom", "Map zoom", "Cached map zoom.", "map zoom", 50, 200, 5, "%"),
+                            toggle("party-puzzle-announce", "Party puzzle announce", "Use the existing optional party puzzle announcement.", "puzzle announce")),
+                    dropdown("terminal-assist", "Terminal Helper", "Status dropdown: visual helpers and safeguards have no master switch.",
+                            "terminal f7 m7 status",
+                            toggle("terminal-hints", "Terminal Visual Helpers", "Outline parsed choices while preserving normal input.", "terminal hint"),
+                            toggle("terminal-auto-click", "Terminal Auto Click", "Existing opt-in terminal automation setting; off by default.", "terminal auto click"),
+                            toggle("terminal-hide-wrong", "Hide Incorrect Terminal Choices", "Dim known-wrong choices when parsing is unambiguous.", "terminal dim"),
+                            toggle("terminal-prevent-clicks", "Prevent Wrong Terminal Clicks", "Cancel a click only for a known wrong parsed target.", "terminal prevent"),
+                            toggle("terminal-waypoints", "Terminal Waypoints", "Show existing in-world route markers.", "terminal waypoint"),
+                            slider("terminal-scale", "Terminal Scale", "Terminal helper overlay size.", "terminal scale", 70, 250, 5, "%"),
+                            action("terminal-reset", "Reset Terminal Helper", "Restore the existing terminal-helper defaults.", "terminal reset", "Reset")),
+                    masterDropdown("spirit-leap", "Spirit Leap Picker", "Replace only the server Spirit Leap chest with class-labelled heads.",
+                            "leap teammate", toggle("leap-key", "Use Spirit Leap Key", "Keep the configured key route available.", "leap key"),
+                            action("spirit-leap-reset", "Reset Spirit Leap", "Restore the existing Spirit Leap defaults.", "leap reset", "Reset")),
+                    masterDropdown("dungeon-boss-hud", "Boss Health HUD", "Show the parsed boss readout for the current floor.", "boss hp hud",
+                            info("dungeon-boss-hud-editor", "HUD placement", "Position and style stay in the permitted HUD Editor.", "hud editor"))),
+            card("floor-seven", "Floor VII", "M7 overlays, dragon alerts and hitbox switches without a sample panel.", false, "",
+                    masterDropdown("m7-overlay", "Floor VII Overlay", "Relic, device and dragon state at a glance.", "m7 floor seven dragons",
+                            toggle("m7-relic-areas", "Relic Kill Areas", "Show five relic areas around dragon statues.", "relic area"),
+                            toggle("m7-areas-persist", "Keep Areas After Dragons Spawn", "Keep relic areas after dragons appear.", "relic area"),
+                            toggle("dragon-alerts", "Dragon Kill Alert", "Title when a dragon is close and sitting at its statue.", "dragon alert"),
+                            toggle("m7-terminal-solver", "Click in Order Solver", "Outline only the next parsed chest slot; never clicks it.", "terminal solver"),
+                            dropdown("m7-bosses", "Boss Hitboxes", "Choose each Floor VII boss outline.", "m7 boss",
+                                    toggle("m7-boss-maxor", "Maxor", "Outline Maxor.", "maxor"),
+                                    toggle("m7-boss-storm", "Storm", "Outline Storm.", "storm"),
+                                    toggle("m7-boss-goldor", "Goldor", "Outline Goldor.", "goldor"),
+                                    toggle("m7-boss-necron", "Necron", "Outline Necron.", "necron")),
+                            dropdown("m7-dragons", "Dragon Hitboxes", "Choose each Floor VII dragon outline.", "m7 dragon",
+                                    toggle("m7-dragon-power", "Power", "Outline the Power dragon.", "power dragon"),
+                                    toggle("m7-dragon-apex", "Apex", "Outline the Apex dragon.", "apex dragon"),
+                                    toggle("m7-dragon-soul", "Soul", "Outline the Soul dragon.", "soul dragon"),
+                                    toggle("m7-dragon-ice", "Ice", "Outline the Ice dragon.", "ice dragon"),
+                                    toggle("m7-dragon-flame", "Flame", "Outline the Flame dragon.", "flame dragon")),
+                            action("m7-reset", "Reset Floor VII Overlay", "Restore the existing M7 overlay defaults.", "m7 reset", "Reset"))),
+            card("esp", "Dungeon ESP", "Compact Mob and Door tables retain every cached style value.", false,
+                    "Unknown room or entity data fails closed: no box and no state change.",
+                    masterDropdown("mob-esp-enabled", "Mob ESP", "Cached mob scanning and compact per-category styles.", "mob esp starred miniboss",
+                            slider("esp-max-distance", "Maximum ESP Distance", "Scan only entities and doors inside this range.", "esp distance", 8, 160, 1, " blocks"),
+                            slider("esp-update-interval", "Update Interval", "Cached scan period.", "esp interval", 1, 20, 1, " ticks"),
+                            toggle("esp-hide-zero-health", "Hide Zero-Health Mobs", "Drop cached targets at zero health.", "esp health"),
+                            toggle("esp-tracers", "Tracers", "Draw a world-space line to tracked mobs.", "esp tracer"),
+                            toggle("esp-mob-labels", "Mob Category Labels", "Show compact category badges.", "esp labels"),
+                            slider("esp-max-mob-labels", "Maximum Mob Labels", "Cap category badges.", "esp labels", 1, 32, 1, ""),
+                            toggle("esp-distance-text", "Distance Text", "Add rounded block distance to mob badges.", "esp distance text"),
+                            slider("esp-max-boxes", "Maximum Boxes", "Cap displayed hitboxes without dropping the cache.", "esp boxes", 8, 128, 1, ""),
+                            action("esp-default-preset", "Default Preset", "Restore high-visibility defaults.", "esp preset", "Apply Default"),
+                            action("esp-subtle-preset", "Subtle Preset", "Use low-noise depth-tested outlines.", "esp preset", "Apply Subtle"),
+                            action("esp-reset", "Reset Dungeon ESP", "Restore all Dungeon ESP values.", "esp reset", "Reset"),
+                            mobStyle("esp-starred", "Starred Mob", "Standard starred dungeon mobs."),
+                            mobStyle("esp-miniboss", "Miniboss", "Dungeon miniboss hitboxes."),
+                            mobStyle("esp-special", "Special Starred Mob", "Named special starred enemies."),
+                            mobStyle("esp-enderman", "Enderman", "Real and head-marker Endermen."),
+                            mobStyle("esp-skeletor", "Skeletor", "Starred Skeletors."),
+                            masterDropdown("esp-other", "Other Mobs", "Optional room-wide hostile coverage.", "other mobs",
+                                    combine(styleChildren("esp-other", "Other Mobs"),
+                                            toggle("esp-force-all", "Force Render All Mobs in Room", "Off by default; cache eligible room hostiles.", "esp force"),
+                                            toggle("esp-include-bats", "Include Bats", "Applies while force-rendering room mobs.", "esp bats"),
+                                            toggle("esp-include-invisible", "Include Invisible Mobs", "Applies while force-rendering room mobs.", "esp invisible")))),
+                    masterDropdown("door-esp-enabled", "Door ESP", "Cached closed Wither and Blood door table.", "door esp wither blood",
+                            choice("door-scope", "Door Scope", "Nearest closed door or every cached closed door.", "door scope",
+                                    new String[]{"Nearest closed door", "All closed doors"}),
+                            toggle("door-only-key", "Only With a Wither Key", "Hide cached doors until a Wither Key is in inventory.", "door key"),
+                            toggle("door-distance-text", "Door Distance Text", "Show rounded distance above closed doors.", "door distance"),
+                            action("door-default-preset", "Default Preset", "Restore Dungeon ESP defaults including doors.", "door preset", "Apply Default"),
+                            action("door-subtle-preset", "Subtle Preset", "Use the low-noise Dungeon ESP preset.", "door preset", "Apply Subtle"),
+                            action("door-reset", "Reset Door ESP", "Restore shared Dungeon ESP defaults.", "door reset", "Reset"),
+                            masterDropdown("door-wither-style", "Wither Door Style", "Shared cached Wither-door style.", "wither style",
+                                    doorStyleChildren("door-style", "Wither Door")),
+                            masterDropdown("door-blood", "Blood Doors", "Cached red-clay Blood doors using the shared Door Style above.", "blood door",
+                                    choice("door-blood-color", "Blood Door Color", "Colour used for Blood door boxes.", "blood color",
+                                            new String[]{"Cyan", "Gold", "Purple", "Green", "Orange", "Teal", "Red", "Pink"})))),
+            card("party-sync", "Party Sync", "Optional puzzle sharing; off by default and visible in diagnostics.", false,
+                    "No transport starts until enabled and a valid dungeon context exists.", true,
+                    masterDropdown("dungeon-sync-enabled", "Dungeon Sync", "Share allow-listed puzzle labels and room coordinates over TLS.",
+                            "sync privacy network", toggle("dungeon-sync-debug", "Sync Diagnostics", "Session state and transport retries for support only.", "sync debug"),
+                            info("dungeon-sync-endpoint", "Endpoint", "Uses the existing validated secure endpoint from configuration.", "sync endpoint")))
+    );
 
     private static final List<Card> MINING = cards(
-            card("mining", "Mining", "Existing mining readouts and local helper controls.", false, "",
-                    routeToggle("mining-bps", "Mining speed", "Show the existing blocks-per-second readout while mining.",
-                            "mining bps", false, "HUD settings"),
-                    routeAction("mining-assistant-settings", "Mining assistant",
-                            "Pickaxe-ready alert, read-only Puzzler marker and its HUD route.",
-                            "pickaxe puzzler", false, "Open details",
-                            toggle("mining-ability-alert", "Pickaxe ready alert", "A local cue when the ability is charged.",
-                                    "ability alert", false),
-                            toggle("mining-puzzler", "Puzzler route marker", "Show a suggested Dwarven Mines direction. Never clicks or walks.",
-                                    "dwarven route", false),
-                            toggle("mining-assistant-hud", "Mining assistant HUD", "Add the assistant readout to the movable HUD layer.",
-                                    "hud", false)))
-    );
-
-    private static final List<Card> SLAYER = cards(
-            card("slayer", "Slayer", "Local drop history, boss timing, pricing and HUD controls.", false, "",
-                    routeToggle("slayer-tracker", "Slayer tracker", "Local drop history, timer and price controls.",
-                            "slayer boss timer", false, "Open details",
-                            routeToggle("slayer-hud-route", "Slayer HUD", "Show the active tracker on the HUD layer.",
-                                    "slayer hud", false, "HUD settings"),
-                            toggle("slayer-boss-timer", "Boss timer", "Track spawn and kill time for each attempt.",
-                                    "timer", false),
-                            toggle("slayer-pricing", "Estimated item value", "Use only locally saved prices; nothing is fetched.",
-                                    "prices", true)))
+            card("mining", "Mining", "Existing readouts and read-only local helpers.", false, "",
+                    masterDropdown("mining-bps", "Mining Speed", "Show the existing blocks-per-second readout while mining.", "mining bps",
+                            info("mining-bps-hud", "HUD placement", "Position and style stay in the permitted HUD Editor.", "hud editor")),
+                    dropdown("mining-assistant-settings", "Mining Assistant", "Alerts, Puzzler marker and HUD route.", "pickaxe puzzler",
+                            toggle("mining-ability-alert", "Pickaxe Ability Ready Alert", "A local cue when the ability is charged.", "ability alert"),
+                            toggle("mining-puzzler", "Puzzler Direction Helper", "Show a suggested Dwarven Mines direction; never clicks or walks.", "dwarven route"),
+                            toggle("mining-assistant-hud", "Show Mining Assistant", "Add the existing readout to the HUD layer.", "mining hud"),
+                            action("mining-assistant-reset", "Reset Mining Assistant", "Restore the existing assistant defaults.", "mining reset", "Reset")))
     );
 
     private static final List<Card> FISHING = cards(
             card("fishing", "Fishing", "Existing catch counters, creature health and encounter alerts.", false, "",
-                    routeAction("fishing-hud-route", "Fishing tracker", "Catch counters, sea-creature health and alerts in one place.",
-                            "fishing catches sea creature", false, "Open details",
-                            routeAction("catch-counter", "Catch counter", "Count every rarity locally, including festival catches.",
-                                    "fishing counter", false, "Open details"),
-                            routeToggle("sea-hp-hud-route", "Sea creature health", "Show health for the current catch on the HUD layer.",
-                                    "sea hp hud", false, "HUD settings"),
-                            toggle("jawbus", "Lord Jawbus alert", "Show a local title when Lord Jawbus arrives.",
-                                    "jawbus", false),
-                            toggle("nearby-encounters", "Nearby encounters", "Show compatible nearby fishing title alerts. Useful, but busy.",
-                                    "fishing nearby", true)))
+                    dropdown("fishing-tracker", "Fishing Tracker", "Catch counters, sea-creature health and alerts.", "fishing catches sea creature",
+                            masterDropdown("catch-counter", "Catch Counter", "Count every rarity locally, including festival catches.", "fishing counter",
+                                    toggle("fishing-festival", "Festival Best", "Great White Sharks in the current Festival and your best.", "festival"),
+                                    action("fishing-reset", "Reset Counters", "Clear every catch count and Festival best.", "catch reset", "Reset")),
+                            masterDropdown("sea-hp-hud-route", "Sea Creature Health", "Show health for the current catch on the HUD layer.", "sea hp hud",
+                                    info("sea-hp-placement", "HUD placement", "Position and style stay in the permitted HUD Editor.", "hud editor")),
+                            toggle("jawbus", "Lord Jawbus Alert", "Show a local title when Lord Jawbus arrives.", "jawbus"),
+                            toggle("nearby-encounters", "Nearby Encounters", "Show compatible nearby fishing title alerts.", "fishing nearby")))
     );
 
-    private static final List<Card> DUNGEON = cards(
-            card("run-tools", "Run tools", "The utilities you want during a run, not buried in a menu.", false, "",
-                    routeToggle("dungeon-map", "Dungeon map", "Room shapes, puzzle labels and party heads on a cached map.",
-                            "map rooms party", false, "Open map settings",
-                            toggle("dungeon-map-rotate", "Rotate to facing", "Keep the current room pointing up.",
-                                    "map rotate", false)),
-                    routeAction("terminal-assist", "Terminal helper", "Visual helpers and explicit safeguards for parsed terminals.",
-                            "terminal f7 m7", false, "Open details",
-                            toggle("terminal-hints", "Highlight the next slot", "Only verified layouts are outlined. Unknown layouts stay vanilla.",
-                                    "terminal hint", false),
-                            toggle("terminal-hide-wrong", "Dim known wrong slots", "Dim known-wrong choices when the parsed state is unambiguous.",
-                                    "terminal dim", false),
-                            toggle("terminal-prevent-clicks", "Block known wrong clicks", "Cancel your click only when layout and target are unambiguous.",
-                                    "terminal prevent", false),
-                            toggle("terminal-auto-click", "Terminal auto click", "Existing opt-in automation control; off by default.",
-                                    "terminal automation", true),
-                            toggle("terminal-waypoints", "Terminal waypoints", "Show existing in-world route markers when enabled.",
-                                    "terminal waypoint", true)),
-                    routeToggle("spirit-leap", "Spirit Leap picker", "Replace only the server leap chest with class-labelled party heads.",
-                            "leap teammate", false, "Open details",
-                            toggle("leap-key", "Leap hotkey", "Use the configured key route; left click remains vanilla.",
-                                    "leap key", false)),
-                    routeToggle("dungeon-boss-hud", "Boss health", "Show the parsed boss readout for the current floor.",
-                            "boss hp hud", false, "HUD settings")),
-            card("floor-seven", "Floor VII", "M7 overlays, dragon alerts and the small things that save a run.", false, "",
-                    routeToggle("m7-overlay", "Floor VII overlay", "Relic, device and dragon state at a glance.",
-                            "m7 floor seven dragons", false, "Open details",
-                            toggle("dragon-alerts", "Dragon alerts", "Keep the existing local dragon-kill alert enabled.",
-                                    "dragon alert", false),
-                            toggle("m7-areas", "Relic kill areas", "Show the existing relic-area boxes.",
-                                    "relic area", false))),
-            card("highlights", "Highlights", "Cached boxes for the things that matter. Styles stay in one editor.", false,
-                    "Unknown room or entity data fails closed: no box, no state change.",
-                    routeAction("mob-esp", "Mob highlights", "Star mobs, minibosses and special mobs from the cached scan.",
-                            "mob esp starred miniboss", false, "Open styles"),
-                    routeAction("door-esp", "Door highlights", "Wither and blood doors with shared style controls.",
-                            "door esp wither blood", false, "Open styles")),
-            card("party-sync", "Party sync", "Optional puzzle sharing. Off by default and visible in diagnostics.", false,
-                    "No transport starts until it is enabled and a valid dungeon context exists.", true,
-                    routeToggle("dungeon-sync-enabled", "Dungeon Sync", "Share allow-listed puzzle labels and room coordinates over TLS.",
-                            "sync privacy network", false, "Review privacy",
-                            toggle("dungeon-sync-debug", "Sync diagnostics", "Session state and transport retries for support only.",
-                                    "sync debug", true)))
+    private static final List<Card> VISUALS = cards(
+            card("hud", "HUD", "Only the HUD Editor remains as a dedicated editor screen.", false, "",
+                    dropdown("hud-editor", "HUD Editor", "Select, move, resize and style existing HUD elements.", "hud editor",
+                            action("open-hud-editor", "Open HUD Editor", "Open the permitted HUD Editor screen.", "hud editor", "HUD Editor"),
+                            masterDropdown("hud-player-doll", "Player Doll", "A live model with armour and held item.", "doll armour",
+                                    info("hud-player-doll-placement", "Placement and style", "Edit in the HUD Editor.", "hud editor")),
+                            masterDropdown("hud-inventory", "Inventory HUD", "The 27 main inventory slots and optional armour.", "inventory hud",
+                                    info("hud-inventory-placement", "Placement and style", "Edit in the HUD Editor.", "hud editor")))),
+            card("item-animation", "Item Animation", "First-person position, size and equip tempo; vanilla at defaults.", false, "",
+                    masterDropdown("item-animation", "Enable Item Animation", "Wrap only Minecraft's first-person hand call; third person stays vanilla.",
+                            "hand first person", action("item-animation-open-editor", "Open Item Animation Editor",
+                                    "Open the permitted editor with real hand rendering and Preview Swing.", "item animation editor", "Item Animation Editor")))
     );
-
-    private static final List<Card> HUD_HUB = cards(
-            card("hud", "HUD Hub", "Movable elements. Drag them once in the editor, then forget this page.", false, "",
-                    action("hud-editor", "HUD Editor", "Select, move, resize and style existing HUD elements.",
-                            "hud hub editor", false, "Open editor"),
-                    routeToggle("hud-player-doll", "Player doll", "A live model of you, with armour and held item.",
-                            "doll armour", false, "HUD settings"),
-                    routeToggle("hud-inventory", "Inventory HUD", "The 27 main inventory slots and optional armour.",
-                            "inventory hud", false, "HUD settings")),
-            card("item-animation", "Item Animation", "First-person position, size and equip tempo. Vanilla at the defaults.", false, "",
-                    routeToggle("item-animation", "Enable Item Animation", "Wrap only Minecraft's first-person hand call. Third person stays vanilla.",
-                            "hand first person", false, "Open Item Animation",
-                            slider("item-animation-size", "Item size", "Uniform first-person scale.", "size scale", true,
-                                    30, 200, 5, "%"),
-                            slider("item-animation-speed", "Equip tempo", "Visual interpolation speed only.", "speed equip", false,
-                                    25, 400, 5, "%"),
-                            slider("item-animation-x", "Horizontal offset", "Nudge the held item left or right.", "offset x", true,
-                                    -150, 150, 1, ""),
-                            slider("item-animation-y", "Vertical offset", "Nudge the held item up or down.", "offset y", true,
-                                    -150, 150, 1, ""),
-                            slider("item-animation-z", "Depth offset", "Nudge the held item closer or farther.", "offset z", true,
-                                    -150, 150, 1, ""),
-                            action("item-animation-reset", "Reset to vanilla", "Restore size, tempo and offsets to their saved defaults.",
-                                    "reset hand", true, "Reset")))
-    );
-
-    /** Gameplay only reorganizes existing presentation cards; every setting id and configuration owner stays intact. */
-    private static final List<Card> GAMEPLAY = merge(QUALITY_OF_LIFE, MINING, SLAYER, FISHING);
-    /** Audit result: this source tree has no crop/farming counter, display or configuration owner to move. */
-    private static final List<Card> FARMING = Collections.emptyList();
-    private static final List<Card> VISUALS = HUD_HUB;
-    /** Search can discover the deliberate empty Farming page without creating a fake persisted setting. */
-    private static final Setting FARMING_SEARCH_RESULT = info("farming-empty", "No farming features yet", "", "farming crop wheat sprout");
-    private static final Card FARMING_SEARCH_CARD = card("farming-empty", "Farming", "", false, "", FARMING_SEARCH_RESULT);
 
     private static final List<Card> SYSTEM = cards(
             card("appearance", "Appearance", "Neutral dark surfaces and a fixed blue focus.", false, "",
-                    slider("appearance-corners", "Corner radius", "Adjust the shared shell roundness.",
-                            "radius corners", true, 4, 18, 1, " px"),
-                    slider("appearance-opacity", "Panel opacity", "Higher is more readable; lower reveals more game behind it.",
-                            "glass opacity", true, 60, 100, 1, "%")),
-            card("performance", "Performance", "The safe knobs. The GUI is designed to stay smooth without them.", false, "",
-                    toggle("performance-boost", "Performance Boost Beta", "Cached geometry and reduced redraw work. Leave off if anything looks wrong.",
-                            "performance beta", false),
-                    toggle("animations", "Interface animations", "Short eased transitions across Sky VeLor screens.",
-                            "animations motion", false),
-                    toggle("adaptive-quality", "Adaptive GUI quality", "Lower curve work and shadows when frame time rises.",
-                            "adaptive quality", true),
-                    toggle("shadows", "Soft shadows", "Panel depth without a full-screen blur pass.",
-                            "shadows", true),
-                    routeAction("performance", "Performance settings", "Curve quality and animation tempo remain in the focused editor.",
-                            "curve animation speed", true, "Open details")),
-            card("general", "General", "Input behaviour and the settings you actually understand.", false, "",
-                    toggle("smooth-scrolling", "Smooth scrolling", "Ease list movement instead of jumping.",
-                            "scroll smooth", false),
-                    slider("global-scroll", "Scroll speed", "One speed for Hub lists, editors and chat.",
-                            "scroll wheel", false, 50, 300, 10, "%"),
-                    routeAction("mod-settings", "More interface settings", "Open the focused Mod Settings editor.",
-                            "mod settings", false, "Open details")),
-            card("diagnostics", "Diagnostics", "Developer and command surfaces, intentionally out of the everyday path.", true, "",
-                    routeAction("commands", "Client command routes", "Configure /sv, /qn and diagnostics.",
-                            "commands selftest debug", false, "Open details"),
-                    routeAction("sync-diagnostics", "Sync details", "View existing sync diagnostics without changing transport state.",
-                            "sync debug", true, "Open details")),
-            card("about", "About", "Version and client-side limits.", false, "",
-                    info("about-version", "Sky VeLor settings", "Minecraft 1.8.9 + Forge client-side settings surface.",
-                            "version forge"),
-                    info("about-rules", "Use within server rules", "Visual helpers never guarantee server-rule compliance.",
-                            "rules safety"))
+                    dropdown("system-appearance", "Appearance", "Existing shell radius and opacity preferences.", "appearance",
+                            toggle("appearance-corners-on", "Corner Radius", "Use the saved corner-radius value.", "radius corners"),
+                            slider("appearance-corners", "Corner Radius Value", "Roundness of panels and controls.", "radius corners", 4, 18, 1, " px"),
+                            toggle("appearance-opacity-on", "Panel Opacity", "Use the saved panel-opacity value.", "panel opacity"),
+                            slider("appearance-opacity", "Panel Opacity Value", "Higher is more solid.", "glass opacity", 60, 100, 5, "%"),
+                            action("appearance-reset", "Reset Appearance", "Restore the existing appearance defaults.", "appearance reset", "Reset"))),
+            card("performance", "Performance", "Safe GUI-quality controls only; world rendering is unchanged.", false, "",
+                    dropdown("system-performance", "Performance", "Curve quality, shadows and interface motion.", "performance gui",
+                            choice("curve-quality", "Curve Quality", "Smoothness of rounded corners.", "curve quality",
+                                    new String[]{"Smooth", "Balanced", "Fast"}),
+                            toggle("shadows", "Soft Shadows", "Shadows behind panels and menus.", "shadows"),
+                            toggle("animations", "Animations", "Smooth transitions and motion.", "animations"),
+                            toggle("animation-speed-on", "Animation Speed", "Use the saved animation-speed value.", "animation speed"),
+                            slider("animation-speed", "Animation Speed Value", "Tempo of transitions.", "animation speed", 40, 200, 10, "%"),
+                            toggle("adaptive-quality", "Adaptive Quality", "Lower detail automatically when FPS drops.", "adaptive quality"),
+                            toggle("performance-boost", "Performance Boost Beta", "Lower-cost Sky VeLor GUI/HUD work only.", "performance beta"),
+                            action("performance-reset", "Reset Performance", "Restore the existing GUI-performance defaults.", "performance reset", "Reset"))),
+            card("general", "General", "Input behavior and command routes.", false, "",
+                    dropdown("system-general", "Interface", "Scrolling and other general settings.", "scroll settings",
+                            slider("global-scroll", "Scroll Speed", "Mouse/touch scroll multiplier; Shift makes it fine.", "scroll speed", 50, 300, 25, "%"),
+                            toggle("smooth-scrolling", "Smooth Scrolling", "Ease every Sky VeLor settings viewport.", "smooth scrolling"),
+                            action("system-general-reset", "Reset Interface", "Restore the existing scrolling defaults.", "interface reset", "Reset")),
+                    dropdown("system-commands", "Commands", "Optional chat command routes and diagnostics.", "commands selftest debug",
+                            toggle("sv-command", "/sv", "Open the settings hub from chat.", "sv command"),
+                            toggle("qn-command", "/qn", "Open the quick-note pad from chat.", "qn command"),
+                            info("command-itemdebug", "/velor itemdebug", "Shows live Item Animation values used by the renderer.", "item debug"),
+                            info("command-lockdebug", "/velor lockdebug", "Shows Item Lock/Swap settings and hook state.", "lock debug"),
+                            info("command-selftest", "/velor selftest", "Shows active core-hook, tooltip, camera, terminal and sync status.", "selftest"),
+                            action("commands-reset", "Reset Commands", "Restore the existing command defaults.", "commands reset", "Reset")))
     );
+
+    private static final List<Card> FARMING = Collections.emptyList();
+    private static final Setting FARMING_SEARCH_RESULT = info("farming-empty", "No farming features yet", "", "farming crop wheat sprout");
+    private static final Card FARMING_SEARCH_CARD = card("farming-empty", "Farming", "", false, "", FARMING_SEARCH_RESULT);
 
     private ReferenceSettingsCatalog() { }
 
@@ -365,15 +405,15 @@ public final class ReferenceSettingsCatalog {
             case GAMEPLAY: return GAMEPLAY;
             case DUNGEON: return DUNGEON;
             case FARMING: return FARMING;
+            case MINING: return MINING;
+            case FISHING: return FISHING;
             case VISUALS: return VISUALS;
             case SYSTEM: return SYSTEM;
             default: return HOME;
         }
     }
 
-    public static boolean hasRoute(String id) {
-        return find(id) != null;
-    }
+    public static boolean hasRoute(String id) { return find(id) != null; }
 
     public static Setting find(String id) {
         if (id == null) return null;
@@ -389,13 +429,13 @@ public final class ReferenceSettingsCatalog {
     private static Setting find(List<Setting> settings, String id) {
         for (Setting setting : settings) {
             if (id.equals(setting.id)) return setting;
-            Setting child = find(setting.children, id);
-            if (child != null) return child;
+            Setting result = find(setting.children, id);
+            if (result != null) return result;
         }
         return null;
     }
 
-    /** Searches every visible category. Formerly gated settings stay discoverable after the toolbar filter was removed. */
+    /** Search every actual option, including options hidden by a collapsed owning dropdown. */
     public static List<Match> search(String value) {
         String query = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
         if (query.length() == 0) return Collections.emptyList();
@@ -403,41 +443,51 @@ public final class ReferenceSettingsCatalog {
         for (Tab tab : TABS) {
             if (tab == Tab.HOME) continue;
             if (tab == Tab.FARMING) {
-                // A search hit exposes the real empty state but does not manufacture a control or configuration key.
-                if (matches(FARMING_SEARCH_RESULT, query)) matches.add(new Match(tab, FARMING_SEARCH_CARD, FARMING_SEARCH_RESULT));
+                if (matchesOwn(FARMING_SEARCH_RESULT, query)) matches.add(new Match(tab, FARMING_SEARCH_CARD,
+                        FARMING_SEARCH_RESULT, Collections.<Setting>emptyList()));
                 continue;
             }
-            for (Card card : cards(tab)) {
-                for (Setting setting : card.settings) {
-                    if (matches(setting, query)) matches.add(new Match(tab, card, setting));
-                }
-            }
+            for (Card card : cards(tab)) search(card.settings, tab, card, query, new ArrayList<Setting>(), matches);
         }
         return Collections.unmodifiableList(matches);
     }
 
-    /** Source-compatible overload; the removed Advanced filter no longer hides any route. */
-    @Deprecated
-    public static List<Match> search(String value, boolean ignoredAdvancedFlag) {
-        return search(value);
+    private static void search(List<Setting> settings, Tab tab, Card card, String query, List<Setting> parents,
+                               List<Match> out) {
+        for (Setting setting : settings) {
+            if (matchesOwn(setting, query)) out.add(new Match(tab, card, setting, parents));
+            List<Setting> next = new ArrayList<Setting>(parents);
+            next.add(setting);
+            search(setting.children, tab, card, query, next, out);
+        }
     }
+
+    private static boolean matchesOwn(Setting setting, String query) {
+        String text = (setting.id + " " + setting.label + " " + setting.description + " " + setting.keywords)
+                .toLowerCase(Locale.ROOT);
+        return text.contains(query);
+    }
+
+    /** Compatibility overload; there is no advanced visibility gate. */
+    @Deprecated public static List<Match> search(String value, boolean ignored) { return search(value); }
 
     public static boolean routesAreComplete() {
         for (String id : REQUIRED_ROUTE_IDS) if (!hasRoute(id)) return false;
         return true;
     }
 
-    private static boolean matches(Setting setting, String query) {
-        StringBuilder text = new StringBuilder();
-        append(text, setting.id); append(text, setting.label); append(text, setting.description); append(text, setting.keywords);
-        for (Setting child : setting.children) {
-            append(text, child.id); append(text, child.label); append(text, child.description); append(text, child.keywords);
-        }
-        return text.toString().toLowerCase(Locale.ROOT).contains(query);
+    /** Returns all ids in deterministic catalog order for option-preservation audits. */
+    public static List<String> allIds() {
+        List<String> values = new ArrayList<String>();
+        for (Tab tab : TABS) for (Card card : cards(tab)) collectIds(card.settings, values);
+        return Collections.unmodifiableList(values);
     }
 
-    private static void append(StringBuilder out, String value) {
-        if (value != null) out.append(value).append(' ');
+    private static void collectIds(List<Setting> settings, List<String> values) {
+        for (Setting setting : settings) {
+            values.add(setting.id);
+            collectIds(setting.children, values);
+        }
     }
 
     private static Card card(String id, String title, String subtitle, boolean advanced, String notice, Setting... settings) {
@@ -449,58 +499,86 @@ public final class ReferenceSettingsCatalog {
         return new Card(id, title, subtitle, advanced, notice, warningNotice, settings);
     }
 
-    private static Setting toggle(String id, String label, String description, String keywords, boolean advanced,
-                                  Setting... children) {
-        return new Setting(id, label, description, keywords, Control.TOGGLE, advanced, "", 0, 1, 1, "", null, children);
+    private static Setting toggle(String id, String label, String description, String keywords) {
+        return new Setting(id, label, description, keywords, Control.TOGGLE, false, "", 0, 1, 1, "", null);
     }
 
-    private static Setting routeToggle(String id, String label, String description, String keywords, boolean advanced,
-                                       String actionLabel, Setting... children) {
-        return new Setting(id, label, description, keywords, Control.TOGGLE, advanced, actionLabel,
-                0, 1, 1, "", null, children);
+    private static Setting masterDropdown(String id, String label, String description, String keywords, Setting... children) {
+        return new Setting(id, label, description, keywords, Control.TOGGLE, false, "", 0, 1, 1, "", null, children);
     }
 
-    private static Setting slider(String id, String label, String description, String keywords, boolean advanced,
-                                  int min, int max, int step, String suffix, Setting... children) {
-        return new Setting(id, label, description, keywords, Control.SLIDER, advanced, "", min, max, step, suffix,
-                null, children);
+    private static Setting dropdown(String id, String label, String description, String keywords, Setting... children) {
+        return new Setting(id, label, description, keywords, Control.DROPDOWN, false, "", 0, 0, 0, "", null, children);
     }
 
-    private static Setting action(String id, String label, String description, String keywords, boolean advanced,
-                                  String actionLabel, Setting... children) {
-        return new Setting(id, label, description, keywords, Control.ACTION, advanced, actionLabel,
-                0, 0, 0, "", null, children);
+    private static Setting slider(String id, String label, String description, String keywords,
+                                  int min, int max, int step, String suffix) {
+        return new Setting(id, label, description, keywords, Control.SLIDER, false, "", min, max, step, suffix, null);
     }
 
-    private static Setting routeAction(String id, String label, String description, String keywords, boolean advanced,
-                                       String actionLabel, Setting... children) {
-        return action(id, label, description, keywords, advanced, actionLabel, children);
+    private static Setting action(String id, String label, String description, String keywords, String actionLabel) {
+        return new Setting(id, label, description, keywords, Control.ACTION, false, actionLabel, 0, 0, 0, "", null);
     }
 
-    private static Setting choice(String id, String label, String description, String keywords, boolean advanced,
-                                  String[] choices, Setting... children) {
-        return new Setting(id, label, description, keywords, Control.CHOICE, advanced, "", 0, 0, 0, "", choices, children);
+    private static Setting choice(String id, String label, String description, String keywords, String[] choices) {
+        return new Setting(id, label, description, keywords, Control.CHOICE, false, "", 0, 0, 0, "", choices);
+    }
+
+    private static Setting text(String id, String label, String description, String keywords) {
+        return new Setting(id, label, description, keywords, Control.TEXT, false, "", 0, 0, 0, "", null);
     }
 
     private static Setting info(String id, String label, String description, String keywords) {
         return new Setting(id, label, description, keywords, Control.INFO, false, "", 0, 0, 0, "", null);
     }
 
-    /** Combines immutable presentation groups once at class load; it never copies or changes a setting owner. */
-    private static List<Card> merge(List<Card>... groups) {
-        List<Card> merged = new ArrayList<Card>();
-        if (groups != null) {
-            for (List<Card> group : groups) if (group != null) merged.addAll(group);
-        }
-        return Collections.unmodifiableList(merged);
+    private static Setting mobStyle(String id, String label, String description) {
+        return masterDropdown(id, label, description, "mob esp style", styleChildren(id, label));
     }
 
-    private static List<Card> cards(Card... cards) {
-        return immutable(cards);
+    private static Setting[] styleChildren(String id, String label) {
+        return new Setting[]{
+                choice(id + "-color", label + " Color", "Choose the existing ESP colour.", "esp color",
+                        new String[]{"Cyan", "Gold", "Purple", "Green", "Orange", "Teal", "Red", "Pink"}),
+                choice(id + "-mode", label + " Render Mode", "Draw outline, filled hitbox, or both.", "esp render mode",
+                        new String[]{"Outline", "Filled", "Outline + Filled"}),
+                toggle(id + "-walls", label + " Through Walls", "Keep this category visible behind dungeon blocks.", "esp walls"),
+                slider(id + "-width", label + " Outline Width", "World-space outline thickness.", "esp width", 1, 6, 1, " px"),
+                slider(id + "-outline-opacity", label + " Outline Opacity", "Opacity for hitbox edges.", "esp opacity", 0, 100, 5, "%"),
+                slider(id + "-fill-opacity", label + " Fill Opacity", "Opacity for hitbox faces.", "esp opacity", 0, 100, 5, "%"),
+                action(id + "-copy", "Copy " + label + " Style", "Copy this existing style for this session.", "esp copy", "Copy"),
+                action(id + "-apply", "Apply Copied Style", "Apply the last copied style to this category.", "esp apply", "Apply"),
+                action(id + "-apply-all", "Apply This Style to All", "Apply this style to every Mob ESP category.", "esp apply all", "Apply to All")
+        };
+    }
+
+    /** Door styles share the same persisted Style values but intentionally have no Mob-only clipboard actions. */
+    private static Setting[] doorStyleChildren(String id, String label) {
+        return new Setting[]{
+                choice(id + "-color", label + " Color", "Choose the existing ESP colour.", "door color",
+                        new String[]{"Cyan", "Gold", "Purple", "Green", "Orange", "Teal", "Red", "Pink"}),
+                choice(id + "-mode", label + " Render Mode", "Draw outline, filled hitbox, or both.", "door render mode",
+                        new String[]{"Outline", "Filled", "Outline + Filled"}),
+                toggle(id + "-walls", label + " Through Walls", "Keep cached doors visible behind dungeon blocks.", "door walls"),
+                slider(id + "-width", label + " Outline Width", "World-space outline thickness.", "door width", 1, 6, 1, " px"),
+                slider(id + "-outline-opacity", label + " Outline Opacity", "Opacity for hitbox edges.", "door opacity", 0, 100, 5, "%"),
+                slider(id + "-fill-opacity", label + " Fill Opacity", "Opacity for hitbox faces.", "door opacity", 0, 100, 5, "%")
+        };
+    }
+
+    private static Setting[] combine(Setting[] first, Setting... more) {
+        int firstLength = first == null ? 0 : first.length;
+        int moreLength = more == null ? 0 : more.length;
+        Setting[] values = new Setting[firstLength + moreLength];
+        if (firstLength > 0) System.arraycopy(first, 0, values, 0, firstLength);
+        if (moreLength > 0) System.arraycopy(more, 0, values, firstLength, moreLength);
+        return values;
     }
 
     private static <T> List<T> immutable(T... values) {
         if (values == null || values.length == 0) return Collections.emptyList();
         return Collections.unmodifiableList(Arrays.asList(values.clone()));
     }
+
+    private static List<Card> cards(Card... values) { return immutable(values); }
 }

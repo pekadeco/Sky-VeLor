@@ -1,7 +1,6 @@
 package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.gui.AppleSettingsScreen;
-import com.arena.pekaclient.gui.ChatEditorScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.notes.QuickNoteScreen;
 import com.arena.pekaclient.notes.QuickNotes;
@@ -35,7 +34,7 @@ public final class ClientActions {
         itemAnimationPending = true;
     }
 
-    /** Opens native Chat Settings after GuiChat has closed. */
+    /** Opens the persisted inline Chat Settings owner after GuiChat has closed. */
     public static void requestChatEditor() {
         chatEditorPending = true;
     }
@@ -53,7 +52,7 @@ public final class ClientActions {
         } else if (chatEditorPending) {
             chatEditorPending = false;
             hubPending = false;
-            mc.displayGuiScreen(new ChatEditorScreen(null));
+            mc.displayGuiScreen(AppleSettingsScreen.openChatSettings(null));
         } else if (hubPending) {
             hubPending = false;
             mc.displayGuiScreen(new AppleSettingsScreen(null));

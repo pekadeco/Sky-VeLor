@@ -29,7 +29,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsSpacingLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsControlLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HardcodedGuiColorTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HudEditorSelectionPolicyTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.FeatureSettingsUiModelTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineSettingsCatalogTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.FarmingNavigationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ReleaseClaimsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ClipboardChainTests
@@ -53,9 +53,9 @@ java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.WitherDoorCacheTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.DungeonEspUiModelTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.DungeonEspEditorSpecsTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.AssistUiModelTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineEspCatalogTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineSettingsBindingsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineOptionPreservationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapProtectionPolicyTests
@@ -79,9 +79,9 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.SwingEasingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatTabClosePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ChatInteractionModelTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.ChatQolLayoutTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineDropdownLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.notes.QuickNoteLayoutTests
-java -cp "$OUT:$CP" com.arena.pekaclient.gui.QualityOfLifeUiModelTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineOwnerBindingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ItemAnimationReachabilityTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.LeapPaletteTests

@@ -6,10 +6,11 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Small, Minecraft-free persistence model for remembered editor selection only.
+ * Small, Minecraft-free persistence model for presentation state only.
  *
  * <p>The retired tree namespace is accepted when old properties load but is intentionally never interpreted or
- * created. Feature settings remain in their existing owners; this class only remembers the selected editor pane.</p>
+ * created. Feature settings remain in their existing owners; this class remembers only selection compatibility and
+ * collapsed inline dropdown disclosure.</p>
  */
 public final class FeatureUiState {
     public static final String PREFIX = "ui.feature.";
@@ -17,6 +18,8 @@ public final class FeatureUiState {
     private static final int MAX_VALUE_LENGTH = 48;
 
     private final Map<String, String> selections = new HashMap<String, String>();
+    /** Collapsed-by-default inline feature dropdown state; this never changes a feature configuration value. */
+    private final Map<String, Boolean> dropdowns = new HashMap<String, Boolean>();
 
     public String selection(String editorId, String fallback) {
         String value = selections.get(cleanId(editorId));
@@ -31,16 +34,36 @@ public final class FeatureUiState {
         selections.put(key, value);
     }
 
+    /** Returns false for unknown rows so every new feature starts collapsed. */
+    public boolean dropdownOpen(String featureId) {
+        Boolean value = dropdowns.get(cleanId(featureId));
+        return Boolean.TRUE.equals(value);
+    }
+
+    public void setDropdownOpen(String featureId, boolean open) {
+        String key = cleanId(featureId);
+        if (key.length() == 0) return;
+        if (!dropdowns.containsKey(key) && dropdowns.size() >= MAX_ENTRIES) return;
+        dropdowns.put(key, open);
+    }
+
     /** Loads valid editor selections and ignores retired ui.feature.tree.* values without touching feature keys. */
     public void load(Properties source) {
         selections.clear();
+        dropdowns.clear();
         if (source == null) return;
         for (String key : source.stringPropertyNames()) {
-            if (!key.startsWith(PREFIX + "editor.")) continue;
-            String id = cleanId(key.substring((PREFIX + "editor.").length()));
-            String selected = cleanValue(source.getProperty(key, ""));
-            if (id.length() > 0 && selected.length() > 0 && selections.size() < MAX_ENTRIES) {
-                selections.put(id, selected);
+            if (key.startsWith(PREFIX + "editor.")) {
+                String id = cleanId(key.substring((PREFIX + "editor.").length()));
+                String selected = cleanValue(source.getProperty(key, ""));
+                if (id.length() > 0 && selected.length() > 0 && selections.size() < MAX_ENTRIES) {
+                    selections.put(id, selected);
+                }
+            } else if (key.startsWith(PREFIX + "dropdown.")) {
+                String id = cleanId(key.substring((PREFIX + "dropdown.").length()));
+                if (id.length() > 0 && dropdowns.size() < MAX_ENTRIES) {
+                    dropdowns.put(id, Boolean.parseBoolean(source.getProperty(key, "false")));
+                }
             }
         }
     }
@@ -50,6 +73,9 @@ public final class FeatureUiState {
         if (target == null) return;
         for (Map.Entry<String, String> entry : selections.entrySet()) {
             target.setProperty(PREFIX + "editor." + entry.getKey(), entry.getValue());
+        }
+        for (Map.Entry<String, Boolean> entry : dropdowns.entrySet()) {
+            target.setProperty(PREFIX + "dropdown." + entry.getKey(), String.valueOf(Boolean.TRUE.equals(entry.getValue())));
         }
     }
 
