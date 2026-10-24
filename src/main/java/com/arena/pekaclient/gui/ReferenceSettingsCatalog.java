@@ -437,7 +437,7 @@ public final class ReferenceSettingsCatalog {
 
     /** Search every actual option, including options hidden by a collapsed owning dropdown. */
     public static List<Match> search(String value) {
-        String query = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+        String query = normalizedSearchText(value);
         if (query.length() == 0) return Collections.emptyList();
         List<Match> matches = new ArrayList<Match>();
         for (Tab tab : TABS) {
@@ -463,9 +463,29 @@ public final class ReferenceSettingsCatalog {
     }
 
     private static boolean matchesOwn(Setting setting, String query) {
-        String text = (setting.id + " " + setting.label + " " + setting.description + " " + setting.keywords)
-                .toLowerCase(Locale.ROOT);
+        String text = normalizedSearchText(setting.id + " " + setting.label + " " + setting.description + " " + setting.keywords);
         return text.contains(query);
+    }
+
+    /** Normalizes presentation ids such as chat-tab-filter-text into the same searchable words users type. */
+    private static String normalizedSearchText(String value) {
+        if (value == null) return "";
+        String lower = value.toLowerCase(Locale.ROOT);
+        StringBuilder out = new StringBuilder(lower.length());
+        boolean spaced = true;
+        for (int i = 0; i < lower.length(); i++) {
+            char c = lower.charAt(i);
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                out.append(c);
+                spaced = false;
+            } else if (!spaced) {
+                out.append(' ');
+                spaced = true;
+            }
+        }
+        int length = out.length();
+        if (length > 0 && out.charAt(length - 1) == ' ') out.setLength(length - 1);
+        return out.toString();
     }
 
     /** Compatibility overload; there is no advanced visibility gate. */
