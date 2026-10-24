@@ -22,6 +22,7 @@ javac -nowarn -encoding UTF-8 -cp "$CP" -d "$OUT" $(find "$HERE/tests" -name '*.
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.PureLogicTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.GuiLayoutToolkitTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsSpacingLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HudEditorSelectionPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.FeatureSettingsUiModelTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.FarmingNavigationTests

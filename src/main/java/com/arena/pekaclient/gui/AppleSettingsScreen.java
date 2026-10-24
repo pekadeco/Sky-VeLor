@@ -55,12 +55,13 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float NORMAL_TOOLBAR_H = 43f;
     private static final float NARROW_TOOLBAR_H = 65f;
     private static final float RAIL_W = 158f;
-    private static final float GAP = 8f;
-    private static final float CARD_GAP = 9f;
-    private static final float CARD_PAD = 13f;
-    private static final float ROW_PAD_X = 13f;
-    private static final float ROW_PAD_Y = 9f;
-    private static final float CONTROL_GAP = 8f;
+    /** Shared page rhythm: cards/rows use 8 px gaps and 12 px internal padding at every GUI scale. */
+    private static final float GAP = GuiStyle.SPACE_8;
+    private static final float CARD_GAP = GuiStyle.SPACE_8;
+    private static final float CARD_PAD = GuiStyle.SPACE_12;
+    private static final float ROW_PAD_X = GuiStyle.SPACE_12;
+    private static final float ROW_PAD_Y = GuiStyle.SPACE_8;
+    private static final float CONTROL_GAP = GuiStyle.SPACE_8;
     private static final float WHEEL_STEP = 84f;
 
     private static final int HIT_NAV = 1;
@@ -92,6 +93,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private final GuiLayoutToolkit.Rect viewport = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect profilePopup = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect profileClose = new GuiLayoutToolkit.Rect();
+    /** The rail bounds are reused for both drawing and hit testing; no layout refresh allocates entry rectangles. */
+    private final SettingsRailLayout.Rail settingsRail = new SettingsRailLayout.Rail(ReferenceSettingsCatalog.TABS.length);
 
     private ReferenceSettingsCatalog.Tab activeTab;
     /** Per-tab selection fades are screen-owned and allocated once; no animation survives a closed GUI. */
@@ -223,35 +226,39 @@ public class AppleSettingsScreen extends AppleScreen {
             return;
         }
 
-        toolbarH = panel.w < 520f ? NARROW_TOOLBAR_H : NORMAL_TOOLBAR_H;
+        // At the smallest useful GUI surfaces, keep the title and search in one compact toolbar row so the six
+        // destinations can remain visible rather than squeezing their 28–30 px hit targets below the fold.
+        toolbarH = panel.w < 360f ? NORMAL_TOOLBAR_H : (panel.w < 520f ? NARROW_TOOLBAR_H : NORMAL_TOOLBAR_H);
         float bodyY = panel.y + CHROME_H + toolbarH;
         float bodyH = Math.max(1f, panel.h - CHROME_H - toolbarH);
-        // A compact icon rail is safer than overlapping labels on small GUI scales now that each real category has
-        // its own destination. The same rail bounds are used by drawing and hit registration.
-        float verticalSpacePerTab = (bodyH - 58f) / Math.max(1, ReferenceSettingsCatalog.TABS.length);
-        compactRail = panel.w < 540f || verticalSpacePerTab < 19f;
+        // The rail changes to a two-row layout before its fixed 4 px entry rhythm could turn into large gaps or
+        // clipped destinations. SettingsRailLayout owns the exact same rectangles used for painting and input.
+        compactRail = SettingsRailLayout.shouldCompact(panel.w, bodyH, ReferenceSettingsCatalog.TABS.length);
 
         if (compactRail) {
-            railX = panel.x + 7f;
-            railY = bodyY + 5f;
-            railW = Math.max(1f, panel.w - 14f);
-            // A second compact row keeps the profile control reachable instead of overloading tiny tab labels.
-            railH = Math.min(57f, Math.max(48f, bodyH * .30f));
-            contentX = panel.x + 8f;
-            contentY = railY + railH + 7f;
-            contentW = Math.max(1f, panel.w - 16f);
+            railX = panel.x + GuiStyle.SPACE_4;
+            railY = bodyY + GuiStyle.SPACE_4;
+            railW = Math.max(1f, panel.w - GuiStyle.SPACE_8);
+            railH = Math.min(bodyH - GuiStyle.SPACE_4, SettingsRailLayout.compactHeight(ReferenceSettingsCatalog.TABS.length));
+            railH = Math.max(1f, railH);
+            contentX = panel.x + GuiStyle.SPACE_12;
+            contentY = railY + railH + GuiStyle.SPACE_4;
+            contentW = Math.max(1f, panel.w - GuiStyle.SPACE_12 * 2f);
+            contentH = Math.max(1f, panel.bottom() - GuiStyle.SPACE_4 - contentY);
         } else {
             railX = panel.x;
             railY = bodyY;
             railW = Math.min(RAIL_W, Math.max(92f, panel.w * .25f));
             railH = bodyH;
-            contentX = railX + railW + 10f;
-            contentY = bodyY + 9f;
-            contentW = Math.max(1f, panel.right() - 9f - contentX);
+            contentX = railX + railW + GuiStyle.SPACE_12;
+            contentY = bodyY + GuiStyle.SPACE_12;
+            contentW = Math.max(1f, panel.right() - GuiStyle.SPACE_12 - contentX);
+            contentH = Math.max(1f, panel.bottom() - GuiStyle.SPACE_12 - contentY);
         }
-        contentH = Math.max(1f, panel.bottom() - 9f - contentY);
+        SettingsRailLayout.layout(settingsRail, railX, railY, railW, railH, compactRail);
         viewport.set(contentX, contentY, contentW, contentH);
-        narrowRows = contentW < 330f;
+        // Narrow pages are intentionally one-column: controls move below their labels rather than fighting them.
+        narrowRows = SettingsPageLayout.isNarrow(contentW);
         search.w = Math.max(50f, searchWidth());
         search.h = 23f;
         layoutSearch();
@@ -391,28 +398,13 @@ public class AppleSettingsScreen extends AppleScreen {
             UIRender.roundRectRing(railX, railY, railW, railH, railRadius, GuiStyle.OUTLINE, Theme.border);
         }
         int tabCount = ReferenceSettingsCatalog.TABS.length;
-        float footerReserve = compactRail ? 21f : 58f;
-        float navTop = railY + (compactRail ? 3f : 7f);
-        float navBottom = railY + railH - footerReserve;
-        float slotH = compactRail ? Math.max(20f, navBottom - navTop)
-                : Math.max(19f, (navBottom - navTop) / Math.max(1, tabCount));
         for (int i = 0; i < tabCount; i++) {
             ReferenceSettingsCatalog.Tab tab = ReferenceSettingsCatalog.TABS[i];
-            float x;
-            float y;
-            float w;
-            float h;
-            if (compactRail) {
-                w = railW / tabCount - 2f;
-                h = Math.min(25f, slotH);
-                x = railX + i * railW / tabCount + 1f;
-                y = navTop;
-            } else {
-                x = railX + 8f;
-                y = navTop + i * slotH;
-                w = railW - 16f;
-                h = Math.max(18f, Math.min(26f, slotH - 3f));
-            }
+            GuiLayoutToolkit.Rect bounds = settingsRail.entries[i];
+            float x = bounds.x;
+            float y = bounds.y;
+            float w = bounds.w;
+            float h = bounds.h;
             boolean active = activeTab == tab;
             float selected = tabSelectionInitialized ? tabSelection[i] : (active ? 1f : 0f);
             boolean hovered = inside(mouseX, mouseY, x, y, w, h);
@@ -424,19 +416,29 @@ public class AppleSettingsScreen extends AppleScreen {
                         GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, w, h), fill, fill, .25f);
             }
             boolean showLabel = !compactRail || w > 68f;
-            float iconX = compactRail && showLabel ? x + 5f
-                    : compactRail ? x + Math.max(3f, (w - 14f) * .5f) : x + 5f;
+            String visibleLabel = showLabel ? fit(fr(), tab.label,
+                    Math.max(1f, (compactRail ? w - 26f : w - 33f) / .78f)) : "";
+            float iconX;
+            float labelX = 0f;
+            if (compactRail && showLabel) {
+                // Keep the icon-and-text pair centered inside a compact cell; the glyph-only fallback is centered too.
+                float groupW = 14f + GuiStyle.SPACE_4 + fr().getStringWidth(visibleLabel) * .78f;
+                iconX = x + Math.max(3f, (w - groupW) * .5f);
+                labelX = iconX + 14f + GuiStyle.SPACE_4;
+            } else {
+                iconX = compactRail ? x + Math.max(3f, (w - 14f) * .5f) : x + GuiStyle.SPACE_4;
+                if (showLabel) labelX = x + 24f;
+            }
             float iconY = y + (h - 14f) * .5f;
             drawRailGlyph(tab, iconX, iconY, active ? Theme.accent : Theme.textTertiary);
             if (showLabel) {
-                float labelX = compactRail ? iconX + 16f : x + 24f;
-                float labelW = compactRail ? Math.max(1f, x + w - labelX - 3f) : w - 33f;
-                UIRender.text(fr(), fit(fr(), tab.label, labelW / .78f), labelX, centeredTextY(y, h, .78f),
+                UIRender.text(fr(), visibleLabel, labelX, centeredTextY(y, h, .78f),
                         active ? Theme.textPrimary : Theme.textSecondary, .78f, false);
             }
             if (active && !compactRail) {
-                UIRender.circle(x + w - 7f, y + h * .5f, 1.7f, Theme.accent);
+                UIRender.circle(x + w - GuiStyle.SPACE_8 + 1f, y + h * .5f, 1.7f, Theme.accent);
             }
+            GuiDebugOverlay.recordRow("Settings rail " + tab.label, x, y, w, h);
             registerHit("nav-" + tab.name(), HIT_NAV, x, y, w, h, null, tab.name());
         }
 
@@ -448,38 +450,68 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private void drawRailProfileControl(int mouseX, int mouseY) {
-        float h = 36f;
-        float y = railY + railH - h - 8f;
-        float x = railX + 8f;
-        float w = railW - 16f;
-        UIRender.line(railX + 9f, y - 7f, railX + railW - 9f, y - 7f, 1f, Theme.divider);
+        float x = settingsRail.profile.x;
+        float y = settingsRail.profile.y;
+        float w = settingsRail.profile.w;
+        float h = settingsRail.profile.h;
+        UIRender.line(railX + GuiStyle.SPACE_8 + 1f, y - GuiStyle.SPACE_8 + 1f,
+                railX + railW - GuiStyle.SPACE_8 - 1f, y - GuiStyle.SPACE_8 + 1f, 1f, Theme.divider);
         boolean hovered = inside(mouseX, mouseY, x, y, w, h);
         UIRender.roundRectBorder(x, y, w, h,
                 GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, w, h), hovered ? Theme.cardHover : Theme.card,
                 hovered ? Theme.cardHover : Theme.card, profileOpen ? Theme.accent : Theme.border);
-        drawProfileGlyph(x + 8f, y + 11f, profileOpen ? Theme.accent : Theme.textSecondary);
+        drawProfileGlyph(x + GuiStyle.SPACE_8, y + 11f, profileOpen ? Theme.accent : Theme.textSecondary);
         UIRender.text(fr(), "PROFILE", x + 25f, y + 7f, Theme.textTertiary, .58f, false);
         UIRender.text(fr(), "About Sky VeLor", x + 25f, y + 18f, Theme.textPrimary, .70f, false);
+        GuiDebugOverlay.recordControl("Settings profile", x, y, w, h);
         registerHit("profile", HIT_PROFILE, x, y, w, h, null, "");
     }
 
     private void drawCompactProfileControl(int mouseX, int mouseY) {
-        float x = railX + 4f;
-        float y = railY + railH - 19f;
-        float w = railW - 8f;
-        float h = 15f;
+        float x = settingsRail.profile.x;
+        float y = settingsRail.profile.y;
+        float w = settingsRail.profile.w;
+        float h = settingsRail.profile.h;
         boolean hovered = inside(mouseX, mouseY, x, y, w, h);
         UIRender.roundRect(x, y, w, h,
                 GuiStyle.radius(GuiStyle.RADIUS_BUTTON, Theme.radius, w, h), hovered ? Theme.cardHover : Theme.buttonFill,
                 hovered ? Theme.cardHover : Theme.buttonFill, .2f);
-        drawProfileGlyph(x + 7f, y + 3f, profileOpen ? Theme.accent : Theme.textTertiary);
-        UIRender.text(fr(), "PROFILE", x + 18f, centeredTextY(y, h, .57f),
+        float profileLabelX;
+        if (h >= 14f) {
+            drawProfileGlyph(x + GuiStyle.SPACE_4 + 3f, y + (h - 9f) * .5f, profileOpen ? Theme.accent : Theme.textTertiary);
+            profileLabelX = x + 18f;
+        } else {
+            UIRender.circle(x + GuiStyle.SPACE_8 - 2f, y + h * .5f, 1.5f, profileOpen ? Theme.accent : Theme.textTertiary);
+            profileLabelX = x + GuiStyle.SPACE_12;
+        }
+        UIRender.text(fr(), "PROFILE", profileLabelX, centeredTextY(y, h, .57f),
                 profileOpen ? Theme.accent : Theme.textSecondary, .57f, false);
+        GuiDebugOverlay.recordControl("Settings profile", x, y, w, h);
         registerHit("profile", HIT_PROFILE, x, y, w, h, null, "");
     }
 
     private float centeredTextY(float top, float height, float scale) {
         return top + Math.max(0f, (height - fr().FONT_HEIGHT * scale) * .5f);
+    }
+
+    /**
+     * Layout debug draws after the content scissor has closed. Clip registration to that same viewport so a card that
+     * is correctly scrolled out behind the compact rail cannot be reported as a false overlap with a rail target.
+     */
+    private void recordViewportRow(String name, float x, float y, float w, float h) {
+        float left = Math.max(x, viewport.x);
+        float top = Math.max(y, viewport.y);
+        float right = Math.min(x + w, viewport.right());
+        float bottom = Math.min(y + h, viewport.bottom());
+        if (right > left && bottom > top) GuiDebugOverlay.recordRow(name, left, top, right - left, bottom - top);
+    }
+
+    private void recordViewportControl(String name, float x, float y, float w, float h) {
+        float left = Math.max(x, viewport.x);
+        float top = Math.max(y, viewport.y);
+        float right = Math.min(x + w, viewport.right());
+        float bottom = Math.min(y + h, viewport.bottom());
+        if (right > left && bottom > top) GuiDebugOverlay.recordControl(name, left, top, right - left, bottom - top);
     }
 
     private void drawContent(int mouseX, int mouseY) {
@@ -582,6 +614,7 @@ public class AppleSettingsScreen extends AppleScreen {
     private float drawCard(float y, int mouseX, int mouseY, ReferenceSettingsCatalog.Tab tab,
                            ReferenceSettingsCatalog.Card card) {
         float h = measureCard(card);
+        recordViewportRow("Settings card " + card.id, contentX, y, contentW, h);
         float radius = GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, h);
         UIRender.roundRectBorder(contentX, y, contentW, h, radius, Theme.card, Theme.card, Theme.border);
         float iconX = contentX + CARD_PAD;
@@ -632,6 +665,7 @@ public class AppleSettingsScreen extends AppleScreen {
         float rowH = measureSetting(setting, child);
         float x = contentX;
         float rowW = contentW;
+        recordViewportRow("Settings row " + setting.id, x, y, rowW, rowH);
         int divider = Theme.divider;
         UIRender.line(x + 1f, y, x + rowW - 1f, y, 1f, divider);
         float padX = child ? ROW_PAD_X + 14f : ROW_PAD_X;
@@ -984,7 +1018,7 @@ public class AppleSettingsScreen extends AppleScreen {
         y += 37f;
 
         y = drawHomePerformance(y);
-        y += 10f;
+        y += GAP;
 
         UIRender.text(fr(), "QUICK CONTROLS", contentX, centeredTextY(y, 12f, .61f), Theme.textTertiary, .61f, false);
         String allGameplay = "all gameplay ->";
@@ -994,33 +1028,37 @@ public class AppleSettingsScreen extends AppleScreen {
                 fr().getStringWidth(allGameplay) * .61f + 4f, 14f, null, "");
         y += 13f;
 
-        float gap = 6f;
+        float gap = GuiStyle.SPACE_8;
         String[] ids = {"auto-sprint", "terminal-assist", "chat-qol", "item-animation"};
         String[] labels = {"Sprint", "Terminal", "Chat", "Hand"};
         String[] details = {"Only while forward is held", "Passive slot outline", "Attached filter tabs", "First-person animation"};
-        float quickW = (contentW - gap) * .5f;
+        // When the content column becomes narrow, these cards reflow into one column instead of compressing the
+        // icon, two text lines and toggle into each other.
+        int quickColumns = SettingsPageLayout.columnsFor(contentW);
+        float quickW = SettingsPageLayout.itemWidth(contentW, quickColumns);
         float quickH = narrowRows ? 42f : 39f;
         for (int i = 0; i < ids.length; i++) {
-            int row = i / 2;
-            int col = i % 2;
+            int row = i / quickColumns;
+            int col = i % quickColumns;
             float x = contentX + col * (quickW + gap);
             float py = y + row * (quickH + gap);
             boolean checked = booleanValue(ids[i]);
             UIRender.roundRectBorder(x, py, quickW, quickH,
                     GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, quickW, quickH), Theme.card, Theme.card, Theme.border);
-            UIRender.roundRect(x + 7f, py + (quickH - 20f) * .5f, 20f, 20f, 4f,
-                    Theme.buttonFill, Theme.buttonFill, .2f);
-            drawQuickGlyph(i, x + 12f, py + (quickH - 10f) * .5f, checked ? Theme.accent : Theme.textTertiary);
+            UIRender.roundRect(x + GuiStyle.SPACE_8 - 1f, py + (quickH - 20f) * .5f, 20f, 20f,
+                    GuiStyle.SPACE_4, Theme.buttonFill, Theme.buttonFill, .2f);
+            drawQuickGlyph(i, x + GuiStyle.SPACE_12, py + (quickH - 10f) * .5f, checked ? Theme.accent : Theme.textTertiary);
             float labelX = x + 33f;
             float toggleX = x + quickW - 43f;
-            UIRender.text(fr(), fit(fr(), labels[i], Math.max(1f, (toggleX - labelX - 3f) / .75f)), labelX,
-                    py + 7f, Theme.textPrimary, .75f, false);
-            UIRender.text(fr(), fit(fr(), details[i], Math.max(1f, (quickW - 40f) / .58f)), labelX, py + 20f,
+            float textW = Math.max(1f, toggleX - labelX - GuiStyle.SPACE_4);
+            UIRender.text(fr(), fit(fr(), labels[i], textW / .75f), labelX, py + 7f, Theme.textPrimary, .75f, false);
+            UIRender.text(fr(), fit(fr(), details[i], textW / .58f), labelX, py + 20f,
                     Theme.textSecondary, .58f, false);
             drawMiniToggle(toggleX, py + (quickH - 17f) * .5f, checked);
+            recordViewportControl("Home quick " + ids[i], x, py, quickW, quickH);
             registerHit("home-toggle:" + ids[i], HIT_HOME_TOGGLE, x, py, quickW, quickH, null, ids[i]);
         }
-        y += quickH * 2f + gap + 12f;
+        y += SettingsPageLayout.gridHeight(ids.length, quickColumns, quickH) + GuiStyle.SPACE_12;
 
         float noticeH = 48f;
         UIRender.roundRectBorder(contentX, y, contentW, noticeH,
@@ -1029,7 +1067,7 @@ public class AppleSettingsScreen extends AppleScreen {
         UIRender.text(fr(), "Safe by default", contentX + 27f, y + 9f, Theme.textPrimary, .76f, false);
         drawWrapped("Network sync, automated clicks, and opt-in assists stay off until you explicitly choose them.",
                 contentX + 10f, y + 22f, contentW - 20f, Theme.textSecondary, .63f, 2);
-        return y + noticeH + 10f;
+        return y + noticeH + GAP;
     }
 
     private float drawHomePerformance(float y) {
@@ -1037,24 +1075,24 @@ public class AppleSettingsScreen extends AppleScreen {
         float h = homePerformanceHeight();
         UIRender.roundRectBorder(contentX, y, contentW, h,
                 GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, h), Theme.card, Theme.card, Theme.border);
-        UIRender.text(fr(), "LIVE PERFORMANCE", contentX + 10f, y + 8f, Theme.textTertiary, .61f, false);
+        UIRender.text(fr(), "LIVE PERFORMANCE", contentX + CARD_PAD, y + GuiStyle.SPACE_8, Theme.textTertiary, .61f, false);
         String cadence = "LOCAL · 0.5 s";
-        UIRender.text(fr(), cadence, contentX + contentW - fr().getStringWidth(cadence) * .54f - 10f, y + 8f,
+        UIRender.text(fr(), cadence, contentX + contentW - fr().getStringWidth(cadence) * .54f - CARD_PAD, y + GuiStyle.SPACE_8,
                 Theme.textTertiary, .54f, false);
 
-        if (contentW < 405f) {
+        if (SettingsPageLayout.isNarrow(contentW)) {
             float metricH = 28f;
-            float metricX = contentX + 7f;
-            float metricW = Math.max(1f, contentW - 14f);
+            float metricX = contentX + CARD_PAD;
+            float metricW = Math.max(1f, contentW - CARD_PAD * 2f);
             float firstY = y + 22f;
             drawHomeMetric(metricX, firstY, metricW, metricH, "FRAME RATE", snapshot.fpsText(), snapshot.fpsColor());
-            drawHomeMetric(metricX, firstY + 31f, metricW, metricH, "JAVA MEMORY", snapshot.memoryText(), snapshot.memoryColor());
-            drawHomeMetric(metricX, firstY + 62f, metricW, metricH, "SERVER PING", snapshot.pingText(), snapshot.pingColor());
+            drawHomeMetric(metricX, firstY + metricH + GAP, metricW, metricH, "JAVA MEMORY", snapshot.memoryText(), snapshot.memoryColor());
+            drawHomeMetric(metricX, firstY + (metricH + GAP) * 2f, metricW, metricH, "SERVER PING", snapshot.pingText(), snapshot.pingColor());
         } else {
-            float gap = 5f;
-            float metricX = contentX + 7f;
+            float gap = GAP;
+            float metricX = contentX + CARD_PAD;
             float metricY = y + 22f;
-            float metricW = Math.max(1f, (contentW - 14f - gap * 2f) / 3f);
+            float metricW = Math.max(1f, (contentW - CARD_PAD * 2f - gap * 2f) / 3f);
             drawHomeMetric(metricX, metricY, metricW, 48f, "FRAME RATE", snapshot.fpsText(), snapshot.fpsColor());
             drawHomeMetric(metricX + metricW + gap, metricY, metricW, 48f, "JAVA MEMORY", snapshot.memoryText(), snapshot.memoryColor());
             drawHomeMetric(metricX + (metricW + gap) * 2f, metricY, metricW, 48f, "SERVER PING", snapshot.pingText(), snapshot.pingColor());
@@ -1072,12 +1110,14 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float homePerformanceHeight() {
-        return contentW < 405f ? 116f : 78f;
+        return SettingsPageLayout.isNarrow(contentW) ? 126f : 78f;
     }
 
     private float measureHome() {
         float quickH = narrowRows ? 42f : 39f;
-        return 37f + homePerformanceHeight() + 10f + 13f + quickH * 2f + 6f + 12f + 48f + 10f;
+        int quickColumns = SettingsPageLayout.columnsFor(contentW);
+        return 37f + homePerformanceHeight() + GAP + 13f + SettingsPageLayout.gridHeight(4, quickColumns, quickH)
+                + GuiStyle.SPACE_12 + 48f + GAP;
     }
 
     private float drawSearchResults(float y, int mouseX, int mouseY) {

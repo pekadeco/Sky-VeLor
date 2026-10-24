@@ -18,6 +18,7 @@ public final class ReleaseClaimsTests {
         hudEditorHasNoTargetSidebar();
         referenceShellHasRequiredBehavior();
         sharedRoundedRendererIsPackaged();
+        compactSettingsLayoutIsPackaged();
         editorStateCleanupIsPackaged();
         retainedControlsKeepTheirOwners();
         removedPrototypeEntriesStayRemoved();
@@ -72,6 +73,16 @@ public final class ReleaseClaimsTests {
                 && classExists("com.arena.pekaclient.render.GuiStyle") && classExists("com.arena.pekaclient.render.GuiMotion"));
         check("all fill and outline facades route through one rounded primitive", renderer.contains("RoundedRectGeometry")
                 && renderer.contains("roundedRect") && renderer.contains("roundRectBorder") && renderer.contains("roundRectRing"));
+    }
+
+    private static void compactSettingsLayoutIsPackaged() {
+        String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
+        check("shared compact rail and page-reflow policies are packaged",
+                classExists("com.arena.pekaclient.gui.SettingsRailLayout")
+                        && classExists("com.arena.pekaclient.gui.SettingsPageLayout")
+                        && screen.contains("SettingsRailLayout") && screen.contains("SettingsPageLayout"));
+        check("settings layout exposes overlap-debug bounds", screen.contains("Settings rail")
+                && screen.contains("Settings card") && screen.contains("Settings row"));
     }
 
     private static void editorStateCleanupIsPackaged() {

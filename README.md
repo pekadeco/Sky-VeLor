@@ -24,6 +24,12 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 - The direct six-tab rail is **Home**, **Gameplay**, **Dungeon**, **Farming**, **Visuals**, and **System**.
   Gameplay groups the existing Comfort, Inventory, Chat, Shortcuts, Mining, Slayer, and Fishing cards; Visuals retains
   HUD and Item Animation routes. Their configuration owners and keys are unchanged.
+- Rounded window, card, button, field, pill, slider, dropdown, preview, tooltip, chat-menu, and chat-background
+  surfaces route through one cached per-corner geometry primitive with clamped radii and a one-GUI-pixel anti-alias
+  fringe. Shared hover/toggle/tab easing runs only while a GUI is open.
+- Settings use a shared 4/8/12/16 GUI-pixel rhythm: 28–30 px rail entries with 4 px gaps, a compact two-row rail at
+  small scales, a bottom-docked Profile control, 8 px card/row gaps, 12 px page/card padding, and one-column narrow
+  reflow. `/velor layoutdebug` records the same rail/card/row bounds used for drawing and hit testing.
 - Farming follows Dungeon with a wheat/sprout icon and is searchable. The source audit found no genuine crop/farming
   counter or display to move, so its page intentionally shows only **No farming features yet**. It adds no automation,
   macro, clicker, block-breaking, or movement behavior. Search and inline children remain reachable, including former

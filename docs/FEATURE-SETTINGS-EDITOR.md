@@ -21,8 +21,17 @@ Hub surface.
   It can be dragged by the title bar; its offset is clamped to leave a visible world border. Green toggles
   normal/larger layout, yellow minimizes/restores a compact strip, red closes, and window/controls/hitboxes are all
   rebuilt from the same moved layout bounds after drag or resize.
-- Small GUI scales use an icon-capable compact horizontal rail and the existing clipped scrolling content viewport.
-  Full-width rails retain readable labels; compact rails keep every category reachable instead of overlapping text.
+- One shared per-corner rounded-rectangle primitive draws the shell, rail, cards, controls, fields, pills, popups,
+  previews, tooltips, chat click menu, and chat background. It clamps radii to each box, reuses cached geometry,
+  applies a one-GUI-pixel anti-alias fringe, and shares named window/card/button/pill radii. Hover, toggle, and tab
+  easing settle only while a GUI is open.
+- The shared layout scale is **4 / 8 / 12 / 16 GUI px**. Full rails use 30 px destinations with exact 4 px gaps;
+  compact rails use a visible two-row, three-column 28 px grid with the same gaps, so all six destinations remain
+  reachable at GUI scales 1–4. The Profile footer is docked at the rail bottom rather than being spaced between tabs.
+  Page cards/rows use 8 px gaps and 12 px padding. Below the usable content-width threshold, settings controls and
+  Home quick controls reflow to one column instead of overlapping icons, text, and controls.
+- `/velor layoutdebug` records the measured settings rail, card, row, Home quick-control, and Profile bounds. It is
+  diagnostic-only and does not alter saved settings or layout behavior.
 - The toolbar contains product/version chrome and global **Search settings**. The visible **Advanced** button and its
   reserved width were removed. Formerly Advanced-marked cards, child rows, and search results remain directly visible;
   `Optional` is informational only and never filters a control.
@@ -88,8 +97,8 @@ explicit saved choice.
 - Existing Dungeon ESP detection, entity filters, styles, cached doors, badges, and focused-editor live preview remain
   available through Dungeon → Highlights.
 - Headless contracts cover exact six-tab order, category/config-key ownership, ungated search/children, Farming's
-  searchable audited empty state, Black & Blue persistence/palette, drag/clamp geometry, and rendered state-restoration
-  contracts.
+  searchable audited empty state, 4/8/12/16 spacing, scale-1–4 rail reachability/constant gaps/no-overlap, one-column
+  narrow reflow, Black & Blue persistence/palette, drag/clamp geometry, and rendered state-restoration contracts.
 
 The release workflow runs Java 8 Forge compilation/reobfuscation, the standalone test suite, release-JAR verification,
 and source-ZIP verification. These checks do **not** start Minecraft. Rendering, input feel, and gameplay remain **NOT

@@ -65,6 +65,8 @@ REQUIRED_CLASSES = [
     'command/SvCommand',
     'gui/AppleSettingsScreen',
     'gui/ReferenceSettingsCatalog',
+    'gui/SettingsRailLayout',
+    'gui/SettingsPageLayout',
     'render/UIRender',
     'render/RoundedRectGeometry',
     'render/GuiStyle',
@@ -561,6 +563,9 @@ def main():
     esp_display_raw = raw_of('dungeonesp/DungeonEspMobDisplay')
     esp_editor_screen_raw = raw_of('gui/FeatureSettingsEditorScreen')
     layout_toolkit_raw = raw_of('gui/GuiLayoutToolkit')
+    rail_layout_raw = raw_of('gui/SettingsRailLayout')
+    page_layout_raw = raw_of('gui/SettingsPageLayout')
+    gui_style_raw = raw_of('render/GuiStyle')
     ui_render_raw = raw_of('render/UIRender')
     theme_raw = raw_of('render/Theme')
     apple_settings_raw = raw_of('config/AppleSettings')
@@ -585,6 +590,12 @@ def main():
             (missing_catalog, missing_screen, missing_settings,
              b'HIT_ADVANCED' in settings_screen_raw or b'Advanced settings shown' in settings_screen_raw,
              b'applyBlackBluePalette' in theme_raw))
+    r.check(all(value in settings_screen_raw for value in
+                (b'SettingsRailLayout', b'SettingsPageLayout', b'Settings rail', b'Settings card', b'Settings row'))
+                and all(value in rail_layout_raw for value in (b'ENTRY_HEIGHT', b'ENTRY_GAP', b'COMPACT_COLUMNS'))
+                and b'NARROW_CONTENT_WIDTH' in page_layout_raw
+                and all(value in gui_style_raw for value in (b'SPACE_4', b'SPACE_8', b'SPACE_12', b'SPACE_16')),
+            'settings shell packages shared 4/8/12/16 spacing, fixed 28–30 px rail entries, narrow reflow, and layout-debug bounds')
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
                 and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
                 and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,

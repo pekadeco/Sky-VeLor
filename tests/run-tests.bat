@@ -28,6 +28,7 @@ set "CP=%OUT%;%CLASSES%;%TEST_CP%"
 call :run com.arena.pekaclient.gui.PureLogicTests || goto fail
 call :run com.arena.pekaclient.gui.GuiLayoutToolkitTests || goto fail
 call :run com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.SettingsSpacingLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
 call :run com.arena.pekaclient.gui.FeatureSettingsUiModelTests || goto fail
 call :run com.arena.pekaclient.gui.FarmingNavigationTests || goto fail

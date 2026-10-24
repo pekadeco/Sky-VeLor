@@ -1,13 +1,16 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.render.GuiStyle;
+
 /**
  * The only geometry authority for Sky VeLor-owned settings/editor/chat panels. This class intentionally has no
  * Minecraft imports, so widths, clipping, scroll and panel bounds are proven headlessly before the renderer uses
  * them. Coordinates are GUI-scaled pixels.
  */
 public final class GuiLayoutToolkit {
-    public static final float GAP = 6f;
-    public static final float PAD = 10f;
+    /** Shared settings/editor rhythm, sourced from the single GUI style scale rather than local magic numbers. */
+    public static final float GAP = GuiStyle.SPACE_8;
+    public static final float PAD = GuiStyle.SPACE_12;
 
     private GuiLayoutToolkit() { }
 

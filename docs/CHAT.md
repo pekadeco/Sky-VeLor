@@ -62,7 +62,8 @@ components with a native `ClickEvent` are forwarded through guarded vanilla hand
 ## Diagnostics
 
 `/velor layoutdebug` toggles the in-memory bounds overlay for Sky VeLor controls. It uses the same measured editor
-layout and marks overlap evidence without changing saved settings.
+layout plus the settings rail, Profile footer, cards, rows, and Home quick-control bounds; it marks overlap evidence
+without changing saved settings.
 
 `/velor chatdebug` toggles Default Chat group outlines and reports Chat QoL state, active implementation,
 last tab-strip geometry/drawn state, tab count, group under the mouse with its detected player name, and the
