@@ -1,5 +1,25 @@
 # Changelog
 
+## Beta-0.10.9.1v — 2026-10-26
+
+- Restored the historical Apple-inspired graphite-glass settings hierarchy: translucent bordered window/cards,
+  icon/title/subtitle card headers, broad profile-free eight-channel rail, soft shadow, and 8 px large-layout
+  world margin. Existing feature scope, values, configuration owners/keys, old-config loading, and routes remain intact.
+- Kept exactly **Fullscreen** and **Close** as 24 px title-bar icon targets while retaining drag, Escape,
+  tooltip, hover/press acknowledgement, close behavior, and persisted fullscreen state. No traffic lights,
+  profiles/presets, READY badges, details buttons, option-count expanders, or extra editor routes returned.
+- Kept Home live performance cards/sparklines, Party Sync, quick controls, and the Safe-by-default note; kept the
+  exact **Home → Gameplay → Dungeon → Farming → Mining → Fishing → Visuals → System** order and no-feature Farming page.
+- Audited the flat settings contract: all `CHOICE` selectors have at least two values and each direct dropdown
+  disclosure is owned by its listed tab. Existing one-level accordion/search/reset/master-off behavior remains intact.
+- Added a tools-only Java2D Apple layout renderer using the production window/header/rail/control/catalog models.
+  Java-8 CI renders Home, Dungeon, and GUI-scale-4 PNG preview evidence, validates the renderer source contract,
+  and uploads the three previews without adding generated images to `dist/`.
+- Updated release verification to enforce the restored Apple shell, two-action title bar, profile-free rail, and
+  flat choice audit. Updated display metadata, build contract, documentation, and verifier examples to
+  `Beta-0.10.9.1v` / numeric `0.10.9.1`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input/gameplay pass remains required.
+
 ## Beta-0.10.8.9.8v — 2026-10-26
 
 - Flattened every visible settings owner to one disclosure level with compact plain section labels, fixed toggle and

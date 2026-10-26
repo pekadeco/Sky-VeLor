@@ -1,8 +1,8 @@
-# Flat settings inventory — Beta-0.10.8.9.8v
+# Apple settings inventory — Beta-0.10.9.1v
 
-Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The approved
-`analyze-sky-velor-mod-code.zip` reference informed presentation only; this release ships no
-browser runtime, React code, or third-party GUI framework.
+Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
+informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
+or reference-mod feature/config data.
 
 ## Presentation contract
 
@@ -10,6 +10,12 @@ browser runtime, React code, or third-party GUI framework.
 Its sidebar order is fixed:
 
 **Home → Gameplay → Dungeon → Farming → Mining → Fishing → Visuals → System**.
+
+The shell uses a graphite-glass window, translucent bordered cards, icon/title/subtitle hierarchy, soft
+shadow, and an 8 px large-layout world margin. Its title bar contains exactly two 24 px icon targets:
+**Fullscreen** and **Close**. Dragging, Escape, hover/press acknowledgement, tooltips, and fullscreen
+persistence are preserved; there are no traffic lights, profiles, presets, READY badges, detail buttons,
+or option-count expanders.
 
 A visible settings row is one of four patterns:
 
@@ -19,8 +25,8 @@ A visible settings row is one of four patterns:
 4. a visibly distinct **Edit** row.
 
 Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
-`38 × 20` pill. Editor rows use a distinct **[Edit]** button and never show a chevron. Compact plain
-section labels replace icon-card headers.
+`38 × 20` pill. Editor rows use a distinct **[Edit]** button and never show a chevron. Card headings
+supply the visual hierarchy without becoming an interactive disclosure.
 
 Each tab is a one-open accordion. Presentation-only disclosure state is stored under
 `ui.feature.dropdown.<catalog-id>` by `FeatureUiState` / `FeatureUiPreferences`; it does not replace,
@@ -29,8 +35,9 @@ keywords, changes to the result tab, and opens the direct owning dropdown. Expan
 clipped lighter inner surfaces, animate their height for 150 ms, have 8 px bottom padding, and retain
 dimmed-but-visible dependent options when a master is off.
 
-There is no visible nested dropdown. `ReferenceSettingsCatalog.maxDropdownDepth()` returns one and
-`everyDropdownHasAtLeastTwoOptions()` rejects a one-option disclosure. Captions group flat content
+There is no visible nested dropdown. `ReferenceSettingsCatalog.maxDropdownDepth()` returns one,
+`everyDropdownHasAtLeastTwoOptions()` rejects a one-option disclosure, and
+`everyChoiceHasAtLeastTwoOptions()` rejects a non-actionable selector. Captions group flat content
 without becoming a tree.
 
 ## Reset and ownership
@@ -72,7 +79,7 @@ Animation values continue to load unchanged.
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.8.9.8v text |
+| Earlier player-facing text | Beta-0.10.9.1v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -99,18 +106,21 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 
 ## Automated coverage and release boundary
 
-Headless coverage includes flat depth/count invariants, fixed-column scale-1–4 geometry, editor row
-and no-tree behavior, accordion persistence, search disclosure, player-copy validation, old-config
-loading, exact configurable-id preservation, direct binding audit, and Item Animation panel render
-list/control exclusion. `tools/verify_release_jar.py` additionally checks the packaged class and
+Headless coverage includes flat depth/count/choice invariants, fixed-column scale-1–4 geometry,
+Apple title-bar targets and 8 px margin behavior, editor-row/no-tree behavior, accordion persistence,
+search disclosure, player-copy validation, old-config loading, exact configurable-id preservation,
+direct binding audit, and Item Animation panel render-list/control exclusion.
+`tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
+Home, Dungeon, and GUI-scale-4 Home Java2D PNG review previews; CI uploads those previews as
+short-lived evidence. `tools/verify_release_jar.py` additionally checks the packaged class and
 presentation boundary.
 
 Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.8v.jar \
-  --version Beta-0.10.8.9.8v --mcmod-version 0.10.8.9.8
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1v.jar \
+  --version Beta-0.10.9.1v --mcmod-version 0.10.9.1
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

@@ -1,42 +1,37 @@
-# Sky VeLor — Beta-0.10.8.9.8v
+# Sky VeLor — Beta-0.10.9.1v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.8.9.8v — flat settings and standalone Item Animation
+## Beta-0.10.9.1v — restored Apple settings shell
 
-- Settings now use compact plain section labels and four player-facing row patterns: fixed-column
-  toggle rows, one-control inline rows, single-level feature dropdowns, and distinct **[Edit]** rows.
-  Master toggles keep the same `38 × 20` size; every normal row reserves fixed chevron-then-toggle
-  columns, while editor rows use **[Edit]** and never use a chevron.
-- Each tab keeps one accordion disclosure open at a time. Search opens the direct owner, expanded
-  panels animate over 150 ms, use a lighter clipped inner surface with 8 px bottom padding, and
-  leave master-off options visible but dimmed. Existing values and configuration keys are unchanged.
-- Chat QoL is one flat owner with **Background**, **Messages**, **Tabs**, and **Click Menu** captions.
-  Mob ESP, Door ESP, M7, map, lock/swap, mining, fishing, Slayer, movement, and all other owners
-  are likewise limited to one visible disclosure level.
-- Every expanded feature ends with one compact **Reset to defaults** link; reset rows and reset
-  dropdowns were removed without removing their existing reset behavior or option inventory.
-- Hurt Camera Shake is one inline slider. Spirit Leap Picker has its master and key option inside its
-  dropdown. Terminal Helper has no master and displays its live `n / 5 on` count. Boss Health HUD,
-  HUD Editor, and Item Animation use distinct Edit rows.
-- Item Animation now opens a standalone left-edge panel (about 28% width) with a Close X, hook line,
-  requested renderer controls, **Preview Swing**, and **Reset to Defaults**. It draws no HUD canvas,
-  editor bar, world overlay, or retired Item Animation background/transparency/opacity control.
-  Legacy background keys are ignored and removed on the next normal save.
-- The Item Animation hook line reads **Hook: active** when available (green state), or
-  **Hook: failed (reason)** when unavailable. The standard hook line does not expose transformer or renderer internals.
+- Restored the historical Apple-inspired graphite-glass window, translucent cards, bordered hierarchy,
+  broad eight-destination rail, and 8 px large-layout world margin without importing any reference-mod
+  features, configuration keys, profiles, presets, or additional editors.
+- The title bar has exactly two 24 px icon targets: **Fullscreen** and **Close**. Dragging, Escape,
+  tooltips, hover/press feedback, fullscreen persistence, and the existing close behavior remain intact;
+  retired traffic-light controls are not present.
+- **Home** retains its live performance cards, sparklines, quick controls, Party Sync route, and
+  Safe-by-default note. The fixed rail remains **Home → Gameplay → Dungeon → Farming → Mining →
+  Fishing → Visuals → System**; Farming remains a no-feature destination.
+- The flat settings contract remains unchanged: fixed chevron/toggle columns, one-control inline rows,
+  two-or-more-choice dropdowns, one-level searchable accordion disclosure, master-off dimming, reset
+  links, and only the existing HUD Editor and Item Animation editor routes.
+- Catalog and release checks now prove every choice has at least two values, every direct disclosure
+  belongs to its listed tab, no profile/traffic-light chrome returns, and Apple shell geometry is retained.
+- `tools/apple-layout-renderer/` renders headless Java2D Home, Dungeon, and GUI-scale-4 PNG inspection
+  previews from the real layout/catalog classes; push CI stores them as short-lived review evidence.
 
-The full presentation inventory, text migration table, channel-move notes, and test boundary are in
+The full presentation inventory, retained routes, old-config boundary, and test boundary are in
 [`docs/FEATURE-SETTINGS-EDITOR.md`](docs/FEATURE-SETTINGS-EDITOR.md).
 
-> **NOT tested in-game.** Automated build, test, and archive verification are required, but they do
-> not start Minecraft or validate visual/input behavior in a real 1.8.9 Forge client.
+> **NOT tested in-game.** Automated build, test, renderer, and archive verification do not start
+> Minecraft or validate visual/input behavior in a real 1.8.9 Forge client.
 
 ## Features
 
-- Native settings shell and movable HUD editor with a neutral-dark visual system and blue accent.
+- Native settings shell and movable HUD editor with an Apple-inspired graphite-glass visual system and blue accent.
 - Dungeon map with room/puzzle templates, party labels, cached Mob/Door ESP, Floor VII overlays,
   dragon alerts, Spirit Leap helpers, and an optional read-only Click in Order helper.
 - Item Animation: live first-person X/Y/Z, scale, hit/slash controls, bounded persistence,
@@ -77,7 +72,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.8v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -88,8 +83,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.8v.jar \
-  --version Beta-0.10.8.9.8v --mcmod-version 0.10.8.9.8
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1v.jar \
+  --version Beta-0.10.9.1v --mcmod-version 0.10.9.1
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -97,8 +92,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.8.9.8v-source.zip \
-  --version Beta-0.10.8.9.8v
+  SkyVeLor-1.8.9-Beta-0.10.9.1v-source.zip \
+  --version Beta-0.10.9.1v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -108,7 +103,7 @@ and unrelated archives do not belong in the source ZIP.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.8.9.8v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
