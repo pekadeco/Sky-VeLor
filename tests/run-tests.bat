@@ -29,6 +29,7 @@ call :run com.arena.pekaclient.gui.PureLogicTests || goto fail
 call :run com.arena.pekaclient.gui.GuiLayoutToolkitTests || goto fail
 call :run com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.SettingsShellLayoutTests || goto fail
+call :run com.arena.pekaclient.gui.AppleLayoutRendererSourceTests || goto fail
 call :run com.arena.pekaclient.gui.HomeMetricsLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HomeMetricHistoryTests || goto fail
 call :run com.arena.pekaclient.gui.SettingsSpacingLayoutTests || goto fail

@@ -127,6 +127,21 @@ jobs:
           echo "=== suites ==="
           grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" | tail -40
 
+      - name: Render and inspect headless Apple layout previews
+        run: |
+          set -e
+          sh tools/run_apple_layout_renderer.sh "$RUNNER_TEMP/apple-layout-previews"
+          # Keep the review surface intentionally small: exactly Home, Dungeon, and scale-4 Home previews.
+          test "$(find "$RUNNER_TEMP/apple-layout-previews" -maxdepth 1 -name '*.png' -type f | wc -l)" -eq 3
+
+      - name: Upload Apple layout preview evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: apple-layout-previews-${{ github.sha }}
+          path: ${{ runner.temp }}/apple-layout-previews/*.png
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Verify the release jar is really the reobfuscated mod
         run: |
           # GitHub's default shell is `bash -e -o pipefail`, which would abort on the verifier's

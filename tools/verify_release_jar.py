@@ -539,8 +539,8 @@ def main():
                 and b'AppleSegmented' not in settings_screen_raw,
             'AppleSettingsScreen uses one-level persisted dropdowns, search-driven accordion opening, fixed controls and reset-link footers')
     r.check(all(value in reference_catalog_raw for value in
-                (b'CAPTION', b'EDITOR', b'maxDropdownDepth', b'everyDropdownHasAtLeastTwoOptions', b'dropdownIds',
-                 b'playerTextViolations')),
+                (b'CAPTION', b'EDITOR', b'maxDropdownDepth', b'everyDropdownHasAtLeastTwoOptions',
+                 b'everyChoiceHasAtLeastTwoOptions', b'dropdownIds', b'playerTextViolations')),
             'catalog packages flat captions, editor rows, depth/count guards and player-copy validation')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'Mining', b'Fishing', b'Visuals', b'System',
@@ -564,19 +564,24 @@ def main():
                 and b'DungeonEspPreviewRenderer' not in settings_screen_raw,
             'no retired live-preview color surface or focused-editor preview route remains')
     r.check(all(value in settings_screen_raw for value in
-                (b'SettingsRailLayout', b'SettingsPageLayout', b'Settings rail', b'Settings section', b'Settings row'))
+                (b'SettingsRailLayout', b'SettingsPageLayout', b'Settings rail', b'Settings card', b'Settings row'))
                 and all(value in rail_layout_raw for value in (b'ENTRY_HEIGHT', b'ENTRY_GAP', b'COMPACT_COLUMNS'))
-                and b'NARROW_CONTENT_WIDTH' in page_layout_raw,
-            'settings shell retains shared scale-1–4 spacing, compact rail reflow and plain-section debug bounds')
+                and b'PROFILE_HEIGHT' not in rail_layout_raw and b'NARROW_CONTENT_WIDTH' in page_layout_raw,
+            'settings shell retains shared scale-1–4 spacing, compact rail reflow and restored Apple-card debug bounds')
     r.check(all(value not in settings_screen_raw for value in (b'MOUSE', b'MOUSE/GUI', b'GUI AREA')),
             'settings shell packages no launcher-owned MOUSE/GUI indicator labels')
+    r.check(all(value in settings_screen_raw for value in
+                (b'HIT_WINDOW_FULLSCREEN', b'HIT_WINDOW_CLOSE', b'drawFullscreenGlyph', b'headerPressedHit'))
+                and all(value not in settings_screen_raw for value in
+                        (b'HIT_PROFILE', b'window-red', b'window-yellow', b'window-green')),
+            'settings header packages only Fullscreen and Close icon actions with hover/press feedback')
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
                 and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
                 and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,
-            'HUD/editor rendering packages exception-safe state cleanup and a neutral GUI restoration baseline')
-    r.check(b'applyNeutralDark' in theme_raw and b'ACCENT_BLUE' in theme_raw
+            'HUD/editor rendering packages exception-safe state cleanup and an Apple-glass GUI restoration baseline')
+    r.check(b'applyAppleGlass' in theme_raw and b'ACCENT_BLUE' in theme_raw and b'SURFACE_CARD' in theme_raw
                 and b'appearance-theme' not in reference_catalog_raw and b'appearance-accent' not in reference_catalog_raw,
-            'one fixed neutral-dark blue Theme remains while legacy palette keys stay out of the visible shell')
+            'one fixed Apple-glass Theme remains while legacy palette keys stay out of the visible shell')
 
     # Retained Assist, ESP, Chat, Item Lock/Swap, Fishing and HUD runtime paths continue to be checked independently
     # of their presentation location.

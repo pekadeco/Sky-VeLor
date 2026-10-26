@@ -23,6 +23,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.PureLogicTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.GuiLayoutToolkitTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsShellLayoutTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.AppleLayoutRendererSourceTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HomeMetricsLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HomeMetricHistoryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsSpacingLayoutTests
