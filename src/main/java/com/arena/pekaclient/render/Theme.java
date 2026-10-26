@@ -50,6 +50,16 @@ public final class Theme {
     public static final int DROPDOWN_ROW_HOVER = 0x24FFFFFF;
     public static final int DROPDOWN_ROW_SELECTED = 0x4A0A84FF;
     public static final int DROPDOWN_DIVIDER = 0x1FFFFFFF;
+    /** Inset accordion panels stay readable even when the optional window glass is highly transparent. */
+    public static final int EXPANDED_PANEL = 0xE51B1C22;
+    public static final int EXPANDED_BORDER = 0x38FFFFFF;
+    public static final int EXPANDED_HEADER = 0x260A84FF;
+    public static final int EXPANDED_ROW_HOVER = 0x1CFFFFFF;
+    public static final int EXPANDED_DIVIDER = 0x20FFFFFF;
+    /** Master-off children remain editable but use muted, still-readable labels rather than a near-invisible veil. */
+    public static final int DEPENDENT_TEXT_PRIMARY = 0xFFC4C4CA;
+    public static final int DEPENDENT_TEXT_SECONDARY = 0xFF94949C;
+    public static final float DEPENDENT_CONTROL_ALPHA = .78f;
     public static final int SURFACE_DISABLED = 0x52000000;
     public static final int BORDER = 0x1FFFFFFF;
     public static final int DIVIDER = 0x18FFFFFF;
@@ -160,6 +170,14 @@ public final class Theme {
     public static int dropdownRowHover = DROPDOWN_ROW_HOVER;
     public static int dropdownRowSelected = DROPDOWN_ROW_SELECTED;
     public static int dropdownDivider = DROPDOWN_DIVIDER;
+    /** Resolved disclosure tokens prevent transparent glass from washing out expanded feature controls. */
+    public static int expandedPanel = EXPANDED_PANEL;
+    public static int expandedBorder = EXPANDED_BORDER;
+    public static int expandedHeader = EXPANDED_HEADER;
+    public static int expandedRowHover = EXPANDED_ROW_HOVER;
+    public static int expandedDivider = EXPANDED_DIVIDER;
+    public static int dependentTextPrimary = DEPENDENT_TEXT_PRIMARY;
+    public static int dependentTextSecondary = DEPENDENT_TEXT_SECONDARY;
     public static int border = BORDER;
     public static int divider = DIVIDER;
     public static int track = TRACK;
@@ -203,6 +221,13 @@ public final class Theme {
         dropdownRowHover = DROPDOWN_ROW_HOVER;
         dropdownRowSelected = DROPDOWN_ROW_SELECTED;
         dropdownDivider = DROPDOWN_DIVIDER;
+        expandedPanel = EXPANDED_PANEL;
+        expandedBorder = EXPANDED_BORDER;
+        expandedHeader = EXPANDED_HEADER;
+        expandedRowHover = EXPANDED_ROW_HOVER;
+        expandedDivider = EXPANDED_DIVIDER;
+        dependentTextPrimary = DEPENDENT_TEXT_PRIMARY;
+        dependentTextSecondary = DEPENDENT_TEXT_SECONDARY;
         border = BORDER;
         divider = DIVIDER;
         track = TRACK;

@@ -535,10 +535,12 @@ def main():
     r.check(all(value in settings_screen_raw for value in
                 (b'HIT_DISCLOSURE', b'FeatureUiPreferences', b'childBlockHeight', b'reserveValueDropdown',
                  b'expandSearchResult', b'drawFullscreenGlyph', b'open-hud-editor', b'item-animation-open-editor',
-                 b'drawGroupCaption', b'drawResetFooter', b'EXPANDED_BOTTOM_PADDING', b'GuiMotion'))
+                 b'drawGroupCaption', b'drawResetFooter', b'EXPANDED_BOTTOM_PADDING', b'GuiMotion',
+                 b'expandedPanel', b'expandedBorder', b'expandedHeader', b'expandedRowHover', b'expandedDivider',
+                 b'dependentTextPrimary', b'dependentTextSecondary'))
                 and b'AppleToggle' in settings_screen_raw and b'AppleDropdown' in settings_screen_raw
                 and b'AppleSegmented' not in settings_screen_raw,
-            'AppleSettingsScreen uses one-level persisted dropdowns, search-driven accordion opening, fixed controls and reset-link footers')
+            'AppleSettingsScreen uses one-level persisted dropdowns, readable inset accordions, search-driven opening, fixed controls and reset-link footers')
     r.check(all(value in reference_catalog_raw for value in
                 (b'CAPTION', b'EDITOR', b'maxDropdownDepth', b'everyDropdownHasAtLeastTwoOptions',
                  b'everyChoiceHasAtLeastTwoOptions', b'dropdownIds', b'playerTextViolations')),
@@ -590,9 +592,12 @@ def main():
                 and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
                 and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,
             'HUD/editor rendering packages exception-safe state cleanup and an Apple-glass GUI restoration baseline')
-    r.check(b'applyAppleGlass' in theme_raw and b'ACCENT_BLUE' in theme_raw and b'SURFACE_CARD' in theme_raw
+    r.check(all(value in theme_raw for value in
+                (b'applyAppleGlass', b'ACCENT_BLUE', b'SURFACE_CARD', b'EXPANDED_PANEL', b'EXPANDED_BORDER',
+                 b'EXPANDED_HEADER', b'EXPANDED_ROW_HOVER', b'EXPANDED_DIVIDER', b'DEPENDENT_TEXT_PRIMARY',
+                 b'DEPENDENT_TEXT_SECONDARY', b'DEPENDENT_CONTROL_ALPHA'))
                 and b'appearance-theme' not in reference_catalog_raw and b'appearance-accent' not in reference_catalog_raw,
-            'one fixed Apple-glass Theme remains while legacy palette keys stay out of the visible shell')
+            'one fixed Apple-glass Theme keeps expanded disclosures readable while legacy palette keys stay out of the visible shell')
 
     # Retained Assist, ESP, Chat, Item Lock/Swap, Fishing and HUD runtime paths continue to be checked independently
     # of their presentation location.

@@ -33,9 +33,10 @@ supply the visual hierarchy without becoming an interactive disclosure.
 Each tab is a one-open accordion. Presentation-only disclosure state is stored under
 `ui.feature.dropdown.<catalog-id>` by `FeatureUiState` / `FeatureUiPreferences`; it does not replace,
 rename, or migrate a feature configuration key. Search indexes labels, ids, descriptions, and
-keywords, changes to the result tab, and opens the direct owning dropdown. Expanded panels are
-clipped lighter inner surfaces, animate their height for 150 ms, have 8 px bottom padding, and retain
-dimmed-but-visible dependent options when a master is off.
+keywords, changes to the result tab, and opens the direct owning dropdown. Expanded panels use a dark bordered
+inset surface with an open-header accent, child hover feedback, and inset dividers; they animate their height for
+150 ms, have 8 px bottom padding, and retain readable muted labels plus deliberately muted-but-editable controls
+when a master is off. The protected panel surface keeps this hierarchy legible even at low GUI-opacity settings.
 
 There is no visible nested dropdown. `ReferenceSettingsCatalog.maxDropdownDepth()` returns one,
 `everyDropdownHasAtLeastTwoOptions()` rejects a one-option disclosure, and

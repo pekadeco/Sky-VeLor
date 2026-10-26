@@ -740,7 +740,19 @@ public class AppleSettingsScreen extends AppleScreen {
         float x = contentX;
         float rowW = contentW;
         recordViewportRow("Settings row " + setting.id, x, y, rowW, rowH);
-        UIRender.line(x + 1f, y, x + rowW - 1f, y, 1f, Theme.divider);
+        boolean rowHot = child && inside(mouseX, mouseY, x + 4f, y + 1f, rowW - 8f, baseH - 2f);
+        float rowRadius = GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, rowW - 8f, Math.max(1f, baseH - 3f));
+        if (disclosure && open) {
+            // An open owner gets a quiet blue state surface so its child panel reads as one deliberate group.
+            UIRender.roundRect(x + 4f, y + 2f, rowW - 8f, Math.max(1f, baseH - 3f), rowRadius,
+                    Theme.expandedHeader, Theme.expandedHeader, .2f);
+        } else if (rowHot) {
+            UIRender.roundRect(x + 5f, y + 2f, rowW - 10f, Math.max(1f, baseH - 3f), rowRadius,
+                    Theme.expandedRowHover, Theme.expandedRowHover, .2f);
+        }
+        float dividerInset = child ? 8f : 1f;
+        UIRender.line(x + dividerInset, y, x + rowW - dividerInset, y, 1f,
+                child ? Theme.expandedDivider : Theme.divider);
 
         float leftX = x + ROW_PAD_X;
         float chevronX = SettingsControlLayout.chevronCenterX(x, rowW, ROW_PAD_X);
@@ -757,8 +769,10 @@ public class AppleSettingsScreen extends AppleScreen {
         float labelW = Math.max(42f, labelRight - leftX);
         if (narrowRows) labelW = Math.max(42f, controlRight - leftX);
         float labelY = y + ROW_PAD_Y;
-        int primary = dimmed ? Theme.textTertiary : Theme.textPrimary;
-        int secondary = dimmed ? Theme.textTertiary : Theme.textSecondary;
+        // Keep master-off children visibly muted, not unreadable. They remain intentionally editable so saved choices
+        // can be prepared before the owner is enabled.
+        int primary = dimmed ? Theme.dependentTextPrimary : Theme.textPrimary;
+        int secondary = dimmed ? Theme.dependentTextSecondary : Theme.textSecondary;
         UIRender.text(fr(), fit(fr(), setting.label, labelW / Theme.TYPE_HEADING), leftX, labelY,
                 primary, Theme.TYPE_HEADING, false);
         drawWrapped(setting.description, leftX, labelY + 11f, labelW, secondary, Theme.TYPE_BODY, 2);
@@ -768,7 +782,7 @@ public class AppleSettingsScreen extends AppleScreen {
                     baseH - 1f, setting, "");
         }
         float alpha = UIRender.alphaMul;
-        if (dimmed) UIRender.alphaMul = alpha * .58f;
+        if (dimmed) UIRender.alphaMul = alpha * Theme.DEPENDENT_CONTROL_ALPHA;
         try {
             if (setting.isEditor()) {
                 if (setting.hasMasterToggle()) drawControl(setting, toggleX, centeredControlY(y, baseH, 20f),
@@ -790,7 +804,7 @@ public class AppleSettingsScreen extends AppleScreen {
             UIRender.alphaMul = alpha;
         }
         if (disclosure) drawDisclosureGlyph(chevronX, y + baseH * .5f, open,
-                dimmed ? Theme.textTertiary : Theme.textSecondary);
+                dimmed ? Theme.dependentTextSecondary : (open ? Theme.accent : Theme.textSecondary));
 
         float cursor = y + baseH;
         if (inlineControl) {
@@ -807,12 +821,20 @@ public class AppleSettingsScreen extends AppleScreen {
             float progress = dropdownProgress(setting);
             float animatedChildH = fullChildH * progress;
             if (animatedChildH > .01f) {
-                int inner = UIRender.mix(Theme.windowBottom, Theme.card, .44f);
-                UIRender.rect(x + 1f, cursor, rowW - 2f, animatedChildH, inner);
-                UIRender.scissorBegin(x + 1f, cursor, rowW - 2f, animatedChildH, sf);
-                float childY = cursor + 6f;
+                // Do not derive the inset from the transparent window: on a low-opacity glass setting that washed
+                // feature labels into the world backdrop. This dedicated surface preserves a clear readable group.
+                float panelX = x + 5f;
+                float panelY = cursor + 3f;
+                float panelW = Math.max(1f, rowW - 10f);
+                float panelH = Math.max(1f, animatedChildH - 3f);
+                float panelRadius = GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, panelW, panelH);
+                UIRender.roundRect(panelX, panelY, panelW, panelH, panelRadius,
+                        Theme.expandedPanel, Theme.expandedPanel, .35f);
+                UIRender.roundRectRing(panelX, panelY, panelW, panelH, panelRadius, 1f, Theme.expandedBorder);
+                UIRender.scissorBegin(panelX, panelY, panelW, panelH, sf);
+                float childY = cursor + 7f;
                 float childAlpha = UIRender.alphaMul;
-                UIRender.alphaMul = childAlpha * Math.max(.18f, progress);
+                UIRender.alphaMul = childAlpha * Math.max(.32f, progress);
                 boolean childrenDimmed = dimmed || (setting.hasMasterToggle() && !InlineSettingsBindings.booleanValue(setting.id));
                 try {
                     for (ReferenceSettingsCatalog.Setting nested : setting.children) {
@@ -829,11 +851,11 @@ public class AppleSettingsScreen extends AppleScreen {
 
     private float drawGroupCaption(float y, ReferenceSettingsCatalog.Setting setting, boolean dimmed) {
         float h = 18f;
-        int color = dimmed ? Theme.textTertiary : Theme.textSecondary;
+        int color = dimmed ? Theme.dependentTextSecondary : Theme.textSecondary;
         UIRender.text(fr(), setting.label.toUpperCase(Locale.ROOT), contentX + ROW_PAD_X, y + 5f, color, .61f, false);
         float textW = fr().getStringWidth(setting.label) * .61f;
         UIRender.line(Math.min(contentX + contentW - ROW_PAD_X, contentX + ROW_PAD_X + textW + 8f), y + 9f,
-                contentX + contentW - ROW_PAD_X, y + 9f, 1f, Theme.divider);
+                contentX + contentW - ROW_PAD_X, y + 9f, 1f, Theme.expandedDivider);
         return y + h;
     }
 
@@ -842,7 +864,7 @@ public class AppleSettingsScreen extends AppleScreen {
         float h = 24f;
         float x = contentX + ROW_PAD_X;
         String label = "Reset to defaults";
-        int color = dimmed ? Theme.textTertiary : Theme.accent;
+        int color = dimmed ? Theme.dependentTextSecondary : Theme.accent;
         UIRender.text(fr(), label, x, y + 7f, color, .68f, false);
         float w = fr().getStringWidth(label) * .68f;
         UIRender.line(x, y + 17f, x + w, y + 17f, 1f, color);

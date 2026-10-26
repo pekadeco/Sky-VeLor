@@ -76,6 +76,7 @@ public final class ReleaseClaimsTests {
     private static void headerAndToggleContractsArePackaged() {
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
         String dropdown = classText("com.arena.pekaclient.widget.AppleDropdown");
+        String theme = classText("com.arena.pekaclient.render.Theme");
         AppleToggle toggle = new AppleToggle(() -> false, value -> { });
         check("upper-left SkyVeLor wordmark keeps the existing fullscreen/close-only header", screen.contains("SkyVeLor")
                 && screen.contains("HIT_WINDOW_FULLSCREEN") && screen.contains("HIT_WINDOW_CLOSE"));
@@ -92,6 +93,11 @@ public final class ReleaseClaimsTests {
                 && dropdown.contains("dropdownPopup") && dropdown.contains("dropdownRowHover")
                 && dropdown.contains("dropdownRowSelected") && dropdown.contains("dropdownDivider")
                 && dropdown.contains("drawSelectedCheck") && dropdown.contains("reservePopup"));
+        check("expanded feature disclosures package a readable inset panel and muted-but-legible dependencies",
+                screen.contains("expandedPanel") && screen.contains("expandedBorder")
+                        && screen.contains("expandedRowHover") && screen.contains("dependentTextPrimary")
+                        && theme.contains("EXPANDED_PANEL") && theme.contains("DEPENDENT_TEXT_PRIMARY")
+                        && theme.contains("DEPENDENT_CONTROL_ALPHA"));
     }
 
     private static void removedFocusedSurfacesStayAbsent() {

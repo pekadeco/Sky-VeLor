@@ -12,6 +12,7 @@ public final class ThemeTests {
         restoredAppleGlassIgnoresLegacyPaletteForks();
         geometryAndMotionAreCentralTokens();
         dropdownContrastAndStateTokensAreCentral();
+        expandedDisclosureRemainsLegibleOverTransparentGlass();
         semanticStatusColorsRemainPurposeBound();
         System.out.println();
         System.out.println("theme: passed " + passed + ", failed " + failed);
@@ -89,6 +90,21 @@ public final class ThemeTests {
         check("dropdown popup and selected feedback are more legible than the translucent card layer",
                 alpha(Theme.dropdownPopup) >= 0xF0 && alpha(Theme.dropdownBorder) > alpha(Theme.border)
                         && alpha(Theme.dropdownRowSelected) > alpha(Theme.cardHover));
+    }
+
+    private static void expandedDisclosureRemainsLegibleOverTransparentGlass() {
+        Theme.refresh();
+        check("expanded disclosures resolve dedicated panel, border, open, hover, and divider tokens",
+                Theme.expandedPanel == Theme.EXPANDED_PANEL && Theme.expandedBorder == Theme.EXPANDED_BORDER
+                        && Theme.expandedHeader == Theme.EXPANDED_HEADER && Theme.expandedRowHover == Theme.EXPANDED_ROW_HOVER
+                        && Theme.expandedDivider == Theme.EXPANDED_DIVIDER);
+        check("expanded disclosure panel is opaque enough to protect text from a transparent world backdrop",
+                alpha(Theme.expandedPanel) >= 0xD0 && alpha(Theme.expandedBorder) > alpha(Theme.border));
+        check("master-off dependent copy remains readable while controls stay visibly muted",
+                Theme.dependentTextPrimary == Theme.DEPENDENT_TEXT_PRIMARY
+                        && Theme.dependentTextSecondary == Theme.DEPENDENT_TEXT_SECONDARY
+                        && alpha(Theme.dependentTextPrimary) == 0xFF && alpha(Theme.dependentTextSecondary) == 0xFF
+                        && Theme.DEPENDENT_CONTROL_ALPHA > .70f && Theme.DEPENDENT_CONTROL_ALPHA < 1f);
     }
 
     private static void semanticStatusColorsRemainPurposeBound() {

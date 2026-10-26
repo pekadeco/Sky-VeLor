@@ -14,11 +14,16 @@
 - Made GUI transparency explicit in **Misc → Appearance** with **Custom GUI Transparency** and **GUI Transparency**.
   The retained `glassOpacityOn` / `glassOpacity` keys continue to load/save old configurations; the custom range is
   now 45%–100% so lower opacity visibly shows more of the game behind the GUI.
+- Corrected expanded feature disclosures: an open owner has a subtle blue state surface, while its children render
+  inside a dark bordered inset with child hover feedback and inset dividers. Master-off children remain editable,
+  but now use readable muted copy and `.78` control alpha rather than a near-invisible veil.
 - Added layout-renderer, catalog/config, Theme, packaged-release, and verifier coverage for the wordmark,
-  feature-oriented labels, optional transparency, legacy keys, and dropdown visual contract.
+  feature-oriented labels, optional transparency, legacy keys, and dropdown visual contract; added focused
+  Theme/package/verifier coverage for readable expanded disclosures.
 - Updated display metadata, numeric Forge metadata, build contract, verifier examples, documentation, and release
   filenames to `Beta-0.10.9.1.1v` / numeric `0.10.9.1.1`.
-- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input/gameplay pass remains required.
+- A player supplied in-game evidence of the pre-fix expanded-control readability problem. The corrected build still
+  requires a fresh Minecraft 1.8.9 Forge visual/input pass; the assistant environment has no playable client.
 
 ## Beta-0.10.9.1v — 2026-10-26
 

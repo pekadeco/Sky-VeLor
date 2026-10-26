@@ -19,8 +19,8 @@ Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
   They retain `glassOpacityOn` / `glassOpacity` ownership and legacy loading; the custom glass range is now
   45%–100%, where lower opacity shows more of the game behind the GUI.
 - The flat settings contract remains unchanged: fixed chevron/toggle columns, one-control inline rows,
-  two-or-more-choice dropdowns, one-level searchable accordion disclosure, master-off dimming, reset links,
-  and only the existing HUD Editor and Item Animation editor routes.
+  two-or-more-choice dropdowns, one-level searchable accordion disclosure, readable master-off feedback,
+  reset links, and only the existing HUD Editor and Item Animation editor routes.
 - `tools/apple-layout-renderer/` mirrors the left-aligned wordmark and renders headless Java2D Home, Dungeons,
   and GUI-scale-4 PNG inspection previews from the real layout/catalog classes; push CI stores them as
   short-lived review evidence.
