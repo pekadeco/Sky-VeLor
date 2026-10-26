@@ -559,6 +559,20 @@ public final class ReferenceSettingsCatalog {
         return true;
     }
 
+    /** Every inline value selector is meaningful: a choice popup never opens for fewer than two values. */
+    public static boolean everyChoiceHasAtLeastTwoOptions() {
+        for (Tab tab : TABS) for (Card card : cards(tab)) {
+            for (Setting setting : card.settings) if (!choicesHaveAtLeastTwoOptions(setting)) return false;
+        }
+        return true;
+    }
+
+    private static boolean choicesHaveAtLeastTwoOptions(Setting setting) {
+        if (setting.control == Control.CHOICE && setting.choices.length < 2) return false;
+        for (Setting child : setting.children) if (!choicesHaveAtLeastTwoOptions(child)) return false;
+        return true;
+    }
+
     /** Direct disclosure ids on a page, used by the persisted one-open accordion policy. */
     public static List<String> dropdownIds(Tab tab) {
         List<String> ids = new ArrayList<String>();

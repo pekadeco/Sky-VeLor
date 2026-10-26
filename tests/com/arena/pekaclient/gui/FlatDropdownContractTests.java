@@ -11,6 +11,7 @@ public final class FlatDropdownContractTests {
     public static void main(String[] args) {
         onlyFourVisibleRowTypesRemain();
         everyDisclosureIsFlatAndUseful();
+        everyValueDropdownIsMeaningfulAndReachable();
         fixedColumnsStayAlignedAtGuiScalesOneToFour();
         accordionStateClosesPeersAndPersists();
         requestedFeatureRowsUseTheirRequiredTypes();
@@ -52,6 +53,17 @@ public final class FlatDropdownContractTests {
                     }
                     check("at most one reset link: " + row.id, resets <= 1);
                 }
+            }
+        }
+    }
+
+    private static void everyValueDropdownIsMeaningfulAndReachable() {
+        check("every inline value dropdown has two or more choices", ReferenceSettingsCatalog.everyChoiceHasAtLeastTwoOptions());
+        for (ReferenceSettingsCatalog.Tab tab : ReferenceSettingsCatalog.TABS) {
+            for (String id : ReferenceSettingsCatalog.dropdownIds(tab)) {
+                ReferenceSettingsCatalog.Setting setting = ReferenceSettingsCatalog.find(id);
+                check("disclosure belongs to its current page: " + id,
+                        setting != null && setting.isDropdown() && ReferenceSettingsCatalog.ownerOf(id) == tab);
             }
         }
     }
