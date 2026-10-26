@@ -11,6 +11,7 @@ public final class ThemeTests {
     public static void main(String[] args) {
         restoredAppleGlassIgnoresLegacyPaletteForks();
         geometryAndMotionAreCentralTokens();
+        dropdownContrastAndStateTokensAreCentral();
         semanticStatusColorsRemainPurposeBound();
         System.out.println();
         System.out.println("theme: passed " + passed + ", failed " + failed);
@@ -73,6 +74,21 @@ public final class ThemeTests {
                 && GuiMotion.TAB_SETTLE_MS == Theme.MOTION_TAB_MS
                 && GuiMotion.SLIDER_SETTLE_MS == Theme.MOTION_SLIDER_MS
                 && GuiMotion.PULSE_SETTLE_MS == Theme.MOTION_PULSE_MS);
+    }
+
+    private static void dropdownContrastAndStateTokensAreCentral() {
+        Theme.refresh();
+        check("dropdown has dedicated trigger, popup, border, hover, selected, and divider tokens",
+                Theme.dropdownTrigger == Theme.DROPDOWN_TRIGGER
+                        && Theme.dropdownTriggerHover == Theme.DROPDOWN_TRIGGER_HOVER
+                        && Theme.dropdownPopup == Theme.DROPDOWN_POPUP
+                        && Theme.dropdownBorder == Theme.DROPDOWN_BORDER
+                        && Theme.dropdownRowHover == Theme.DROPDOWN_ROW_HOVER
+                        && Theme.dropdownRowSelected == Theme.DROPDOWN_ROW_SELECTED
+                        && Theme.dropdownDivider == Theme.DROPDOWN_DIVIDER);
+        check("dropdown popup and selected feedback are more legible than the translucent card layer",
+                alpha(Theme.dropdownPopup) >= 0xF0 && alpha(Theme.dropdownBorder) > alpha(Theme.border)
+                        && alpha(Theme.dropdownRowSelected) > alpha(Theme.cardHover));
     }
 
     private static void semanticStatusColorsRemainPurposeBound() {

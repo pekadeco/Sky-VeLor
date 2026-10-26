@@ -53,7 +53,7 @@ public final class AppleDropdown extends Widget {
     public void draw(int mouseX, int mouseY) {
         beginAnimatedDraw(0.025f, 0.04f, 0.02f);
         float hover = enabled ? hoverAmount : 0f;
-        int fill = UIRender.mix(Theme.buttonFill, Theme.buttonHover, hover * 0.5f);
+        int fill = UIRender.mix(Theme.dropdownTrigger, Theme.dropdownTriggerHover, hover);
         float radius = GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.4f);
         String label = options.length == 0 ? "—" : options[selected()];
@@ -71,9 +71,10 @@ public final class AppleDropdown extends Widget {
                 Theme.textPrimary, 1f, false);
         float cx = x + w - 10f;
         float cy = y + h * 0.5f;
-        UIRender.line(cx - 3f, cy - 1f, cx, cy + 2f, 1.2f, Theme.textSecondary);
-        UIRender.line(cx, cy + 2f, cx + 3f, cy - 1f, 1.2f, Theme.textSecondary);
-        drawBorder(radius, Theme.border);
+        int arrow = hover > .01f ? Theme.accent : Theme.textSecondary;
+        UIRender.line(cx - 3f, cy - 1f, cx, cy + 2f, 1.2f, arrow);
+        UIRender.line(cx, cy + 2f, cx + 3f, cy - 1f, 1.2f, arrow);
+        drawBorder(radius, Theme.dropdownBorder);
         endAnimatedDraw();
     }
 
@@ -156,8 +157,9 @@ public final class AppleDropdown extends Widget {
         UIRender.alphaMul = previousAlpha * reveal;
         float radius = GuiStyle.radius(GuiStyle.RADIUS_POPUP, Theme.radius, popupW, popupH);
         UIRender.shadow(popupX, popupY, popupW, popupH, radius);
-        UIRender.roundRect(popupX, popupY, popupW, popupH, radius, Theme.popup, Theme.popup, 0.5f);
-        drawBorderAt(popupX, popupY, popupW, popupH, radius, Theme.border);
+        UIRender.roundRect(popupX, popupY, popupW, popupH, radius,
+                Theme.dropdownPopup, Theme.dropdownPopup, 0.5f);
+        drawBorderAt(popupX, popupY, popupW, popupH, radius, Theme.dropdownBorder);
         int current = selected();
         for (int row = 0; row < visibleCount; row++) {
             int index = firstVisible + row;
@@ -178,23 +180,30 @@ public final class AppleDropdown extends Widget {
             }
             if (index == current) {
                 UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, popupRowHeight - 2f,
-                        Math.max(1f, radius - 2f), Theme.cardHover, Theme.cardHover, 0.2f);
+                        Math.max(1f, radius - 2f), Theme.dropdownRowSelected, Theme.dropdownRowSelected, 0.2f);
                 UIRender.roundRect(popupX + 3f, rowY + 4f, 2f, popupRowHeight - 8f,
                         1f, Theme.accent, Theme.accent, 0f);
             } else if (rowHover[index] > 0.001f) {
-                int rowFill = UIRender.mix(Theme.popup, Theme.buttonHover, rowHover[index]);
+                int rowFill = scaledAlpha(Theme.dropdownRowHover, rowHover[index]);
                 UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, popupRowHeight - 2f,
                         Math.max(1f, radius - 2f), rowFill, rowFill, 0.2f);
             }
+            if (row > 0) {
+                UIRender.line(popupX + 8f, rowY, popupX + popupW - 8f, rowY, 1f, Theme.dropdownDivider);
+            }
             String option = options[index] == null ? "" : options[index];
             float pad = dots == null ? 10f : 22f;
-            float maxTextW = Math.max(0f, popupW - pad - 8f);
+            float checkSpace = index == current ? 19f : 8f;
+            float maxTextW = Math.max(0f, popupW - pad - checkSpace);
             option = fitText(option, maxTextW);
             if (dots != null && index < dots.length) {
                 UIRender.circle(popupX + 12f, rowY + popupRowHeight * 0.5f, 3.5f, dots[index]);
             }
             UIRender.text(font(), option, popupX + pad, rowY + (popupRowHeight - textHeight()) * 0.5f,
                     index == current ? Theme.textPrimary : Theme.textSecondary, 1f, false);
+            if (index == current) {
+                drawSelectedCheck(popupX + popupW - 12f, rowY + popupRowHeight * 0.5f, Theme.accent);
+            }
             if (rowTransform) {
                 UIRender.popTransform();
             }
@@ -204,6 +213,18 @@ public final class AppleDropdown extends Widget {
 
     private static void drawBorderAt(float x, float y, float w, float h, float radius, int color) {
         UIRender.roundRectRing(x, y, w, h, radius, 1f, color);
+    }
+
+    /** Retains a semantic token's intended opacity while animating its reveal amount. */
+    private static int scaledAlpha(int color, float amount) {
+        float baseAlpha = ((color >>> 24) & 0xFF) / 255f;
+        return UIRender.withAlpha(color, baseAlpha * Math.max(0f, Math.min(1f, amount)));
+    }
+
+    /** Compact selected-state check, drawn without introducing a nested choice control. */
+    private static void drawSelectedCheck(float cx, float cy, int color) {
+        UIRender.line(cx - 4f, cy, cx - 1f, cy + 3f, 1.35f, color);
+        UIRender.line(cx - 1f, cy + 3f, cx + 5f, cy - 4f, 1.35f, color);
     }
 
     public int optionAt(int mouseX, int mouseY) {

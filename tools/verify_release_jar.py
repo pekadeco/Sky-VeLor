@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1v] [--mcmod-version 0.10.9.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.1v] [--mcmod-version 0.10.9.1.1]
 """
 
 import argparse
@@ -347,8 +347,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.1v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.1')
     args = ap.parse_args()
 
     path = args.jar
@@ -504,6 +504,7 @@ def main():
     client_raw = raw_of('PekaClientMod')
     command_actions_raw = raw_of('command/ClientActions')
     theme_raw = raw_of('render/Theme')
+    dropdown_raw = raw_of('widget/AppleDropdown')
     rail_layout_raw = raw_of('gui/SettingsRailLayout')
     page_layout_raw = raw_of('gui/SettingsPageLayout')
     ui_render_raw = raw_of('render/UIRender')
@@ -543,9 +544,9 @@ def main():
                  b'everyChoiceHasAtLeastTwoOptions', b'dropdownIds', b'playerTextViolations')),
             'catalog packages flat captions, editor rows, depth/count guards and player-copy validation')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'Mining', b'Fishing', b'Visuals', b'System',
+                (b'Home', b'Player', b'Dungeons', b'Farming', b'Mining', b'Fishing', b'HUD & Visuals', b'Misc',
                  b'No Farming Features Yet', b'Mining Assistant', b'Fishing Tracker', b'Slayer Tracker')),
-            'catalog packages the requested eight-tab sidebar, empty Farming message, and genuine Mining/Fishing moves')
+            'catalog packages the requested feature-oriented eight-tab sidebar, empty Farming message, and genuine Mining/Fishing moves')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Dungeon Map', b'Terminal Helper', b'Spirit Leap Picker', b'Boss Health HUD', b'Floor VII Overlay',
                  b'Mob ESP', b'Door ESP', b'Maxor', b'Storm', b'Goldor', b'Necron', b'Power', b'Apex', b'Soul',
@@ -571,10 +572,20 @@ def main():
     r.check(all(value not in settings_screen_raw for value in (b'MOUSE', b'MOUSE/GUI', b'GUI AREA')),
             'settings shell packages no launcher-owned MOUSE/GUI indicator labels')
     r.check(all(value in settings_screen_raw for value in
-                (b'HIT_WINDOW_FULLSCREEN', b'HIT_WINDOW_CLOSE', b'drawFullscreenGlyph', b'headerPressedHit'))
+                (b'HIT_WINDOW_FULLSCREEN', b'HIT_WINDOW_CLOSE', b'drawFullscreenGlyph', b'headerPressedHit', b'SkyVeLor'))
                 and all(value not in settings_screen_raw for value in
                         (b'HIT_PROFILE', b'window-red', b'window-yellow', b'window-green')),
-            'settings header packages only Fullscreen and Close icon actions with hover/press feedback')
+            'settings header packages the SkyVeLor upper-left wordmark and only Fullscreen/Close icon actions')
+    r.check(all(value in dropdown_raw for value in
+                (b'dropdownTrigger', b'dropdownPopup', b'dropdownBorder', b'dropdownRowHover',
+                 b'dropdownRowSelected', b'dropdownDivider', b'drawSelectedCheck', b'reservePopup')),
+            'shared one-level AppleDropdown packages high-contrast trigger/popup, hover, selected-check, divider, and flow reservation')
+    r.check(all(value in apple_settings_raw for value in
+                (b'glassOpacityOn', b'glassOpacity', b'MIN_GLASS_OPACITY', b'MAX_GLASS_OPACITY',
+                 b'loadAppearanceSettings', b'saveAppearanceSettings'))
+                and all(value in reference_catalog_raw for value in
+                        (b'Custom GUI Transparency', b'GUI Transparency', b'appearance-opacity-on', b'appearance-opacity')),
+            'optional GUI-transparency toggle and slider retain their established config keys and owner')
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
                 and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
                 and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,

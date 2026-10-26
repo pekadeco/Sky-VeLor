@@ -302,7 +302,8 @@ final class InlineSettingsBindings {
         else if ("esp-max-boxes".equals(id)) DungeonEspSettings.maxBoxes = clamp(value,
                 DungeonEspSettings.MIN_BOXES, DungeonEspSettings.MAX_BOXES);
         else if ("appearance-corners".equals(id)) AppleSettings.cornerRadius = clamp(value, 4, 18);
-        else if ("appearance-opacity".equals(id)) AppleSettings.glassOpacity = clamp(value, 60, 100);
+        else if ("appearance-opacity".equals(id)) AppleSettings.glassOpacity = clamp(value,
+                AppleSettings.MIN_GLASS_OPACITY, AppleSettings.MAX_GLASS_OPACITY);
         else if ("animation-speed".equals(id)) AppleSettings.animSpeed = clamp(value, 40, 200);
         else if ("global-scroll".equals(id)) {
             AppleSettings.scrollSpeedOn = true;

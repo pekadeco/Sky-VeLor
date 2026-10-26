@@ -16,7 +16,7 @@ public final class FarmingNavigationTests {
     }
 
     private static void exactRailOrderIncludesTheTwoNewChannels() {
-        String[] expected = {"Home", "Gameplay", "Dungeon", "Farming", "Mining", "Fishing", "Visuals", "System"};
+        String[] expected = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
         check("Farming precedes Mining and Fishing in the exact requested order",
                 Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
     }

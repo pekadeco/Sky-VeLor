@@ -42,6 +42,14 @@ public final class Theme {
     public static final int SURFACE_CONTROL = 0x26FFFFFF;
     public static final int SURFACE_CONTROL_HOVER = 0x3DFFFFFF;
     public static final int SURFACE_POPUP = 0xF22A2A2E;
+    /** Dropdowns use an opaque-enough graphite popup and explicit state layers for readable one-level choices. */
+    public static final int DROPDOWN_TRIGGER = 0x33FFFFFF;
+    public static final int DROPDOWN_TRIGGER_HOVER = 0x52FFFFFF;
+    public static final int DROPDOWN_POPUP = 0xFA24252B;
+    public static final int DROPDOWN_BORDER = 0x54FFFFFF;
+    public static final int DROPDOWN_ROW_HOVER = 0x24FFFFFF;
+    public static final int DROPDOWN_ROW_SELECTED = 0x4A0A84FF;
+    public static final int DROPDOWN_DIVIDER = 0x1FFFFFFF;
     public static final int SURFACE_DISABLED = 0x52000000;
     public static final int BORDER = 0x1FFFFFFF;
     public static final int DIVIDER = 0x18FFFFFF;
@@ -144,6 +152,14 @@ public final class Theme {
     public static int cardHover = SURFACE_CARD_HOVER;
     public static int buttonFill = SURFACE_CONTROL;
     public static int buttonHover = SURFACE_CONTROL_HOVER;
+    /** Dedicated resolved dropdown tokens keep trigger, popup, hover, and selected states coherent. */
+    public static int dropdownTrigger = DROPDOWN_TRIGGER;
+    public static int dropdownTriggerHover = DROPDOWN_TRIGGER_HOVER;
+    public static int dropdownPopup = DROPDOWN_POPUP;
+    public static int dropdownBorder = DROPDOWN_BORDER;
+    public static int dropdownRowHover = DROPDOWN_ROW_HOVER;
+    public static int dropdownRowSelected = DROPDOWN_ROW_SELECTED;
+    public static int dropdownDivider = DROPDOWN_DIVIDER;
     public static int border = BORDER;
     public static int divider = DIVIDER;
     public static int track = TRACK;
@@ -180,6 +196,13 @@ public final class Theme {
         cardHover = SURFACE_CARD_HOVER;
         buttonFill = SURFACE_CONTROL;
         buttonHover = SURFACE_CONTROL_HOVER;
+        dropdownTrigger = DROPDOWN_TRIGGER;
+        dropdownTriggerHover = DROPDOWN_TRIGGER_HOVER;
+        dropdownPopup = DROPDOWN_POPUP;
+        dropdownBorder = DROPDOWN_BORDER;
+        dropdownRowHover = DROPDOWN_ROW_HOVER;
+        dropdownRowSelected = DROPDOWN_ROW_SELECTED;
+        dropdownDivider = DROPDOWN_DIVIDER;
         border = BORDER;
         divider = DIVIDER;
         track = TRACK;

@@ -51,6 +51,9 @@ public final class AppleSettings {
     public static final int DEFAULT_CORNER_RADIUS = 12;
     /** A slightly more transparent fresh-install panel setting; saved user values are not reset. */
     public static final int DEFAULT_GLASS_OPACITY = 88;
+    /** The optional custom-GUI-transparency slider range. Lower opacity shows more of the game. */
+    public static final int MIN_GLASS_OPACITY = 45;
+    public static final int MAX_GLASS_OPACITY = 100;
     public static final int DEFAULT_ANIM_SPEED = 100;
     public static final boolean DEFAULT_ADAPTIVE_QUALITY = false;
     public static final boolean DEFAULT_PERFORMANCE_BOOST_BETA = true;
@@ -135,7 +138,7 @@ public final class AppleSettings {
                 Math.min(ITEM_ANIMATION_SPEED_MAX_PERCENT, itemAnimationSpeed)) : DEFAULT_ITEM_ANIMATION_SPEED;
     }
     
-    /** Panel opacity in percent (60..100). Higher is more solid, lower shows more of the game. */
+    /** Custom GUI glass opacity in percent (45..100). Higher is more solid, lower shows more of the game. */
     public static int glassOpacity = DEFAULT_GLASS_OPACITY;
     public static boolean animations = true;
     public static int animSpeed = 100;        // 40..200 (%)
@@ -254,13 +257,12 @@ public final class AppleSettings {
         if (settings != null) settings.setProperty("settings.window.fullscreen", Boolean.toString(settingsWindowFullscreen));
     }
 
-    public static void load() {
-        itemAnimationMigrationPending = false;
-        globalScrollMigrationPending = false;
-        configVersionMigrationPending = false;
-        Properties p = ConfigFiles.read(readFile());
-        loadSettingsTheme(p);
-        loadSettingsWindowLayout(p);
+    /**
+     * Loads the established appearance-owner keys without renaming them. Package visibility keeps this legacy
+     * compatibility boundary directly testable without requiring a Minecraft configuration directory.
+     */
+    static void loadAppearanceSettings(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
         accent = readInt(p, "accent", accent, 0, ACCENT_COLORS.length - 1);
         darkMode = readBool(p, "darkMode", darkMode);
         cornerRadius = readInt(p, "cornerRadius", cornerRadius, 4, 18);
@@ -268,11 +270,39 @@ public final class AppleSettings {
         glassOpacityOn = readBool(p, "glassOpacityOn", glassOpacityOn);
         animSpeedOn = readBool(p, "animSpeedOn", animSpeedOn);
         scrollSpeedOn = readBool(p, "scrollSpeedOn", scrollSpeedOn);
-        glassOpacity = readInt(p, "glassOpacity", glassOpacity, 60, 100);
+        // Keep the legacy glassOpacity key; older values remain valid while the refreshed slider permits 45..100.
+        glassOpacity = readInt(p, "glassOpacity", glassOpacity, MIN_GLASS_OPACITY, MAX_GLASS_OPACITY);
         animations = readBool(p, "animations", animations);
         animSpeed = readInt(p, "animSpeed", animSpeed, 40, 200);
         curveQuality = readInt(p, "curveQuality", curveQuality, 0, 2);
         shadows = readBool(p, "shadows", shadows);
+    }
+
+    /** Writes the same established appearance-owner keys used by older configurations. */
+    static void saveAppearanceSettings(Properties p) {
+        if (p == null) return;
+        p.setProperty("accent", Integer.toString(accent));
+        p.setProperty("darkMode", Boolean.toString(darkMode));
+        p.setProperty("cornerRadius", Integer.toString(cornerRadius));
+        p.setProperty("cornerRadiusOn", Boolean.toString(cornerRadiusOn));
+        p.setProperty("glassOpacityOn", Boolean.toString(glassOpacityOn));
+        p.setProperty("animSpeedOn", Boolean.toString(animSpeedOn));
+        p.setProperty("scrollSpeedOn", Boolean.toString(scrollSpeedOn));
+        p.setProperty("glassOpacity", Integer.toString(glassOpacity));
+        p.setProperty("animations", Boolean.toString(animations));
+        p.setProperty("animSpeed", Integer.toString(animSpeed));
+        p.setProperty("curveQuality", Integer.toString(curveQuality));
+        p.setProperty("shadows", Boolean.toString(shadows));
+    }
+
+    public static void load() {
+        itemAnimationMigrationPending = false;
+        globalScrollMigrationPending = false;
+        configVersionMigrationPending = false;
+        Properties p = ConfigFiles.read(readFile());
+        loadSettingsTheme(p);
+        loadSettingsWindowLayout(p);
+        loadAppearanceSettings(p);
         loadPerformanceSettings(p);
         loadGlobalScrollSettings(p);
         loadMouseSettings(p);
@@ -498,18 +528,7 @@ public final class AppleSettings {
         saveConfigurationVersion(p);
         saveSettingsTheme(p);
         saveSettingsWindowLayout(p);
-        p.setProperty("accent", Integer.toString(accent));
-        p.setProperty("darkMode", Boolean.toString(darkMode));
-        p.setProperty("cornerRadius", Integer.toString(cornerRadius));
-        p.setProperty("cornerRadiusOn", Boolean.toString(cornerRadiusOn));
-        p.setProperty("glassOpacityOn", Boolean.toString(glassOpacityOn));
-        p.setProperty("animSpeedOn", Boolean.toString(animSpeedOn));
-        p.setProperty("scrollSpeedOn", Boolean.toString(scrollSpeedOn));
-        p.setProperty("glassOpacity", Integer.toString(glassOpacity));
-        p.setProperty("animations", Boolean.toString(animations));
-        p.setProperty("animSpeed", Integer.toString(animSpeed));
-        p.setProperty("curveQuality", Integer.toString(curveQuality));
-        p.setProperty("shadows", Boolean.toString(shadows));
+        saveAppearanceSettings(p);
         p.setProperty("adaptive", Boolean.toString(adaptive));
         p.setProperty("scrollSpeed", Integer.toString(scrollSpeed));
         p.setProperty("smoothScrolling", Boolean.toString(smoothScrolling));

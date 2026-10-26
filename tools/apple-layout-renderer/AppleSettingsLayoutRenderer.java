@@ -160,13 +160,20 @@ public final class AppleSettingsLayoutRenderer {
         g.fillRect(round(panel.x + 1f), round(panel.y + 1f), round(panel.w - 2f), round(HEADER_H - 1f));
         line(g, panel.x + 1f, chromeBottom, panel.right() - 1f, chromeBottom, DIVIDER, 1f);
 
-        String title = "Sky VeLor · Settings";
+        // Mirror the runtime's left-aligned product identity without introducing another header action.
+        float markX = panel.x + PAD;
+        float markY = panel.y + (HEADER_H - 15f) * .5f;
+        fillRound(g, markX, markY, 15f, 15f, 4f, BLUE);
+        setFont(g, 9f, Font.BOLD);
+        text(g, "S", markX + 4f, markY + 11f, Color.WHITE);
+        float titleX = markX + 20f;
         setFont(g, 12f, Font.BOLD);
-        float titleWidth = g.getFontMetrics().stringWidth(title);
-        float minX = panel.x + PAD;
-        float maxX = Math.max(minX, header.dragRight - 4f - titleWidth);
-        float titleX = Math.max(minX, Math.min(maxX, panel.x + (panel.w - titleWidth) * .5f));
-        text(g, title, titleX, panel.y + 19f, PRIMARY);
+        text(g, "SkyVeLor", titleX, panel.y + 19f, PRIMARY);
+        float sectionX = titleX + g.getFontMetrics().stringWidth("SkyVeLor") + GAP;
+        if (sectionX < header.dragRight - 12f) {
+            setFont(g, 9f, Font.PLAIN);
+            text(g, "Settings", sectionX, panel.y + 18f, SECONDARY);
+        }
 
         drawHeaderButton(g, header.fullscreen, true);
         drawHeaderButton(g, header.close, false);

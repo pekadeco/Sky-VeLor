@@ -50,7 +50,8 @@ import java.util.function.Supplier;
  */
 public class AppleSettingsScreen extends AppleScreen {
 
-    static final String[] DESTINATION_NAMES = {"Home", "Gameplay", "Dungeon", "Farming", "Mining", "Fishing", "Visuals", "System"};
+    /** Visible labels only; routes and catalog enum identities remain intentionally stable. */
+    static final String[] DESTINATION_NAMES = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
     private static final float CHROME_H = SettingsShellLayout.HEADER_HEIGHT;
     /** The title lives in the header; the compact second strip contains only global search. */
     private static final float TOOLBAR_H = 34f;
@@ -391,17 +392,23 @@ public class AppleSettingsScreen extends AppleScreen {
         UIRender.rect(panel.x + 1f, y + 1f, panel.w - 2f, Math.max(0f, CHROME_H - 1f), chrome);
         UIRender.line(panel.x + 1f, y + CHROME_H, panel.right() - 1f, y + CHROME_H, 1f, Theme.divider);
 
-        // The old Apple window centered its product title. Keep it centered whenever the two explicit icon actions
-        // leave room, then safely clamp it into the drag region on a very small GUI scale.
-        float titleLeft = panel.x + GuiStyle.SPACE_12;
+        // Keep product identity in the upper-left, entirely inside the existing drag region. The header intentionally
+        // still exposes only the Fullscreen and Close hit targets from SettingsShellLayout.
+        float wordmarkX = panel.x + GuiStyle.SPACE_12;
+        float wordmarkY = y + (CHROME_H - 15f) * .5f;
+        UIRender.roundRect(wordmarkX, wordmarkY, 15f, 15f, 4f, Theme.accent, Theme.accent, 0.4f);
+        UIRender.text(fr(), "S", wordmarkX + 4.2f, wordmarkY + 3.3f, Theme.OPAQUE_WHITE, Theme.TYPE_BODY, false);
+        float titleX = wordmarkX + 20f;
         float titleRight = shellHeader.dragRight - GuiStyle.SPACE_4;
-        String title = fit(fr(), "Sky VeLor · Settings", Math.max(1f, titleRight - titleLeft) / Theme.TYPE_HEADING);
-        float titleW = fr().getStringWidth(title) * Theme.TYPE_HEADING;
-        float centeredTitleX = panel.x + (panel.w - titleW) * .5f;
-        float maxTitleX = Math.max(titleLeft, titleRight - titleW);
-        float titleX = Math.max(titleLeft, Math.min(maxTitleX, centeredTitleX));
-        UIRender.text(fr(), title, titleX, centeredTextY(y, CHROME_H, Theme.TYPE_HEADING),
-                Theme.textPrimary, Theme.TYPE_HEADING, false);
+        String wordmark = fit(fr(), "SkyVeLor", Math.max(1f, titleRight - titleX) / Theme.TYPE_TITLE);
+        UIRender.text(fr(), wordmark, titleX, centeredTextY(y, CHROME_H, Theme.TYPE_TITLE),
+                Theme.textPrimary, Theme.TYPE_TITLE, false);
+        float sectionX = titleX + fr().getStringWidth(wordmark) * Theme.TYPE_TITLE + GuiStyle.SPACE_8;
+        String section = fit(fr(), "Settings", Math.max(0f, titleRight - sectionX) / Theme.TYPE_BODY);
+        if (section.length() > 0) {
+            UIRender.text(fr(), section, sectionX, centeredTextY(y, CHROME_H, Theme.TYPE_BODY),
+                    Theme.textSecondary, Theme.TYPE_BODY, false);
+        }
         drawHeaderIconButton(shellHeader.fullscreen, mouseX, mouseY, fullscreenWindow,
                 fullscreenWindow ? "Exit fullscreen" : "Fullscreen", HIT_WINDOW_FULLSCREEN);
         drawHeaderIconButton(shellHeader.close, mouseX, mouseY, false, "Close settings", HIT_WINDOW_CLOSE);
@@ -1178,11 +1185,11 @@ public class AppleSettingsScreen extends AppleScreen {
         y += GAP;
 
         UIRender.text(fr(), "QUICK CONTROLS", contentX, centeredTextY(y, 12f, .61f), Theme.textTertiary, .61f, false);
-        String allGameplay = "all gameplay ->";
-        float allX = contentX + contentW - fr().getStringWidth(allGameplay) * .61f;
-        UIRender.text(fr(), allGameplay, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
+        String allPlayer = "all player ->";
+        float allX = contentX + contentW - fr().getStringWidth(allPlayer) * .61f;
+        UIRender.text(fr(), allPlayer, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
         registerHit("home-gameplay", HIT_HOME_GAMEPLAY, allX - 2f, y - 1f,
-                fr().getStringWidth(allGameplay) * .61f + 4f, 14f, null, "");
+                fr().getStringWidth(allPlayer) * .61f + 4f, 14f, null, "");
         y += 13f;
 
         float gap = GuiStyle.SPACE_8;

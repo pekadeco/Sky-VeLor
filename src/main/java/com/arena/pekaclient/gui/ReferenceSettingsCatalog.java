@@ -18,14 +18,14 @@ import java.util.Set;
 public final class ReferenceSettingsCatalog {
 
     public enum Tab {
-        HOME("Home", "Performance and quick controls."),
-        GAMEPLAY("Gameplay", "Comfort, inventory, chat, and shortcuts."),
-        DUNGEON("Dungeon", "Maps, helpers, overlays, and ESP."),
+        HOME("Home", "Status, quick controls, and performance."),
+        GAMEPLAY("Player", "Movement, inventory, chat, and Slayer."),
+        DUNGEON("Dungeons", "Maps, terminals, party, and ESP."),
         FARMING("Farming", "No Farming Features Yet."),
-        MINING("Mining", "Mining readouts and helpers."),
-        FISHING("Fishing", "Catch, creature, and alert controls."),
-        VISUALS("Visuals", "HUD layout and held-item style."),
-        SYSTEM("System", "Appearance, performance, and commands.");
+        MINING("Mining", "Mining tools, readouts, and helpers."),
+        FISHING("Fishing", "Fishing tracker, health, and alerts."),
+        VISUALS("HUD & Visuals", "HUD layout and held-item visuals."),
+        SYSTEM("Misc", "Appearance, performance, and commands.");
 
         public final String label;
         public final String caption;
@@ -356,12 +356,12 @@ public final class ReferenceSettingsCatalog {
     );
 
     private static final List<Card> SYSTEM = cards(
-            card("appearance", "Appearance", "Panel shape and opacity.", false, "",
-                    dropdown("system-appearance", "Appearance", "Adjust panel shape and opacity.", "appearance",
+            card("appearance", "Appearance", "Panel shape and optional transparency.", false, "",
+                    dropdown("system-appearance", "Appearance", "Adjust panel shape and GUI transparency.", "appearance transparency glass",
                             toggle("appearance-corners-on", "Corner Radius", "Use custom panel corners.", "radius corners"),
                             slider("appearance-corners", "Corner Radius Value", "Set panel roundness.", "radius corners", 4, 18, 1, " px"),
-                            toggle("appearance-opacity-on", "Panel Opacity", "Use custom panel opacity.", "panel opacity"),
-                            slider("appearance-opacity", "Panel Opacity Value", "Set panel opacity.", "glass opacity", 60, 100, 5, "%"),
+                            toggle("appearance-opacity-on", "Custom GUI Transparency", "Optionally use a custom transparent glass amount.", "gui transparency"),
+                            slider("appearance-opacity", "GUI Transparency", "Lower values show more of the game behind the GUI.", "glass opacity transparency", 45, 100, 5, "% opacity"),
                             reset("appearance-reset"))),
             card("performance", "Performance", "Interface quality and motion.", false, "",
                     dropdown("system-performance", "Performance", "Adjust quality, shadows, and motion.", "performance gui",

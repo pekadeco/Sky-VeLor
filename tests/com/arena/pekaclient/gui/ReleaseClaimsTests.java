@@ -48,8 +48,8 @@ public final class ReleaseClaimsTests {
     }
 
     private static void inlineShellHasRequiredBehavior() {
-        String[] destinations = {"Home", "Gameplay", "Dungeon", "Farming", "Mining", "Fishing", "Visuals", "System"};
-        check("reference shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
+        String[] destinations = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
+        check("feature-oriented shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
         check("screen has search, accordion disclosure, and header reveal", screen.contains("Search settings")
                 && screen.contains("HIT_DISCLOSURE") && screen.contains("dropdownOpen")
@@ -57,8 +57,8 @@ public final class ReleaseClaimsTests {
                 && screen.contains("normalizeAccordion") && screen.contains("revealDropdownHeader"));
         check("screen clips its rounded shell and one settings viewport", screen.contains("roundedClipBegin")
                 && screen.contains("scissorBegin") && screen.contains("GuiLayoutToolkit$Scroll"));
-        check("screen packages title drag, fullscreen persistence and right-aligned control layout",
-                screen.contains("smallWindowOffsetX") && screen.contains("settingsWindowFullscreen")
+        check("screen packages wordmark drag, fullscreen persistence and right-aligned control layout",
+                screen.contains("SkyVeLor") && screen.contains("smallWindowOffsetX") && screen.contains("settingsWindowFullscreen")
                         && screen.contains("SettingsControlLayout") && screen.contains("drawFullscreenGlyph")
                         && screen.contains("[Edit]"));
         check("Chat command route enters the inline owner", classText("com.arena.pekaclient.command.ClientActions")
@@ -75,7 +75,10 @@ public final class ReleaseClaimsTests {
 
     private static void headerAndToggleContractsArePackaged() {
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
+        String dropdown = classText("com.arena.pekaclient.widget.AppleDropdown");
         AppleToggle toggle = new AppleToggle(() -> false, value -> { });
+        check("upper-left SkyVeLor wordmark keeps the existing fullscreen/close-only header", screen.contains("SkyVeLor")
+                && screen.contains("HIT_WINDOW_FULLSCREEN") && screen.contains("HIT_WINDOW_CLOSE"));
         check("fullscreen icon has a dedicated corner-bracket renderer", screen.contains("drawFullscreenGlyph"));
         check("all inline toggles retain the standard 38 by 20 pill", toggle.preferredWidth() == 38f && toggle.h == 20f);
         check("safe notice is compact one line", screen.contains("Safe by default"));
@@ -85,6 +88,10 @@ public final class ReleaseClaimsTests {
                 && !screen.contains("window-red") && !screen.contains("window-yellow") && !screen.contains("window-green"));
         check("restored Apple card chrome keeps icon, glass surface, and subtitle hierarchy", screen.contains("drawCardGlyph")
                 && screen.contains("roundRectBorder") && screen.contains("subtitle"));
+        check("shared flat dropdown packages contrast, hover, selected check, and dividers", dropdown.contains("dropdownTrigger")
+                && dropdown.contains("dropdownPopup") && dropdown.contains("dropdownRowHover")
+                && dropdown.contains("dropdownRowSelected") && dropdown.contains("dropdownDivider")
+                && dropdown.contains("drawSelectedCheck") && dropdown.contains("reservePopup"));
     }
 
     private static void removedFocusedSurfacesStayAbsent() {

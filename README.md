@@ -1,27 +1,29 @@
-# Sky VeLor — Beta-0.10.9.1v
+# Sky VeLor — Beta-0.10.9.1.1v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1v — restored Apple settings shell
+## Beta-0.10.9.1.1v — feature-oriented GUI refresh
 
-- Restored the historical Apple-inspired graphite-glass window, translucent cards, bordered hierarchy,
-  broad eight-destination rail, and 8 px large-layout world margin without importing any reference-mod
-  features, configuration keys, profiles, presets, or additional editors.
-- The title bar has exactly two 24 px icon targets: **Fullscreen** and **Close**. Dragging, Escape,
-  tooltips, hover/press feedback, fullscreen persistence, and the existing close behavior remain intact;
-  retired traffic-light controls are not present.
-- **Home** retains its live performance cards, sparklines, quick controls, Party Sync route, and
-  Safe-by-default note. The fixed rail remains **Home → Gameplay → Dungeon → Farming → Mining →
-  Fishing → Visuals → System**; Farming remains a no-feature destination.
+- Adds a visible **SkyVeLor** wordmark at the upper-left of the settings header. The title bar still has
+  exactly two 24 px actions: **Fullscreen** and **Close**; drag, Escape, tooltips, hover/press feedback,
+  fullscreen persistence, and the existing close behavior remain intact.
+- Renames only the visible eight-route rail to **Home → Player → Dungeons → Farming → Mining → Fishing →
+  HUD & Visuals → Misc**. Existing enum identities, routes, feature ownership, search, and configuration
+  keys remain unchanged; Farming remains a no-feature destination.
+- Refines the shared flat value dropdown: clearer trigger/popup contrast, hover feedback, selected-row accent
+  treatment and check mark, readable dividers, and adaptive placement/flow reservation without nesting choices
+  or changing feature-value bindings.
+- Adds explicit **Custom GUI Transparency** and **GUI Transparency** controls under **Misc → Appearance**.
+  They retain `glassOpacityOn` / `glassOpacity` ownership and legacy loading; the custom glass range is now
+  45%–100%, where lower opacity shows more of the game behind the GUI.
 - The flat settings contract remains unchanged: fixed chevron/toggle columns, one-control inline rows,
-  two-or-more-choice dropdowns, one-level searchable accordion disclosure, master-off dimming, reset
-  links, and only the existing HUD Editor and Item Animation editor routes.
-- Catalog and release checks now prove every choice has at least two values, every direct disclosure
-  belongs to its listed tab, no profile/traffic-light chrome returns, and Apple shell geometry is retained.
-- `tools/apple-layout-renderer/` renders headless Java2D Home, Dungeon, and GUI-scale-4 PNG inspection
-  previews from the real layout/catalog classes; push CI stores them as short-lived review evidence.
+  two-or-more-choice dropdowns, one-level searchable accordion disclosure, master-off dimming, reset links,
+  and only the existing HUD Editor and Item Animation editor routes.
+- `tools/apple-layout-renderer/` mirrors the left-aligned wordmark and renders headless Java2D Home, Dungeons,
+  and GUI-scale-4 PNG inspection previews from the real layout/catalog classes; push CI stores them as
+  short-lived review evidence.
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
 [`docs/FEATURE-SETTINGS-EDITOR.md`](docs/FEATURE-SETTINGS-EDITOR.md).
@@ -72,7 +74,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.1v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -83,8 +85,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1v.jar \
-  --version Beta-0.10.9.1v --mcmod-version 0.10.9.1
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.1v.jar \
+  --version Beta-0.10.9.1.1v --mcmod-version 0.10.9.1.1
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -92,8 +94,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1v-source.zip \
-  --version Beta-0.10.9.1v
+  SkyVeLor-1.8.9-Beta-0.10.9.1.1v-source.zip \
+  --version Beta-0.10.9.1.1v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -103,20 +105,22 @@ and unrelated archives do not belong in the source ZIP.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.1v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
 
-- **Gameplay → Inventory and Chat → Item Lock and Swap** contains the existing key-binding guidance,
+- **Player → Inventory and Chat → Item Lock and Swap** contains the existing key-binding guidance,
   cooldown, badge, line, clear, and reset controls. Configure the key in Minecraft **Controls → Sky
   VeLor**; no controls screen is launched from the settings shell.
-- **Dungeon → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
+- **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
-- **Visuals → HUD → HUD Editor** opens the allowed editor for HUD and map placement.
-- **Visuals → Item Animation → Edit** opens the standalone left-edge renderer panel. Its live
+- **HUD & Visuals → HUD → HUD Editor** opens the allowed editor for HUD and map placement.
+- **HUD & Visuals → Item Animation → Edit** opens the standalone left-edge renderer panel. Its live
   values affect only Minecraft's first-person hand path; it neither sends packets nor changes attack,
   mining, server timing, or movement.
+- **Misc → Appearance** owns the optional custom GUI-transparency toggle and opacity slider; disabling
+  the custom toggle keeps the established default glass value without deleting the saved slider choice.
 
 ## Compatibility and testing limits
 

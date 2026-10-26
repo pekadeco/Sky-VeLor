@@ -69,6 +69,7 @@ public final class AppleSettingsTests {
         particleSettingsCompatibility();
         settingsThemePersistence();
         settingsWindowLayoutPersistence();
+        guiTransparencyLegacyCompatibility();
         configurationVersionMigration();
 
         System.out.println();
@@ -211,6 +212,33 @@ public final class AppleSettingsTests {
         check("fullscreen choice has one stable persisted key",
                 "true".equals(saved.getProperty("settings.window.fullscreen")) && saved.size() == 1);
         AppleSettings.settingsWindowFullscreen = AppleSettings.DEFAULT_SETTINGS_WINDOW_FULLSCREEN;
+    }
+
+    /** The refreshed UI must retain the existing optional glass keys and honor old saved values. */
+    private static void guiTransparencyLegacyCompatibility() {
+        Properties legacy = new Properties();
+        legacy.setProperty("glassOpacityOn", "false");
+        legacy.setProperty("glassOpacity", "60");
+        AppleSettings.glassOpacityOn = true;
+        AppleSettings.glassOpacity = AppleSettings.DEFAULT_GLASS_OPACITY;
+        AppleSettings.loadAppearanceSettings(legacy);
+        check("legacy GUI opacity toggle and value load through their original keys",
+                !AppleSettings.glassOpacityOn && AppleSettings.glassOpacity == 60);
+
+        Properties refreshed = new Properties();
+        refreshed.setProperty("glassOpacityOn", "true");
+        refreshed.setProperty("glassOpacity", "45");
+        AppleSettings.loadAppearanceSettings(refreshed);
+        check("refreshed custom transparency accepts the useful lower glass bound",
+                AppleSettings.glassOpacityOn && AppleSettings.glassOpacity == AppleSettings.MIN_GLASS_OPACITY);
+
+        Properties written = new Properties();
+        AppleSettings.saveAppearanceSettings(written);
+        check("custom GUI transparency saves its established key pair",
+                "true".equals(written.getProperty("glassOpacityOn"))
+                        && "45".equals(written.getProperty("glassOpacity")));
+        AppleSettings.glassOpacityOn = true;
+        AppleSettings.glassOpacity = AppleSettings.DEFAULT_GLASS_OPACITY;
     }
 
     /** Exercises the same order used by AppleSettings.load without requiring a Minecraft data directory. */

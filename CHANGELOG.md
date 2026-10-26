@@ -1,5 +1,25 @@
 # Changelog
 
+## Beta-0.10.9.1.1v — 2026-10-26
+
+- Added the literal **SkyVeLor** upper-left settings-header wordmark while retaining exactly the existing
+  **Fullscreen** and **Close** header actions, title-bar dragging, Escape, tooltips, hover/press feedback,
+  and persisted fullscreen behavior.
+- Renamed visible rail categories only to **Home**, **Player**, **Dungeons**, **Farming**, **Mining**,
+  **Fishing**, **HUD & Visuals**, and **Misc**. The existing eight enum routes, feature owners, search behavior,
+  configuration keys, and no-feature Farming state are unchanged.
+- Refined the shared one-level `AppleDropdown` with dedicated Theme tokens for trigger/popup contrast, borders,
+  row hover, selected accent treatment/check, and dividers. Existing adaptive placement, editor flow reservation,
+  flat-choice depth, and feature-value bindings remain unchanged.
+- Made GUI transparency explicit in **Misc → Appearance** with **Custom GUI Transparency** and **GUI Transparency**.
+  The retained `glassOpacityOn` / `glassOpacity` keys continue to load/save old configurations; the custom range is
+  now 45%–100% so lower opacity visibly shows more of the game behind the GUI.
+- Added layout-renderer, catalog/config, Theme, packaged-release, and verifier coverage for the wordmark,
+  feature-oriented labels, optional transparency, legacy keys, and dropdown visual contract.
+- Updated display metadata, numeric Forge metadata, build contract, verifier examples, documentation, and release
+  filenames to `Beta-0.10.9.1.1v` / numeric `0.10.9.1.1`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input/gameplay pass remains required.
+
 ## Beta-0.10.9.1v — 2026-10-26
 
 - Restored the historical Apple-inspired graphite-glass settings hierarchy: translucent bordered window/cards,

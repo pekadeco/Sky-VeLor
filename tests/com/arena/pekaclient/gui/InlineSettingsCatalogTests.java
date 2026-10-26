@@ -20,12 +20,13 @@ public final class InlineSettingsCatalogTests {
         searchOpensOneOwningDropdown();
         dropdownStateIsCollapsedByDefaultAndPersistsSeparately();
         catalogIdsAreUniqueAndOnlyTwoEditorDestinationsRemain();
+        optionalGuiTransparencyKeepsItsExistingOwnerAndKeys();
         done();
     }
 
     private static void exactEightDestinationOrder() {
-        String[] expected = {"Home", "Gameplay", "Dungeon", "Farming", "Mining", "Fishing", "Visuals", "System"};
-        check("sidebar order is Home Gameplay Dungeon Farming Mining Fishing Visuals System",
+        String[] expected = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
+        check("sidebar order is Home Player Dungeons Farming Mining Fishing HUD & Visuals Misc",
                 Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
         check("catalog tabs use the same eight-tab order", ReferenceSettingsCatalog.TABS.length == expected.length
                 && ReferenceSettingsCatalog.TABS[0] == ReferenceSettingsCatalog.Tab.HOME
@@ -69,7 +70,7 @@ public final class InlineSettingsCatalogTests {
         check("genuine Fishing options moved without a new owner", ReferenceSettingsCatalog.ownerOf("fishing-tracker") == ReferenceSettingsCatalog.Tab.FISHING
                 && ReferenceSettingsCatalog.ownerOf("catch-counter") == ReferenceSettingsCatalog.Tab.FISHING
                 && ReferenceSettingsCatalog.ownerOf("sea-hp-hud-route") == ReferenceSettingsCatalog.Tab.FISHING);
-        check("Slayer stays in Gameplay and HUD/item animation remain in Visuals",
+        check("Slayer stays in Player and HUD/item animation remain in HUD & Visuals",
                 ReferenceSettingsCatalog.ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.GAMEPLAY
                         && ReferenceSettingsCatalog.ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
                         && ReferenceSettingsCatalog.ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
@@ -115,6 +116,18 @@ public final class InlineSettingsCatalogTests {
         check("accordion save closes peers and writes additive presentation keys",
                 "false".equals(original.getProperty("ui.feature.dropdown.item-lock-swap"))
                         && "true".equals(original.getProperty("ui.feature.dropdown.chat-qol")));
+    }
+
+    private static void optionalGuiTransparencyKeepsItsExistingOwnerAndKeys() {
+        ReferenceSettingsCatalog.Setting toggle = ReferenceSettingsCatalog.find("appearance-opacity-on");
+        ReferenceSettingsCatalog.Setting slider = ReferenceSettingsCatalog.find("appearance-opacity");
+        check("custom GUI transparency stays an explicit optional toggle in Appearance", toggle != null
+                && toggle.control == ReferenceSettingsCatalog.Control.TOGGLE
+                && "Custom GUI Transparency".equals(toggle.label)
+                && ReferenceSettingsCatalog.ownerOf(toggle.id) == ReferenceSettingsCatalog.Tab.SYSTEM);
+        check("GUI transparency slider keeps its established binding id and useful glass range", slider != null
+                && slider.control == ReferenceSettingsCatalog.Control.SLIDER && "GUI Transparency".equals(slider.label)
+                && slider.min == 45 && slider.max == 100 && "% opacity".equals(slider.suffix));
     }
 
     private static void catalogIdsAreUniqueAndOnlyTwoEditorDestinationsRemain() {
