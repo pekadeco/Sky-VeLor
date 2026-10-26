@@ -36,9 +36,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Forge bridge for the clean-room Dungeon ESP implementation. Entity association happens only in END client ticks;
- * RenderWorldLast consumes fixed cached records and never walks loadedEntityList. Door blocks are sampled only on a
- * one-second timer, then their cache is rendered without world rescans.
+ * Forge bridge for the clean-room starred-mob ESP implementation. Entity association happens only in END client
+ * ticks; RenderWorldLast consumes fixed cached records and never walks loadedEntityList. Door blocks are sampled
+ * only on a one-second timer, then their cache is rendered without world rescans.
  */
 public final class DungeonEspController {
 
@@ -91,9 +91,7 @@ public final class DungeonEspController {
             entitySource.setWorld(world);
             long started = System.nanoTime();
             tracker.scan(entitySource, player.posX, player.posY, player.posZ,
-                    DungeonEspSettings.maxDistance, DungeonEspSettings.hideZeroHealth,
-                    DungeonEspSettings.forceRenderAllMobs, DungeonEspSettings.includeBats,
-                    DungeonEspSettings.includeInvisibleMobs);
+                    DungeonEspSettings.maxDistance, DungeonEspSettings.hideZeroHealth);
             scanNanosThisTick += System.nanoTime() - started;
             scanned = true;
         }

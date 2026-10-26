@@ -11,6 +11,7 @@ public final class DungeonEspSettingsTests {
         defaultsAreUsable();
         legacyMobToggleMigrates();
         saveLoadRoundTripAndBounds();
+        retiredOtherMobSettingsAreSafelyRemoved();
         presetsRemainDocumented();
         doorColorDefaultsMigrateOnlyFormerValues();
         done();
@@ -25,13 +26,13 @@ public final class DungeonEspSettingsTests {
                 && DungeonEspSettings.maxMobLabels == DungeonEspSettings.DEFAULT_MOB_LABELS);
         check("starred miniboss special categories on", DungeonEspSettings.starred.enabled
                 && DungeonEspSettings.miniboss.enabled && DungeonEspSettings.special.enabled);
-        check("new mob categories default safely", DungeonEspSettings.enderman.enabled
-                && DungeonEspSettings.skeletor.enabled && DungeonEspSettings.otherMobs.enabled
-                && !DungeonEspSettings.forceRenderAllMobs && !DungeonEspSettings.includeBats
-                && !DungeonEspSettings.includeInvisibleMobs);
+        check("starred-target categories default safely", DungeonEspSettings.enderman.enabled
+                && DungeonEspSettings.skeletor.enabled);
         check("Skeletor begins with starred style", DungeonEspSettings.skeletor.color == DungeonEspSettings.starred.color
                 && DungeonEspSettings.skeletor.mode == DungeonEspSettings.starred.mode
                 && DungeonEspSettings.skeletor.outlineWidth == DungeonEspSettings.starred.outlineWidth);
+        check("Miniboss begins with a visible outline", DungeonEspSettings.miniboss.mode == DungeonEspSettings.MODE_BOTH
+                && DungeonEspSettings.miniboss.outlineOpacity > 0 && DungeonEspSettings.miniboss.outlineWidth >= 1);
         check("door style is ready when the user opts in", DungeonEspSettings.doorsEnabled
                 && DungeonEspSettings.doorScope == DungeonEspSettings.DOORS_NEAREST);
         Properties established = new Properties();
@@ -60,13 +61,6 @@ public final class DungeonEspSettingsTests {
         DungeonEspSettings.skeletor.color = 0xFF7EB6;
         DungeonEspSettings.skeletor.mode = DungeonEspSettings.MODE_OUTLINE;
         DungeonEspSettings.skeletor.outlineWidth = 5;
-        DungeonEspSettings.otherMobs.color = 0xA6E22E;
-        DungeonEspSettings.otherMobs.mode = DungeonEspSettings.MODE_FILLED;
-        DungeonEspSettings.otherMobs.outlineWidth = 4;
-        DungeonEspSettings.otherMobs.throughWalls = false;
-        DungeonEspSettings.forceRenderAllMobs = true;
-        DungeonEspSettings.includeBats = true;
-        DungeonEspSettings.includeInvisibleMobs = true;
         DungeonEspSettings.mobLabels = false;
         DungeonEspSettings.maxMobLabels = 23;
         DungeonEspSettings.doors.fillOpacity = 37;
@@ -76,10 +70,10 @@ public final class DungeonEspSettingsTests {
         check("Skeletor has its own persisted style keys", saved.containsKey("dungeonEsp.skeletor.enabled")
                 && saved.containsKey("dungeonEsp.skeletor.color") && saved.containsKey("dungeonEsp.skeletor.mode")
                 && saved.containsKey("dungeonEsp.skeletor.outlineWidth"));
-        check("force and Other Mobs have persisted controls", saved.containsKey("dungeonEsp.forceRenderAllMobs")
-                && saved.containsKey("dungeonEsp.includeBats") && saved.containsKey("dungeonEsp.includeInvisibleMobs")
-                && saved.containsKey("dungeonEsp.otherMobs.color")
-                && saved.containsKey("dungeonEsp.otherMobs.outlineWidth"));
+        check("retired room-wide fallback controls are not persisted", !saved.containsKey("dungeonEsp.forceRenderAllMobs")
+                && !saved.containsKey("dungeonEsp.includeBats") && !saved.containsKey("dungeonEsp.includeInvisibleMobs")
+                && !saved.containsKey("dungeonEsp.otherMobs.color")
+                && !saved.containsKey("dungeonEsp.otherMobs.outlineWidth"));
         check("mob label controls have persisted keys", saved.containsKey("dungeonEsp.mobLabels")
                 && saved.containsKey("dungeonEsp.maxMobLabels"));
         DungeonEspSettings.load(saved);
@@ -89,12 +83,8 @@ public final class DungeonEspSettingsTests {
                 && DungeonEspSettings.skeletor.color == 0xFF7EB6
                 && DungeonEspSettings.skeletor.mode == DungeonEspSettings.MODE_OUTLINE
                 && DungeonEspSettings.skeletor.outlineWidth == 5
-                && DungeonEspSettings.otherMobs.color == 0xA6E22E
-                && DungeonEspSettings.otherMobs.mode == DungeonEspSettings.MODE_FILLED
-                && DungeonEspSettings.otherMobs.outlineWidth == 4 && !DungeonEspSettings.otherMobs.throughWalls
-                && DungeonEspSettings.forceRenderAllMobs && DungeonEspSettings.includeBats
-                && DungeonEspSettings.includeInvisibleMobs && !DungeonEspSettings.mobLabels
-                && DungeonEspSettings.maxMobLabels == 23 && DungeonEspSettings.doors.fillOpacity == 37
+                && !DungeonEspSettings.mobLabels && DungeonEspSettings.maxMobLabels == 23
+                && DungeonEspSettings.doors.fillOpacity == 37
                 && DungeonEspSettings.doorScope == DungeonEspSettings.DOORS_ALL);
         saved.setProperty("dungeonEsp.maxDistance", "9999");
         saved.setProperty("dungeonEsp.updateIntervalTicks", "0");
@@ -107,6 +97,24 @@ public final class DungeonEspSettingsTests {
                 && DungeonEspSettings.maxMobLabels == DungeonEspSettings.MAX_MOB_LABELS
                 && DungeonEspSettings.starred.outlineWidth == DungeonEspSettings.MIN_WIDTH
                 && DungeonEspSettings.doors.fillOpacity == DungeonEspSettings.MAX_OPACITY);
+    }
+
+    private static void retiredOtherMobSettingsAreSafelyRemoved() {
+        DungeonEspSettings.resetDefaults();
+        Properties legacy = new Properties();
+        legacy.setProperty("dungeonEsp.forceRenderAllMobs", "true");
+        legacy.setProperty("dungeonEsp.includeBats", "true");
+        legacy.setProperty("dungeonEsp.includeInvisibleMobs", "true");
+        legacy.setProperty("dungeonEsp.otherMobs.color", Integer.toString(0xA6E22E));
+        legacy.setProperty("dungeonEsp.otherMobs.outlineWidth", "6");
+        DungeonEspSettings.load(legacy);
+        check("retired room-mob keys load harmlessly without changing active starred styles",
+                DungeonEspSettings.starred.color == 0x32D7FF && DungeonEspSettings.starred.outlineWidth == 2);
+        DungeonEspSettings.save(legacy);
+        check("saving clears retired room-mob keys", !legacy.containsKey("dungeonEsp.forceRenderAllMobs")
+                && !legacy.containsKey("dungeonEsp.includeBats") && !legacy.containsKey("dungeonEsp.includeInvisibleMobs")
+                && !legacy.containsKey("dungeonEsp.otherMobs.color")
+                && !legacy.containsKey("dungeonEsp.otherMobs.outlineWidth"));
     }
 
     private static void presetsRemainDocumented() {

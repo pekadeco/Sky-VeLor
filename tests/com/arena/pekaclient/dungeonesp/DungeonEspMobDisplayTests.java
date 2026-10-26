@@ -19,7 +19,7 @@ public final class DungeonEspMobDisplayTests {
         check("miniboss title", "MINIBOSS".equals(DungeonEspMobDisplay.title(DungeonEspCategory.MINIBOSS)));
         check("special title", "SPECIAL".equals(DungeonEspMobDisplay.title(DungeonEspCategory.SPECIAL)));
         check("Enderman title", "ENDERMAN".equals(DungeonEspMobDisplay.title(DungeonEspCategory.ENDERMAN)));
-        check("other mobs are not mislabeled as starred", "HOSTILE".equals(DungeonEspMobDisplay.title(DungeonEspCategory.OTHER)));
+        check("starred title", "STARRED".equals(DungeonEspMobDisplay.title(DungeonEspCategory.STARRED)));
         check("none has no display label", !DungeonEspMobDisplay.hasTitle(DungeonEspCategory.NONE));
     }
 
@@ -28,10 +28,8 @@ public final class DungeonEspMobDisplayTests {
                 < DungeonEspMobDisplay.priority(DungeonEspCategory.SPECIAL));
         check("special outranks starred", DungeonEspMobDisplay.priority(DungeonEspCategory.SPECIAL)
                 < DungeonEspMobDisplay.priority(DungeonEspCategory.STARRED));
-        check("starred outranks room-wide hostile", DungeonEspMobDisplay.priority(DungeonEspCategory.STARRED)
-                < DungeonEspMobDisplay.priority(DungeonEspCategory.OTHER));
         check("unclassified has no priority slot", DungeonEspMobDisplay.priority(DungeonEspCategory.NONE)
-                > DungeonEspMobDisplay.priority(DungeonEspCategory.OTHER));
+                > DungeonEspMobDisplay.priority(DungeonEspCategory.STARRED));
     }
 
     private static void distanceTextIsBoundedAndAllocationFreeAtCallSites() {

@@ -6,8 +6,7 @@ public enum DungeonEspMatchReason {
     STAR_TAG("starred tag"),
     SPLIT_TAG("split tag stands"),
     REAL_ENDERMAN("real Enderman under tag"),
-    ENDERMAN_HEAD("Enderman-head marker"),
-    FORCE_ROOM_MOB("forced eligible room mob");
+    ENDERMAN_HEAD("Enderman-head marker");
 
     private final String text;
 

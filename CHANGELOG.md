@@ -1,5 +1,21 @@
 # Changelog
 
+## Beta-0.10.9.1.2v — 2026-10-26
+
+- Renamed the visible **Mob ESP** owner to **Starred Mobs** and limited its runtime target set to tagged starred
+  targets and named minibosses. The generic **Other Mobs** style and room-wide force/bat/invisible controls are gone.
+  Existing `dungeonEsp.otherMobs.*` and room-wide fallback keys load harmlessly, then are removed on the next save.
+- Removed the Starred Mobs session-only Copy Style, Apply Copied Style, and Apply Style To All actions.
+- Fixed player-shaped/NPC dungeon bodies being discarded before their nearby star or miniboss tag could create an
+  outline target. Starred NPCs and miniboss NPCs now reach their existing visible outline styles; untagged room mobs
+  still never receive a generic outline.
+- Kept Miniboss's visible `Outline + Filled` default with nonzero outline opacity and added tracker/config/catalog
+  regression coverage for both NPC target selection and the removed controls.
+- Updated display metadata, numeric Forge metadata, build contract, documentation, and verifier examples to
+  `Beta-0.10.9.1.2v` / numeric `0.10.9.1.2`.
+- Player reports identified the pre-fix NPC/miniboss-outline defects. The corrected build still requires a fresh
+  Minecraft 1.8.9 Forge visual pass; the assistant environment has no playable client.
+
 ## Beta-0.10.9.1.1v — 2026-10-26
 
 - Added the literal **SkyVeLor** upper-left settings-header wordmark while retaining exactly the existing

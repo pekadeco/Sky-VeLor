@@ -277,31 +277,27 @@ public final class ReferenceSettingsCatalog {
                             toggle("m7-dragon-ice", "Ice", "Show Ice dragon outline.", "ice dragon"),
                             toggle("m7-dragon-flame", "Flame", "Show Flame dragon outline.", "flame dragon"),
                             reset("m7-reset"))),
-            card("esp", "Dungeon ESP", "Mob and door outlines.", false, "",
-                    masterDropdown("mob-esp-enabled", "Mob ESP", "Show dungeon mob outlines.", "mob esp starred miniboss",
+            card("esp", "Dungeon ESP", "Starred-mob and door outlines.", false, "",
+                    masterDropdown("mob-esp-enabled", "Starred Mobs", "Show starred and miniboss dungeon outlines.",
+                            "starred mobs miniboss dungeon esp",
                             combine(new Setting[]{
                                     slider("esp-max-distance", "Maximum Distance", "Set scan distance.", "esp distance", 8, 160, 1, " blocks"),
                                     slider("esp-update-interval", "Update Interval", "Set scan frequency.", "esp interval", 1, 20, 1, " ticks"),
                                     toggle("esp-hide-zero-health", "Hide Zero Health", "Hide defeated mobs.", "esp health"),
                                     toggle("esp-tracers", "Tracers", "Draw lines to marked mobs.", "esp tracer"),
-                                    toggle("esp-mob-labels", "Mob Labels", "Show mob category labels.", "esp labels"),
-                                    slider("esp-max-mob-labels", "Maximum Labels", "Limit visible labels.", "esp labels", 1, 32, 1, ""),
+                                    toggle("esp-mob-labels", "Starred Mob Labels", "Show marked-target category labels.", "esp labels"),
+                                    slider("esp-max-mob-labels", "Maximum Labels", "Limit visible marked-target labels.", "esp labels", 1, 32, 1, ""),
                                     toggle("esp-distance-text", "Distance Text", "Show distance on labels.", "esp distance text"),
                                     slider("esp-max-boxes", "Maximum Boxes", "Limit visible outlines.", "esp boxes", 8, 128, 1, ""),
                                     action("esp-default-preset", "Default Preset", "Use high-visibility colors.", "esp preset", "Apply Default"),
                                     action("esp-subtle-preset", "Subtle Preset", "Use lower-noise colors.", "esp preset", "Apply Subtle"),
-                                    caption("esp-starred-caption", "Mob Styles")},
+                                    caption("esp-starred-caption", "Starred Mob Styles")},
                                     mobStyleRows("esp-starred", "Starred Mob", "Show starred mob outlines."),
                                     mobStyleRows("esp-miniboss", "Miniboss", "Show miniboss outlines."),
                                     mobStyleRows("esp-special", "Special Starred Mob", "Show special mob outlines."),
                                     mobStyleRows("esp-enderman", "Enderman", "Show Enderman outlines."),
                                     mobStyleRows("esp-skeletor", "Skeletor", "Show Skeletor outlines."),
-                                    mobStyleRows("esp-other", "Other Mobs", "Show other room mobs."),
-                                    new Setting[]{
-                                            toggle("esp-force-all", "Force All Room Mobs", "Show eligible room mobs.", "esp force"),
-                                            toggle("esp-include-bats", "Include Bats", "Include bats with room mobs.", "esp bats"),
-                                            toggle("esp-include-invisible", "Include Invisible Mobs", "Include invisible room mobs.", "esp invisible"),
-                                            reset("esp-reset")})),
+                                    new Setting[]{reset("esp-reset")})),
                     masterDropdown("door-esp-enabled", "Door ESP", "Show closed dungeon doors.", "door esp wither blood",
                             combine(new Setting[]{
                                     choice("door-scope", "Door Scope", "Choose nearby or all doors.", "door scope",
@@ -693,12 +689,12 @@ public final class ReferenceSettingsCatalog {
                 hasToggle, actionId);
     }
 
-    /** A flat Mob ESP group: category toggle followed by all of its style controls. */
+    /** A flat Starred Mobs group: category toggle followed by all of its style controls. */
     private static Setting[] mobStyleRows(String id, String label, String description) {
-        return combine(new Setting[]{toggle(id, label, description, "mob esp style")}, mobStyleControls(id, label));
+        return combine(new Setting[]{toggle(id, label, description, "starred mobs style")}, mobStyleControls(id, label));
     }
 
-    /** Flat style controls are inserted immediately after each Mob category. */
+    /** Flat style controls are inserted immediately after each starred-target category. */
     private static Setting[] mobStyleControls(String id, String label) {
         return new Setting[]{
                 choice(id + "-color", label + " Color", "Choose an outline color.", "esp color",
@@ -708,10 +704,7 @@ public final class ReferenceSettingsCatalog {
                 toggle(id + "-walls", label + " Through Walls", "Show this category through blocks.", "esp walls"),
                 slider(id + "-width", label + " Outline Width", "Set outline thickness.", "esp width", 1, 6, 1, " px"),
                 slider(id + "-outline-opacity", label + " Outline Opacity", "Set outline opacity.", "esp opacity", 0, 100, 5, "%"),
-                slider(id + "-fill-opacity", label + " Fill Opacity", "Set fill opacity.", "esp opacity", 0, 100, 5, "%"),
-                action(id + "-copy", "Copy " + label + " Style", "Copy this style for this session.", "esp copy", "Copy"),
-                action(id + "-apply", "Apply Copied Style", "Apply the copied style here.", "esp apply", "Apply"),
-                action(id + "-apply-all", "Apply Style To All", "Apply this style to all mob groups.", "esp apply all", "Apply To All")
+                slider(id + "-fill-opacity", label + " Fill Opacity", "Set fill opacity.", "esp opacity", 0, 100, 5, "%")
         };
     }
 

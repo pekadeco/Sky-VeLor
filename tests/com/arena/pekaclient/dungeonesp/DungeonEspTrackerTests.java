@@ -16,7 +16,7 @@ public final class DungeonEspTrackerTests {
         skeletorGetsDedicatedCategoryAcrossSplitTags();
         nearestUnmatchedBodiesAndDeathsAreHandled();
         realAndHeadEndermenAreHandled();
-        forcedRoomMobsIncludeOnlyEligibleAndNeverDuplicateTags();
+        taggedNpcBodiesAreSelectedWhileUntaggedMobsStayExcluded();
         mockFiveHundredEntitySteadyStateReusesStorage();
         done();
     }
@@ -127,41 +127,28 @@ public final class DungeonEspTrackerTests {
                 && marker.matchReason == DungeonEspMatchReason.ENDERMAN_HEAD);
     }
 
-    private static void forcedRoomMobsIncludeOnlyEligibleAndNeverDuplicateTags() {
+    private static void taggedNpcBodiesAreSelectedWhileUntaggedMobsStayExcluded() {
         DungeonEspTracker tracker = new DungeonEspTracker();
-        MockSource world = new MockSource(9);
-        world.setForceMob(0, 100, 1D, 64D, 1D, true, false, false, false, false, false);
-        world.setForceMob(1, 101, 2D, 64D, 1D, false, true, false, false, false, false);
-        world.setForceMob(2, 102, 3D, 64D, 1D, true, false, true, false, false, false);
-        world.setForceMob(3, 103, 4D, 64D, 1D, false, false, false, false, false, false);
-        world.setForceMob(4, 104, 5D, 64D, 1D, true, false, false, true, false, false);
-        world.setForceMob(5, 105, 6D, 64D, 1D, true, false, false, false, true, false);
-        world.setForceMob(6, 106, 7D, 64D, 1D, true, false, false, false, false, true);
-        world.setForceMob(7, 107, 100D, 64D, 1D, true, false, false, false, false, false);
-        world.setForceMob(8, 108, 1D, 130D, 1D, true, false, false, false, false, false);
-        tracker.scan(world, 0D, 64D, 0D, 60D, true, false, false, false);
-        check("force rendering is off by default at scanner boundary", tracker.trackedCount() == 0);
-        tracker.scan(world, 0D, 64D, 0D, 60D, true, true, false, false);
-        DungeonEspTracker.TrackedMob hostile = find(tracker, 100);
-        check("only ordinary eligible hostile is forced", tracker.trackedCount() == 1 && hostile != null
-                && hostile.category == DungeonEspCategory.OTHER
-                && hostile.matchReason == DungeonEspMatchReason.FORCE_ROOM_MOB);
-        tracker.scan(world, 0D, 64D, 0D, 60D, true, true, true, true);
-        check("bat and invisible options opt in independently", tracker.trackedCount() == 3
-                && find(tracker, 101) != null && find(tracker, 102) != null);
-        check("passive NPC pet dead and out-of-range candidates stay excluded", find(tracker, 103) == null
-                && find(tracker, 104) == null && find(tracker, 105) == null && find(tracker, 106) == null
-                && find(tracker, 107) == null && find(tracker, 108) == null);
+        MockSource world = new MockSource(5);
+        Object starredNpc = new Object();
+        Object minibossNpc = new Object();
+        world.setTag(0, 200, 2D, 66.7D, 2D, "\u272e [Lv100] Zombie");
+        world.setNpcPlayer(1, 201, 2D, 64D, 2D, 1.8D, 100F, starredNpc);
+        world.setTag(2, 202, 8D, 66.7D, 2D, "Shadow Assassin");
+        world.setNpcPlayer(3, 203, 8D, 64D, 2D, 1.8D, 100F, minibossNpc);
+        world.setLiving(4, 204, 14D, 64D, 2D, 1.8D, 100F, new Object());
+        tracker.scan(world, 0D, 64D, 0D, 60D, true);
 
-        DungeonEspTracker taggedTracker = new DungeonEspTracker();
-        MockSource taggedWorld = new MockSource(2);
-        taggedWorld.setTag(0, 200, 10D, 66.7D, 10D, "\u272e [Lv100] Zombie");
-        taggedWorld.setForceMob(1, 201, 10D, 64D, 10D, true, false, false, false, false, false);
-        taggedTracker.scan(taggedWorld, 0D, 64D, 0D, 60D, true, true, true, true);
-        DungeonEspTracker.TrackedMob tagged = find(taggedTracker, 201);
-        check("starred target is never double-boxed as Other", taggedTracker.trackedCount() == 1 && tagged != null
-                && tagged.category == DungeonEspCategory.STARRED
-                && tagged.matchReason == DungeonEspMatchReason.STAR_TAG);
+        DungeonEspTracker.TrackedMob starred = find(tracker, 201);
+        DungeonEspTracker.TrackedMob miniboss = find(tracker, 203);
+        check("starred player-shaped NPC gets a real outline target", starred != null && starred.reference == starredNpc
+                && starred.category == DungeonEspCategory.STARRED
+                && starred.matchReason == DungeonEspMatchReason.STAR_TAG);
+        check("player-shaped miniboss NPC gets a real outline target", miniboss != null && miniboss.reference == minibossNpc
+                && miniboss.category == DungeonEspCategory.MINIBOSS
+                && miniboss.matchReason == DungeonEspMatchReason.STAR_TAG);
+        check("untagged room bodies never become a generic Other Mobs outline", tracker.trackedCount() == 2
+                && find(tracker, 204) == null);
     }
 
     /** A stable mock room must reuse the same fixed arrays/map instead of manufacturing per-scan collections. */
@@ -247,16 +234,11 @@ public final class DungeonEspTrackerTests {
             setLiving(index, id, x, y, z, height, health, ref);
             entities[index].enderman = true;
         }
-        void setForceMob(int index, int id, double x, double y, double z, boolean hostile, boolean bat,
-                         boolean invisible, boolean npc, boolean pet, boolean dead) {
-            setLiving(index, id, x, y, z, 1.8D, dead ? 0F : 100F, new Object());
+        void setNpcPlayer(int index, int id, double x, double y, double z, double height, float health, Object ref) {
+            setLiving(index, id, x, y, z, height, health, ref);
             Mock m = entities[index];
-            m.hostile = hostile;
-            m.bat = bat;
-            m.invisible = invisible;
-            m.npc = npc;
-            m.pet = pet;
-            m.dead = dead;
+            m.player = true;
+            m.npc = true;
         }
         void setPlayer(int index, int id, double x, double y, double z) {
             Mock m = entities[index];

@@ -4,14 +4,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/** Verifies every former Mob/Door ESP editor value is reachable in the compact inline tables. */
+/** Verifies the simplified Starred Mobs and retained Door ESP values are reachable in the compact inline tables. */
 public final class InlineEspCatalogTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
         globalAndDoorControlsRemainReachable();
-        everyMobStyleHasItsFullValueSet();
+        everyStarredMobStyleHasDirectControlsOnly();
+        removedRoomWideAndClipboardControlsStayAbsent();
         doorStylesKeepTheSharedValueSetWithoutExtraActions();
         nestedSearchOpensTheCorrectTables();
         done();
@@ -27,14 +28,26 @@ public final class InlineEspCatalogTests {
         for (String id : ids) check("ESP option preserved: " + id, ReferenceSettingsCatalog.find(id) != null);
         check("masters remain compact dropdown owners", ReferenceSettingsCatalog.find("mob-esp-enabled").isDropdown()
                 && ReferenceSettingsCatalog.find("door-esp-enabled").isDropdown());
+        check("visible master name is Starred Mobs", "Starred Mobs".equals(ReferenceSettingsCatalog.find("mob-esp-enabled").label));
     }
 
-    private static void everyMobStyleHasItsFullValueSet() {
-        String[] styles = {"esp-starred", "esp-miniboss", "esp-special", "esp-enderman", "esp-skeletor", "esp-other"};
-        String[] suffixes = {"", "-color", "-mode", "-walls", "-width", "-outline-opacity", "-fill-opacity", "-copy", "-apply", "-apply-all"};
+    private static void everyStarredMobStyleHasDirectControlsOnly() {
+        String[] styles = {"esp-starred", "esp-miniboss", "esp-special", "esp-enderman", "esp-skeletor"};
+        String[] suffixes = {"", "-color", "-mode", "-walls", "-width", "-outline-opacity", "-fill-opacity"};
         for (String style : styles) {
-            for (String suffix : suffixes) check("Mob style option preserved: " + style + suffix,
+            for (String suffix : suffixes) check("Starred Mob style option retained: " + style + suffix,
                     ReferenceSettingsCatalog.find(style + suffix) != null);
+        }
+    }
+
+    private static void removedRoomWideAndClipboardControlsStayAbsent() {
+        String[] roomWide = {"esp-other", "esp-force-all", "esp-include-bats", "esp-include-invisible"};
+        for (String id : roomWide) check("removed ESP control stays absent: " + id, ReferenceSettingsCatalog.find(id) == null);
+        String[] styles = {"esp-starred", "esp-miniboss", "esp-special", "esp-enderman", "esp-skeletor"};
+        String[] actions = {"-copy", "-apply", "-apply-all"};
+        for (String style : styles) for (String action : actions) {
+            check("removed style action stays absent: " + style + action,
+                    ReferenceSettingsCatalog.find(style + action) == null);
         }
     }
 
@@ -54,7 +67,7 @@ public final class InlineEspCatalogTests {
         }
         List<String> parents = new ArrayList<String>();
         if (match != null) for (ReferenceSettingsCatalog.Setting parent : match.parents) parents.add(parent.id);
-        check("style search opens the one flat Mob ESP owner", parents.equals(Arrays.asList("mob-esp-enabled")));
+        check("style search opens the one flat Starred Mobs owner", parents.equals(Arrays.asList("mob-esp-enabled")));
     }
 
     private static void check(String name, boolean okay) {

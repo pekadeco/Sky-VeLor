@@ -1,12 +1,18 @@
-# Sky VeLor — Beta-0.10.9.1.1v
+# Sky VeLor — Beta-0.10.9.1.2v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.1v — feature-oriented GUI refresh
+## Beta-0.10.9.1.2v — Starred Mobs targeting and outline repair
 
-- Adds a visible **SkyVeLor** wordmark at the upper-left of the settings header. The title bar still has
+- Renames the visible **Mob ESP** owner to **Starred Mobs**. It now targets only star-tagged dungeon mobs and named
+  minibosses; the generic **Other Mobs** room fallback and its force/bat/invisible controls are removed.
+- Fixes player-shaped/NPC starred mobs and minibosses being discarded before their tag could create a live outline
+  target. Untagged room mobs remain excluded, while Miniboss retains its existing visible outline style.
+- Removes the Starred Mobs Copy Style, Apply Copied Style, and Apply Style To All actions. Retired room-wide keys
+  load harmlessly and are cleared on the next normal save.
+- Retains a visible **SkyVeLor** wordmark at the upper-left of the settings header. The title bar still has
   exactly two 24 px actions: **Fullscreen** and **Close**; drag, Escape, tooltips, hover/press feedback,
   fullscreen persistence, and the existing close behavior remain intact.
 - Renames only the visible eight-route rail to **Home → Player → Dungeons → Farming → Mining → Fishing →
@@ -28,13 +34,14 @@ Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
 [`docs/FEATURE-SETTINGS-EDITOR.md`](docs/FEATURE-SETTINGS-EDITOR.md).
 
-> **NOT tested in-game.** Automated build, test, renderer, and archive verification do not start
-> Minecraft or validate visual/input behavior in a real 1.8.9 Forge client.
+> A player supplied in-game evidence of the pre-fix NPC/miniboss outline defects. Automated build, test,
+> renderer, and archive verification still do not start Minecraft, so the corrected behavior needs a fresh visual/input
+> pass in a real 1.8.9 Forge client.
 
 ## Features
 
 - Native settings shell and movable HUD editor with an Apple-inspired graphite-glass visual system and blue accent.
-- Dungeon map with room/puzzle templates, party labels, cached Mob/Door ESP, Floor VII overlays,
+- Dungeon map with room/puzzle templates, party labels, cached Starred Mobs/Door ESP, Floor VII overlays,
   dragon alerts, Spirit Leap helpers, and an optional read-only Click in Order helper.
 - Item Animation: live first-person X/Y/Z, scale, hit/slash controls, bounded persistence,
   reset actions, and a renderer-only Preview Swing.
@@ -74,7 +81,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.1v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -85,8 +92,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.1v.jar \
-  --version Beta-0.10.9.1.1v --mcmod-version 0.10.9.1.1
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar \
+  --version Beta-0.10.9.1.2v --mcmod-version 0.10.9.1.2
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -94,8 +101,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1.1v-source.zip \
-  --version Beta-0.10.9.1.1v
+  SkyVeLor-1.8.9-Beta-0.10.9.1.2v-source.zip \
+  --version Beta-0.10.9.1.2v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -105,7 +112,7 @@ and unrelated archives do not belong in the source ZIP.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.1v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
@@ -115,6 +122,8 @@ and unrelated archives do not belong in the source ZIP.
   VeLor**; no controls screen is launched from the settings shell.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
+- **Dungeons → Dungeon ESP → Starred Mobs** owns Starred Mob, Miniboss, Special Starred Mob, Enderman, and
+  Skeletor styles. NPC/player-shaped bodies are eligible only when a nearby dungeon tag selects them.
 - **HUD & Visuals → HUD → HUD Editor** opens the allowed editor for HUD and map placement.
 - **HUD & Visuals → Item Animation → Edit** opens the standalone left-edge renderer panel. Its live
   values affect only Minecraft's first-person hand path; it neither sends packets nor changes attack,

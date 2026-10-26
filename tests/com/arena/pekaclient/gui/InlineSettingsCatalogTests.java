@@ -76,7 +76,7 @@ public final class InlineSettingsCatalogTests {
                         && ReferenceSettingsCatalog.ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
         check("Terminal Helper is a no-master dropdown", ReferenceSettingsCatalog.find("terminal-assist") != null
                 && ReferenceSettingsCatalog.find("terminal-assist").control == ReferenceSettingsCatalog.Control.DROPDOWN);
-        check("Mob and Door ESP keep every flat style control", ReferenceSettingsCatalog.find("esp-starred-color") != null
+        check("Starred Mobs and Door ESP keep every flat style control", ReferenceSettingsCatalog.find("esp-starred-color") != null
                 && ReferenceSettingsCatalog.find("door-style-color") != null
                 && !ReferenceSettingsCatalog.find("esp-starred").isDropdown()
                 && !ReferenceSettingsCatalog.find("door-wither-style").isDropdown());

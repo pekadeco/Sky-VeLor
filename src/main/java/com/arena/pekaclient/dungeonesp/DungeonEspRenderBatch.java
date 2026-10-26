@@ -254,7 +254,7 @@ public final class DungeonEspRenderBatch {
         }
         if (!DungeonEspSettings.mobLabels || DungeonEspSettings.maxMobLabels <= 0) return;
         int remaining = DungeonEspMobDisplay.clampLabelCount(DungeonEspSettings.maxMobLabels);
-        for (int priority = 0; priority <= 5 && remaining > 0; priority++) {
+        for (int priority = 0; priority <= 4 && remaining > 0; priority++) {
             for (int i = 0; i < renderedMobCount && remaining > 0; i++) {
                 RenderBox candidate = boxes[i];
                 if (DungeonEspMobDisplay.priority(candidate.category) != priority
@@ -477,7 +477,6 @@ public final class DungeonEspRenderBatch {
         if (category == DungeonEspCategory.SPECIAL) return DungeonEspSettings.special;
         if (category == DungeonEspCategory.ENDERMAN) return DungeonEspSettings.enderman;
         if (category == DungeonEspCategory.SKELETOR) return DungeonEspSettings.skeletor;
-        if (category == DungeonEspCategory.OTHER) return DungeonEspSettings.otherMobs;
         return null;
     }
 

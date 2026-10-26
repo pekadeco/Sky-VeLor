@@ -1,9 +1,9 @@
 package com.arena.pekaclient.dungeonesp;
 
 /**
- * Fixed-storage tick scanner for dungeon ESP. It owns preallocated candidate/tag arrays and an int-key map so a
- * stable room produces no scanner-side collection, iterator, boxing, or lambda allocation. The Minecraft adapter
- * fills one {@link MutableEntity} repeatedly; tests can supply a mock world.
+ * Fixed-storage tick scanner for starred dungeon ESP. It owns preallocated candidate/tag arrays and an int-key map
+ * so a stable room produces no scanner-side collection, iterator, boxing, or lambda allocation. The Minecraft
+ * adapter fills one {@link MutableEntity} repeatedly; tests can supply a mock world.
  */
 public final class DungeonEspTracker {
 
@@ -37,7 +37,7 @@ public final class DungeonEspTracker {
         public boolean enderman;
         /** True for an armor stand carrying the recognized Dungeon Enderman-head marker. */
         public boolean endermanHead;
-        /** Force-render classification supplied by the Minecraft adapter; normal tag matching remains separate. */
+        /** Source metadata retained for diagnostics and test fixtures; only tagged living candidates are selected. */
         public boolean hostile;
         public boolean bat;
         public boolean invisible;
@@ -119,10 +119,6 @@ public final class DungeonEspTracker {
         boolean dead;
         boolean enderman;
         boolean directEndermanMarker;
-        boolean hostile;
-        boolean bat;
-        boolean invisible;
-        boolean npc;
         boolean pet;
         boolean matched;
         Object reference;
@@ -137,10 +133,6 @@ public final class DungeonEspTracker {
             dead = entity.dead;
             enderman = entity.enderman;
             directEndermanMarker = directMarker;
-            hostile = entity.hostile;
-            bat = entity.bat;
-            invisible = entity.invisible;
-            npc = entity.npc;
             pet = entity.pet;
             matched = false;
             reference = entity.reference;
@@ -188,20 +180,12 @@ public final class DungeonEspTracker {
         for (int i = 0; i < values.length; i++) values[i] = new TrackedMob();
     }
 
-    /** Compatibility entry point for ordinary starred ESP scans with force-rendering disabled. */
-    public void scan(EntitySource source, double playerX, double playerY, double playerZ,
-                     double maxDistance, boolean hideZeroHealth) {
-        scan(source, playerX, playerY, playerZ, maxDistance, hideZeroHealth, false, false, false);
-    }
-
     /**
-     * Timer-only scan including the optional all-hostile room fallback. When no room boundary is available from the
-     * dungeon map, that fallback is deliberately bounded by the configured horizontal distance and the same vertical
-     * range instead of wandering through loaded rooms.
+     * Timer-only scan for tags and their living bodies. The candidate pool may include player-shaped/NPC bodies, but
+     * an entity becomes a target only when a nearby dungeon star or named miniboss tag selects it.
      */
     public void scan(EntitySource source, double playerX, double playerY, double playerZ,
-                     double maxDistance, boolean hideZeroHealth, boolean forceRenderAllMobs,
-                     boolean includeBats, boolean includeInvisibleMobs) {
+                     double maxDistance, boolean hideZeroHealth) {
         candidateCount = 0;
         tagCount = 0;
         droppedCandidates = 0;
@@ -228,7 +212,9 @@ public final class DungeonEspTracker {
                 if (DungeonEspMatcher.isTagCandidate(scratch.name)) addTag(scratch);
                 continue;
             }
-            if (!scratch.living || scratch.player || scratch.dead || scratch.npc || scratch.pet
+            // Hypixel can represent starred bodies and minibosses as player-shaped NPC entities. Keep every live,
+            // non-pet body eligible here; untagged players/NPCs still never render because only tags create records.
+            if (!scratch.living || scratch.dead || scratch.pet
                     || (hideZeroHealth && !Float.isNaN(scratch.health) && scratch.health <= 0F)) {
                 continue;
             }
@@ -253,9 +239,6 @@ public final class DungeonEspTracker {
             if (candidate.directEndermanMarker) {
                 upsert(candidate.id, DungeonEspCategory.ENDERMAN, DungeonEspMatchReason.ENDERMAN_HEAD, candidate);
             }
-        }
-        if (forceRenderAllMobs) {
-            addForcedRoomMobs(playerX, playerY, playerZ, maxDistance, includeBats, includeInvisibleMobs);
         }
         removeUnseen();
     }
@@ -388,22 +371,6 @@ public final class DungeonEspTracker {
             }
         }
         return best;
-    }
-
-    /** Adds only unpaired, eligible hostile candidates; tagged/miniboss records are already marked matched. */
-    private void addForcedRoomMobs(double playerX, double playerY, double playerZ, double maxDistance,
-                                   boolean includeBats, boolean includeInvisibleMobs) {
-        double maxHorizontalSq = maxDistance * maxDistance;
-        for (int i = 0; i < candidateCount; i++) {
-            Candidate candidate = candidates[i];
-            if (candidate.matched || candidate.directEndermanMarker || candidate.npc || candidate.pet) continue;
-            if (!candidate.hostile && !(includeBats && candidate.bat)) continue;
-            if (!includeInvisibleMobs && candidate.invisible) continue;
-            double dx = candidate.x - playerX;
-            double dz = candidate.z - playerZ;
-            if (dx * dx + dz * dz > maxHorizontalSq || Math.abs(candidate.y - playerY) > maxDistance) continue;
-            upsert(candidate.id, DungeonEspCategory.OTHER, DungeonEspMatchReason.FORCE_ROOM_MOB, candidate);
-        }
     }
 
     private void upsert(int entityId, DungeonEspCategory category, DungeonEspMatchReason reason, Candidate candidate) {

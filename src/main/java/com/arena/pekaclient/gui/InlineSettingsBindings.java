@@ -21,7 +21,6 @@ import com.arena.pekaclient.slayer.SlayerType;
  * tests independent of Minecraft drawing.</p>
  */
 final class InlineSettingsBindings {
-    private static final StyleClipboard STYLE_CLIPBOARD = new StyleClipboard();
 
     private InlineSettingsBindings() { }
 
@@ -84,9 +83,6 @@ final class InlineSettingsBindings {
 
         if ("mob-esp-enabled".equals(id)) return DungeonEspSettings.enabled;
         if ("door-esp-enabled".equals(id)) return DungeonEspSettings.doorsEnabled;
-        if ("esp-force-all".equals(id)) return DungeonEspSettings.forceRenderAllMobs;
-        if ("esp-include-bats".equals(id)) return DungeonEspSettings.includeBats;
-        if ("esp-include-invisible".equals(id)) return DungeonEspSettings.includeInvisibleMobs;
         if ("esp-hide-zero-health".equals(id)) return DungeonEspSettings.hideZeroHealth;
         if ("esp-tracers".equals(id)) return DungeonEspSettings.tracers;
         if ("esp-mob-labels".equals(id)) return DungeonEspSettings.mobLabels;
@@ -188,9 +184,6 @@ final class InlineSettingsBindings {
 
         else if ("mob-esp-enabled".equals(id)) DungeonEspSettings.enabled = value;
         else if ("door-esp-enabled".equals(id)) DungeonEspSettings.doorsEnabled = value;
-        else if ("esp-force-all".equals(id)) DungeonEspSettings.forceRenderAllMobs = value;
-        else if ("esp-include-bats".equals(id)) DungeonEspSettings.includeBats = value;
-        else if ("esp-include-invisible".equals(id)) DungeonEspSettings.includeInvisibleMobs = value;
         else if ("esp-hide-zero-health".equals(id)) DungeonEspSettings.hideZeroHealth = value;
         else if ("esp-tracers".equals(id)) DungeonEspSettings.tracers = value;
         else if ("esp-mob-labels".equals(id)) DungeonEspSettings.mobLabels = value;
@@ -466,13 +459,6 @@ final class InlineSettingsBindings {
         if ("esp-default-preset".equals(id) || "door-default-preset".equals(id)) { DungeonEspSettings.applyDefaultPreset(); return true; }
         if ("esp-subtle-preset".equals(id) || "door-subtle-preset".equals(id)) { DungeonEspSettings.applySubtlePreset(); return true; }
         if ("esp-reset".equals(id) || "door-reset".equals(id)) { DungeonEspSettings.resetDefaults(); return true; }
-        if (id != null && id.endsWith("-copy")) { STYLE_CLIPBOARD.copy(styleForAction(id)); return true; }
-        if (id != null && id.endsWith("-apply")) { STYLE_CLIPBOARD.apply(styleForAction(id)); return true; }
-        if (id != null && id.endsWith("-apply-all")) {
-            DungeonEspSettings.Style source = styleForAction(id);
-            if (source != null) applyStyleToAllMobs(source);
-            return true;
-        }
         return false;
     }
 
@@ -482,7 +468,6 @@ final class InlineSettingsBindings {
         if ("esp-special".equals(id)) return DungeonEspSettings.special;
         if ("esp-enderman".equals(id)) return DungeonEspSettings.enderman;
         if ("esp-skeletor".equals(id)) return DungeonEspSettings.skeletor;
-        if ("esp-other".equals(id)) return DungeonEspSettings.otherMobs;
         if (id != null && id.endsWith("-walls")) return styleForValue(id);
         return null;
     }
@@ -494,67 +479,11 @@ final class InlineSettingsBindings {
         if (id.startsWith("esp-special-")) return DungeonEspSettings.special;
         if (id.startsWith("esp-enderman-")) return DungeonEspSettings.enderman;
         if (id.startsWith("esp-skeletor-")) return DungeonEspSettings.skeletor;
-        if (id.startsWith("esp-other-")) return DungeonEspSettings.otherMobs;
         if (id.startsWith("door-style-")) return DungeonEspSettings.doors;
         return null;
     }
 
-    private static DungeonEspSettings.Style styleForAction(String id) {
-        if (id == null) return null;
-        String base = id;
-        if (base.endsWith("-apply-all")) base = base.substring(0, base.length() - "-apply-all".length());
-        else if (base.endsWith("-copy")) base = base.substring(0, base.length() - "-copy".length());
-        else if (base.endsWith("-apply")) base = base.substring(0, base.length() - "-apply".length());
-        return styleForToggle(base) != null ? styleForToggle(base) : ("door-style".equals(base) ? DungeonEspSettings.doors : null);
-    }
-
-    private static void applyStyleToAllMobs(DungeonEspSettings.Style source) {
-        STYLE_CLIPBOARD.copy(source);
-        STYLE_CLIPBOARD.apply(DungeonEspSettings.starred);
-        STYLE_CLIPBOARD.apply(DungeonEspSettings.miniboss);
-        STYLE_CLIPBOARD.apply(DungeonEspSettings.special);
-        STYLE_CLIPBOARD.apply(DungeonEspSettings.enderman);
-        STYLE_CLIPBOARD.apply(DungeonEspSettings.skeletor);
-        STYLE_CLIPBOARD.apply(DungeonEspSettings.otherMobs);
-    }
-
     private static int clamp(int value, int minimum, int maximum) {
         return Math.max(minimum, Math.min(maximum, value));
-    }
-
-    /** Session-only style clipboard; it does not add any persisted key. */
-    private static final class StyleClipboard {
-        private boolean hasValue;
-        private boolean enabled;
-        private int color;
-        private int mode;
-        private boolean throughWalls;
-        private int outlineWidth;
-        private int outlineOpacity;
-        private int fillOpacity;
-
-        void copy(DungeonEspSettings.Style style) {
-            if (style == null) return;
-            hasValue = true;
-            enabled = style.enabled;
-            color = style.color;
-            mode = style.mode;
-            throughWalls = style.throughWalls;
-            outlineWidth = style.outlineWidth;
-            outlineOpacity = style.outlineOpacity;
-            fillOpacity = style.fillOpacity;
-        }
-
-        void apply(DungeonEspSettings.Style style) {
-            if (!hasValue || style == null) return;
-            style.enabled = enabled;
-            style.color = color;
-            style.mode = mode;
-            style.throughWalls = throughWalls;
-            style.outlineWidth = outlineWidth;
-            style.outlineOpacity = outlineOpacity;
-            style.fillOpacity = fillOpacity;
-            DungeonEspSettings.normalize();
-        }
     }
 }

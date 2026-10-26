@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.1v
+# Apple settings inventory — Beta-0.10.9.1.2v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -57,8 +57,14 @@ dropdown was added.
 - **Boss Health HUD** is a master toggle plus **Edit**.
 - **HUD Editor** is an **Edit** row.
 - **Item Animation** is a master toggle plus **Edit**.
-- Map, Item Lock / Swap, inventory, movement, Slayer, M7, Mob/Door ESP, mining, fishing, and Misc
-  owners retain their existing option ids and configuration owners.
+- **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its five retained target styles
+  are Starred Mob, Miniboss, Special Starred Mob, Enderman, and Skeletor. Player-shaped/NPC bodies remain eligible
+  when their nearby tag selects them, so their existing outline styles render normally.
+- The former Other Mobs/Force All Room Mobs fallback and session-only Copy/Apply style actions are absent. Historic
+  `dungeonEsp.otherMobs.*`, `forceRenderAllMobs`, `includeBats`, and `includeInvisibleMobs` keys load harmlessly
+  and are removed on the next normal save.
+- Map, Item Lock / Swap, inventory, movement, Slayer, M7, Starred Mobs/Door ESP, mining, fishing, and Misc
+  owners retain their active option ids and configuration owners.
 - **Misc → Appearance** exposes **Custom GUI Transparency** plus **GUI Transparency**. These controls retain
   the established `glassOpacityOn` and `glassOpacity` keys: disabling the custom toggle uses the default glass
   opacity without discarding the saved value, and the 45%–100% slider range makes lower opacity visibly useful.
@@ -87,7 +93,7 @@ Animation values continue to load unchanged.
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.1v text |
+| Earlier player-facing text | Beta-0.10.9.1.2v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -99,6 +105,9 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 | `Message sound` | `Message Sound` |
 | `Open chat background` | `Open Chat Background` |
 | `Item Animation Editor` route | `Item Animation` with `[Edit]` |
+| `Mob ESP` | `Starred Mobs` |
+| `Other Mobs`, Force All Room Mobs, bat/invisible controls | Removed; legacy keys clean up on save |
+| Copy Style, Apply Copied Style, Apply Style To All | Removed |
 | `HOOK ACTIVE — …` | `Hook: active` |
 | `HOOK INACTIVE — …` | `Hook: failed (reason)` or `Hook: checking` |
 
@@ -127,8 +136,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.1v.jar \
-  --version Beta-0.10.9.1.1v --mcmod-version 0.10.9.1.1
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar \
+  --version Beta-0.10.9.1.2v --mcmod-version 0.10.9.1.2
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

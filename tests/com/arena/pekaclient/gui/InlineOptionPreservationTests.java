@@ -29,9 +29,9 @@ public final class InlineOptionPreservationTests {
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
                 "dungeon-map", "dungeon-map-player-names", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
                 "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
-                "esp-enderman", "esp-force-all", "esp-hide-zero-health", "esp-include-bats", "esp-include-invisible",
-                "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels", "esp-miniboss", "esp-mob-labels", "esp-other",
-                "esp-skeletor", "esp-special", "esp-starred", "esp-tracers", "esp-update-interval", "fishing-festival",
+                "esp-enderman", "esp-hide-zero-health", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
+                "esp-miniboss", "esp-mob-labels", "esp-skeletor", "esp-special", "esp-starred", "esp-tracers",
+                "esp-update-interval", "fishing-festival",
                 "global-scroll", "hide-potions", "hud-inventory", "hud-player-doll", "hurt-camera-shake", "item-animation",
                 "item-lock-badge-color", "item-lock-badge-opacity", "item-lock-cooldown", "item-lock-hotbar", "item-lock-icons",
                 "item-lock-line-color", "item-lock-line-mode", "item-lock-line-opacity", "item-lock-line-width", "item-lock-message",
@@ -49,10 +49,9 @@ public final class InlineOptionPreservationTests {
         addStyleOptions(expected, "esp-special");
         addStyleOptions(expected, "esp-enderman");
         addStyleOptions(expected, "esp-skeletor");
-        addStyleOptions(expected, "esp-other");
         addStyleOptions(expected, "door-style");
         Set<String> actual = new HashSet<String>(ReferenceSettingsCatalog.configurableIds());
-        check("every old persisted option remains after presentation flattening", actual.equals(expected));
+        check("every retained persisted option remains after the directed Starred Mobs simplification", actual.equals(expected));
         check("the option inventory has no duplicate ids", actual.size() == ReferenceSettingsCatalog.configurableIds().size());
     }
 

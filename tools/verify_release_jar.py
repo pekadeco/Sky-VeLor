@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.1v] [--mcmod-version 0.10.9.1.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.2v] [--mcmod-version 0.10.9.1.2]
 """
 
 import argparse
@@ -347,8 +347,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.2v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.2')
     args = ap.parse_args()
 
     path = args.jar
@@ -551,9 +551,9 @@ def main():
             'catalog packages the requested feature-oriented eight-tab sidebar, empty Farming message, and genuine Mining/Fishing moves')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Dungeon Map', b'Terminal Helper', b'Spirit Leap Picker', b'Boss Health HUD', b'Floor VII Overlay',
-                 b'Mob ESP', b'Door ESP', b'Maxor', b'Storm', b'Goldor', b'Necron', b'Power', b'Apex', b'Soul',
+                 b'Starred Mobs', b'Door ESP', b'Maxor', b'Storm', b'Goldor', b'Necron', b'Power', b'Apex', b'Soul',
                  b'Ice', b'Flame', b'Item Lock And Swap')),
-            'flat Dungeons category retains map, no-master Terminal Helper, Spirit Leap, boss HUD, M7 and Mob/Door controls')
+            'flat Dungeons category retains map, no-master Terminal Helper, Spirit Leap, boss HUD, M7 and Starred Mobs/Door controls')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Background', b'Messages', b'Tabs', b'Click Menu', b'Reset to defaults', b'Add Custom Tab',
                  b'Accent Color', b'Filter Type', b'Message Sound', b'Open Chat Background'))
@@ -630,20 +630,26 @@ def main():
                  'Cyan', 'Gold', 'Purple')),
             'DungeonEspSettings packages the persisted modes, door scope and color palette')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Force All Room Mobs', b'Wither Door Style', b'Blood Door Color', b'Apply Copied Style',
-                 b'Apply Style To All', b'Mob Labels', b'Maximum Labels'))
+                (b'Starred Mobs', b'Wither Door Style', b'Blood Door Color', b'Starred Mob Labels', b'Maximum Labels'))
+                and all(value not in reference_catalog_raw for value in
+                        (b'Other Mobs', b'Force All Room Mobs', b'Include Bats', b'Include Invisible Mobs',
+                         b'Copy Starred Mob Style', b'Apply Copied Style', b'Apply Style To All'))
                 and b'drawStyledBox' in esp_batch_raw,
-            'flat ESP tables retain every cached Mob/Door control without a hitbox or door preview surface')
+            'flat ESP tables retain Starred Mobs and Door controls while room-wide and copy/apply controls stay absent')
     r.check(all(value in esp_batch_raw for value in
                 (b'DungeonEspMobDisplay', b'layoutMobLabels', b'drawLabelBackdrop', b'restoreWorldRenderState'))
-                and all(value in esp_display_raw for value in (b'MINIBOSS', b'SPECIAL', b'ENDERMAN', b'HARD_LABEL_CAP')),
-            'Mob ESP keeps bounded hierarchy labels, collision-aware layout and world-render state restoration')
+                and all(value in esp_display_raw for value in (b'MINIBOSS', b'SPECIAL', b'ENDERMAN', b'HARD_LABEL_CAP'))
+                and b'HOSTILE' not in esp_display_raw,
+            'Starred Mobs keeps bounded hierarchy labels, collision-aware layout and world-render state restoration')
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
-                 b'forceRenderAllMobs', b'includeBats', b'includeInvisibleMobs', b'SkullOwner', b'espDump'))
+                 b'SkullOwner', b'espDump'))
+                and all(value not in esp_controller_raw for value in
+                        (b'forceRenderAllMobs', b'includeBats', b'includeInvisibleMobs'))
+                and b'FORCE_ROOM_MOB' not in esp_tracker_raw
                 and b'RenderWorldLastEvent' in esp_controller_raw and b'espdebug' in esp_command_raw
                 and b'espdump' in esp_command_raw and b'MAX_CANDIDATES' in esp_tracker_raw,
-            'Dungeon ESP runtime retains its timer cache, filtering, head support and diagnostics')
+            'Starred Mobs runtime retains timer caching, NPC tag association, head support and diagnostics without a generic room fallback')
 
     item_panel_constants = constants_of('gui/ItemAnimationPanelModel')
     hud_editor_raw = raw_of('gui/HudEditorScreen')

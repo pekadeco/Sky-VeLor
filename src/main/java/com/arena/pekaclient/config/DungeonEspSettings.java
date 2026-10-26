@@ -63,12 +63,6 @@ public final class DungeonEspSettings {
     public static final Style enderman = new Style(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
     /** Skeletor intentionally begins with the ordinary starred-mob visual contract. */
     public static final Style skeletor = new Style(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
-    /** Optional room-wide hostile coverage, deliberately inert until its separate force switch is enabled. */
-    public static final Style otherMobs = new Style(true, 0x30D158, MODE_BOTH, true, 2, 85, 14);
-    /** Off by default: candidates are discovered only on the normal cached tracker scan. */
-    public static boolean forceRenderAllMobs = false;
-    public static boolean includeBats = false;
-    public static boolean includeInvisibleMobs = false;
 
     public static int maxDistance = DEFAULT_DISTANCE;
     public static int updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
@@ -133,10 +127,6 @@ public final class DungeonEspSettings {
         special.reset(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
         enderman.reset(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
         skeletor.reset(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
-        otherMobs.reset(true, 0x30D158, MODE_BOTH, true, 2, 85, 14);
-        forceRenderAllMobs = false;
-        includeBats = false;
-        includeInvisibleMobs = false;
         maxDistance = DEFAULT_DISTANCE;
         updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
         hideZeroHealth = true;
@@ -162,10 +152,6 @@ public final class DungeonEspSettings {
         special.reset(true, 0xBF5AF2, MODE_OUTLINE, false, 1, 72, 0);
         enderman.reset(true, 0xBF5AF2, MODE_OUTLINE, false, 1, 72, 0);
         skeletor.reset(true, 0x32D7FF, MODE_OUTLINE, false, 1, 72, 0);
-        otherMobs.reset(true, 0x30D158, MODE_OUTLINE, false, 1, 70, 0);
-        forceRenderAllMobs = false;
-        includeBats = false;
-        includeInvisibleMobs = false;
         maxDistance = 48;
         updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
         hideZeroHealth = true;
@@ -191,7 +177,8 @@ public final class DungeonEspSettings {
     /**
      * Reads only dungeonEsp.* keys. A new empty configuration leaves the specialized visual overlay off; an
      * established file that predates its master key retains the historic enabled default. The removed mobHighlights
-     * key is consumed once as the master migration.
+     * key is consumed once as the master migration. Retired room-wide "other mobs" keys are deliberately ignored
+     * so an old configuration can load safely without re-enabling a category that no longer exists.
      */
     public static void load(Properties p) {
         Properties source = p == null ? new Properties() : p;
@@ -205,10 +192,6 @@ public final class DungeonEspSettings {
         loadStyle(source, "special", special);
         loadStyle(source, "enderman", enderman);
         loadStyle(source, "skeletor", skeletor);
-        loadStyle(source, "otherMobs", otherMobs);
-        forceRenderAllMobs = readBool(source, PREFIX + "forceRenderAllMobs", forceRenderAllMobs);
-        includeBats = readBool(source, PREFIX + "includeBats", includeBats);
-        includeInvisibleMobs = readBool(source, PREFIX + "includeInvisibleMobs", includeInvisibleMobs);
         maxDistance = readInt(source, PREFIX + "maxDistance", maxDistance, MIN_DISTANCE, MAX_DISTANCE);
         updateIntervalTicks = readInt(source, PREFIX + "updateIntervalTicks", updateIntervalTicks,
                 MIN_INTERVAL_TICKS, MAX_INTERVAL_TICKS);
@@ -230,21 +213,18 @@ public final class DungeonEspSettings {
         normalize();
     }
 
-    /** Saves only this self-contained namespace and drops the superseded old mob highlight switch. */
+    /** Saves only this self-contained namespace and drops superseded generic-mob controls. */
     public static void save(Properties p) {
         if (p == null) return;
         normalize();
         p.remove("mobHighlights");
+        removeRetiredRoomMobKeys(p);
         p.setProperty(PREFIX + "enabled", Boolean.toString(enabled));
         saveStyle(p, "starred", starred);
         saveStyle(p, "miniboss", miniboss);
         saveStyle(p, "special", special);
         saveStyle(p, "enderman", enderman);
         saveStyle(p, "skeletor", skeletor);
-        saveStyle(p, "otherMobs", otherMobs);
-        p.setProperty(PREFIX + "forceRenderAllMobs", Boolean.toString(forceRenderAllMobs));
-        p.setProperty(PREFIX + "includeBats", Boolean.toString(includeBats));
-        p.setProperty(PREFIX + "includeInvisibleMobs", Boolean.toString(includeInvisibleMobs));
         p.setProperty(PREFIX + "maxDistance", Integer.toString(maxDistance));
         p.setProperty(PREFIX + "updateIntervalTicks", Integer.toString(updateIntervalTicks));
         p.setProperty(PREFIX + "hideZeroHealth", Boolean.toString(hideZeroHealth));
@@ -263,6 +243,21 @@ public final class DungeonEspSettings {
         p.setProperty(PREFIX + "doors.distanceText", Boolean.toString(doorDistanceText));
     }
 
+    /** Removes persisted controls for the retired room-wide fallback without touching active ESP or door settings. */
+    private static void removeRetiredRoomMobKeys(Properties p) {
+        p.remove(PREFIX + "forceRenderAllMobs");
+        p.remove(PREFIX + "includeBats");
+        p.remove(PREFIX + "includeInvisibleMobs");
+        String base = PREFIX + "otherMobs.";
+        p.remove(base + "enabled");
+        p.remove(base + "color");
+        p.remove(base + "mode");
+        p.remove(base + "throughWalls");
+        p.remove(base + "outlineWidth");
+        p.remove(base + "outlineOpacity");
+        p.remove(base + "fillOpacity");
+    }
+
     /** Keeps settings safe when a config was hand edited or a widget writes a value directly. */
     public static void normalize() {
         maxDistance = clamp(maxDistance, MIN_DISTANCE, MAX_DISTANCE);
@@ -276,7 +271,6 @@ public final class DungeonEspSettings {
         normalizeStyle(special, 0xBF5AF2);
         normalizeStyle(enderman, 0xBF5AF2);
         normalizeStyle(skeletor, 0x32D7FF);
-        normalizeStyle(otherMobs, 0x30D158);
         normalizeStyle(doors, DEFAULT_WITHER_DOOR_COLOR);
     }
 
