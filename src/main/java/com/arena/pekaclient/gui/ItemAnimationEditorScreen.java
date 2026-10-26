@@ -182,8 +182,8 @@ public final class ItemAnimationEditorScreen extends AppleScreen {
         UIRender.text(fr(), "Item Animation", panelX + 10f, panelY + 10f, Theme.textPrimary, .88f, false);
         float closeX = panelX + panelW - 20f;
         boolean closeHover = inside(mouseX, mouseY, closeX, panelY + 5f, 15f, 16f);
-        UIRender.roundRect(closeX, panelY + 5f, 15f, 16f, 4f,
-                closeHover ? Theme.buttonHover : Theme.buttonFill);
+        int closeFill = closeHover ? Theme.buttonHover : Theme.buttonFill;
+        UIRender.roundRect(closeX, panelY + 5f, 15f, 16f, 4f, closeFill, closeFill, 1f);
         UIRender.text(fr(), "×", closeX + 4.5f, panelY + 8f, closeHover ? Theme.textPrimary : Theme.textSecondary, .86f, false);
         UIRender.line(panelX + 7f, panelY + HEADER_H, panelX + panelW - 7f, panelY + HEADER_H, 1f, Theme.divider);
 
@@ -232,7 +232,8 @@ public final class ItemAnimationEditorScreen extends AppleScreen {
         float total = view + scroll.max();
         float thumbH = Math.max(18f, view * view / total);
         float thumbY = contentTop + (view - thumbH) * (scroll.value() / Math.max(1f, scroll.max()));
-        UIRender.roundRect(panelX + panelW - 4f, thumbY, 2f, thumbH, 1f, Theme.textTertiary);
+        UIRender.roundRect(panelX + panelW - 4f, thumbY, 2f, thumbH, 1f,
+                Theme.textTertiary, Theme.textTertiary, 1f);
     }
 
     @Override
