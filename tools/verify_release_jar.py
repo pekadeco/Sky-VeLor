@@ -527,8 +527,8 @@ def main():
             'retired Chat, ESP, Door, inventory/swap and leap preview-only classes are absent from the release jar')
     r.check(len(bindings_raw) > 0 and all(value in bindings_raw for value in
                 (b'ItemLockSwapSettings', b'ChatQolSettings', b'DungeonEspSettings', b'M7Settings',
-                 b'FishingStats', b'StyleClipboard')) and b'setProperty' not in bindings_raw,
-            'InlineSettingsBindings writes existing feature owners and keeps the ESP clipboard session-only')
+                 b'FishingStats')) and b'StyleClipboard' not in bindings_raw and b'setProperty' not in bindings_raw,
+            'InlineSettingsBindings writes existing feature owners without the retired ESP style clipboard')
     r.check(all(value in feature_state_raw for value in (b'dropdowns', b'ui.feature.dropdown.', b'MAX_ENTRIES', b'openAccordion'))
                 and all(value in preferences_raw for value in (b'dropdownOpen', b'setDropdownOpen', b'openAccordion')),
             'collapsed inline dropdown state persists separately and provides one-open accordion behavior')
