@@ -636,7 +636,8 @@ def main():
                 and b'drawDefaultBackground' not in item_animation_editor_raw
                 and b'HudManager' not in item_animation_editor_raw
                 and b'Hook: active' in hook_status_raw and b'Hook: failed (' in hook_status_raw
-                and b'STATUS_SUCCESS' in item_animation_editor_raw,
+                and b'ItemAnimationHookStatus' in item_animation_editor_raw
+                and b'isActive' in item_animation_editor_raw and b'isFailed' in item_animation_editor_raw,
             'Item Animation is an undimmed standalone panel with no HUD/world surface or retired background controls')
     r.check(b'LIVE HELD-ITEM PREVIEW' not in hud_editor_raw and b'drawItemAnimationEditorPreview' not in hud_editor_raw
                 and b'ItemAnimationUiModel' not in hud_editor_raw and b'ITEM_ANIMATION' not in hud_editor_raw
