@@ -8,7 +8,8 @@ package com.arena.pekaclient.gui;
 public final class ReferenceSettingsWindowLayout {
 
     /** Keeps a visible strip of world around both small and fullscreen rounded windows. */
-    public static final float OUTER_MARGIN = 12f;
+    /** The requested large-layout breathing room around a centered or fullscreen rounded window. */
+    public static final float OUTER_MARGIN = 8f;
     public static final float NORMAL_WIDTH_RATIO = .85f;
     public static final float NORMAL_HEIGHT_RATIO = .82f;
     /** Fullscreen occupies the complete safe area while retaining the rounded-window margin. */

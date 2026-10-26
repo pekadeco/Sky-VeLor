@@ -2,14 +2,14 @@ package com.arena.pekaclient.render;
 
 import com.arena.pekaclient.config.AppleSettings;
 
-/** Headless contract for the one fixed neutral-dark/blue GUI theme and its compatibility boundary. */
+/** Headless contract for the restored Apple-glass theme and its old-config compatibility boundary. */
 public final class ThemeTests {
 
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        fixedThemeIgnoresLegacyPaletteChoices();
+        restoredAppleGlassIgnoresLegacyPaletteForks();
         geometryAndMotionAreCentralTokens();
         semanticStatusColorsRemainPurposeBound();
         System.out.println();
@@ -19,7 +19,7 @@ public final class ThemeTests {
         }
     }
 
-    private static void fixedThemeIgnoresLegacyPaletteChoices() {
+    private static void restoredAppleGlassIgnoresLegacyPaletteForks() {
         AppleSettings.glassOpacityOn = true;
         AppleSettings.glassOpacity = 82;
         AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_FOREST_CYAN;
@@ -36,14 +36,16 @@ public final class ThemeTests {
         AppleSettings.accent = 2;
         Theme.refresh();
 
-        check("legacy palette key does not fork the active window surface", Theme.windowTop == top
+        check("legacy palette key does not fork the restored glass window surface", Theme.windowTop == top
                 && Theme.windowBottom == bottom);
-        check("legacy palette key does not fork cards or controls", Theme.card == card && Theme.buttonFill == control);
-        check("one fixed positive accent is blue", Theme.accent == Theme.ACCENT_BLUE
-                && Theme.ACCENT_BLUE == 0xFF2F7DFF);
-        check("neutral dark token values drive resolved surfaces", rgb(Theme.windowTop) == Theme.SURFACE_TOP_RGB
+        check("legacy palette key does not fork restored cards or controls", Theme.card == card && Theme.buttonFill == control);
+        check("the familiar Apple interaction accent is retained", Theme.accent == Theme.ACCENT_BLUE
+                && Theme.ACCENT_BLUE == 0xFF0A84FF);
+        check("graphite glass token values drive resolved surfaces", rgb(Theme.windowTop) == Theme.SURFACE_TOP_RGB
                 && rgb(Theme.windowBottom) == Theme.SURFACE_BOTTOM_RGB && Theme.card == Theme.SURFACE_CARD
                 && Theme.buttonHover == Theme.SURFACE_CONTROL_HOVER);
+        check("cards and controls retain translucent Apple white layers", alpha(Theme.card) < 0x40
+                && alpha(Theme.buttonFill) < 0x50 && Theme.border == 0x1FFFFFFF && Theme.divider == 0x18FFFFFF);
         check("allowed opacity preference still changes only window alpha", alpha(Theme.windowTop) == Math.round(82f * 2.55f));
 
         // Leave static compatibility state at its normal defaults for independently-run suites.

@@ -15,6 +15,7 @@ public final class ReferenceSettingsWindowLayoutTests {
     }
 
     private static void normalWindowUsesRequestedDesktopFootprint() {
+        check("large-layout world margin is exactly 8 px", ReferenceSettingsWindowLayout.OUTER_MARGIN == 8f);
         GuiLayoutToolkit.Rect normal = ReferenceSettingsWindowLayout.layout(new GuiLayoutToolkit.Rect(), 900f, 600f, false);
         float availableW = 900f - ReferenceSettingsWindowLayout.OUTER_MARGIN * 2f;
         float availableH = 600f - ReferenceSettingsWindowLayout.OUTER_MARGIN * 2f;

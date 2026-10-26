@@ -5,10 +5,12 @@ import com.arena.pekaclient.config.AppleSettings;
 /**
  * The one design-token authority for Sky VeLor GUI surfaces.
  *
- * <p>The application deliberately uses a neutral dark foundation and one blue interaction accent. Legacy appearance
- * values remain loadable in {@link AppleSettings} so existing files are not damaged, but they no longer fork the GUI
- * into green, light, or per-accent palettes. Keep concrete GUI colours, typography, spacing, radii, shadows and dim
- * layers here; renderers should consume semantic fields rather than introduce a new hexadecimal literal.</p>
+ * <p>The settings shell deliberately uses the original Apple-inspired glass system: a graphite gradient window,
+ * translucent white cards, thin low-contrast dividers, and one familiar macOS blue interaction accent. Existing
+ * appearance values remain loadable in {@link AppleSettings}; current UI behavior keeps the shell deterministic so
+ * an old configuration cannot silently fork the navigation or control hierarchy into a second design system. Keep
+ * concrete GUI colours, typography, spacing, radii, shadows and dim layers here; renderers consume these semantic
+ * tokens rather than introducing local hexadecimal literals.</p>
  */
 public final class Theme {
 
@@ -23,40 +25,41 @@ public final class Theme {
     public static final int VANILLA_BUTTON_TEXT = 0x00E0E0E0;
     public static final int VANILLA_BUTTON_HOVER_TEXT = 0x00FFFFA0;
 
-    /** The only positive/action accent used by the neutral GUI. */
-    public static final int ACCENT_BLUE = 0xFF2F7DFF;
-    public static final int ACCENT_BLUE_HOVER = 0xFF5A9CFF;
-    public static final int STATUS_WARNING = 0xFFFFB347;
+    /** The original Apple reference uses this blue as its one positive/action accent. */
+    public static final int ACCENT_BLUE = 0xFF0A84FF;
+    public static final int ACCENT_BLUE_HOVER = 0xFF409CFF;
+    public static final int STATUS_WARNING = 0xFFF0B45E;
     /** Semantic success is reserved for compact health/availability indicators, not a second interaction accent. */
-    public static final int STATUS_SUCCESS = 0xFF4CCB78;
-    public static final int STATUS_CRITICAL = 0xFFFF5B57;
-    public static final int STATUS_UNAVAILABLE = 0xFF9AA6B5;
+    public static final int STATUS_SUCCESS = 0xFF5EDC87;
+    public static final int STATUS_CRITICAL = 0xFFFF6B6B;
+    public static final int STATUS_UNAVAILABLE = 0xFF8E8E93;
 
-    public static final int SURFACE_TOP_RGB = 0x151922;
-    public static final int SURFACE_BOTTOM_RGB = 0x0E1118;
-    public static final int SURFACE_CARD = 0xFF171C26;
-    public static final int SURFACE_CARD_HOVER = 0xFF202836;
-    public static final int SURFACE_CONTROL = 0xFF1C2330;
-    public static final int SURFACE_CONTROL_HOVER = 0xFF27334A;
-    public static final int SURFACE_POPUP = 0xFF151B26;
+    /** Graphite glass, directly restored from the shipped Apple settings visual system. */
+    public static final int SURFACE_TOP_RGB = 0x1E1E21;
+    public static final int SURFACE_BOTTOM_RGB = 0x101012;
+    public static final int SURFACE_CARD = 0x14FFFFFF;
+    public static final int SURFACE_CARD_HOVER = 0x22FFFFFF;
+    public static final int SURFACE_CONTROL = 0x26FFFFFF;
+    public static final int SURFACE_CONTROL_HOVER = 0x3DFFFFFF;
+    public static final int SURFACE_POPUP = 0xF22A2A2E;
     public static final int SURFACE_DISABLED = 0x52000000;
-    public static final int BORDER = 0xFF303B4D;
-    public static final int DIVIDER = 0xFF283242;
-    public static final int TRACK = 0xFF344257;
-    public static final int SEGMENT_SELECTED = 0xFF29364B;
-    public static final int TEXT_PRIMARY = 0xFFF4F7FB;
-    public static final int TEXT_SECONDARY = 0xFFBBC5D4;
-    public static final int TEXT_TERTIARY = 0xFF8995A8;
-    public static final int TEXT_DISABLED = 0xFF727D8D;
+    public static final int BORDER = 0x1FFFFFFF;
+    public static final int DIVIDER = 0x18FFFFFF;
+    public static final int TRACK = 0xFF3A3A3D;
+    public static final int SEGMENT_SELECTED = 0xFF5A5A5E;
+    public static final int TEXT_PRIMARY = 0xFFF5F5F7;
+    public static final int TEXT_SECONDARY = 0xFFA1A1A8;
+    public static final int TEXT_TERTIARY = 0xFF707078;
+    public static final int TEXT_DISABLED = 0xFF626269;
     public static final int CONTROL_KNOB = OPAQUE_WHITE;
-    public static final int ICON_INK = 0xFFB9C4D3;
+    public static final int ICON_INK = TEXT_SECONDARY;
     public static final int NEUTRAL_DOT = TEXT_TERTIARY;
     public static final int NOTICE_WARNING = STATUS_WARNING;
 
     /** Non-interactive semantic surfaces shared by diagnostics and app-specific utility screens. */
     public static final int SHADOW = 0x40000000;
-    public static final int DIM = 0x4C000000;
-    public static final int TOOLTIP = 0xF0161C27;
+    public static final int DIM = 0x73000000;
+    public static final int TOOLTIP = 0xF22A2A2E;
     public static final int DEBUG_THIN = 0xC8E85D5D;
     public static final int DEBUG_HOT = 0xFFFF4545;
     public static final int DEBUG_FILL = 0x35FF4545;
@@ -66,8 +69,8 @@ public final class Theme {
     public static final int LOADING_WORDMARK = TEXT_PRIMARY;
     public static final int LOADING_SUBTITLE = 0xFF9CC3FF;
     public static final int LOADING_VERSION = LOADING_SUBTITLE;
-    public static final int LOADING_STATUS = 0xFFA1A1A8;
-    public static final int LOADING_DIM = 0xFF8E8E93;
+    public static final int LOADING_STATUS = TEXT_SECONDARY;
+    public static final int LOADING_DIM = TEXT_TERTIARY;
     public static final int LOADING_TRACK = 0x33FFFFFF;
     public static final int LOADING_ERROR = STATUS_CRITICAL;
     public static final int LEAP_CARD = 0xFF20242C;
@@ -135,8 +138,8 @@ public final class Theme {
     public static int textPrimary = TEXT_PRIMARY;
     public static int textSecondary = TEXT_SECONDARY;
     public static int textTertiary = TEXT_TERTIARY;
-    public static int windowTop = 0xE0151922;
-    public static int windowBottom = 0xE00E1118;
+    public static int windowTop = 0xF01E1E21;
+    public static int windowBottom = 0xF0101012;
     public static int card = SURFACE_CARD;
     public static int cardHover = SURFACE_CARD_HOVER;
     public static int buttonFill = SURFACE_CONTROL;
@@ -155,17 +158,17 @@ public final class Theme {
     private Theme() {
     }
 
-    /** Applies the fixed neutral-dark system while retaining opacity, radius and motion accessibility preferences. */
+    /** Applies the restored Apple-glass system while retaining opacity, radius and motion accessibility preferences. */
     public static void applyReferenceSettingsPalette() {
-        applyNeutralDark();
+        applyAppleGlass();
     }
 
     /** Rebuilds the resolved tokens after an allowed geometry, opacity, or motion preference changes. */
     public static void refresh() {
-        applyNeutralDark();
+        applyAppleGlass();
     }
 
-    private static void applyNeutralDark() {
+    private static void applyAppleGlass() {
         int glass = Math.round(AppleSettings.effectiveGlassOpacity() * 2.55f);
         radius = AppleSettings.effectiveCornerRadius();
         animations = AppleSettings.animations;

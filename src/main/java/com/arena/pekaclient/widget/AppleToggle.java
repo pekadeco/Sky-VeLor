@@ -61,6 +61,10 @@ public final class AppleToggle extends Widget {
             UIRender.ring(kx + knob * 0.5f, y + h * 0.5f, outer, outer - 0.9f,
                     UIRender.withAlpha(Theme.accent, clickPulse * 0.25f));
         }
+        // The original Apple control used a quiet one-pixel knob shadow; retain it without changing the hitbox or
+        // the existing eased/accessible interaction model.
+        UIRender.circle(kx + knob * 0.5f, y + h * 0.5f + 1f, knob * 0.5f,
+                UIRender.withAlpha(Theme.SHADOW, .70f));
         UIRender.circle(kx + knob * 0.5f, y + h * 0.5f, knob * 0.5f,
                 enabled ? Theme.OPAQUE_WHITE : Theme.TEXT_DISABLED);
         endAnimatedDraw();

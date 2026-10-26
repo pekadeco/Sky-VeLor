@@ -81,6 +81,10 @@ public final class ReleaseClaimsTests {
         check("safe notice is compact one line", screen.contains("Safe by default"));
         check("settings shell has no launcher-owned MOUSE/GUI labels", !screen.contains("MOUSE")
                 && !screen.contains("MOUSE/GUI") && !screen.contains("GUI AREA"));
+        check("retired profile card and traffic-light actions stay absent", !screen.contains("HIT_PROFILE")
+                && !screen.contains("window-red") && !screen.contains("window-yellow") && !screen.contains("window-green"));
+        check("restored Apple card chrome keeps icon, glass surface, and subtitle hierarchy", screen.contains("drawCardGlyph")
+                && screen.contains("roundRectBorder") && screen.contains("subtitle"));
     }
 
     private static void removedFocusedSurfacesStayAbsent() {

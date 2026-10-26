@@ -3,11 +3,12 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.render.GuiStyle;
 
 /**
- * Pure, reusable geometry for the six-channel settings rail.
+ * Pure, reusable geometry for the eight-channel settings rail.
  *
  * <p>The normal rail uses 30 px entries separated by the shared 4 px rhythm. On small GUI surfaces it changes to a
- * two-row, three-column compact rail rather than shrinking, overlapping, or hiding a destination. The profile footer
- * is always docked at the rail's bottom edge. Rendering and hit testing share one {@link Rail} instance.</p>
+ * two-row, four-column compact rail rather than shrinking, overlapping, or hiding a destination. There is no profile
+ * footer or preset card: every rectangle represents one of the current settings pages, and rendering/hit testing share
+ * one {@link Rail} instance.</p>
  */
 public final class SettingsRailLayout {
     public static final float ENTRY_HEIGHT = 30f;
@@ -15,9 +16,8 @@ public final class SettingsRailLayout {
     public static final float ENTRY_GAP = GuiStyle.SPACE_4;
     public static final float RAIL_PADDING = GuiStyle.SPACE_8;
     public static final float COMPACT_PADDING = GuiStyle.SPACE_4;
-    public static final float PROFILE_HEIGHT = 36f;
-    public static final float COMPACT_PROFILE_HEIGHT = GuiStyle.SPACE_16;
-    public static final int COMPACT_COLUMNS = 3;
+    /** Eight destinations fit in two rows at all supported GUI scales. */
+    public static final int COMPACT_COLUMNS = 4;
 
     private SettingsRailLayout() {
     }
@@ -25,7 +25,6 @@ public final class SettingsRailLayout {
     /** Reusable bounds: created once by a screen, so layout refreshes introduce no box allocations. */
     public static final class Rail {
         public final GuiLayoutToolkit.Rect[] entries;
-        public final GuiLayoutToolkit.Rect profile = new GuiLayoutToolkit.Rect();
         public boolean compact;
         public float entryHeight;
         public int columns;
@@ -39,13 +38,12 @@ public final class SettingsRailLayout {
     public static float verticalMinimumHeight(int tabCount) {
         int count = Math.max(0, tabCount);
         float navigation = count * ENTRY_HEIGHT + Math.max(0, count - 1) * ENTRY_GAP;
-        return RAIL_PADDING + navigation + GuiStyle.SPACE_8 + PROFILE_HEIGHT + RAIL_PADDING;
+        return RAIL_PADDING + navigation + RAIL_PADDING;
     }
 
     public static float compactHeight(int tabCount) {
         int rows = compactRows(tabCount);
-        return COMPACT_PADDING + rows * COMPACT_ENTRY_HEIGHT + Math.max(0, rows - 1) * ENTRY_GAP
-                + ENTRY_GAP + COMPACT_PROFILE_HEIGHT + COMPACT_PADDING;
+        return COMPACT_PADDING + rows * COMPACT_ENTRY_HEIGHT + Math.max(0, rows - 1) * ENTRY_GAP + COMPACT_PADDING;
     }
 
     public static boolean shouldCompact(float availableWidth, float availableHeight, int tabCount) {
@@ -74,12 +72,6 @@ public final class SettingsRailLayout {
             entry.set(navX, cursor, navW, ENTRY_HEIGHT);
             cursor += ENTRY_HEIGHT + ENTRY_GAP;
         }
-        float profileH = Math.min(PROFILE_HEIGHT, Math.max(0f, height));
-        float profileY = Math.max(cursor, y + Math.max(0f, height - RAIL_PADDING - profileH));
-        // The caller selects compact mode before this point when the normal rail cannot fit; the max keeps a
-        // pathological one-pixel screen bounded without moving a footer over a navigation item.
-        if (profileY + profileH > y + height) profileY = Math.max(cursor, y + height - profileH);
-        out.profile.set(navX, profileY, navW, profileH);
     }
 
     private static void layoutCompact(Rail out, float x, float y, float width, float height) {
@@ -87,8 +79,7 @@ public final class SettingsRailLayout {
         int columns = Math.max(1, Math.min(COMPACT_COLUMNS, Math.max(1, count)));
         int rows = compactRows(count);
         out.columns = columns;
-        float footerH = Math.min(COMPACT_PROFILE_HEIGHT, Math.max(0f, height));
-        float fixed = COMPACT_PADDING * 2f + Math.max(0, rows - 1) * ENTRY_GAP + ENTRY_GAP + footerH;
+        float fixed = COMPACT_PADDING * 2f + Math.max(0, rows - 1) * ENTRY_GAP;
         float entryH = rows == 0 ? 0f : Math.max(1f, Math.min(COMPACT_ENTRY_HEIGHT, (height - fixed) / rows));
         out.entryHeight = entryH;
         float innerX = x + Math.min(COMPACT_PADDING, width * .5f);
@@ -100,10 +91,6 @@ public final class SettingsRailLayout {
             out.entries[i].set(innerX + column * (entryW + ENTRY_GAP),
                     y + COMPACT_PADDING + row * (entryH + ENTRY_GAP), entryW, entryH);
         }
-        float navBottom = y + COMPACT_PADDING + rows * entryH + Math.max(0, rows - 1) * ENTRY_GAP;
-        float profileY = Math.max(navBottom + ENTRY_GAP, y + height - COMPACT_PADDING - footerH);
-        if (profileY + footerH > y + height) profileY = Math.max(navBottom, y + height - footerH);
-        out.profile.set(innerX, profileY, innerW, footerH);
     }
 
     private static int compactRows(int tabCount) {

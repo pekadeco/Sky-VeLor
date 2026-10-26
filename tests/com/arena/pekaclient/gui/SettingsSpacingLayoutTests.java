@@ -2,7 +2,7 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.render.GuiStyle;
 
-/** Headless scale-1–4 contract for the dense settings rail and one-column page reflow. */
+/** Headless scale-1–4 contract for the eight-page Apple settings rail and one-column page reflow. */
 public final class SettingsSpacingLayoutTests {
     private SettingsSpacingLayoutTests() {
     }
@@ -35,15 +35,15 @@ public final class SettingsSpacingLayoutTests {
             float toolbar = 34f; // Stage B: title is in the header; the compact second strip is search-only.
             float bodyY = panel.y + SettingsShellLayout.HEADER_HEIGHT + toolbar;
             float bodyH = Math.max(1f, panel.h - SettingsShellLayout.HEADER_HEIGHT - toolbar);
-            boolean compact = SettingsRailLayout.shouldCompact(panel.w, bodyH, 6);
+            boolean compact = SettingsRailLayout.shouldCompact(panel.w, bodyH, 8);
             float railX = compact ? panel.x + GuiStyle.SPACE_4 : panel.x;
             float railY = compact ? bodyY + GuiStyle.SPACE_4 : bodyY;
-            float railW = compact ? panel.w - GuiStyle.SPACE_8 : Math.min(132f, Math.max(92f, panel.w * .21f));
-            float railH = compact ? Math.max(1f, Math.min(bodyH - GuiStyle.SPACE_4, SettingsRailLayout.compactHeight(6))) : bodyH;
-            SettingsRailLayout.Rail rail = new SettingsRailLayout.Rail(6);
+            float railW = compact ? panel.w - GuiStyle.SPACE_8 : Math.min(148f, Math.max(96f, panel.w * .25f));
+            float railH = compact ? Math.max(1f, Math.min(bodyH - GuiStyle.SPACE_4, SettingsRailLayout.compactHeight(8))) : bodyH;
+            SettingsRailLayout.Rail rail = new SettingsRailLayout.Rail(8);
             SettingsRailLayout.layout(rail, railX, railY, railW, railH, compact);
 
-            check("all six entries exist at scale " + scale, rail.entries.length == 6);
+            check("all eight entries exist at scale " + scale, rail.entries.length == 8);
             check("entry target remains 28–30 px at scale " + scale,
                     rail.entryHeight >= SettingsRailLayout.COMPACT_ENTRY_HEIGHT && rail.entryHeight <= SettingsRailLayout.ENTRY_HEIGHT);
             for (int i = 0; i < rail.entries.length; i++) {
@@ -54,19 +54,13 @@ public final class SettingsSpacingLayoutTests {
                             !entry.intersects(rail.entries[other]));
                 }
             }
-            check("profile stays in rail at scale " + scale, contained(rail.profile, railX, railY, railW, railH));
-            for (int i = 0; i < rail.entries.length; i++) {
-                check("profile does not overlap entry at scale " + scale + " #" + i,
-                        !rail.profile.intersects(rail.entries[i]));
-            }
-            check("profile is bottom anchored at scale " + scale,
-                    Math.abs(rail.profile.bottom() - (railY + railH - (compact ? GuiStyle.SPACE_4 : GuiStyle.SPACE_8))) < .01f);
-
             if (compact) {
+                check("compact rail uses four columns at scale " + scale,
+                        rail.columns == SettingsRailLayout.COMPACT_COLUMNS);
                 check("compact horizontal entry gap at scale " + scale,
                         approximately(rail.entries[1].x - rail.entries[0].right(), GuiStyle.SPACE_4));
                 check("compact vertical entry gap at scale " + scale,
-                        approximately(rail.entries[3].y - rail.entries[0].bottom(), GuiStyle.SPACE_4));
+                        approximately(rail.entries[4].y - rail.entries[0].bottom(), GuiStyle.SPACE_4));
             } else {
                 for (int i = 1; i < rail.entries.length; i++) {
                     check("vertical entry gap at scale " + scale + " #" + i,
