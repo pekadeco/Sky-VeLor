@@ -164,7 +164,7 @@ public class AppleSettingsScreen extends AppleScreen {
         refreshReferenceTheme();
     }
 
-    /** Opens Gameplay with the one flat Chat QoL owner disclosed. */
+    /** Opens the visible Player category through its stable GAMEPLAY route with Chat QoL disclosed. */
     public static AppleSettingsScreen openChatSettings(GuiScreen parent) {
         FeatureUiPreferences.setDropdownOpen("chat-qol", true);
         return new AppleSettingsScreen(parent, ReferenceSettingsCatalog.Tab.GAMEPLAY);

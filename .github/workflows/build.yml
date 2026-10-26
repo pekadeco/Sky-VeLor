@@ -131,7 +131,7 @@ jobs:
         run: |
           set -e
           sh tools/run_apple_layout_renderer.sh "$RUNNER_TEMP/apple-layout-previews"
-          # Keep the review surface intentionally small: exactly Home, Dungeon, and scale-4 Home previews.
+          # Keep the review surface intentionally small: exactly Home, Dungeons, and scale-4 Home previews.
           test "$(find "$RUNNER_TEMP/apple-layout-previews" -maxdepth 1 -name '*.png' -type f | wc -l)" -eq 3
 
       - name: Upload Apple layout preview evidence

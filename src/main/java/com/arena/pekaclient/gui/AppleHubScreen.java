@@ -20,7 +20,7 @@ public final class AppleHubScreen extends AppleSettingsScreen {
         super(parent, initialTab);
     }
 
-    /** Historical deep link now opens the Dungeon destination in the reference rail. */
+    /** Historical deep link now opens the visible Dungeons destination through its stable route. */
     public static AppleHubScreen dungeonHud(GuiScreen parent) {
         return new AppleHubScreen(parent, ReferenceSettingsCatalog.Tab.DUNGEON);
     }

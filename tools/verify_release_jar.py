@@ -551,7 +551,7 @@ def main():
                 (b'Dungeon Map', b'Terminal Helper', b'Spirit Leap Picker', b'Boss Health HUD', b'Floor VII Overlay',
                  b'Mob ESP', b'Door ESP', b'Maxor', b'Storm', b'Goldor', b'Necron', b'Power', b'Apex', b'Soul',
                  b'Ice', b'Flame', b'Item Lock And Swap')),
-            'flat Dungeon owners retain map, no-master Terminal Helper, Spirit Leap, boss HUD, M7 and Mob/Door controls')
+            'flat Dungeons category retains map, no-master Terminal Helper, Spirit Leap, boss HUD, M7 and Mob/Door controls')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Background', b'Messages', b'Tabs', b'Click Menu', b'Reset to defaults', b'Add Custom Tab',
                  b'Accent Color', b'Filter Type', b'Message Sound', b'Open Chat Background'))
