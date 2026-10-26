@@ -54,6 +54,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.config.AssistSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.AssistFeatureTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests
+java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspMarkerBoundsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.WitherDoorCacheTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineEspCatalogTests
@@ -68,6 +69,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapLineGeometryTe
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSwapPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapTransformerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.ThemeTests
+java -cp "$OUT:$CP" com.arena.pekaclient.render.GuiPixelGridTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.RoundedRectGeometryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.hud.DollConfigTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.LeapClassTests

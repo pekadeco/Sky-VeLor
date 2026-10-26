@@ -25,12 +25,12 @@ public final class InlineOptionPreservationTests {
                 "chat-message-animation", "chat-qol", "chat-smooth", "chat-tab-accent-color", "chat-tab-active-opacity",
                 "chat-tab-filter-text", "chat-tab-filter-type", "chat-tab-inactive-color", "chat-tab-name", "chat-tab-opacity",
                 "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
-                "curve-quality", "disable-hotbar-scrolling", "door-blood", "door-blood-color", "door-distance-text",
+                "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
                 "dungeon-map", "dungeon-map-player-names", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
                 "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
-                "esp-enderman", "esp-hide-zero-health", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
-                "esp-miniboss", "esp-mob-labels", "esp-skeletor", "esp-special", "esp-starred", "esp-tracers",
+                "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
+                "esp-miniboss", "esp-mob-labels", "esp-special", "esp-starred",
                 "esp-update-interval", "fishing-festival",
                 "global-scroll", "hide-potions", "hud-inventory", "hud-player-doll", "hurt-camera-shake", "item-animation",
                 "item-lock-badge-color", "item-lock-badge-opacity", "item-lock-cooldown", "item-lock-hotbar", "item-lock-icons",
@@ -48,7 +48,6 @@ public final class InlineOptionPreservationTests {
         addStyleOptions(expected, "esp-miniboss");
         addStyleOptions(expected, "esp-special");
         addStyleOptions(expected, "esp-enderman");
-        addStyleOptions(expected, "esp-skeletor");
         addStyleOptions(expected, "door-style");
         Set<String> actual = new HashSet<String>(ReferenceSettingsCatalog.configurableIds());
         check("every retained persisted option remains after the directed Starred Mobs simplification", actual.equals(expected));

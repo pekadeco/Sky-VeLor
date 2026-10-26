@@ -61,13 +61,8 @@ public final class DungeonEspSettings {
     public static final Style special = new Style(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
     /** Endermen, including the Dungeon-specific head-marker representation, have an independent visual style. */
     public static final Style enderman = new Style(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
-    /** Skeletor intentionally begins with the ordinary starred-mob visual contract. */
-    public static final Style skeletor = new Style(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
-
     public static int maxDistance = DEFAULT_DISTANCE;
     public static int updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
-    public static boolean hideZeroHealth = true;
-    public static boolean tracers = false;
     /** Compact category badges use the tracked category; optional distance text remains independent below. */
     public static boolean mobLabels = true;
     public static int maxMobLabels = DEFAULT_MOB_LABELS;
@@ -119,22 +114,29 @@ public final class DungeonEspSettings {
         }
     }
 
-    /** Restores the full, high-visibility preset documented in the UI. */
-    public static void applyDefaultPreset() {
+    /** Resets every retained Dungeon ESP value; used for construction and compatibility tests, not as a UI preset. */
+    public static void resetDefaults() {
+        resetMobDefaults();
+        resetDoorDefaults();
+    }
+
+    /** Resets only the Starred Mobs owner after its old Default/Subtle profiles were retired. */
+    public static void resetMobDefaults() {
         enabled = true;
         starred.reset(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
         miniboss.reset(true, 0xFFD166, MODE_BOTH, true, 3, 100, 24);
         special.reset(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
         enderman.reset(true, 0xBF5AF2, MODE_BOTH, true, 2, 95, 20);
-        skeletor.reset(true, 0x32D7FF, MODE_BOTH, true, 2, 95, 20);
         maxDistance = DEFAULT_DISTANCE;
         updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
-        hideZeroHealth = true;
-        tracers = false;
         mobLabels = true;
         maxMobLabels = DEFAULT_MOB_LABELS;
         distanceText = false;
         maxBoxes = DEFAULT_BOXES;
+    }
+
+    /** Resets only the Door ESP owner; its controls remain separate from Starred Mobs. */
+    public static void resetDoorDefaults() {
         doorsEnabled = true;
         doorScope = DOORS_NEAREST;
         doorOnlyWhenKey = false;
@@ -144,22 +146,13 @@ public final class DungeonEspSettings {
         doorDistanceText = false;
     }
 
-    /** A lower-noise preset for players who prefer only thin, depth-tested edges. */
-    public static void applySubtlePreset() {
-        enabled = true;
-        starred.reset(true, 0x32D7FF, MODE_OUTLINE, false, 1, 72, 0);
-        miniboss.reset(true, 0xFFD166, MODE_OUTLINE, false, 2, 84, 0);
-        special.reset(true, 0xBF5AF2, MODE_OUTLINE, false, 1, 72, 0);
-        enderman.reset(true, 0xBF5AF2, MODE_OUTLINE, false, 1, 72, 0);
-        skeletor.reset(true, 0x32D7FF, MODE_OUTLINE, false, 1, 72, 0);
-        maxDistance = 48;
-        updateIntervalTicks = DEFAULT_INTERVAL_TICKS;
-        hideZeroHealth = true;
-        tracers = false;
-        mobLabels = true;
-        maxMobLabels = 10;
-        distanceText = false;
-        maxBoxes = DEFAULT_BOXES;
+    /** Door-only high-visibility action retained independently from the removed Starred Mobs presets. */
+    public static void applyDoorDefaultStyle() {
+        resetDoorDefaults();
+    }
+
+    /** Door-only low-noise action; it must never rewrite a Starred Mob style. */
+    public static void applyDoorSubtleStyle() {
         doorsEnabled = true;
         doorScope = DOORS_NEAREST;
         doorOnlyWhenKey = false;
@@ -167,11 +160,6 @@ public final class DungeonEspSettings {
         bloodDoorColor = DEFAULT_BLOOD_DOOR_COLOR;
         doors.reset(true, DEFAULT_WITHER_DOOR_COLOR, MODE_OUTLINE, false, 1, 72, 0);
         doorDistanceText = false;
-    }
-
-    /** Reset is intentionally equivalent to Default, not an undocumented third visual profile. */
-    public static void resetDefaults() {
-        applyDefaultPreset();
     }
 
     /**
@@ -183,7 +171,7 @@ public final class DungeonEspSettings {
     public static void load(Properties p) {
         Properties source = p == null ? new Properties() : p;
         boolean freshInstall = source.isEmpty();
-        applyDefaultPreset();
+        resetDefaults();
         boolean migratedLegacyMobToggle = !source.containsKey(PREFIX + "enabled") && source.containsKey("mobHighlights");
         enabled = migratedLegacyMobToggle ? readBool(source, "mobHighlights", enabled)
                 : readBool(source, PREFIX + "enabled", freshInstall ? false : enabled);
@@ -191,12 +179,9 @@ public final class DungeonEspSettings {
         loadStyle(source, "miniboss", miniboss);
         loadStyle(source, "special", special);
         loadStyle(source, "enderman", enderman);
-        loadStyle(source, "skeletor", skeletor);
         maxDistance = readInt(source, PREFIX + "maxDistance", maxDistance, MIN_DISTANCE, MAX_DISTANCE);
         updateIntervalTicks = readInt(source, PREFIX + "updateIntervalTicks", updateIntervalTicks,
                 MIN_INTERVAL_TICKS, MAX_INTERVAL_TICKS);
-        hideZeroHealth = readBool(source, PREFIX + "hideZeroHealth", hideZeroHealth);
-        tracers = readBool(source, PREFIX + "tracers", tracers);
         mobLabels = readBool(source, PREFIX + "mobLabels", mobLabels);
         maxMobLabels = readInt(source, PREFIX + "maxMobLabels", maxMobLabels, MIN_MOB_LABELS, MAX_MOB_LABELS);
         distanceText = readBool(source, PREFIX + "distanceText", distanceText);
@@ -218,17 +203,14 @@ public final class DungeonEspSettings {
         if (p == null) return;
         normalize();
         p.remove("mobHighlights");
-        removeRetiredRoomMobKeys(p);
+        removeRetiredEspKeys(p);
         p.setProperty(PREFIX + "enabled", Boolean.toString(enabled));
         saveStyle(p, "starred", starred);
         saveStyle(p, "miniboss", miniboss);
         saveStyle(p, "special", special);
         saveStyle(p, "enderman", enderman);
-        saveStyle(p, "skeletor", skeletor);
         p.setProperty(PREFIX + "maxDistance", Integer.toString(maxDistance));
         p.setProperty(PREFIX + "updateIntervalTicks", Integer.toString(updateIntervalTicks));
-        p.setProperty(PREFIX + "hideZeroHealth", Boolean.toString(hideZeroHealth));
-        p.setProperty(PREFIX + "tracers", Boolean.toString(tracers));
         p.setProperty(PREFIX + "mobLabels", Boolean.toString(mobLabels));
         p.setProperty(PREFIX + "maxMobLabels", Integer.toString(maxMobLabels));
         p.setProperty(PREFIX + "distanceText", Boolean.toString(distanceText));
@@ -243,8 +225,20 @@ public final class DungeonEspSettings {
         p.setProperty(PREFIX + "doors.distanceText", Boolean.toString(doorDistanceText));
     }
 
-    /** Removes persisted controls for the retired room-wide fallback without touching active ESP or door settings. */
-    private static void removeRetiredRoomMobKeys(Properties p) {
+    /** Removes migrated/retired controls without touching active Starred Mob or door settings. */
+    private static void removeRetiredEspKeys(Properties p) {
+        // Hide Dead Mobs now belongs to Player > Comfort and is saved by AssistSettings.
+        p.remove(PREFIX + "hideZeroHealth");
+        // Tracers and the dedicated Skeletor style have no active renderer/configuration path.
+        p.remove(PREFIX + "tracers");
+        String skeletor = PREFIX + "skeletor.";
+        p.remove(skeletor + "enabled");
+        p.remove(skeletor + "color");
+        p.remove(skeletor + "mode");
+        p.remove(skeletor + "throughWalls");
+        p.remove(skeletor + "outlineWidth");
+        p.remove(skeletor + "outlineOpacity");
+        p.remove(skeletor + "fillOpacity");
         p.remove(PREFIX + "forceRenderAllMobs");
         p.remove(PREFIX + "includeBats");
         p.remove(PREFIX + "includeInvisibleMobs");
@@ -270,7 +264,6 @@ public final class DungeonEspSettings {
         normalizeStyle(miniboss, 0xFFD166);
         normalizeStyle(special, 0xBF5AF2);
         normalizeStyle(enderman, 0xBF5AF2);
-        normalizeStyle(skeletor, 0x32D7FF);
         normalizeStyle(doors, DEFAULT_WITHER_DOOR_COLOR);
     }
 

@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.2v] [--mcmod-version 0.10.9.1.2]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.3v] [--mcmod-version 0.10.9.1.3]
 """
 
 import argparse
@@ -71,6 +71,7 @@ REQUIRED_CLASSES = [
     'gui/HomeMetricHistory',
     'gui/HomeMetricsLayout',
     'render/UIRender',
+    'render/GuiPixelGrid',
     'render/RoundedRectGeometry',
     'render/GuiStyle',
     'render/GuiMotion',
@@ -113,6 +114,7 @@ REQUIRED_CLASSES = [
     'dungeonesp/DungeonEspMatchReason',
     'dungeonesp/WitherDoorCache',
     'dungeonesp/DungeonEspRenderBatch',
+    'dungeonesp/DungeonEspMarkerBounds',
     'dungeonesp/DungeonEspMobDisplay',
     'render/itemanimation/ItemAnimationHooks',
     'render/itemanimation/ItemAnimationHookStatus',
@@ -347,8 +349,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.2v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.2')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.3v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.3')
     args = ap.parse_args()
 
     path = args.jar
@@ -508,6 +510,7 @@ def main():
     rail_layout_raw = raw_of('gui/SettingsRailLayout')
     page_layout_raw = raw_of('gui/SettingsPageLayout')
     ui_render_raw = raw_of('render/UIRender')
+    pixel_grid_raw = raw_of('render/GuiPixelGrid')
     hud_manager_raw = raw_of('hud/HudManager')
     hud_element_raw = raw_of('hud/HudElement')
     item_slots_raw = raw_of('hud/ItemSlots')
@@ -588,10 +591,12 @@ def main():
                 and all(value in reference_catalog_raw for value in
                         (b'Custom GUI Transparency', b'GUI Transparency', b'appearance-opacity-on', b'appearance-opacity')),
             'optional GUI-transparency toggle and slider retain their established config keys and owner')
-    r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
+    r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth',
+                                                        b'GuiPixelGrid', b'guiScaleFactor'))
+                and all(value in pixel_grid_raw for value in (b'textScale', b'coordinate'))
                 and all(value in hud_manager_raw for value in (b'backgroundOnHoverOnly', b'hoveredInEditor'))
                 and b'alphaMul' in hud_element_raw and b'restoreFrameState' in item_slots_raw,
-            'HUD/editor rendering packages exception-safe state cleanup and an Apple-glass GUI restoration baseline')
+            'HUD/editor rendering packages pixel-snapped native text, exception-safe state cleanup and an Apple-glass baseline')
     r.check(all(value in theme_raw for value in
                 (b'applyAppleGlass', b'ACCENT_BLUE', b'SURFACE_CARD', b'EXPANDED_PANEL', b'EXPANDED_BORDER',
                  b'EXPANDED_HEADER', b'EXPANDED_ROW_HOVER', b'EXPANDED_DIVIDER', b'DEPENDENT_TEXT_PRIMARY',
@@ -607,10 +612,10 @@ def main():
     terminal_raw = raw_of('assist/dungeon/DungeonTerminalAssistController')
     mining_raw = raw_of('assist/mining/MiningAssistController')
     r.check(all(value in assist_settings_raw for value in
-                (b'assist.visual.hurtCameraShake', b'assist.movement.autoSprint', b'assist.dungeon.sync.enabled',
-                 b'assist.dungeon.sync.endpoint', b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier'))
-                and b'itemGuard' not in assist_settings_raw,
-            'AssistSettings retains bounded Hurt Camera Shake, inventory, movement, terminal and sync configuration owners')
+                (b'assist.visual.hurtCameraShake', b'assist.movement.autoSprint', b'assist.comfort.hideDeadMobs',
+                 b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint', b'assist.dungeon.terminal.autoClick',
+                 b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
+            'AssistSettings retains bounded Hurt Camera Shake, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
     r.check(all(value in sync_client_raw for value in (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
                 and b'DungeonSyncEnvironment' in sync_manager_raw and b'rememberSyncedPuzzle' in sync_manager_raw,
@@ -623,6 +628,7 @@ def main():
     esp_controller_raw = raw_of('dungeonesp/DungeonEspController')
     esp_tracker_raw = raw_of('dungeonesp/DungeonEspTracker')
     esp_batch_raw = raw_of('dungeonesp/DungeonEspRenderBatch')
+    esp_marker_bounds_raw = raw_of('dungeonesp/DungeonEspMarkerBounds')
     esp_display_raw = raw_of('dungeonesp/DungeonEspMobDisplay')
     esp_command_raw = raw_of('command/ItemDebugCommand')
     r.check(all(value in esp_settings_constants for value in
@@ -630,20 +636,25 @@ def main():
                  'Cyan', 'Gold', 'Purple')),
             'DungeonEspSettings packages the persisted modes, door scope and color palette')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Starred Mobs', b'Wither Door Style', b'Blood Door Color', b'Starred Mob Labels', b'Maximum Labels'))
+                (b'Starred Mobs', b'Wither Door Style', b'Blood Door Color', b'Starred Mob Labels', b'Maximum Labels',
+                 b'Hide Dead Mobs'))
                 and all(value not in reference_catalog_raw for value in
                         (b'Other Mobs', b'Force All Room Mobs', b'Include Bats', b'Include Invisible Mobs',
-                         b'Copy Starred Mob Style', b'Apply Copied Style', b'Apply Style To All'))
+                         b'Copy Starred Mob Style', b'Apply Copied Style', b'Apply Style To All', b'esp-skeletor',
+                         b'esp-tracers', b'esp-hide-zero-health', b'esp-default-preset', b'esp-subtle-preset'))
                 and b'drawStyledBox' in esp_batch_raw,
-            'flat ESP tables retain Starred Mobs and Door controls while room-wide and copy/apply controls stay absent')
+            'flat ESP tables retain Starred Mobs and Door controls while old categories, tracers, mob presets and room-wide controls stay absent')
     r.check(all(value in esp_batch_raw for value in
-                (b'DungeonEspMobDisplay', b'layoutMobLabels', b'drawLabelBackdrop', b'restoreWorldRenderState'))
+                (b'DungeonEspMobDisplay', b'layoutMobLabels', b'drawLabelBackdrop', b'restoreWorldRenderState',
+                 b'AssistSettings', b'hideDeadMobs', b'DungeonEspMarkerBounds'))
+                and all(value in esp_marker_bounds_raw for value in (b'HALF_WIDTH', b'HEIGHT'))
                 and all(value in esp_display_raw for value in (b'MINIBOSS', b'SPECIAL', b'ENDERMAN', b'HARD_LABEL_CAP'))
+                and b'SKELETOR' not in esp_display_raw and b'drawTracers' not in esp_batch_raw
                 and b'HOSTILE' not in esp_display_raw,
-            'Starred Mobs keeps bounded hierarchy labels, collision-aware layout and world-render state restoration')
+            'Starred Mobs keeps bounded labels, death-animation cleanup, tight Fel marker bounds and no tracer draw path')
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
-                 b'SkullOwner', b'espDump'))
+                 b'AssistSettings', b'hideDeadMobs', b'SkullOwner', b'espDump'))
                 and all(value not in esp_controller_raw for value in
                         (b'forceRenderAllMobs', b'includeBats', b'includeInvisibleMobs'))
                 and b'FORCE_ROOM_MOB' not in esp_tracker_raw

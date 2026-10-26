@@ -13,8 +13,9 @@ public final class DungeonEspTrackerTests {
         classificationAcceptsStarsNotLevels();
         delayedTagAndBodyAssociateOnNextScan();
         tallAndSplitTagsAssociateOnce();
-        skeletorGetsDedicatedCategoryAcrossSplitTags();
+        skeletorUsesTheNormalStarredCategoryAcrossSplitTags();
         nearestUnmatchedBodiesAndDeathsAreHandled();
+        dyingBodiesAreHiddenBeforeDespawn();
         realAndHeadEndermenAreHandled();
         taggedNpcBodiesAreSelectedWhileUntaggedMobsStayExcluded();
         mockFiveHundredEntitySteadyStateReusesStorage();
@@ -32,8 +33,8 @@ public final class DungeonEspTrackerTests {
                 DungeonEspMatcher.categoryForTag("\u00a7cShadow Assassin \u00a7a12M\u2764") == DungeonEspCategory.MINIBOSS);
         check("Crypt Souleater gets special starred category",
                 DungeonEspMatcher.categoryForTag("\u00a76\u272f \u00a7cCrypt Souleater") == DungeonEspCategory.SPECIAL);
-        check("Skeletor gets its own starred category",
-                DungeonEspMatcher.categoryForTag("\u00a76\u272f \u00a7cSkeletor") == DungeonEspCategory.SKELETOR);
+        check("Skeletor uses the normal starred category",
+                DungeonEspMatcher.categoryForTag("\u00a76\u272f \u00a7cSkeletor") == DungeonEspCategory.STARRED);
         check("known Enderman skull data is recognized", DungeonEspMatcher.isKnownEndermanHeadTexture(
                 "e3RleHR1cmVzOntTS0lOOnt1cmw6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2E1OWJiMGE3YTMyOTY1YjNkOTBkOGVhZmE4OTlkMTgzNWY0MjQ1MDllYWRkNGU2YjcwOWFkYTUwYjljZiJ9fX0="));
     }
@@ -67,7 +68,7 @@ public final class DungeonEspTrackerTests {
                 && record.matchReason == DungeonEspMatchReason.SPLIT_TAG);
     }
 
-    private static void skeletorGetsDedicatedCategoryAcrossSplitTags() {
+    private static void skeletorUsesTheNormalStarredCategoryAcrossSplitTags() {
         DungeonEspTracker tracker = new DungeonEspTracker();
         MockSource world = new MockSource(3);
         world.setTag(0, 30, 12D, 66.8D, 12D, "\u272e [Lv100]");
@@ -75,8 +76,8 @@ public final class DungeonEspTrackerTests {
         world.setLiving(2, 32, 12.05D, 64D, 12D, 1.8D, 100F, new Object());
         tracker.scan(world, 0D, 64D, 0D, 60D, true);
         DungeonEspTracker.TrackedMob record = find(tracker, 32);
-        check("split Skeletor tags select one body with dedicated category", record != null
-                && record.category == DungeonEspCategory.SKELETOR
+        check("split Skeletor tags select one body with the normal Starred category", record != null
+                && record.category == DungeonEspCategory.STARRED
                 && record.matchReason == DungeonEspMatchReason.SPLIT_TAG);
     }
 
@@ -103,6 +104,21 @@ public final class DungeonEspTrackerTests {
         tracker.scan(world, 0D, 64D, 0D, 60D, true);
         tracker.remove(101); // render-side live guard for a post-scan despawn.
         check("render guard removes despawn without next interval", tracker.trackedCount() == 0);
+    }
+
+    private static void dyingBodiesAreHiddenBeforeDespawn() {
+        DungeonEspTracker tracker = new DungeonEspTracker();
+        MockSource world = new MockSource(2);
+        Object body = new Object();
+        world.setTag(0, 140, 6D, 66.7D, 6D, "\u272e [Lv100] Zombie");
+        world.setLiving(1, 141, 6D, 64D, 6D, 1.8D, 100F, body);
+        tracker.scan(world, 0D, 64D, 0D, 60D, true);
+        check("live target starts tracked", tracker.trackedCount() == 1);
+        world.setDying(1, true);
+        tracker.scan(world, 0D, 64D, 0D, 60D, true);
+        check("death animation is removed before despawn when Hide Dead Mobs is on", tracker.trackedCount() == 0);
+        tracker.scan(world, 0D, 64D, 0D, 60D, false);
+        check("death animation can remain only when Hide Dead Mobs is explicitly off", tracker.trackedCount() == 1);
     }
 
     private static void realAndHeadEndermenAreHandled() {
@@ -234,6 +250,7 @@ public final class DungeonEspTrackerTests {
             setLiving(index, id, x, y, z, height, health, ref);
             entities[index].enderman = true;
         }
+        void setDying(int index, boolean dying) { entities[index].dying = dying; }
         void setNpcPlayer(int index, int id, double x, double y, double z, double height, float health, Object ref) {
             setLiving(index, id, x, y, z, height, health, ref);
             Mock m = entities[index];
@@ -263,6 +280,7 @@ public final class DungeonEspTrackerTests {
             into.living = m.living;
             into.player = m.player;
             into.dead = m.dead;
+            into.dying = m.dying;
             into.enderman = m.enderman;
             into.endermanHead = m.endermanHead;
             into.hostile = m.hostile;
@@ -280,7 +298,7 @@ public final class DungeonEspTrackerTests {
         int id;
         double x, y, z, height = 1.8D;
         float health = Float.NaN;
-        boolean armorStand, living, player, dead, enderman, endermanHead;
+        boolean armorStand, living, player, dead, dying, enderman, endermanHead;
         boolean hostile, bat, invisible, npc, pet;
         String headTexture, name;
         Object reference;
@@ -289,7 +307,7 @@ public final class DungeonEspTrackerTests {
             x = y = z = 0D;
             height = 1.8D;
             health = Float.NaN;
-            armorStand = living = player = dead = enderman = endermanHead = false;
+            armorStand = living = player = dead = dying = enderman = endermanHead = false;
             hostile = bat = invisible = npc = pet = false;
             headTexture = null;
             name = null;

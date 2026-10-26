@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.2v
+# Apple settings inventory — Beta-0.10.9.1.3v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -12,12 +12,13 @@ Its sidebar order is fixed:
 **Home → Player → Dungeons → Farming → Mining → Fishing → HUD & Visuals → Misc**.
 
 These are visible presentation labels only: the eight existing `Tab` enum identities, routes, feature owners,
-configuration keys, search behavior, and persistence remain unchanged. The shell uses a graphite-glass window,
-translucent bordered cards, icon/title/subtitle hierarchy, soft shadow, and an 8 px large-layout world margin.
-Its upper-left header shows the literal **SkyVeLor** wordmark and contains exactly two 24 px icon targets:
-**Fullscreen** and **Close**. Dragging, Escape, hover/press acknowledgement, tooltips, and fullscreen
-persistence are preserved; there are no traffic lights, profiles, presets, READY badges, detail buttons,
-or option-count expanders.
+configuration keys, search behavior, and persistence remain unchanged. The normal shell uses a compact graphite-glass
+window (`72%` safe width / `78%` safe height; maximum `720 × 480` logical GUI pixels), translucent bordered cards,
+icon/title/subtitle hierarchy, soft shadow, and an 8 px world margin. Its upper-left header shows the literal
+**SkyVeLor** wordmark and contains exactly two 24 px icon targets: **Fullscreen** and **Close**. Dragging, Escape,
+hover/press acknowledgement, tooltips, and fullscreen persistence are preserved. A one-time layout-version migration
+opens a legacy saved fullscreen shell compact; a later explicit Fullscreen choice still persists. There are no traffic
+lights, profiles, READY badges, detail buttons, or option-count expanders.
 
 A visible settings row is one of four patterns:
 
@@ -30,8 +31,11 @@ Every normal row reserves the same right-side chevron-then-toggle columns. Toggl
 `38 × 20` pill. Editor rows use a distinct **[Edit]** button and never show a chevron. Card headings
 supply the visual hierarchy without becoming an interactive disclosure.
 
-Each tab is a one-open accordion. Presentation-only disclosure state is stored under
-`ui.feature.dropdown.<catalog-id>` by `FeatureUiState` / `FeatureUiPreferences`; it does not replace,
+Each tab is a one-open accordion. All native bitmap-font text snaps its origin and effective scale to the active
+physical GUI pixel grid once per frame, avoiding fractional-scale blur without a custom-font subsystem. Rounded
+surfaces use up to 16 quarter-arc segments; even Fast quality uses eight, and new/reset settings select Smooth.
+Presentation-only disclosure state is stored under `ui.feature.dropdown.<catalog-id>` by
+`FeatureUiState` / `FeatureUiPreferences`; it does not replace,
 rename, or migrate a feature configuration key. Search indexes labels, ids, descriptions, and
 keywords, changes to the result tab, and opens the direct owning dropdown. Expanded panels use a dark bordered
 inset surface with an open-header accent, child hover feedback, and inset dividers; they animate their height for
@@ -57,12 +61,18 @@ dropdown was added.
 - **Boss Health HUD** is a master toggle plus **Edit**.
 - **HUD Editor** is an **Edit** row.
 - **Item Animation** is a master toggle plus **Edit**.
-- **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its five retained target styles
-  are Starred Mob, Miniboss, Special Starred Mob, Enderman, and Skeletor. Player-shaped/NPC bodies remain eligible
-  when their nearby tag selects them, so their existing outline styles render normally.
-- The former Other Mobs/Force All Room Mobs fallback and session-only Copy/Apply style actions are absent. Historic
-  `dungeonEsp.otherMobs.*`, `forceRenderAllMobs`, `includeBats`, and `includeInvisibleMobs` keys load harmlessly
-  and are removed on the next normal save.
+- **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its four retained target styles
+  are Starred Mob, Miniboss, Special Starred Mob, and Enderman. A star-tagged Skeletor resolves through normal
+  Starred Mob styling; player-shaped/NPC bodies remain eligible when a nearby tag selects them.
+- **Player → Comfort → Hide Dead Mobs** is on by default. It owns `assist.comfort.hideDeadMobs`, migrates the former
+  `dungeonEsp.hideZeroHealth` choice, and hides zero-health or `deathTime > 0` living targets before despawn.
+- The former Other Mobs/Force All Room Mobs fallback, dedicated Skeletor style, tracer path, Starred Mobs
+  Default/Subtle profile actions, and session-only Copy/Apply style actions are absent. Historic
+  `dungeonEsp.otherMobs.*`, `dungeonEsp.forceRenderAllMobs`, `dungeonEsp.includeBats`,
+  `dungeonEsp.includeInvisibleMobs`, `dungeonEsp.skeletor.*`, and `dungeonEsp.tracers` keys load harmlessly and
+  are removed on the next normal save.
+- Enderman/Fel armor-stand head markers retain a tight `0.76 × 1.85` fixed proxy rather than the retired oversized
+  `1.1 × 2.7` outline.
 - Map, Item Lock / Swap, inventory, movement, Slayer, M7, Starred Mobs/Door ESP, mining, fishing, and Misc
   owners retain their active option ids and configuration owners.
 - **Misc → Appearance** exposes **Custom GUI Transparency** plus **GUI Transparency**. These controls retain
@@ -93,7 +103,7 @@ Animation values continue to load unchanged.
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.2v text |
+| Earlier player-facing text | Beta-0.10.9.1.3v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -106,6 +116,9 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 | `Open chat background` | `Open Chat Background` |
 | `Item Animation Editor` route | `Item Animation` with `[Edit]` |
 | `Mob ESP` | `Starred Mobs` |
+| `Hide Zero Health` under Starred Mobs | `Hide Dead Mobs` under Player → Comfort |
+| Dedicated Skeletor style | Normal `Starred Mob` style for star-tagged Skeletor |
+| Tracers; Starred Mobs Default/Subtle actions | Removed; legacy keys clean up on save |
 | `Other Mobs`, Force All Room Mobs, bat/invisible controls | Removed; legacy keys clean up on save |
 | Copy Style, Apply Copied Style, Apply Style To All | Removed |
 | `HOOK ACTIVE — …` | `Hook: active` |
@@ -136,8 +149,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar \
-  --version Beta-0.10.9.1.2v --mcmod-version 0.10.9.1.2
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar \
+  --version Beta-0.10.9.1.3v --mcmod-version 0.10.9.1.3
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

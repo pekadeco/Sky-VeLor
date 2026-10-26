@@ -7,16 +7,16 @@ package com.arena.pekaclient.gui;
  */
 public final class ReferenceSettingsWindowLayout {
 
-    /** Keeps a visible strip of world around both small and fullscreen rounded windows. */
-    /** The requested large-layout breathing room around a centered or fullscreen rounded window. */
+    /** Keeps a visible strip of world around both compact and fullscreen rounded windows. */
     public static final float OUTER_MARGIN = 8f;
-    public static final float NORMAL_WIDTH_RATIO = .85f;
-    public static final float NORMAL_HEIGHT_RATIO = .82f;
+    /** Compact normal shell: intentionally narrower than the former near-full-width desktop layout. */
+    public static final float NORMAL_WIDTH_RATIO = .72f;
+    public static final float NORMAL_HEIGHT_RATIO = .78f;
     /** Fullscreen occupies the complete safe area while retaining the rounded-window margin. */
     public static final float FULLSCREEN_WIDTH_RATIO = 1f;
     public static final float FULLSCREEN_HEIGHT_RATIO = 1f;
-    public static final float NORMAL_MAX_WIDTH = 820f;
-    public static final float NORMAL_MAX_HEIGHT = 520f;
+    public static final float NORMAL_MAX_WIDTH = 720f;
+    public static final float NORMAL_MAX_HEIGHT = 480f;
     public static final float MIN_WINDOW_WIDTH = 280f;
     public static final float MIN_WINDOW_HEIGHT = 210f;
 

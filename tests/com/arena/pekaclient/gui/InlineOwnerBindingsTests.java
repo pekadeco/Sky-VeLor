@@ -20,17 +20,21 @@ public final class InlineOwnerBindingsTests {
     private static void booleanOwnersRemainDirect() {
         boolean oldParticles = AppleSettings.noBlockParticles;
         boolean oldSprint = AssistSettings.autoSprint;
+        boolean oldHideDead = AssistSettings.hideDeadMobs;
         boolean oldMap = AppleSettings.dungeonMap;
         boolean oldChat = ChatQolSettings.enabled;
         try {
             InlineSettingsBindings.setBoolean("no-block-particles", !oldParticles);
             InlineSettingsBindings.setBoolean("auto-sprint", !oldSprint);
+            InlineSettingsBindings.setBoolean("hide-dead-mobs", !oldHideDead);
             InlineSettingsBindings.setBoolean("dungeon-map", !oldMap);
             InlineSettingsBindings.setBoolean("chat-qol", !oldChat);
             check("particle row writes AppleSettings owner", AppleSettings.noBlockParticles == !oldParticles
                     && InlineSettingsBindings.booleanValue("no-block-particles") == !oldParticles);
             check("sprint row writes AssistSettings owner", AssistSettings.autoSprint == !oldSprint
                     && InlineSettingsBindings.booleanValue("auto-sprint") == !oldSprint);
+            check("Hide Dead Mobs writes the Player Comfort AssistSettings owner", AssistSettings.hideDeadMobs == !oldHideDead
+                    && InlineSettingsBindings.booleanValue("hide-dead-mobs") == !oldHideDead);
             check("map row writes original dungeon-map owner", AppleSettings.dungeonMap == !oldMap
                     && InlineSettingsBindings.booleanValue("dungeon-map") == !oldMap);
             check("Chat master writes ChatQolSettings owner", ChatQolSettings.enabled == !oldChat
@@ -38,6 +42,7 @@ public final class InlineOwnerBindingsTests {
         } finally {
             AppleSettings.noBlockParticles = oldParticles;
             AssistSettings.autoSprint = oldSprint;
+            AssistSettings.hideDeadMobs = oldHideDead;
             AppleSettings.dungeonMap = oldMap;
             ChatQolSettings.enabled = oldChat;
         }

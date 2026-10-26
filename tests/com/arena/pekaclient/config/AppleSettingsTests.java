@@ -12,6 +12,9 @@ public final class AppleSettingsTests {
         check("fresh adaptive quality defaults off", !AppleSettings.adaptive);
         check("fresh Performance Boost Beta defaults on", AppleSettings.experimentalPerformance);
         check("fresh panel opacity is slightly transparent", AppleSettings.DEFAULT_GLASS_OPACITY == 88);
+        check("fresh curve quality opens Smooth with a rounded fast floor", AppleSettings.curveQuality
+                == AppleSettings.DEFAULT_CURVE_QUALITY && AppleSettings.CURVE_SEGMENTS[0] >= 16
+                && AppleSettings.CURVE_SEGMENTS[2] >= 8);
 
         AppleSettings.adaptive = AppleSettings.DEFAULT_ADAPTIVE_QUALITY;
         AppleSettings.experimentalPerformance = AppleSettings.DEFAULT_PERFORMANCE_BOOST_BETA;
@@ -206,11 +209,19 @@ public final class AppleSettingsTests {
         Properties stored = new Properties();
         stored.setProperty("settings.window.fullscreen", "true");
         AppleSettings.loadSettingsWindowLayout(stored);
-        check("fullscreen choice loads", AppleSettings.settingsWindowFullscreen);
+        check("old fullscreen choice migrates once to compact", !AppleSettings.settingsWindowFullscreen);
         Properties saved = new Properties();
         AppleSettings.saveSettingsWindowLayout(saved);
-        check("fullscreen choice has one stable persisted key",
-                "true".equals(saved.getProperty("settings.window.fullscreen")) && saved.size() == 1);
+        check("compact migration persists a versioned shell choice",
+                "false".equals(saved.getProperty("settings.window.fullscreen"))
+                        && Integer.toString(AppleSettings.CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION).equals(
+                                saved.getProperty(AppleSettings.SETTINGS_WINDOW_LAYOUT_VERSION_KEY)) && saved.size() == 2);
+        Properties explicitFullscreen = new Properties();
+        explicitFullscreen.setProperty(AppleSettings.SETTINGS_WINDOW_LAYOUT_VERSION_KEY,
+                Integer.toString(AppleSettings.CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION));
+        explicitFullscreen.setProperty("settings.window.fullscreen", "true");
+        AppleSettings.loadSettingsWindowLayout(explicitFullscreen);
+        check("post-migration explicit fullscreen choice still loads", AppleSettings.settingsWindowFullscreen);
         AppleSettings.settingsWindowFullscreen = AppleSettings.DEFAULT_SETTINGS_WINDOW_FULLSCREEN;
     }
 

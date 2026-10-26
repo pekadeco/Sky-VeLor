@@ -9,6 +9,7 @@ public final class RoundedRectGeometryTests {
         cacheReusesTheSameGeometryWithoutFrameAllocation();
         eachCornerIsClampedIndependentlyAndEdgesJoin();
         scaledGuiGeometryRemainsContinuousFromScaleOneToFour();
+        roundedCornerPolicyKeepsEveryQualityVisiblyCurved();
         namedMotionSettlesInsideTheRequestedGuiWindow();
         System.out.println("rounded geometry: passed " + passed + ", failed " + failed);
         if (failed > 0) System.exit(1);
@@ -48,6 +49,13 @@ public final class RoundedRectGeometryTests {
             check("scale " + scale + " preserves an approximately one GUI pixel anti-alias unit",
                     close(GuiStyle.AA_FRINGE * scale, (float) scale));
         }
+    }
+
+    private static void roundedCornerPolicyKeepsEveryQualityVisiblyCurved() {
+        check("shared geometry permits smooth 16-segment quarter arcs", RoundedRectGeometry.MAX_SEGMENTS >= 16);
+        check("12 px window corner uses the selected smooth quality", RoundedRectGeometry.segmentsFor(12f, 16) == 12);
+        check("Balanced no longer caps a 12 px corner at four facets", RoundedRectGeometry.segmentsFor(12f, 12) >= 12);
+        check("Fast remains rounded rather than using the old two-facet corner", RoundedRectGeometry.segmentsFor(12f, 8) == 8);
     }
 
     private static void namedMotionSettlesInsideTheRequestedGuiWindow() {

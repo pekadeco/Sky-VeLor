@@ -21,6 +21,8 @@ public final class AssistSettings {
     public static final boolean DEFAULT_ROMAN_NUMERALS = true;
     public static final boolean DEFAULT_TOOLTIP_SCROLL = true;
     public static final boolean DEFAULT_RARITY_HIGHLIGHT = true;
+    /** Remove stale dungeon ESP immediately once a living target has begun its death animation. */
+    public static final boolean DEFAULT_HIDE_DEAD_MOBS = true;
 
     public static boolean miningAbilityAlert;
     public static boolean miningPuzzlerMarker;
@@ -35,6 +37,8 @@ public final class AssistSettings {
     public static boolean autoSprint;
     public static boolean wardrobeShortcut;
     public static boolean petsShortcut;
+    /** Player Comfort owner for the live Dungeon ESP death-animation filter. */
+    public static boolean hideDeadMobs;
 
     public static boolean dungeonSync;
     public static boolean dungeonSyncDebug;
@@ -70,6 +74,8 @@ public final class AssistSettings {
         autoSprint = false;
         wardrobeShortcut = false;
         petsShortcut = false;
+        // This is a visual cleanup, not combat automation: it is deliberately useful on new and established configs.
+        hideDeadMobs = DEFAULT_HIDE_DEAD_MOBS;
         dungeonSync = false;
         dungeonSyncDebug = false;
         dungeonSyncEndpoint = DEFAULT_SYNC_ENDPOINT;
@@ -98,6 +104,9 @@ public final class AssistSettings {
         autoSprint = bool(p, "movement.autoSprint", "autoSprintEnabled", false);
         wardrobeShortcut = bool(p, "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
         petsShortcut = bool(p, "shortcuts.pets", "petsShortcutEnabled", false);
+        // The Comfort key wins. The former ESP-local zero-health flag migrates once so an explicit OFF choice is
+        // preserved, while absent keys use the new default and include deathTime animation frames.
+        hideDeadMobs = hideDeadMobs(p);
         dungeonSync = bool(p, "dungeon.sync.enabled", "dungeonSyncEnabled", false);
         dungeonSyncDebug = bool(p, "dungeon.sync.debug", "dungeonSyncDebug", false);
         dungeonSyncEndpoint = endpoint(value(p, "dungeon.sync.endpoint", "dungeonSyncEndpoint", DEFAULT_SYNC_ENDPOINT));
@@ -119,6 +128,8 @@ public final class AssistSettings {
         p.remove("inventorySearchEnabled");
         p.remove(PREFIX + "visual.noHurtCamera");
         p.remove("noHurtCamEnabled");
+        // The old Dungeon ESP owner is retired. Do not allow an in-place Properties save to revive it.
+        p.remove("dungeonEsp.hideZeroHealth");
         p.setProperty(PREFIX + "mining.abilityAlert", Boolean.toString(miningAbilityAlert));
         p.setProperty(PREFIX + "mining.puzzlerMarker", Boolean.toString(miningPuzzlerMarker));
         p.setProperty(PREFIX + "inventory.hidePotionEffects", Boolean.toString(hidePotionEffects));
@@ -129,6 +140,7 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "movement.autoSprint", Boolean.toString(autoSprint));
         p.setProperty(PREFIX + "shortcuts.wardrobe", Boolean.toString(wardrobeShortcut));
         p.setProperty(PREFIX + "shortcuts.pets", Boolean.toString(petsShortcut));
+        p.setProperty(PREFIX + "comfort.hideDeadMobs", Boolean.toString(hideDeadMobs));
         p.setProperty(PREFIX + "dungeon.sync.enabled", Boolean.toString(dungeonSync));
         p.setProperty(PREFIX + "dungeon.sync.debug", Boolean.toString(dungeonSyncDebug));
         p.setProperty(PREFIX + "dungeon.sync.endpoint", dungeonSyncEndpoint);
@@ -165,6 +177,17 @@ public final class AssistSettings {
         dungeonSyncEndpoint = endpoint(dungeonSyncEndpoint);
         terminalScale = clamp(terminalScale, MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE);
         hurtCameraShake = clamp(hurtCameraShake, MIN_HURT_CAMERA_SHAKE, MAX_HURT_CAMERA_SHAKE);
+    }
+
+    /**
+     * New Comfort ownership wins over the legacy Dungeon ESP zero-health flag. The legacy key's boolean is preserved
+     * exactly, but the new behavior additionally removes an entity while its deathTime animation is running.
+     */
+    private static boolean hideDeadMobs(Properties p) {
+        String current = p.getProperty(PREFIX + "comfort.hideDeadMobs");
+        if (current != null) return Boolean.parseBoolean(current.trim());
+        String legacy = p.getProperty("dungeonEsp.hideZeroHealth");
+        return legacy == null ? DEFAULT_HIDE_DEAD_MOBS : Boolean.parseBoolean(legacy.trim());
     }
 
     /** New integer key wins; the retired binary key maps true to 0% and false to vanilla 100%. */

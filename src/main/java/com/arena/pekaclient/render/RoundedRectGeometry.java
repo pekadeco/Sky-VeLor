@@ -10,8 +10,9 @@ package com.arena.pekaclient.render;
  * GUI scale.</p>
  */
 public final class RoundedRectGeometry {
-    public static final int MAX_SEGMENTS = 8;
-    public static final int CACHE_CAPACITY = 96;
+    /** 16 quarter-arc subdivisions keep normal 7–12 px Apple corners genuinely round at GUI scales 1–4. */
+    public static final int MAX_SEGMENTS = 16;
+    public static final int CACHE_CAPACITY = 128;
 
     /** Unit-circle points are built once for each permitted segment count, never in the render loop. */
     private static final float[][] UNIT_X = new float[MAX_SEGMENTS + 1][];
@@ -129,9 +130,12 @@ public final class RoundedRectGeometry {
         return created;
     }
 
-    /** Uses the same radius-quality policy as the old control while retaining geometry in the shared cache. */
+    /**
+     * Uses one requested segment per GUI-pixel of the largest corner radius, then applies the selected bounded cap.
+     * The former radius/2 policy visibly faceted a 12 px window corner at the persisted Balanced/Fast choices.
+     */
     public static int segmentsFor(float largestRadius, int qualityCap) {
-        int requested = Math.max(1, (int) Math.ceil(Math.max(0f, largestRadius) / 2f));
+        int requested = Math.max(1, (int) Math.ceil(Math.max(0f, largestRadius)));
         return Math.max(1, Math.min(MAX_SEGMENTS, Math.min(Math.max(1, qualityCap), requested)));
     }
 

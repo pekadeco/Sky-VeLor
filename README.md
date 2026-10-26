@@ -1,40 +1,35 @@
-# Sky VeLor — Beta-0.10.9.1.2v
+# Sky VeLor — Beta-0.10.9.1.3v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.2v — Starred Mobs targeting and outline repair
+## Beta-0.10.9.1.3v — Compact settings, clean Starred Mobs ESP
 
-- Renames the visible **Mob ESP** owner to **Starred Mobs**. It now targets only star-tagged dungeon mobs and named
-  minibosses; the generic **Other Mobs** room fallback and its force/bat/invisible controls are removed.
-- Fixes player-shaped/NPC starred mobs and minibosses being discarded before their tag could create a live outline
-  target. Untagged room mobs remain excluded, while Miniboss retains its existing visible outline style.
-- Removes the Starred Mobs Copy Style, Apply Copied Style, and Apply Style To All actions. Retired room-wide keys
-  load harmlessly and are cleared on the next normal save.
-- Retains a visible **SkyVeLor** wordmark at the upper-left of the settings header. The title bar still has
-  exactly two 24 px actions: **Fullscreen** and **Close**; drag, Escape, tooltips, hover/press feedback,
-  fullscreen persistence, and the existing close behavior remain intact.
-- Renames only the visible eight-route rail to **Home → Player → Dungeons → Farming → Mining → Fishing →
-  HUD & Visuals → Misc**. Existing enum identities, routes, feature ownership, search, and configuration
-  keys remain unchanged; Farming remains a no-feature destination.
-- Refines the shared flat value dropdown: clearer trigger/popup contrast, hover feedback, selected-row accent
-  treatment and check mark, readable dividers, and adaptive placement/flow reservation without nesting choices
-  or changing feature-value bindings.
-- Adds explicit **Custom GUI Transparency** and **GUI Transparency** controls under **Misc → Appearance**.
-  They retain `glassOpacityOn` / `glassOpacity` ownership and legacy loading; the custom glass range is now
-  45%–100%, where lower opacity shows more of the game behind the GUI.
-- The flat settings contract remains unchanged: fixed chevron/toggle columns, one-control inline rows,
-  two-or-more-choice dropdowns, one-level searchable accordion disclosure, readable master-off feedback,
-  reset links, and only the existing HUD Editor and Item Animation editor routes.
-- `tools/apple-layout-renderer/` mirrors the left-aligned wordmark and renders headless Java2D Home, Dungeons,
-  and GUI-scale-4 PNG inspection previews from the real layout/catalog classes; push CI stores them as
-  short-lived review evidence.
+- Makes the normal settings shell substantially more compact (`72%` width / `78%` height, capped at `720 × 480`
+  logical GUI pixels). A one-time `settings.window.layoutVersion` migration converts a legacy saved fullscreen shell
+  to compact; a fullscreen choice made after that migration still persists normally.
+- Snaps vanilla bitmap-font origins and scales to the active physical GUI pixel grid once per render frame. This keeps
+  the existing compact type hierarchy while avoiding fractional-scale blur; it does not add a custom-font dependency.
+- Raises rounded-corner capacity and makes even the Fast quality use eight quarter-arc segments. New/reset settings
+  use Smooth, while old quality values remain compatible.
+- Removes the **Default Preset** and **Subtle Preset** actions from **Dungeons → Starred Mobs**. Removes the dedicated
+  Skeletor style/category; a star-tagged Skeletor now uses the normal **Starred Mob** style. **Other Mobs** remains absent.
+- Removes ESP tracers end-to-end: no visible control, active config value, or render path remains. Retired tracer,
+  Skeletor, and room-wide keys load harmlessly and are cleaned on save.
+- Moves the former **Hide Zero Health** ESP switch to **Player → Comfort → Hide Dead Mobs**. It defaults on, migrates
+  the old `dungeonEsp.hideZeroHealth` choice to `assist.comfort.hideDeadMobs`, and removes zero-health as well as
+  `deathTime > 0` targets before their despawn/next scan.
+- Tightens the fixed sleeping Fel/Enderman head-marker proxy from `1.1 × 2.7` to `0.76 × 1.85` blocks so its purple
+  outline no longer covers an oversized area.
+- Retains Minecraft 1.8.9 Forge compatibility, existing unrelated features, the SkyVeLor wordmark, eight-route
+  navigation, dropdown behavior, optional GUI transparency, fullscreen action, and the HUD/Item Animation editors.
+
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
 [`docs/FEATURE-SETTINGS-EDITOR.md`](docs/FEATURE-SETTINGS-EDITOR.md).
 
-> A player supplied in-game evidence of the pre-fix NPC/miniboss outline defects. Automated build, test,
+> Player screenshots supplied the settings-shell blur/corner and sleeping-Fel outline evidence. Automated build, test,
 > renderer, and archive verification still do not start Minecraft, so the corrected behavior needs a fresh visual/input
 > pass in a real 1.8.9 Forge client.
 
@@ -81,7 +76,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -92,8 +87,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar \
-  --version Beta-0.10.9.1.2v --mcmod-version 0.10.9.1.2
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar \
+  --version Beta-0.10.9.1.3v --mcmod-version 0.10.9.1.3
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -101,8 +96,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1.2v-source.zip \
-  --version Beta-0.10.9.1.2v
+  SkyVeLor-1.8.9-Beta-0.10.9.1.3v-source.zip \
+  --version Beta-0.10.9.1.3v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -112,7 +107,7 @@ and unrelated archives do not belong in the source ZIP.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.2v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
@@ -122,8 +117,9 @@ and unrelated archives do not belong in the source ZIP.
   VeLor**; no controls screen is launched from the settings shell.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
-- **Dungeons → Dungeon ESP → Starred Mobs** owns Starred Mob, Miniboss, Special Starred Mob, Enderman, and
-  Skeletor styles. NPC/player-shaped bodies are eligible only when a nearby dungeon tag selects them.
+- **Dungeons → Dungeon ESP → Starred Mobs** owns Starred Mob, Miniboss, Special Starred Mob, and Enderman styles.
+  Skeletor uses the normal Starred Mob style when a nearby star tag selects it; NPC/player-shaped bodies remain eligible.
+- **Player → Comfort → Hide Dead Mobs** defaults on and removes a Dungeon ESP target during its death animation.
 - **HUD & Visuals → HUD → HUD Editor** opens the allowed editor for HUD and map placement.
 - **HUD & Visuals → Item Animation → Edit** opens the standalone left-edge renderer panel. Its live
   values affect only Minecraft's first-person hand path; it neither sends packets nor changes attack,

@@ -6,6 +6,5 @@ public enum DungeonEspCategory {
     STARRED,
     MINIBOSS,
     SPECIAL,
-    ENDERMAN,
-    SKELETOR
+    ENDERMAN
 }

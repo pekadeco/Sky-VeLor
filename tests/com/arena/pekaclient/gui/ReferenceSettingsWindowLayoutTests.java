@@ -19,8 +19,9 @@ public final class ReferenceSettingsWindowLayoutTests {
         GuiLayoutToolkit.Rect normal = ReferenceSettingsWindowLayout.layout(new GuiLayoutToolkit.Rect(), 900f, 600f, false);
         float availableW = 900f - ReferenceSettingsWindowLayout.OUTER_MARGIN * 2f;
         float availableH = 600f - ReferenceSettingsWindowLayout.OUTER_MARGIN * 2f;
-        check("normal width is 85 percent before the fixed maximum", close(normal.w, availableW * .85f));
-        check("normal height is 82 percent before the fixed maximum", close(normal.h, availableH * .82f));
+        check("normal width is the compact 72 percent before the fixed maximum", close(normal.w, availableW * .72f));
+        check("normal height is the compact 78 percent before the fixed maximum", close(normal.h, availableH * .78f));
+        check("normal shell is substantially narrower than the old near-full-width layout", normal.w <= availableW * .73f);
         check("normal window leaves a visible world border", normal.x >= ReferenceSettingsWindowLayout.OUTER_MARGIN - .01f
                 && normal.y >= ReferenceSettingsWindowLayout.OUTER_MARGIN - .01f);
     }

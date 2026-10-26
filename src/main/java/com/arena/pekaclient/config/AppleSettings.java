@@ -32,14 +32,18 @@ public final class AppleSettings {
     public static final int SETTINGS_THEME_BLACK_BLUE = 1;
     public static final int DEFAULT_SETTINGS_THEME = SETTINGS_THEME_FOREST_CYAN;
     public static final String[] CURVE_NAMES = {"Smooth", "Balanced", "Fast"};
-    /** Arc subdivisions per 90 degrees for each curve quality. */
-    public static final int[] CURVE_SEGMENTS = {8, 4, 2};
+    /** Arc subdivisions per 90 degrees for each curve quality; even Fast stays visually rounded. */
+    public static final int[] CURVE_SEGMENTS = {16, 12, 8};
+    public static final int DEFAULT_CURVE_QUALITY = 0;
 
     public static int accent = 0;
     /** Persisted legacy palette selection; Theme reads it only for compatibility, never to fork active GUI rendering. */
     public static int settingsTheme = DEFAULT_SETTINGS_THEME;
     /** The settings shell deliberately opens in its compact responsive layout unless the user chose fullscreen. */
     public static final boolean DEFAULT_SETTINGS_WINDOW_FULLSCREEN = false;
+    /** Increments only when an old fullscreen selection must be reinterpreted as the compact shell. */
+    static final String SETTINGS_WINDOW_LAYOUT_VERSION_KEY = "settings.window.layoutVersion";
+    static final int CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION = 2;
     public static boolean settingsWindowFullscreen = DEFAULT_SETTINGS_WINDOW_FULLSCREEN;
     public static boolean darkMode = true;
     public static int cornerRadius = 12;      // 4..18
@@ -142,7 +146,7 @@ public final class AppleSettings {
     public static int glassOpacity = DEFAULT_GLASS_OPACITY;
     public static boolean animations = true;
     public static int animSpeed = 100;        // 40..200 (%)
-    public static int curveQuality = 1;       // 0 smooth, 1 balanced, 2 fast
+    public static int curveQuality = DEFAULT_CURVE_QUALITY; // 0 smooth, 1 balanced, 2 fast
     public static boolean shadows = true;
     public static boolean adaptive = DEFAULT_ADAPTIVE_QUALITY; // auto-lower detail when FPS drops
     public static int scrollSpeed = 100;      // 50..300 (%), wheel and swipe speed (keys are fixed)
@@ -218,6 +222,8 @@ public final class AppleSettings {
     private static boolean globalScrollMigrationPending;
     /** Set while an older schema marker needs to be rewritten without changing loaded values. */
     private static boolean configVersionMigrationPending;
+    /** Set only when a pre-compact-layout fullscreen flag is reset once, before later explicit fullscreen choices. */
+    private static boolean settingsWindowLayoutMigrationPending;
 
     private AppleSettings() {
     }
@@ -246,15 +252,31 @@ public final class AppleSettings {
         }
     }
 
-    /** Reads the small/fullscreen shell choice; missing historic configurations retain the compact default. */
+    /**
+     * Reads the small/fullscreen shell choice. The previous wide-shell fullscreen flag is migrated once to the new
+     * compact default, while the version marker means a later deliberate Fullscreen click remains fully persistent.
+     */
     static void loadSettingsWindowLayout(Properties settings) {
         Properties p = settings == null ? new Properties() : settings;
-        settingsWindowFullscreen = readBool(p, "settings.window.fullscreen", DEFAULT_SETTINGS_WINDOW_FULLSCREEN);
+        settingsWindowLayoutMigrationPending = false;
+        int layoutVersion = readInt(p, SETTINGS_WINDOW_LAYOUT_VERSION_KEY, 0, 0,
+                CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION);
+        boolean requestedFullscreen = readBool(p, "settings.window.fullscreen", DEFAULT_SETTINGS_WINDOW_FULLSCREEN);
+        if (layoutVersion < CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION && requestedFullscreen) {
+            settingsWindowFullscreen = DEFAULT_SETTINGS_WINDOW_FULLSCREEN;
+            settingsWindowLayoutMigrationPending = true;
+        } else {
+            settingsWindowFullscreen = requestedFullscreen;
+        }
     }
 
-    /** Persists only the selected shell size mode, never a screen coordinate or a gameplay setting. */
+    /** Persists only the selected shell size mode/version, never a screen coordinate or a gameplay setting. */
     static void saveSettingsWindowLayout(Properties settings) {
-        if (settings != null) settings.setProperty("settings.window.fullscreen", Boolean.toString(settingsWindowFullscreen));
+        if (settings != null) {
+            settings.setProperty("settings.window.fullscreen", Boolean.toString(settingsWindowFullscreen));
+            settings.setProperty(SETTINGS_WINDOW_LAYOUT_VERSION_KEY,
+                    Integer.toString(CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION));
+        }
     }
 
     /**
@@ -274,7 +296,7 @@ public final class AppleSettings {
         glassOpacity = readInt(p, "glassOpacity", glassOpacity, MIN_GLASS_OPACITY, MAX_GLASS_OPACITY);
         animations = readBool(p, "animations", animations);
         animSpeed = readInt(p, "animSpeed", animSpeed, 40, 200);
-        curveQuality = readInt(p, "curveQuality", curveQuality, 0, 2);
+        curveQuality = readInt(p, "curveQuality", DEFAULT_CURVE_QUALITY, 0, 2);
         shadows = readBool(p, "shadows", shadows);
     }
 
@@ -299,6 +321,7 @@ public final class AppleSettings {
         itemAnimationMigrationPending = false;
         globalScrollMigrationPending = false;
         configVersionMigrationPending = false;
+        settingsWindowLayoutMigrationPending = false;
         Properties p = ConfigFiles.read(readFile());
         loadSettingsTheme(p);
         loadSettingsWindowLayout(p);
@@ -357,7 +380,7 @@ public final class AppleSettings {
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
         // atomic writer preserves a valid file even if the client is interrupted while migrating.
         if (itemAnimationMigrationPending || globalScrollMigrationPending || configVersionMigrationPending
-                || ChatQolSettings.isMigrationPending()) {
+                || settingsWindowLayoutMigrationPending || ChatQolSettings.isMigrationPending()) {
             save();
         }
     }

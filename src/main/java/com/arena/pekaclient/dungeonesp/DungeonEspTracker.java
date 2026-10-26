@@ -33,6 +33,8 @@ public final class DungeonEspTracker {
         public boolean living;
         public boolean player;
         public boolean dead;
+        /** True while a living body is playing its deathTime animation, before vanilla marks it dead. */
+        public boolean dying;
         /** True only for a real EntityEnderman body. */
         public boolean enderman;
         /** True for an armor stand carrying the recognized Dungeon Enderman-head marker. */
@@ -58,6 +60,7 @@ public final class DungeonEspTracker {
             living = false;
             player = false;
             dead = false;
+            dying = false;
             enderman = false;
             endermanHead = false;
             hostile = false;
@@ -185,7 +188,7 @@ public final class DungeonEspTracker {
      * an entity becomes a target only when a nearby dungeon star or named miniboss tag selects it.
      */
     public void scan(EntitySource source, double playerX, double playerY, double playerZ,
-                     double maxDistance, boolean hideZeroHealth) {
+                     double maxDistance, boolean hideDeadMobs) {
         candidateCount = 0;
         tagCount = 0;
         droppedCandidates = 0;
@@ -215,7 +218,8 @@ public final class DungeonEspTracker {
             // Hypixel can represent starred bodies and minibosses as player-shaped NPC entities. Keep every live,
             // non-pet body eligible here; untagged players/NPCs still never render because only tags create records.
             if (!scratch.living || scratch.dead || scratch.pet
-                    || (hideZeroHealth && !Float.isNaN(scratch.health) && scratch.health <= 0F)) {
+                    || (hideDeadMobs && (scratch.dying
+                    || (!Float.isNaN(scratch.health) && scratch.health <= 0F)))) {
                 continue;
             }
             addCandidate(scratch, false);
@@ -431,7 +435,6 @@ public final class DungeonEspTracker {
 
     private static DungeonEspCategory strongerCategory(DungeonEspCategory first, DungeonEspCategory second) {
         if (first == DungeonEspCategory.MINIBOSS || second == DungeonEspCategory.MINIBOSS) return DungeonEspCategory.MINIBOSS;
-        if (first == DungeonEspCategory.SKELETOR || second == DungeonEspCategory.SKELETOR) return DungeonEspCategory.SKELETOR;
         if (first == DungeonEspCategory.SPECIAL || second == DungeonEspCategory.SPECIAL) return DungeonEspCategory.SPECIAL;
         return first != DungeonEspCategory.NONE ? first : second;
     }

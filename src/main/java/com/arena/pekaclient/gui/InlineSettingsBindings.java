@@ -81,10 +81,9 @@ final class InlineSettingsBindings {
         if ("m7-dragon-ice".equals(id)) return M7Settings.isDragonHitboxEnabled(M7OverlayRenderer.M7DragonStatue.ICE);
         if ("m7-dragon-flame".equals(id)) return M7Settings.isDragonHitboxEnabled(M7OverlayRenderer.M7DragonStatue.FLAME);
 
+        if ("hide-dead-mobs".equals(id)) return AssistSettings.hideDeadMobs;
         if ("mob-esp-enabled".equals(id)) return DungeonEspSettings.enabled;
         if ("door-esp-enabled".equals(id)) return DungeonEspSettings.doorsEnabled;
-        if ("esp-hide-zero-health".equals(id)) return DungeonEspSettings.hideZeroHealth;
-        if ("esp-tracers".equals(id)) return DungeonEspSettings.tracers;
         if ("esp-mob-labels".equals(id)) return DungeonEspSettings.mobLabels;
         if ("esp-distance-text".equals(id)) return DungeonEspSettings.distanceText;
         if ("door-only-key".equals(id)) return DungeonEspSettings.doorOnlyWhenKey;
@@ -129,6 +128,7 @@ final class InlineSettingsBindings {
         if ("no-block-particles".equals(id)) AppleSettings.noBlockParticles = value;
         else if ("disable-hotbar-scrolling".equals(id)) AppleSettings.disableHotbarScrolling = value;
         else if ("auto-sprint".equals(id)) AssistSettings.autoSprint = value;
+        else if ("hide-dead-mobs".equals(id)) AssistSettings.hideDeadMobs = value;
 
         else if ("item-lock-swap".equals(id)) ItemLockSwapSettings.enabled = value;
         else if ("item-lock-icons".equals(id)) ItemLockSwapSettings.showLockIcons = value;
@@ -184,8 +184,6 @@ final class InlineSettingsBindings {
 
         else if ("mob-esp-enabled".equals(id)) DungeonEspSettings.enabled = value;
         else if ("door-esp-enabled".equals(id)) DungeonEspSettings.doorsEnabled = value;
-        else if ("esp-hide-zero-health".equals(id)) DungeonEspSettings.hideZeroHealth = value;
-        else if ("esp-tracers".equals(id)) DungeonEspSettings.tracers = value;
         else if ("esp-mob-labels".equals(id)) DungeonEspSettings.mobLabels = value;
         else if ("esp-distance-text".equals(id)) DungeonEspSettings.distanceText = value;
         else if ("door-only-key".equals(id)) DungeonEspSettings.doorOnlyWhenKey = value;
@@ -361,7 +359,7 @@ final class InlineSettingsBindings {
             return true;
         }
         if ("performance-reset".equals(id)) {
-            AppleSettings.curveQuality = 1;
+            AppleSettings.curveQuality = AppleSettings.DEFAULT_CURVE_QUALITY;
             AppleSettings.shadows = true;
             AppleSettings.animations = true;
             AppleSettings.animSpeedOn = true;
@@ -456,9 +454,10 @@ final class InlineSettingsBindings {
         if ("slayer-clear-blaze".equals(id)) { SlayerTracker.clearHistory(SlayerType.BLAZE); return true; }
         if ("slayer-clear-wolf".equals(id)) { SlayerTracker.clearHistory(SlayerType.WOLF); return true; }
         if ("slayer-clear-enderman".equals(id)) { SlayerTracker.clearHistory(SlayerType.ENDERMAN); return true; }
-        if ("esp-default-preset".equals(id) || "door-default-preset".equals(id)) { DungeonEspSettings.applyDefaultPreset(); return true; }
-        if ("esp-subtle-preset".equals(id) || "door-subtle-preset".equals(id)) { DungeonEspSettings.applySubtlePreset(); return true; }
-        if ("esp-reset".equals(id) || "door-reset".equals(id)) { DungeonEspSettings.resetDefaults(); return true; }
+        if ("door-default-preset".equals(id)) { DungeonEspSettings.applyDoorDefaultStyle(); return true; }
+        if ("door-subtle-preset".equals(id)) { DungeonEspSettings.applyDoorSubtleStyle(); return true; }
+        if ("esp-reset".equals(id)) { DungeonEspSettings.resetMobDefaults(); return true; }
+        if ("door-reset".equals(id)) { DungeonEspSettings.resetDoorDefaults(); return true; }
         return false;
     }
 
@@ -467,7 +466,6 @@ final class InlineSettingsBindings {
         if ("esp-miniboss".equals(id)) return DungeonEspSettings.miniboss;
         if ("esp-special".equals(id)) return DungeonEspSettings.special;
         if ("esp-enderman".equals(id)) return DungeonEspSettings.enderman;
-        if ("esp-skeletor".equals(id)) return DungeonEspSettings.skeletor;
         if (id != null && id.endsWith("-walls")) return styleForValue(id);
         return null;
     }
@@ -478,7 +476,6 @@ final class InlineSettingsBindings {
         if (id.startsWith("esp-miniboss-")) return DungeonEspSettings.miniboss;
         if (id.startsWith("esp-special-")) return DungeonEspSettings.special;
         if (id.startsWith("esp-enderman-")) return DungeonEspSettings.enderman;
-        if (id.startsWith("esp-skeletor-")) return DungeonEspSettings.skeletor;
         if (id.startsWith("door-style-")) return DungeonEspSettings.doors;
         return null;
     }

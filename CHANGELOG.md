@@ -1,5 +1,26 @@
 # Changelog
 
+## Beta-0.10.9.1.3v — 2026-10-27
+
+- Compacted the normal native settings shell to 72% safe width / 78% safe height with a `720 × 480` logical cap.
+  A versioned one-time layout migration resets legacy saved fullscreen shells to compact without removing the
+  subsequent explicit Fullscreen choice, drag behavior, wordmark, or Close action.
+- Snapped vanilla bitmap-font text scale/origin to the active physical GUI grid once per `UIRender` frame and raised
+  cached rounded-arc capacity to 16 segments. Smooth is the new/reset curve default; Balanced/Fast persisted values
+  stay compatible while even Fast renders eight-segment quarter arcs.
+- Removed Starred Mobs Default/Subtle actions, the dedicated Skeletor category/style, and the ESP tracer UI/config/
+  renderer path. Star-tagged Skeletor now uses normal Starred styling; Other Mobs remains absent. Retired keys are
+  ignored safely and cleaned on save.
+- Replaced Dungeon ESP **Hide Zero Health** with default-on **Player → Comfort → Hide Dead Mobs**. Its new
+  `assist.comfort.hideDeadMobs` key wins over and migrates the retired ESP key, and both scanner and live render
+  guard suppress zero-health / `EntityLivingBase.deathTime > 0` targets during the death animation.
+- Tightened the sleeping Fel/Enderman head-marker proxy from `1.1 × 2.7` to `0.76 × 1.85` blocks.
+- Added configuration, catalog, association/death-animation, marker-geometry, pixel-grid, curve, layout-migration,
+  and packaged-JAR verifier coverage. Updated display/numeric Forge metadata, build contract, documentation, and
+  verifier examples to `Beta-0.10.9.1.3v` / numeric `0.10.9.1.3`.
+- Player screenshots identified the settings and Fel-outline defects. Automated validation does not launch Minecraft;
+  a fresh Minecraft 1.8.9 Forge visual/input pass is still required before in-game validation can be claimed.
+
 ## Beta-0.10.9.1.2v — 2026-10-26
 
 - Renamed the visible **Mob ESP** owner to **Starred Mobs** and limited its runtime target set to tagged starred

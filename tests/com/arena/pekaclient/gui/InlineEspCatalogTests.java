@@ -4,15 +4,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/** Verifies the simplified Starred Mobs and retained Door ESP values are reachable in the compact inline tables. */
+/** Verifies the simplified Starred Mobs owner and the retained independent Door ESP values. */
 public final class InlineEspCatalogTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
         globalAndDoorControlsRemainReachable();
-        everyStarredMobStyleHasDirectControlsOnly();
-        removedRoomWideAndClipboardControlsStayAbsent();
+        everyRetainedStarredMobStyleHasDirectControlsOnly();
+        retiredMobControlsStayAbsent();
         doorStylesKeepTheSharedValueSetWithoutExtraActions();
         nestedSearchOpensTheCorrectTables();
         done();
@@ -20,19 +20,22 @@ public final class InlineEspCatalogTests {
 
     private static void globalAndDoorControlsRemainReachable() {
         String[] ids = {
-                "mob-esp-enabled", "esp-max-distance", "esp-update-interval", "esp-hide-zero-health", "esp-tracers",
-                "esp-mob-labels", "esp-max-mob-labels", "esp-distance-text", "esp-max-boxes", "esp-default-preset",
-                "esp-subtle-preset", "esp-reset", "door-esp-enabled", "door-scope", "door-only-key", "door-distance-text",
-                "door-default-preset", "door-subtle-preset", "door-reset", "door-blood"
+                "mob-esp-enabled", "esp-max-distance", "esp-update-interval", "esp-mob-labels", "esp-max-mob-labels",
+                "esp-distance-text", "esp-max-boxes", "esp-reset", "door-esp-enabled", "door-scope", "door-only-key",
+                "door-distance-text", "door-default-preset", "door-subtle-preset", "door-reset", "door-blood",
+                "hide-dead-mobs"
         };
-        for (String id : ids) check("ESP option preserved: " + id, ReferenceSettingsCatalog.find(id) != null);
+        for (String id : ids) check("retained ESP/Comfort option: " + id, ReferenceSettingsCatalog.find(id) != null);
         check("masters remain compact dropdown owners", ReferenceSettingsCatalog.find("mob-esp-enabled").isDropdown()
                 && ReferenceSettingsCatalog.find("door-esp-enabled").isDropdown());
         check("visible master name is Starred Mobs", "Starred Mobs".equals(ReferenceSettingsCatalog.find("mob-esp-enabled").label));
+        check("Hide Dead Mobs moved to Player Comfort", ReferenceSettingsCatalog.find("hide-dead-mobs").label.equals("Hide Dead Mobs")
+                && ReferenceSettingsCatalog.find("hide-dead-mobs").description.contains("death animation")
+                && ReferenceSettingsCatalog.ownerOf("hide-dead-mobs") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
     }
 
-    private static void everyStarredMobStyleHasDirectControlsOnly() {
-        String[] styles = {"esp-starred", "esp-miniboss", "esp-special", "esp-enderman", "esp-skeletor"};
+    private static void everyRetainedStarredMobStyleHasDirectControlsOnly() {
+        String[] styles = {"esp-starred", "esp-miniboss", "esp-special", "esp-enderman"};
         String[] suffixes = {"", "-color", "-mode", "-walls", "-width", "-outline-opacity", "-fill-opacity"};
         for (String style : styles) {
             for (String suffix : suffixes) check("Starred Mob style option retained: " + style + suffix,
@@ -40,9 +43,12 @@ public final class InlineEspCatalogTests {
         }
     }
 
-    private static void removedRoomWideAndClipboardControlsStayAbsent() {
-        String[] roomWide = {"esp-other", "esp-force-all", "esp-include-bats", "esp-include-invisible"};
-        for (String id : roomWide) check("removed ESP control stays absent: " + id, ReferenceSettingsCatalog.find(id) == null);
+    private static void retiredMobControlsStayAbsent() {
+        String[] retired = {
+                "esp-other", "esp-force-all", "esp-include-bats", "esp-include-invisible", "esp-skeletor",
+                "esp-hide-zero-health", "esp-tracers", "esp-default-preset", "esp-subtle-preset"
+        };
+        for (String id : retired) check("retired ESP control stays absent: " + id, ReferenceSettingsCatalog.find(id) == null);
         String[] styles = {"esp-starred", "esp-miniboss", "esp-special", "esp-enderman", "esp-skeletor"};
         String[] actions = {"-copy", "-apply", "-apply-all"};
         for (String style : styles) for (String action : actions) {

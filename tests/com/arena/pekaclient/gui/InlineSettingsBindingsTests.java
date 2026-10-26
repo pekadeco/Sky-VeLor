@@ -15,6 +15,8 @@ public final class InlineSettingsBindingsTests {
         check("copy style action is removed", !InlineSettingsBindings.runAction("esp-starred-copy"));
         check("apply copied style action is removed", !InlineSettingsBindings.runAction("esp-miniboss-apply"));
         check("apply-all style action is removed", !InlineSettingsBindings.runAction("esp-special-apply-all"));
+        check("Starred Mobs Default profile action is removed", !InlineSettingsBindings.runAction("esp-default-preset"));
+        check("Starred Mobs Subtle profile action is removed", !InlineSettingsBindings.runAction("esp-subtle-preset"));
     }
 
     private static void unknownActionsStayUnclaimed() {

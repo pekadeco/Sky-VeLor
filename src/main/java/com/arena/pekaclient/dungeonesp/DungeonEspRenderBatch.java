@@ -1,5 +1,6 @@
 package com.arena.pekaclient.dungeonesp;
 
+import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.DungeonEspSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -50,7 +51,6 @@ public final class DungeonEspRenderBatch {
         int color;
         DungeonEspSettings.Style style;
         DungeonEspCategory category;
-        boolean tracer;
         /** Existing optional numeric distance text, retained independently from the new category label. */
         boolean distanceText;
         /** True only for a bounded, collision-separated dungeon mob category badge. */
@@ -61,7 +61,7 @@ public final class DungeonEspRenderBatch {
 
         void set(double newMinX, double newMinY, double newMinZ, double newMaxX, double newMaxY, double newMaxZ,
                  double newDistanceSq, int newColor, DungeonEspSettings.Style newStyle, DungeonEspCategory newCategory,
-                 boolean newTracer, boolean newDistanceText, boolean newDoor) {
+                 boolean newDistanceText, boolean newDoor) {
             minX = newMinX;
             minY = newMinY;
             minZ = newMinZ;
@@ -75,7 +75,6 @@ public final class DungeonEspRenderBatch {
             color = newColor & 0xFFFFFF;
             style = newStyle;
             category = newCategory == null ? DungeonEspCategory.NONE : newCategory;
-            tracer = newTracer;
             distanceText = newDistanceText;
             categoryLabel = false;
             showDistance = newDistanceText;
@@ -98,9 +97,8 @@ public final class DungeonEspRenderBatch {
     }
 
     /**
-     * Collects cached tick targets through their current real bounding boxes. Dead/zero-health live entities are
-     * removed from the tracker at render time too, covering the few frames between an entity despawn and its next
-     * configured tick scan.
+     * Collects cached tick targets through their current real bounding boxes. Dead, zero-health, and death-animation
+     * targets are removed at render time too, so the Comfort policy takes effect before the next configured scan.
      */
     public void collectMobs(DungeonEspTracker tracker, double playerX, double playerY, double playerZ,
                             double cameraX, double cameraY, double cameraZ, float partialTicks) {
@@ -113,8 +111,8 @@ public final class DungeonEspRenderBatch {
                 continue;
             }
             Entity entity = (Entity) tracked.reference;
-            if (entity.isDead || (DungeonEspSettings.hideZeroHealth && entity instanceof EntityLivingBase
-                    && ((EntityLivingBase) entity).getHealth() <= 0F)) {
+            if (entity.isDead || (AssistSettings.hideDeadMobs && entity instanceof EntityLivingBase
+                    && (((EntityLivingBase) entity).deathTime > 0 || ((EntityLivingBase) entity).getHealth() <= 0F))) {
                 tracker.remove(tracked.entityId);
                 continue;
             }
@@ -130,14 +128,14 @@ public final class DungeonEspRenderBatch {
             double maxY;
             double maxZ;
             if (tracked.fixedArmorStandBox) {
-                // A player-head marker's vanilla armor-stand hitbox is tiny and misleading. Keep its stable,
-                // body-sized box centered on the marker rather than pretending the stand itself is the mob body.
-                minX = ix - 0.55D;
-                maxX = ix + 0.55D;
-                minY = iy - 0.15D;
-                maxY = minY + 2.70D;
-                minZ = iz - 0.55D;
-                maxZ = iz + 0.55D;
+                // A player-head marker's vanilla armor-stand hitbox is tiny and misleading. Keep a tight stable
+                // proxy centered on the marker, without the old oversized body-height outline.
+                minX = DungeonEspMarkerBounds.minX(ix);
+                maxX = DungeonEspMarkerBounds.maxX(ix);
+                minY = DungeonEspMarkerBounds.minY(iy);
+                maxY = DungeonEspMarkerBounds.maxY(iy);
+                minZ = DungeonEspMarkerBounds.minZ(iz);
+                maxZ = DungeonEspMarkerBounds.maxZ(iz);
             } else {
                 AxisAlignedBB bounds = entity.getEntityBoundingBox();
                 if (bounds == null) continue;
@@ -157,7 +155,7 @@ public final class DungeonEspRenderBatch {
             double centerZ = (minZ + maxZ) * 0.5D;
             double distanceSq = distanceSq(centerX, centerY, centerZ, playerX, playerY, playerZ);
             boxes[mobCandidateCount++].set(minX, minY, minZ, maxX, maxY, maxZ, distanceSq, style.color, style,
-                    tracked.category, DungeonEspSettings.tracers, DungeonEspSettings.distanceText, false);
+                    tracked.category, DungeonEspSettings.distanceText, false);
         }
         sortMobCandidatesByDistance();
         boxCount = Math.min(mobCandidateCount, DungeonEspSettings.maxBoxes);
@@ -179,7 +177,7 @@ public final class DungeonEspRenderBatch {
         double distanceSq = distanceSq((minX + maxX) * 0.5D, (minY + maxY) * 0.5D, (minZ + maxZ) * 0.5D,
                 playerX, playerY, playerZ);
         boxes[boxCount++].set(minX, minY, minZ, maxX, maxY, maxZ, distanceSq, color, DungeonEspSettings.doors,
-                DungeonEspCategory.NONE, false, label, true);
+                DungeonEspCategory.NONE, label, true);
         renderedDoorCount++;
     }
 
@@ -203,7 +201,6 @@ public final class DungeonEspRenderBatch {
             // Edge widths require separate GL batches, but category state is changed at most once per width/depth group.
             drawOutlines(false);
             drawOutlines(true);
-            drawTracers(cameraX, cameraY, cameraZ);
         } finally {
             restoreWorldRenderState();
             GlStateManager.popMatrix();
@@ -254,7 +251,7 @@ public final class DungeonEspRenderBatch {
         }
         if (!DungeonEspSettings.mobLabels || DungeonEspSettings.maxMobLabels <= 0) return;
         int remaining = DungeonEspMobDisplay.clampLabelCount(DungeonEspSettings.maxMobLabels);
-        for (int priority = 0; priority <= 4 && remaining > 0; priority++) {
+        for (int priority = 0; priority <= 3 && remaining > 0; priority++) {
             for (int i = 0; i < renderedMobCount && remaining > 0; i++) {
                 RenderBox candidate = boxes[i];
                 if (DungeonEspMobDisplay.priority(candidate.category) != priority
@@ -345,25 +342,6 @@ public final class DungeonEspRenderBatch {
             }
             Tessellator.getInstance().draw();
         }
-    }
-
-    private void drawTracers(double cameraX, double cameraY, double cameraZ) {
-        if (!DungeonEspSettings.tracers || renderedMobCount <= 0) return;
-        boolean any = false;
-        for (int i = 0; i < renderedMobCount; i++) if (boxes[i].tracer) { any = true; break; }
-        if (!any) return;
-        setDepth(true);
-        GL11.glLineWidth(1F);
-        WorldRenderer writer = Tessellator.getInstance().getWorldRenderer();
-        writer.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
-        for (int i = 0; i < renderedMobCount; i++) {
-            RenderBox box = boxes[i];
-            if (!box.tracer) continue;
-            writer.pos(cameraX, cameraY, cameraZ).color(red(box.color), green(box.color), blue(box.color), 0.8F).endVertex();
-            // A collision-separated label can be raised; tracers still terminate at the actual hitbox top.
-            writer.pos(box.labelX, box.maxY, box.labelZ).color(red(box.color), green(box.color), blue(box.color), 0.8F).endVertex();
-        }
-        Tessellator.getInstance().draw();
     }
 
     /**
@@ -476,7 +454,6 @@ public final class DungeonEspRenderBatch {
         if (category == DungeonEspCategory.MINIBOSS) return DungeonEspSettings.miniboss;
         if (category == DungeonEspCategory.SPECIAL) return DungeonEspSettings.special;
         if (category == DungeonEspCategory.ENDERMAN) return DungeonEspSettings.enderman;
-        if (category == DungeonEspCategory.SKELETOR) return DungeonEspSettings.skeletor;
         return null;
     }
 

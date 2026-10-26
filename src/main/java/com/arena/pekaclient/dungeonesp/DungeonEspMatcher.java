@@ -36,8 +36,9 @@ public final class DungeonEspMatcher {
                 || containsToken(name, "king midas")) {
             return DungeonEspCategory.MINIBOSS;
         }
+        // Skeletor has no dedicated category/style. When a nearby star selects it, it deliberately uses STARRED.
         if (containsToken(name, "skeletor")) {
-            return DungeonEspCategory.SKELETOR;
+            return DungeonEspCategory.STARRED;
         }
         if (containsToken(name, "withermancer") || containsToken(name, "skeleton master")
                 || containsToken(name, "zombie commander") || containsToken(name, "crypt dreadlord")

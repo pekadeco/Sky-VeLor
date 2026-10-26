@@ -1,5 +1,6 @@
 package com.arena.pekaclient.dungeonesp;
 
+import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.DungeonEspSettings;
 import com.arena.pekaclient.feature.DungeonContext;
 import net.minecraft.block.Block;
@@ -91,7 +92,7 @@ public final class DungeonEspController {
             entitySource.setWorld(world);
             long started = System.nanoTime();
             tracker.scan(entitySource, player.posX, player.posY, player.posZ,
-                    DungeonEspSettings.maxDistance, DungeonEspSettings.hideZeroHealth);
+                    DungeonEspSettings.maxDistance, AssistSettings.hideDeadMobs);
             scanNanosThisTick += System.nanoTime() - started;
             scanned = true;
         }
@@ -186,6 +187,7 @@ public final class DungeonEspController {
             boolean npc = isNpcName(entity.getCustomNameTag());
             boolean pet = entity instanceof EntityTameable && ((EntityTameable) entity).isTamed();
             float health = entity instanceof EntityLivingBase ? ((EntityLivingBase) entity).getHealth() : Float.NaN;
+            boolean dying = entity instanceof EntityLivingBase && ((EntityLivingBase) entity).deathTime > 0;
             AxisAlignedBB box = entity.getEntityBoundingBox();
             DungeonEspCategory selected = tracker.categoryFor(entity.getEntityId());
             DungeonEspMatchReason reason = tracker.matchReasonFor(entity.getEntityId());
@@ -193,11 +195,11 @@ public final class DungeonEspController {
                     + " name=" + brief(name)
                     + " tag=" + tagCategory + "/star=" + star
                     + " headTexture=" + (knownHead ? "known-enderman" : (namedHead ? "named-skull" : textureState(texture)))
-                    + " health=" + healthText(health)
+                    + " health=" + healthText(health) + (dying ? "/dying" : "")
                     + " force=" + (hostile ? "hostile" : (bat ? "bat" : "non-hostile"))
                     + (invisible ? "/invisible" : "") + (npc ? "/npc" : "") + (pet ? "/pet" : "")
                     + " geometry=" + (reason == DungeonEspMatchReason.ENDERMAN_HEAD
-                            ? "fixed-1.1x2.7/" + boxText(box) : boxText(box))
+                            ? "fixed-0.76x1.85/" + boxText(box) : boxText(box))
                     + " espMatch=" + selected + "/" + reason.text());
         }
         if (nearby == 0) lines.add("No nearby entities inside the ESP range.");
@@ -349,6 +351,8 @@ public final class DungeonEspController {
                 into.npc = isNpcName(into.name);
                 into.pet = entity instanceof EntityTameable && ((EntityTameable) entity).isTamed();
                 into.health = ((EntityLivingBase) entity).getHealth();
+                // deathTime begins before isDead/despawn, allowing the Comfort filter to hide the animation promptly.
+                into.dying = ((EntityLivingBase) entity).deathTime > 0;
             }
         }
     }

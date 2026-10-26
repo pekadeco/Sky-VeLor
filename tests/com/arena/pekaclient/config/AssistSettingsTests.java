@@ -21,6 +21,7 @@ public final class AssistSettingsTests {
                 && !AssistSettings.terminalAutoClick && !AssistSettings.miningAbilityAlert);
         check("fresh local inventory presentation is useful by default", AssistSettings.romanNumerals
                 && AssistSettings.tooltipScroll && AssistSettings.rarityHighlight && !AssistSettings.hidePotionEffects);
+        check("dead dungeon ESP targets are hidden by default", AssistSettings.hideDeadMobs);
         check("hurt camera defaults to vanilla 100 percent", AssistSettings.hurtCameraShake == 100
                 && Math.abs(AssistSettings.hurtCameraShakeMultiplier() - 1f) < .00001f);
         check("endpoint default is usable", AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
@@ -36,20 +37,29 @@ public final class AssistSettingsTests {
         old.setProperty("itemProtectionEnabled", "true");
         old.setProperty("assist.itemGuard.enabled", "true");
         old.setProperty("terminalGuiScale", "1.5");
+        old.setProperty("dungeonEsp.hideZeroHealth", "false");
         AssistSettings.load(old);
         check("retained aliases load", AssistSettings.miningAbilityAlert && AssistSettings.autoSprint
                 && AssistSettings.terminalScale == 150);
         check("old no-hurt toggle maps to zero percent", AssistSettings.hurtCameraShake == 0);
+        check("old zero-health ESP choice migrates to Comfort", !AssistSettings.hideDeadMobs);
         check("established config does not acquire newly defaulted inventory visuals", !AssistSettings.romanNumerals
                 && !AssistSettings.tooltipScroll && !AssistSettings.rarityHighlight);
         Properties rewritten = new Properties();
         rewritten.putAll(old);
         AssistSettings.save(rewritten);
-        check("retired Search and binary camera keys are dropped on save", !rewritten.containsKey("inventorySearchEnabled")
+        check("retired Search, binary camera, and ESP-local dead keys are dropped on save", !rewritten.containsKey("inventorySearchEnabled")
                 && !rewritten.containsKey("assist.inventory.search")
-                && !rewritten.containsKey("assist.visual.noHurtCamera") && !rewritten.containsKey("noHurtCamEnabled"));
+                && !rewritten.containsKey("assist.visual.noHurtCamera") && !rewritten.containsKey("noHurtCamEnabled")
+                && !rewritten.containsKey("dungeonEsp.hideZeroHealth")
+                && "false".equals(rewritten.getProperty("assist.comfort.hideDeadMobs")));
         check("removed Item Protection keys are harmlessly ignored", old.containsKey("itemProtectionEnabled")
                 && old.containsKey("assist.itemGuard.enabled"));
+        Properties newOwnerWins = new Properties();
+        newOwnerWins.setProperty("assist.comfort.hideDeadMobs", "true");
+        newOwnerWins.setProperty("dungeonEsp.hideZeroHealth", "false");
+        AssistSettings.load(newOwnerWins);
+        check("new Comfort key wins over the retired ESP key", AssistSettings.hideDeadMobs);
     }
 
     private static void hurtCameraShakePersistsAtZeroIntermediateAndVanilla() {
@@ -103,6 +113,7 @@ public final class AssistSettingsTests {
         AssistSettings.tooltipScroll = true;
         AssistSettings.hurtCameraShake = 44;
         AssistSettings.autoSprint = true;
+        AssistSettings.hideDeadMobs = false;
         AssistSettings.dungeonSync = true;
         AssistSettings.dungeonSyncEndpoint = "wss://sync.example.org/ws";
         AssistSettings.terminalHints = true;
@@ -112,11 +123,12 @@ public final class AssistSettingsTests {
         AssistSettings.save(saved);
         check("retained keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
                 && saved.containsKey("assist.visual.hurtCameraShake") && saved.containsKey("assist.movement.autoSprint")
-                && saved.containsKey("assist.dungeon.sync.enabled") && saved.containsKey("assist.dungeon.terminal.autoClick")
+                && saved.containsKey("assist.comfort.hideDeadMobs") && saved.containsKey("assist.dungeon.sync.enabled")
+                && saved.containsKey("assist.dungeon.terminal.autoClick")
                 && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.hurtCameraShake == 44
-                && AssistSettings.autoSprint && AssistSettings.dungeonSync
+                && AssistSettings.autoSprint && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
                 && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint)
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222);
         saved.setProperty("assist.dungeon.sync.endpoint", "http://not-secure.invalid");

@@ -29,7 +29,6 @@ public final class DungeonEspMobDisplay {
         if (category == DungeonEspCategory.MINIBOSS) return "MINIBOSS";
         if (category == DungeonEspCategory.SPECIAL) return "SPECIAL";
         if (category == DungeonEspCategory.ENDERMAN) return "ENDERMAN";
-        if (category == DungeonEspCategory.SKELETOR) return "SKELETOR";
         if (category == DungeonEspCategory.STARRED) return "STARRED";
         return "";
     }
@@ -39,9 +38,8 @@ public final class DungeonEspMobDisplay {
         if (category == DungeonEspCategory.MINIBOSS) return 0;
         if (category == DungeonEspCategory.SPECIAL) return 1;
         if (category == DungeonEspCategory.ENDERMAN) return 2;
-        if (category == DungeonEspCategory.SKELETOR) return 3;
-        if (category == DungeonEspCategory.STARRED) return 4;
-        return 5;
+        if (category == DungeonEspCategory.STARRED) return 3;
+        return 4;
     }
 
     public static boolean hasTitle(DungeonEspCategory category) {

@@ -3,6 +3,7 @@ package com.arena.pekaclient.render;
 import com.arena.pekaclient.gui.GuiDebugOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -34,6 +35,8 @@ public final class UIRender {
 
     private static boolean batchMode;
     private static boolean batchOpen;
+    /** Resolved once at each frame boundary so every bitmap-text scale/origin shares one physical GUI grid. */
+    private static int guiScaleFactor = 1;
     /** Nested frames are unusual but legal; inner frames restore the outer 2D contract instead of leaking item/model state. */
     private static int frameDepth;
     private static final float[] SAVED_ALPHA = new float[8];
@@ -62,6 +65,8 @@ public final class UIRender {
      * cleanup used to leave later GUI screens tinted or depth-tested.
      */
     public static void beginFrame() {
+        // Resolve only once at the frame boundary. A text call must not independently query a mutable GUI scale.
+        guiScaleFactor = resolveGuiScaleFactor();
         // A nested frame cannot inherit an open Tessellator batch because it may call vanilla's item/entity renderer.
         flush();
         int slot = Math.min(frameDepth, SAVED_ALPHA.length - 1);
@@ -140,6 +145,20 @@ public final class UIRender {
                 restoreVanillaGuiState();
             }
         }
+    }
+
+    /**
+     * Obtains the physical GUI scale without making tests or early lifecycle calls depend on a fully initialized
+     * world. A fallback of one is still a valid pixel grid.
+     */
+    private static int resolveGuiScaleFactor() {
+        try {
+            Minecraft minecraft = Minecraft.getMinecraft();
+            if (minecraft != null) return GuiPixelGrid.factor(new ScaledResolution(minecraft).getScaleFactor());
+        } catch (RuntimeException ignored) {
+            // Minecraft can be unavailable while a loading/error screen is constructing; scale one stays crisp.
+        }
+        return 1;
     }
 
     /** Draws any pending batched triangles. */
@@ -534,28 +553,33 @@ public final class UIRender {
     // ------------------------------------------------------------------ text
 
     /**
-     * Draws vanilla Minecraft font text. Positions are rounded for crisp pixels at scale 1.
-     * Non-1 scales are applied with a matrix push/pop so the native font's own quads stay sharp.
+     * Draws Minecraft's native bitmap font on whole physical pixels. The requested compact logical scale is rounded
+     * once against the active {@link ScaledResolution}, and the origin is snapped to the same grid before the matrix
+     * transform. That avoids the soft fractional glyph sampling visible at GUI scales two through four without
+     * introducing a custom font renderer or a per-widget workaround.
      */
     public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow) {
-        if (s == null || s.isEmpty()) {
+        if (fr == null || s == null || s.isEmpty()) {
             return;
         }
         int c = col(color);
         if ((c >>> 24) == 0) {
             return;
         }
-        GuiDebugOverlay.recordLabel(s, x, y, fr.getStringWidth(s) * scale,
-                Math.max(1f, fr.FONT_HEIGHT * scale));
+        float effectiveScale = GuiPixelGrid.textScale(scale, guiScaleFactor);
+        float snappedX = GuiPixelGrid.coordinate(x, guiScaleFactor);
+        float snappedY = GuiPixelGrid.coordinate(y, guiScaleFactor);
+        GuiDebugOverlay.recordLabel(s, snappedX, snappedY, fr.getStringWidth(s) * effectiveScale,
+                Math.max(1f, fr.FONT_HEIGHT * effectiveScale));
         flush();
         GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();
-        if (scale == 1f) {
-            fr.drawString(s, (float) Math.round(x), (float) Math.round(y), c, shadow);
+        if (effectiveScale == 1f) {
+            fr.drawString(s, snappedX, snappedY, c, shadow);
         } else {
             GlStateManager.pushMatrix();
-            GlStateManager.translate(x, y, 0f);
-            GlStateManager.scale(scale, scale, 1f);
+            GlStateManager.translate(snappedX, snappedY, 0f);
+            GlStateManager.scale(effectiveScale, effectiveScale, 1f);
             fr.drawString(s, 0f, 0f, c, shadow);
             GlStateManager.popMatrix();
         }
