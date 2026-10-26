@@ -206,7 +206,7 @@ public final class ReferenceSettingsCatalog {
                                     new String[]{"Contains Text", "Starts With", "Regex"}),
                             text("chat-tab-filter-text", "Filter Text", "Set text for this tab.", "tab filter"),
                             text("chat-tab-send-prefix", "Send Prefix", "Set an optional chat prefix.", "tab prefix"),
-                            text("chat-tab-accent-color", "Accent Color", "Choose this tab color.", "tab accent"),
+                            text("chat-tab-accent-color", "Accent Color", "Choose this tab color.", "custom tab accent"),
                             toggle("chat-tab-sound", "Message Sound", "Play this tab sound.", "tab sound"),
                             action("chat-tab-save", "Save Tab", "Save tab changes.", "tab save", "Save"),
                             action("chat-tab-left", "Move Left", "Move this tab earlier.", "tab move", "Left"),
