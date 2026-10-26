@@ -88,10 +88,11 @@ public final class ReleaseClaimsTests {
                 && !classExists("com.arena.pekaclient.gui.DungeonEspPreviewRenderer")
                 && !classExists("com.arena.pekaclient.gui.LeapPreviewData"));
         String itemPanel = classText("com.arena.pekaclient.gui.ItemAnimationEditorScreen");
-        check("Item Animation retains Preview Swing without a HUD or world preview surface",
-                itemPanel.contains("previewSwing") && itemPanel.contains("Reset to Defaults")
-                        && !itemPanel.contains("drawDefaultBackground") && !itemPanel.contains("HudManager")
-                        && !itemPanel.contains("drawItemAnimationEditorPreview"));
+        check("Item Animation control model retains Preview Swing",
+                ItemAnimationPanelModel.controlLabels().contains("Preview Swing"));
+        check("Item Animation panel has reset without a HUD or world preview surface",
+                itemPanel.contains("Reset to Defaults") && !itemPanel.contains("drawDefaultBackground")
+                        && !itemPanel.contains("HudManager") && !itemPanel.contains("drawItemAnimationEditorPreview"));
         String hudEditor = classText("com.arena.pekaclient.gui.HudEditorScreen");
         check("HUD Editor retains only the compatibility route, not an Item Animation target",
                 hudEditor.contains("ItemAnimationEditorScreen") && !hudEditor.contains("ITEM_ANIMATION")
