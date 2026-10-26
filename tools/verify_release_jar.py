@@ -480,6 +480,12 @@ def main():
         path = MOD_PACKAGE + cls + '.class'
         return zf.read(path) if path in names else b''
 
+    def raw_family_of(cls):
+        """Outer plus synthetic/named inner classes, where Java places Runnable widget callbacks."""
+        prefix = MOD_PACKAGE + cls
+        return b''.join(zf.read(name) for name in names
+                        if name == prefix + '.class' or (name.startswith(prefix + '$') and name.endswith('.class')))
+
     r.check(all(MOD_PACKAGE + value + '.class' not in names for value in
                 ('gui/ChatEditorPreview', 'gui/DungeonEspPreviewRenderer')),
             'retired editor sample-panel classes are absent from the release jar')
@@ -504,7 +510,7 @@ def main():
     hud_manager_raw = raw_of('hud/HudManager')
     hud_element_raw = raw_of('hud/HudElement')
     item_slots_raw = raw_of('hud/ItemSlots')
-    item_animation_editor_raw = raw_of('gui/ItemAnimationEditorScreen')
+    item_animation_editor_raw = raw_family_of('gui/ItemAnimationEditorScreen')
     item_animation_panel_raw = raw_of('gui/ItemAnimationPanelModel')
     hook_status_raw = raw_of('render/itemanimation/ItemAnimationHookStatus')
 
