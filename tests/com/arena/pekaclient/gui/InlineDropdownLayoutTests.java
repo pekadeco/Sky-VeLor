@@ -1,29 +1,35 @@
 package com.arena.pekaclient.gui;
 
-/** Scale-1–4 geometry proof for inline disclosure rows and their reflowed child controls. */
+/** Scale-1–4 geometry proof for flat inline disclosures and their fixed columns. */
 public final class InlineDropdownLayoutTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        rightAlignedRowsDoNotOverlapAtAllGuiScales();
+        fixedColumnsDoNotOverlapAtAllGuiScales();
         narrowRowsStackControlsBelowTheirLabelsAtAllGuiScales();
-        nestedCatalogRowsHaveARealOwnerPath();
+        searchNeedsOnlyOneOwnerDisclosure();
         done();
     }
 
-    private static void rightAlignedRowsDoNotOverlapAtAllGuiScales() {
+    private static void fixedColumnsDoNotOverlapAtAllGuiScales() {
         for (int scale = 1; scale <= 4; scale++) {
             float logicalWidth = 1280f / scale;
             float rowX = 12f;
             float rowW = Math.max(92f, Math.min(520f, logicalWidth - 48f));
-            float toggleW = 38f;
-            float controlX = SettingsControlLayout.rightX(rowX, rowW, 12f, toggleW);
-            float labelW = Math.max(0f, controlX - rowX - 8f);
+            float chevronX = SettingsControlLayout.chevronCenterX(rowX, rowW, 12f);
+            float toggleX = SettingsControlLayout.toggleX(rowX, rowW, 12f);
+            float controlRight = SettingsControlLayout.contentRight(rowX, rowW, 12f, 8f);
+            float labelW = Math.max(0f, controlRight - rowX - 8f);
             check("standard toggle stays in bounds at scale " + scale,
-                    controlX >= rowX && controlX + toggleW <= rowX + rowW);
-            check("standard toggle leaves a label gap at scale " + scale,
-                    SettingsControlLayout.doesNotOverlap(rowX, labelW, controlX, 8f));
+                    toggleX >= rowX && toggleX + SettingsControlLayout.TOGGLE_COLUMN_WIDTH <= rowX + rowW);
+            check("label stays before fixed columns at scale " + scale,
+                    SettingsControlLayout.doesNotOverlap(rowX, labelW, controlRight, 8f));
+            check("chevron shares one x for every row type at scale " + scale,
+                    chevronX == SettingsControlLayout.chevronCenterX(rowX, rowW, 12f));
+            check("chevron column precedes the rightmost toggle at scale " + scale,
+                    chevronX + SettingsControlLayout.CHEVRON_COLUMN_WIDTH * .5f + SettingsControlLayout.COLUMN_GAP
+                            <= toggleX + .01f);
         }
     }
 
@@ -43,15 +49,14 @@ public final class InlineDropdownLayoutTests {
         }
     }
 
-    private static void nestedCatalogRowsHaveARealOwnerPath() {
+    private static void searchNeedsOnlyOneOwnerDisclosure() {
         ReferenceSettingsCatalog.Match match = null;
-        for (ReferenceSettingsCatalog.Match candidate : ReferenceSettingsCatalog.search("custom accent colour")) {
+        for (ReferenceSettingsCatalog.Match candidate : ReferenceSettingsCatalog.search("custom accent color")) {
             if ("chat-tab-accent-color".equals(candidate.setting.id)) { match = candidate; break; }
         }
-        check("nested Chat text row is searchable", match != null);
-        check("nested Chat text row has two collapsed owner rows", match != null && match.parents.size() == 2
-                && "chat-qol".equals(match.parents.get(0).id)
-                && "chat-tabs-group".equals(match.parents.get(1).id));
+        check("flat Chat text row is searchable", match != null);
+        check("flat Chat text row has one owning dropdown", match != null && match.parents.size() == 1
+                && "chat-qol".equals(match.parents.get(0).id));
     }
 
     private static void check(String name, boolean okay) {

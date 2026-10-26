@@ -1,53 +1,81 @@
 package com.arena.pekaclient.gui;
 
-/** Audits the requested retained controls after their focused editors were folded inline. */
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+/** Audits that flattening changed presentation only: every persisted option remains addressable. */
 public final class InlineOptionPreservationTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        mapLeapBossAndM7ControlsRemain();
-        chatGroupsAndCustomTabControlsRemain();
-        itemLockSwapAndSystemControlsRemain();
-        slayerAndChannelControlsRemain();
+        exactPersistedOptionInventoryRemains();
+        requestedOwnersAndFlatCaptionsRemain();
         done();
     }
 
-    private static void mapLeapBossAndM7ControlsRemain() {
-        assertPresent("dungeon-map", "dungeon-map-rotate", "dungeon-map-player-names", "dungeon-map-puzzle-name",
-                "dungeon-map-scale", "dungeon-map-zoom", "spirit-leap", "leap-key", "dungeon-boss-hud",
-                "m7-overlay", "m7-relic-areas", "m7-areas-persist", "dragon-alerts", "m7-terminal-solver",
-                "m7-boss-maxor", "m7-boss-storm", "m7-boss-goldor", "m7-boss-necron", "m7-dragon-power",
-                "m7-dragon-apex", "m7-dragon-soul", "m7-dragon-ice", "m7-dragon-flame", "m7-reset",
-                "terminal-reset", "spirit-leap-reset");
+    private static void exactPersistedOptionInventoryRemains() {
+        Set<String> expected = new HashSet<String>(Arrays.asList(
+                "adaptive-quality", "animation-speed", "animation-speed-on", "animations", "appearance-corners",
+                "appearance-corners-on", "appearance-opacity", "appearance-opacity-on", "auto-sprint", "catch-counter",
+                "chat-background-closed-opacity", "chat-background-color", "chat-background-fit-width", "chat-background-open-area",
+                "chat-background-open-opacity", "chat-background-radius", "chat-compact", "chat-compact-counter-color",
+                "chat-fade-seconds", "chat-hover", "chat-hover-color", "chat-hover-opacity", "chat-menu-mode",
+                "chat-message-animation", "chat-qol", "chat-smooth", "chat-tab-accent-color", "chat-tab-active-opacity",
+                "chat-tab-filter-text", "chat-tab-filter-type", "chat-tab-inactive-color", "chat-tab-name", "chat-tab-opacity",
+                "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
+                "curve-quality", "disable-hotbar-scrolling", "door-blood", "door-blood-color", "door-distance-text",
+                "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
+                "dungeon-map", "dungeon-map-player-names", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
+                "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
+                "esp-enderman", "esp-force-all", "esp-hide-zero-health", "esp-include-bats", "esp-include-invisible",
+                "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels", "esp-miniboss", "esp-mob-labels", "esp-other",
+                "esp-skeletor", "esp-special", "esp-starred", "esp-tracers", "esp-update-interval", "fishing-festival",
+                "global-scroll", "hide-potions", "hud-inventory", "hud-player-doll", "hurt-camera-shake", "item-animation",
+                "item-lock-badge-color", "item-lock-badge-opacity", "item-lock-cooldown", "item-lock-hotbar", "item-lock-icons",
+                "item-lock-line-color", "item-lock-line-mode", "item-lock-line-opacity", "item-lock-line-width", "item-lock-message",
+                "item-lock-swap", "jawbus", "leap-key", "m7-areas-persist", "m7-boss-goldor", "m7-boss-maxor",
+                "m7-boss-necron", "m7-boss-storm", "m7-dragon-apex", "m7-dragon-flame", "m7-dragon-ice", "m7-dragon-power",
+                "m7-dragon-soul", "m7-overlay", "m7-relic-areas", "m7-terminal-solver", "mining-ability-alert",
+                "mining-assistant-hud", "mining-bps", "mining-puzzler", "mob-esp-enabled", "nearby-encounters",
+                "no-block-particles", "party-puzzle-announce", "performance-boost", "pets-shortcut", "qn-command",
+                "rarity-highlight", "roman-numerals", "sea-hp-hud-route", "shadows", "slayer-boss-timer", "slayer-pricing",
+                "slayer-tracker", "smooth-scrolling", "spirit-leap", "sv-command", "terminal-auto-click",
+                "terminal-hide-wrong", "terminal-hints", "terminal-prevent-clicks", "terminal-scale", "terminal-waypoints",
+                "tooltip-scroll", "wardrobe-shortcut"));
+        addStyleOptions(expected, "esp-starred");
+        addStyleOptions(expected, "esp-miniboss");
+        addStyleOptions(expected, "esp-special");
+        addStyleOptions(expected, "esp-enderman");
+        addStyleOptions(expected, "esp-skeletor");
+        addStyleOptions(expected, "esp-other");
+        addStyleOptions(expected, "door-style");
+        Set<String> actual = new HashSet<String>(ReferenceSettingsCatalog.configurableIds());
+        check("every old persisted option remains after presentation flattening", actual.equals(expected));
+        check("the option inventory has no duplicate ids", actual.size() == ReferenceSettingsCatalog.configurableIds().size());
     }
 
-    private static void chatGroupsAndCustomTabControlsRemain() {
-        assertPresent("chat-background-group", "chat-messages-group", "chat-tabs-group", "chat-menu-group", "chat-reset-group",
-                "chat-background-color", "chat-message-animation", "chat-compact-counter-color", "chat-tab-inactive-color",
-                "chat-tab-selected-color", "chat-tab-add", "chat-tab-name", "chat-tab-filter-type", "chat-tab-filter-text",
-                "chat-tab-send-prefix", "chat-tab-accent-color", "chat-tab-sound", "chat-tab-save", "chat-tab-delete",
-                "chat-hover-color", "chat-menu-mode", "chat-reset-all", "chat-reset-tabs");
+    private static void requestedOwnersAndFlatCaptionsRemain() {
+        assertPresent("chat-background-group", "chat-messages-group", "chat-tabs-group", "chat-menu-group",
+                "m7-bosses", "m7-dragons", "esp-starred-caption", "door-wither-style-caption");
+        assertPresent("item-lock-swap", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud",
+                "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker", "item-animation");
+        check("Chat captions are not nested dropdowns", !ReferenceSettingsCatalog.find("chat-background-group").isDropdown()
+                && !ReferenceSettingsCatalog.find("chat-tabs-group").isDropdown());
     }
 
-    private static void itemLockSwapAndSystemControlsRemain() {
-        assertPresent("item-lock-swap", "item-lock-cooldown", "item-lock-icons", "item-lock-hotbar", "item-lock-message",
-                "item-lock-badge-color", "item-lock-line-mode", "item-lock-line-width", "item-lock-clear-locks",
-                "item-lock-clear-pairs", "item-lock-reset", "inventory-assist-reset", "movement-shortcuts-reset",
-                "appearance-corners", "appearance-opacity", "appearance-reset", "curve-quality", "shadows",
-                "animations", "animation-speed", "performance-reset", "global-scroll", "smooth-scrolling",
-                "system-general-reset", "sv-command", "qn-command", "commands-reset");
-    }
-
-    private static void slayerAndChannelControlsRemain() {
-        assertPresent("slayer-tracker", "slayer-boss-timer", "slayer-pricing", "slayer-clear-spider",
-                "slayer-clear-revenant", "slayer-clear-blaze", "slayer-clear-wolf", "slayer-clear-enderman", "slayer-reset",
-                "mining-bps", "mining-ability-alert", "mining-puzzler", "mining-assistant-reset", "catch-counter",
-                "fishing-festival", "fishing-reset", "jawbus", "nearby-encounters");
+    private static void addStyleOptions(Set<String> values, String prefix) {
+        values.add(prefix + "-color");
+        values.add(prefix + "-mode");
+        values.add(prefix + "-walls");
+        values.add(prefix + "-width");
+        values.add(prefix + "-outline-opacity");
+        values.add(prefix + "-fill-opacity");
     }
 
     private static void assertPresent(String... ids) {
-        for (String id : ids) check("retained option: " + id, ReferenceSettingsCatalog.find(id) != null);
+        for (String id : ids) check("retained presentation id: " + id, ReferenceSettingsCatalog.find(id) != null);
     }
 
     private static void check(String name, boolean okay) {

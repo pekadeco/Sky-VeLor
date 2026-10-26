@@ -65,6 +65,12 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float ROW_PAD_X = GuiStyle.SPACE_12;
     private static final float ROW_PAD_Y = GuiStyle.SPACE_8;
     private static final float CONTROL_GAP = GuiStyle.SPACE_8;
+    /** Every row reserves these fixed right-side columns, even when they are intentionally blank. */
+    private static final float CHEVRON_COLUMN_W = SettingsControlLayout.CHEVRON_COLUMN_WIDTH;
+    private static final float TOGGLE_COLUMN_W = SettingsControlLayout.TOGGLE_COLUMN_WIDTH;
+    private static final float RIGHT_COLUMN_GAP = SettingsControlLayout.COLUMN_GAP;
+    private static final float RIGHT_COLUMNS_W = CHEVRON_COLUMN_W + RIGHT_COLUMN_GAP + TOGGLE_COLUMN_W;
+    private static final float EXPANDED_BOTTOM_PADDING = 8f;
     private static final float WHEEL_STEP = 84f;
     private static final String[] HOME_QUICK_IDS = {"auto-sprint", "terminal-hints", "chat-qol", "item-animation"};
     private static final String[] HOME_QUICK_LABELS = {"Sprint", "Terminal", "Chat", "Hand"};
@@ -81,6 +87,7 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final int HIT_PROFILE_CLOSE = 11;
     private static final int HIT_DISCLOSURE = 12;
     private static final int HIT_SEARCH_RESULT = 13;
+    private static final int HIT_ACTION = 14;
     /** Derived RGB mask for formatting existing Chat colour values without introducing a render colour token. */
     private static final int RGB_MASK = (1 << 24) - 1;
 
@@ -97,6 +104,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private final Map<String, Hit> knownHits = new HashMap<String, Hit>();
     private final List<Hit> visibleHits = new ArrayList<Hit>();
     private final Map<String, TextMeasure> textMeasures = new HashMap<String, TextMeasure>();
+    /** Per-dropdown progress gives expanded panels a 150 ms height transition without changing saved state. */
+    private final Map<String, Float> dropdownProgress = new HashMap<String, Float>();
     /** Inline text controls (currently Chat colour/custom-tab fields) remain in their owning dropdown. */
     private final Map<String, SearchField> inlineTextControls = new HashMap<String, SearchField>();
     private final GuiLayoutToolkit.Rect panel = new GuiLayoutToolkit.Rect();
@@ -158,10 +167,9 @@ public class AppleSettingsScreen extends AppleScreen {
         refreshReferenceTheme();
     }
 
-    /** Opens Gameplay with the persisted inline Chat owner and its Tabs group disclosed. */
+    /** Opens Gameplay with the one flat Chat QoL owner disclosed. */
     public static AppleSettingsScreen openChatSettings(GuiScreen parent) {
         FeatureUiPreferences.setDropdownOpen("chat-qol", true);
-        FeatureUiPreferences.setDropdownOpen("chat-tabs-group", true);
         return new AppleSettingsScreen(parent, ReferenceSettingsCatalog.Tab.GAMEPLAY);
     }
 
@@ -213,7 +221,9 @@ public class AppleSettingsScreen extends AppleScreen {
         // an idempotent owner action so repeated editor round-trips cannot tint this screen incorrectly.
         refreshReferenceTheme();
         refreshLayout();
+        normalizeAccordion(activeTab);
         updateTabSelection(dt);
+        updateDropdownAnimation(dt);
         scroll.update(dt, AppleSettings.smoothScrolling);
         updateSearchAndWidgets(dt);
 
@@ -317,6 +327,42 @@ public class AppleSettingsScreen extends AppleScreen {
             }
         }
         tabSelectionInitialized = true;
+    }
+
+    /** Normalizes only presentation state so old files cannot render two disclosures open on the same page. */
+    private void normalizeAccordion(ReferenceSettingsCatalog.Tab tab) {
+        String retained = null;
+        for (String id : ReferenceSettingsCatalog.dropdownIds(tab)) {
+            if (!FeatureUiPreferences.dropdownOpen(id)) continue;
+            if (retained == null) retained = id;
+            else FeatureUiPreferences.setDropdownOpen(id, false);
+        }
+    }
+
+    /** Animates only the paint/layout height; FeatureUiPreferences remains the single persisted disclosure source. */
+    private void updateDropdownAnimation(float dt) {
+        boolean guiOpen = Minecraft.getMinecraft().currentScreen == this && Theme.animations;
+        for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(activeTab)) {
+            for (ReferenceSettingsCatalog.Setting setting : card.settings) updateDropdownAnimation(setting, dt, guiOpen);
+        }
+    }
+
+    private void updateDropdownAnimation(ReferenceSettingsCatalog.Setting setting, float dt, boolean guiOpen) {
+        if (setting == null) return;
+        if (setting.isDropdown()) {
+            float target = FeatureUiPreferences.dropdownOpen(setting.id) ? 1f : 0f;
+            Float prior = dropdownProgress.get(setting.id);
+            float current = prior == null ? target : prior.floatValue();
+            dropdownProgress.put(setting.id, GuiMotion.ease(current, target, dt, guiOpen,
+                    GuiMotion.TOGGLE_SETTLE_MS, Theme.speed));
+        }
+        for (ReferenceSettingsCatalog.Setting child : setting.children) updateDropdownAnimation(child, dt, guiOpen);
+    }
+
+    private float dropdownProgress(ReferenceSettingsCatalog.Setting setting) {
+        if (setting == null || !setting.isDropdown()) return 0f;
+        Float value = dropdownProgress.get(setting.id);
+        return value == null ? (FeatureUiPreferences.dropdownOpen(setting.id) ? 1f : 0f) : value.floatValue();
     }
 
     private void drawShell(int mouseX, int mouseY) {
@@ -619,7 +665,7 @@ public class AppleSettingsScreen extends AppleScreen {
 
     /** This page deliberately has no card, control, placeholder setting or footer until a real farming owner exists. */
     private float drawFarmingEmpty(float y) {
-        UIRender.text(fr(), "No farming features yet", contentX, y + 1f, Theme.textSecondary, 1f, false);
+        UIRender.text(fr(), "No Farming Features Yet", contentX, y + 1f, Theme.textSecondary, 1f, false);
         return y + fr().FONT_HEIGHT + 2f + SettingsShellLayout.FINAL_CARD_PADDING;
     }
 
@@ -653,46 +699,26 @@ public class AppleSettingsScreen extends AppleScreen {
         return h + SettingsShellLayout.FINAL_CARD_PADDING;
     }
 
+    /** Compact plain section label; cards are grouping data only and never large icon surfaces. */
     private float drawCard(float y, int mouseX, int mouseY, ReferenceSettingsCatalog.Tab tab,
                            ReferenceSettingsCatalog.Card card) {
-        float h = measureCard(card);
-        recordViewportRow("Settings card " + card.id, contentX, y, contentW, h);
-        float radius = GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, h);
-        UIRender.roundRectBorder(contentX, y, contentW, h, radius, Theme.card, Theme.card, Theme.border);
-        float iconX = contentX + CARD_PAD;
-        float iconY = y + CARD_PAD;
-        UIRender.roundRect(iconX, iconY, 23f, 23f,
-                GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, 23f, 23f), Theme.buttonFill, Theme.buttonFill, .25f);
-        drawCardGlyph(card.id, iconX + 6f, iconY + 6f, Theme.accent);
-        float cardTextBlockH = fr().FONT_HEIGHT * .88f + 3f + fr().FONT_HEIGHT * .72f;
-        float cardTextY = y + (46f - cardTextBlockH) * .5f;
-        UIRender.text(fr(), card.title, iconX + 31f, cardTextY, Theme.textPrimary, .88f, false);
-        UIRender.text(fr(), fit(fr(), card.subtitle, (contentW - 54f) / .72f), iconX + 31f,
-                cardTextY + fr().FONT_HEIGHT * .88f + 3f, Theme.textSecondary, .72f, false);
-        float rowY = y + 46f;
-        List<ReferenceSettingsCatalog.Setting> settings = card.settings;
-        for (ReferenceSettingsCatalog.Setting setting : settings) {
+        final float headerH = 21f;
+        recordViewportRow("Settings section " + card.id, contentX, y, contentW, headerH);
+        String label = card.title == null ? "" : card.title.toUpperCase(Locale.ROOT);
+        UIRender.text(fr(), fit(fr(), label, contentW / .64f), contentX, y + 4f, Theme.textTertiary, .64f, false);
+        float labelW = fr().getStringWidth(label) * .64f;
+        UIRender.line(Math.min(contentX + contentW - 1f, contentX + labelW + 9f), y + 9f,
+                contentX + contentW, y + 9f, 1f, Theme.divider);
+        float rowY = y + headerH;
+        for (ReferenceSettingsCatalog.Setting setting : card.settings) {
             rowY = drawSetting(rowY, mouseX, mouseY, tab, card, setting, false);
         }
-        if (!card.notice.isEmpty()) {
-            float noticeY = rowY;
-            float noticeH = measureNotice(card.notice);
-            UIRender.rect(contentX + 1f, noticeY, contentW - 2f, noticeH, Theme.windowBottom);
-            drawNoticeGlyph(contentX + ROW_PAD_X + 1f, noticeY + 10f,
-                    card.warningNotice ? Theme.NOTICE_WARNING : Theme.accent, card.warningNotice);
-            drawWrapped(card.notice, contentX + ROW_PAD_X + 13f, noticeY + 7f,
-                    contentW - ROW_PAD_X * 2f - 16f, Theme.textSecondary, .68f, 3);
-            rowY += noticeH;
-        }
-        return y + h;
+        return rowY;
     }
 
     private float measureCard(ReferenceSettingsCatalog.Card card) {
-        float h = 46f;
-        for (ReferenceSettingsCatalog.Setting setting : card.settings) {
-            h += measureSetting(setting, false);
-        }
-        if (!card.notice.isEmpty()) h += measureNotice(card.notice);
+        float h = 21f;
+        for (ReferenceSettingsCatalog.Setting setting : card.settings) h += measureSetting(setting, false);
         return h;
     }
 
@@ -707,22 +733,36 @@ public class AppleSettingsScreen extends AppleScreen {
         return drawSetting(y, mouseX, mouseY, tab, card, setting, child, false);
     }
 
-    /** Draws one simple-toggle or collapsed-dropdown row; child value controls remain in the disclosed owner. */
+    /** Draws a flat settings row. Captions and reset links are paint-only content, never nested controls. */
     private float drawSetting(float y, int mouseX, int mouseY, ReferenceSettingsCatalog.Tab tab,
                               ReferenceSettingsCatalog.Card card, ReferenceSettingsCatalog.Setting setting,
                               boolean child, boolean dimmed) {
+        if (setting.isCaption()) return drawGroupCaption(y, setting, dimmed);
+        if (child && setting.isResetAction()) return drawResetFooter(y, setting, dimmed);
+
         boolean disclosure = setting.isDropdown();
         boolean open = disclosure && FeatureUiPreferences.dropdownOpen(setting.id);
         float rowH = measureSetting(setting, child);
+        float baseH = baseSettingHeight(setting, child);
         float x = contentX;
         float rowW = contentW;
         recordViewportRow("Settings row " + setting.id, x, y, rowW, rowH);
         UIRender.line(x + 1f, y, x + rowW - 1f, y, 1f, Theme.divider);
 
-        float padX = child ? ROW_PAD_X + 14f : ROW_PAD_X;
-        float leftX = x + padX;
-        float controlW = controlWidth(setting);
-        float labelW = narrowRows ? rowW - padX * 2f : Math.max(42f, rowW - padX - ROW_PAD_X - controlW - CONTROL_GAP);
+        float leftX = x + ROW_PAD_X;
+        float chevronX = SettingsControlLayout.chevronCenterX(x, rowW, ROW_PAD_X);
+        float toggleX = SettingsControlLayout.toggleX(x, rowW, ROW_PAD_X);
+        float controlRight = SettingsControlLayout.contentRight(x, rowW, ROW_PAD_X, CONTROL_GAP);
+        float valueW = controlWidth(setting);
+        boolean inlineControl = setting.control == ReferenceSettingsCatalog.Control.SLIDER
+                || setting.control == ReferenceSettingsCatalog.Control.CHOICE
+                || setting.control == ReferenceSettingsCatalog.Control.TEXT
+                || setting.control == ReferenceSettingsCatalog.Control.ACTION;
+        float editW = setting.isEditor() ? 38f : 0f;
+        float labelRight = inlineControl ? controlRight - valueW - CONTROL_GAP
+                : setting.isEditor() ? controlRight - editW - CONTROL_GAP : controlRight;
+        float labelW = Math.max(42f, labelRight - leftX);
+        if (narrowRows) labelW = Math.max(42f, controlRight - leftX);
         float labelY = y + ROW_PAD_Y;
         int primary = dimmed ? Theme.textTertiary : Theme.textPrimary;
         int secondary = dimmed ? Theme.textTertiary : Theme.textSecondary;
@@ -730,68 +770,129 @@ public class AppleSettingsScreen extends AppleScreen {
                 primary, Theme.TYPE_HEADING, false);
         drawWrapped(setting.description, leftX, labelY + 11f, labelW, secondary, Theme.TYPE_BODY, 2);
 
-        float controlX;
-        float controlY;
-        if (narrowRows) {
-            controlX = leftX;
-            controlY = SettingsControlLayout.stackedY(y, baseSettingHeight(setting, child), controlHeight(setting), 7f);
-        } else {
-            controlX = SettingsControlLayout.rightX(x, rowW, ROW_PAD_X, controlW);
-            controlY = Math.max(y + 6f, SettingsControlLayout.centeredY(y,
-                    baseSettingHeight(setting, child), controlHeight(setting)));
-        }
-
-        // Register the disclosure first. A right-aligned control is registered after it and therefore retains its
-        // own smaller hit target; clicking the rest of the row only opens/closes the owning dropdown.
         if (disclosure) {
             registerHit("dropdown:" + setting.id, HIT_DISCLOSURE, x + 1f, y + 1f, rowW - 2f,
-                    baseSettingHeight(setting, child) - 1f, setting, "");
+                    baseH - 1f, setting, "");
         }
         float alpha = UIRender.alphaMul;
         if (dimmed) UIRender.alphaMul = alpha * .58f;
         try {
-            drawControl(setting, controlX, controlY, controlW, mouseX, mouseY);
+            if (setting.isEditor()) {
+                if (setting.hasMasterToggle()) drawControl(setting, toggleX, centeredControlY(y, baseH, 20f),
+                        TOGGLE_COLUMN_W, mouseX, mouseY);
+                drawEditorButton(setting, controlRight - editW, centeredControlY(y, baseH, 20f), editW, mouseX, mouseY);
+            } else if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
+                drawControl(setting, toggleX, centeredControlY(y, baseH, 20f), TOGGLE_COLUMN_W, mouseX, mouseY);
+            } else if (inlineControl) {
+                float controlX = narrowRows ? leftX : controlRight - valueW;
+                float controlY = narrowRows ? SettingsControlLayout.stackedY(y, baseH, controlHeight(setting), 7f)
+                        : centeredControlY(y, baseH, controlHeight(setting));
+                drawControl(setting, controlX, controlY, valueW, mouseX, mouseY);
+            } else if ("terminal-assist".equals(setting.id)) {
+                String status = terminalStatusText();
+                UIRender.text(fr(), status, controlRight - fr().getStringWidth(status) * .68f,
+                        centeredTextY(y, baseH, .68f), secondary, .68f, false);
+            }
         } finally {
             UIRender.alphaMul = alpha;
         }
-        if (disclosure) drawDisclosureGlyph(controlX + (setting.hasMasterToggle() ? 5f : Math.max(3f, controlW - 10f)),
-                controlY + Math.max(8f, controlHeight(setting) * .5f), open, dimmed ? Theme.textTertiary : Theme.textSecondary);
+        if (disclosure) drawDisclosureGlyph(chevronX, y + baseH * .5f, open,
+                dimmed ? Theme.textTertiary : Theme.textSecondary);
 
-        float cursor = y + baseSettingHeight(setting, child);
-        float popupReservation = reserveValueDropdown(setting, controlX, controlY, controlW, cursor);
-        cursor += popupReservation;
-        if (open) {
-            float childBlockH = childBlockHeight(setting);
-            UIRender.rect(x + 1f, cursor, rowW - 2f, childBlockH, Theme.windowBottom);
-            UIRender.line(leftX + 2f, cursor + 5f, leftX + 2f, cursor + childBlockH - 6f, 1f, Theme.divider);
-            boolean childrenDimmed = dimmed || (setting.hasMasterToggle() && !InlineSettingsBindings.booleanValue(setting.id));
-            for (ReferenceSettingsCatalog.Setting nested : setting.children) {
-                cursor = drawSetting(cursor, mouseX, mouseY, tab, card, nested, true, childrenDimmed);
+        float cursor = y + baseH;
+        if (inlineControl) {
+            Widget widget = controls.get(setting.id);
+            if (widget == openDropdown && widget instanceof AppleDropdown) {
+                float controlX = narrowRows ? leftX : controlRight - valueW;
+                float controlY = narrowRows ? SettingsControlLayout.stackedY(y, baseH, controlHeight(setting), 7f)
+                        : centeredControlY(y, baseH, controlHeight(setting));
+                cursor += reserveValueDropdown(setting, controlX, controlY, valueW, cursor);
+            }
+        }
+        if (disclosure) {
+            float fullChildH = childBlockHeight(setting);
+            float progress = dropdownProgress(setting);
+            float animatedChildH = fullChildH * progress;
+            if (animatedChildH > .01f) {
+                int inner = UIRender.mix(Theme.windowBottom, Theme.card, .44f);
+                UIRender.rect(x + 1f, cursor, rowW - 2f, animatedChildH, inner);
+                UIRender.scissorBegin(x + 1f, cursor, rowW - 2f, animatedChildH, sf);
+                float childY = cursor + 6f;
+                float childAlpha = UIRender.alphaMul;
+                UIRender.alphaMul = childAlpha * Math.max(.18f, progress);
+                boolean childrenDimmed = dimmed || (setting.hasMasterToggle() && !InlineSettingsBindings.booleanValue(setting.id));
+                try {
+                    for (ReferenceSettingsCatalog.Setting nested : setting.children) {
+                        childY = drawSetting(childY, mouseX, mouseY, tab, card, nested, true, childrenDimmed);
+                    }
+                } finally {
+                    UIRender.alphaMul = childAlpha;
+                    UIRender.scissorEnd();
+                }
             }
         }
         return y + rowH;
     }
 
+    private float drawGroupCaption(float y, ReferenceSettingsCatalog.Setting setting, boolean dimmed) {
+        float h = 18f;
+        int color = dimmed ? Theme.textTertiary : Theme.textSecondary;
+        UIRender.text(fr(), setting.label.toUpperCase(Locale.ROOT), contentX + ROW_PAD_X, y + 5f, color, .61f, false);
+        float textW = fr().getStringWidth(setting.label) * .61f;
+        UIRender.line(Math.min(contentX + contentW - ROW_PAD_X, contentX + ROW_PAD_X + textW + 8f), y + 9f,
+                contentX + contentW - ROW_PAD_X, y + 9f, 1f, Theme.divider);
+        return y + h;
+    }
+
+    /** The only reset presentation is a compact end-of-panel link, not another full settings row. */
+    private float drawResetFooter(float y, ReferenceSettingsCatalog.Setting setting, boolean dimmed) {
+        float h = 24f;
+        float x = contentX + ROW_PAD_X;
+        String label = "Reset to defaults";
+        int color = dimmed ? Theme.textTertiary : Theme.accent;
+        UIRender.text(fr(), label, x, y + 7f, color, .68f, false);
+        float w = fr().getStringWidth(label) * .68f;
+        UIRender.line(x, y + 17f, x + w, y + 17f, 1f, color);
+        registerHit("reset:" + setting.id, HIT_ACTION, x - 2f, y + 3f, w + 4f, 17f, setting, setting.id);
+        return y + h;
+    }
+
     private float measureSetting(ReferenceSettingsCatalog.Setting setting, boolean child) {
+        if (setting.isCaption()) return 18f;
+        if (child && setting.isResetAction()) return 24f;
         float h = baseSettingHeight(setting, child) + valueDropdownReservation(setting);
-        if (setting.isDropdown() && FeatureUiPreferences.dropdownOpen(setting.id)) h += childBlockHeight(setting);
+        if (setting.isDropdown()) h += childBlockHeight(setting) * dropdownProgress(setting);
         return h;
     }
 
     private float baseSettingHeight(ReferenceSettingsCatalog.Setting setting, boolean child) {
-        float controlW = controlWidth(setting);
-        float padX = child ? ROW_PAD_X + 14f : ROW_PAD_X;
-        float labelW = narrowRows ? contentW - padX * 2f
-                : Math.max(42f, contentW - padX - ROW_PAD_X - controlW - CONTROL_GAP);
+        float left = ROW_PAD_X;
+        float right = ROW_PAD_X + RIGHT_COLUMNS_W + CONTROL_GAP;
+        float labelW = Math.max(42f, contentW - left - right);
+        if (setting.control == ReferenceSettingsCatalog.Control.SLIDER
+                || setting.control == ReferenceSettingsCatalog.Control.CHOICE
+                || setting.control == ReferenceSettingsCatalog.Control.TEXT
+                || setting.control == ReferenceSettingsCatalog.Control.ACTION) {
+            labelW = Math.max(42f, labelW - controlWidth(setting) - CONTROL_GAP);
+        } else if (setting.isEditor()) {
+            labelW = Math.max(42f, labelW - 38f - CONTROL_GAP);
+        }
+        if (narrowRows) labelW = Math.max(42f, contentW - left - right);
         int lines = cachedLines(setting.id, setting.description, labelW, Theme.TYPE_BODY, 2);
         float textH = 10f + lines * 8f;
         float base = Math.max(textH, controlHeight(setting)) + ROW_PAD_Y * 2f - 1f;
-        if (narrowRows && setting.control != ReferenceSettingsCatalog.Control.INFO
-                && setting.control != ReferenceSettingsCatalog.Control.DROPDOWN) base += controlHeight(setting) + 5f;
+        if (narrowRows && (setting.control == ReferenceSettingsCatalog.Control.SLIDER
+                || setting.control == ReferenceSettingsCatalog.Control.CHOICE
+                || setting.control == ReferenceSettingsCatalog.Control.TEXT
+                || setting.control == ReferenceSettingsCatalog.Control.ACTION)) base += controlHeight(setting) + 5f;
         return Math.max(31f, base);
     }
 
-    /** Reserve a real flow block for an open value dropdown so it cannot paint across another option row. */
+    private float centeredControlY(float y, float h, float controlH) {
+        return Math.max(y + 6f, SettingsControlLayout.centeredY(y, h, controlH));
+    }
+
+    /** Reserve a real flow block for an open value selector so it cannot paint across another row. */
     private float valueDropdownReservation(ReferenceSettingsCatalog.Setting setting) {
         Widget widget = controls.get(setting.id);
         return widget == openDropdown && widget instanceof AppleDropdown
@@ -811,48 +912,41 @@ public class AppleSettingsScreen extends AppleScreen {
     private float childBlockHeight(ReferenceSettingsCatalog.Setting parentSetting) {
         float h = 6f;
         for (ReferenceSettingsCatalog.Setting child : parentSetting.children) h += measureSetting(child, true);
-        return h + 5f;
+        return h + EXPANDED_BOTTOM_PADDING;
     }
 
     private float controlWidth(ReferenceSettingsCatalog.Setting setting) {
-        float available = Math.max(1f, contentW - ROW_PAD_X * 2f);
-        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
-            // A master dropdown reserves room for its disclosure, but every actual switch remains the same 38 x 20 pill.
-            return Math.min(available, setting.isDropdown() ? 56f : 38f);
-        }
-        if (setting.control == ReferenceSettingsCatalog.Control.DROPDOWN) return Math.min(available, 22f);
+        float available = Math.max(1f, contentW - ROW_PAD_X * 2f - RIGHT_COLUMNS_W);
+        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE || setting.isEditor()) return TOGGLE_COLUMN_W;
+        if (setting.control == ReferenceSettingsCatalog.Control.DROPDOWN || setting.control == ReferenceSettingsCatalog.Control.INFO
+                || setting.control == ReferenceSettingsCatalog.Control.CAPTION) return 0f;
         if (setting.control == ReferenceSettingsCatalog.Control.SLIDER) {
-            return Math.min(available, narrowRows ? Math.max(80f, available) : Math.min(160f, Math.max(82f, contentW * .34f)));
+            return Math.min(available, narrowRows ? available : Math.min(160f, Math.max(82f, contentW * .34f)));
         }
         if (setting.control == ReferenceSettingsCatalog.Control.TEXT || setting.control == ReferenceSettingsCatalog.Control.CHOICE) {
-            return Math.min(available, narrowRows ? Math.max(110f, available) : Math.min(170f, Math.max(104f, contentW * .36f)));
+            return Math.min(available, narrowRows ? available : Math.min(170f, Math.max(104f, contentW * .36f)));
         }
         if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
             return Math.min(available, Math.max(42f, Math.min(132f, fr().getStringWidth(setting.actionLabel) + 19f)));
         }
-        return Math.min(available, 16f);
+        return 0f;
     }
 
     private float controlHeight(ReferenceSettingsCatalog.Setting setting) {
         if (setting.control == ReferenceSettingsCatalog.Control.SLIDER) return 24f;
-        if (setting.control == ReferenceSettingsCatalog.Control.INFO || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN) return 20f;
+        if (setting.control == ReferenceSettingsCatalog.Control.INFO || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN
+                || setting.control == ReferenceSettingsCatalog.Control.CAPTION) return 20f;
         return 21f;
     }
 
     private void drawControl(ReferenceSettingsCatalog.Setting setting, float x, float y, float w,
                              int mouseX, int mouseY) {
-        if (setting.control == ReferenceSettingsCatalog.Control.INFO) {
-            UIRender.text(fr(), "—", x, centeredTextY(y, controlHeight(setting), .9f), Theme.textTertiary, .9f, false);
-            return;
-        }
-        if (setting.control == ReferenceSettingsCatalog.Control.DROPDOWN) return;
         Widget widget = controlFor(setting);
         if (widget == null) return;
-        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
-            float toggleW = 38f;
-            widget.x = x + w - toggleW;
+        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE || setting.isEditor()) {
+            widget.x = x;
             widget.y = y;
-            widget.w = toggleW;
+            widget.w = TOGGLE_COLUMN_W;
             widget.h = 20f;
             widget.draw(mouseX, mouseY);
             recordViewportControl("Settings toggle " + setting.id, widget.x, widget.y, widget.w, widget.h);
@@ -866,6 +960,25 @@ public class AppleSettingsScreen extends AppleScreen {
         widget.draw(mouseX, mouseY);
         recordViewportControl("Settings control " + setting.id, widget.x, widget.y, widget.w, widget.h);
         registerHit("control:" + setting.id, HIT_CONTROL, x, y, w, widget.h, setting, "");
+    }
+
+    /** Editor rows reserve the same columns but use an explicit button instead of a disclosure glyph. */
+    private void drawEditorButton(ReferenceSettingsCatalog.Setting setting, float x, float y, float w,
+                                  int mouseX, int mouseY) {
+        boolean hot = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + 20f;
+        int fill = hot ? Theme.buttonHover : Theme.buttonFill;
+        UIRender.roundRectBorder(x, y, w, 20f, 5f, fill, fill, Theme.border);
+        String label = "[Edit]";
+        UIRender.text(fr(), label, x + (w - fr().getStringWidth(label) * .68f) * .5f,
+                centeredTextY(y, 20f, .68f), hot ? Theme.textPrimary : Theme.textSecondary, .68f, false);
+        registerHit("editor:" + setting.id, HIT_ACTION, x, y, w, 20f, setting, setting.editorActionId);
+    }
+
+    private String terminalStatusText() {
+        String[] ids = {"terminal-hints", "terminal-auto-click", "terminal-hide-wrong", "terminal-prevent-clicks", "terminal-waypoints"};
+        int on = 0;
+        for (String id : ids) if (InlineSettingsBindings.booleanValue(id)) on++;
+        return on + " / " + ids.length + " on";
     }
 
     private void drawDisclosureGlyph(float x, float y, boolean open, int color) {
@@ -882,7 +995,8 @@ public class AppleSettingsScreen extends AppleScreen {
         Widget existing = controls.get(setting.id);
         if (existing != null) return existing;
         Widget created;
-        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
+        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE
+                || (setting.isEditor() && setting.hasMasterToggle())) {
             created = new AppleToggle(new Supplier<Boolean>() {
                 @Override public Boolean get() { return booleanValue(setting.id); }
             }, new Consumer<Boolean>() {
@@ -1528,12 +1642,22 @@ public class AppleSettingsScreen extends AppleScreen {
         if (hit == null) return;
         if (hit.type == HIT_DISCLOSURE && hit.setting != null) {
             boolean open = !FeatureUiPreferences.dropdownOpen(hit.setting.id);
-            FeatureUiPreferences.setDropdownOpen(hit.setting.id, open);
-            if (open) showToast(hit.setting.label + " expanded");
+            setAccordionOpen(activeTab, hit.setting.id, open);
+            if (open) {
+                revealDropdownHeader(hit.setting.id);
+                showToast(hit.setting.label + " expanded");
+            }
             return;
         }
         if (hit.type == HIT_SEARCH_RESULT && hit.match != null) {
             expandSearchResult(hit.match);
+            return;
+        }
+        if (hit.type == HIT_ACTION) {
+            String id = hit.data == null || hit.data.length() == 0
+                    ? (hit.setting == null ? "" : hit.setting.id) : hit.data;
+            if (id.length() > 0) performInlineAction(id);
+            afterSettingChanged();
             return;
         }
         if (hit.type == HIT_HOME_TOGGLE) {
@@ -1547,16 +1671,34 @@ public class AppleSettingsScreen extends AppleScreen {
         }
     }
 
+    /** Opens one disclosure per page and keeps the persisted state as presentation-only data. */
+    private void setAccordionOpen(ReferenceSettingsCatalog.Tab tab, String id, boolean open) {
+        if (tab == null || id == null) return;
+        if (open) FeatureUiPreferences.openAccordion(id, ReferenceSettingsCatalog.dropdownIds(tab));
+        else FeatureUiPreferences.setDropdownOpen(id, false);
+    }
+
+    /** Uses the last rendered header bounds so an opened row never sits outside the scroll viewport. */
+    private void revealDropdownHeader(String id) {
+        Hit hit = knownHits.get("dropdown:" + id);
+        if (hit == null) return;
+        float delta = 0f;
+        if (hit.rect.y < viewport.y) delta = hit.rect.y - viewport.y;
+        else if (hit.rect.bottom() > viewport.bottom()) delta = hit.rect.bottom() - viewport.bottom();
+        if (Math.abs(delta) > .5f) scroll.nudge(delta);
+    }
+
     private void expandSearchResult(ReferenceSettingsCatalog.Match match) {
         if (match == null) return;
         activeTab = match.tab;
         for (ReferenceSettingsCatalog.Setting parent : match.parents) {
-            if (parent.isDropdown()) FeatureUiPreferences.setDropdownOpen(parent.id, true);
+            if (parent.isDropdown()) setAccordionOpen(match.tab, parent.id, true);
         }
-        if (match.setting.isDropdown()) FeatureUiPreferences.setDropdownOpen(match.setting.id, true);
+        if (match.setting.isDropdown()) setAccordionOpen(match.tab, match.setting.id, true);
         search.clear();
         search.setFocused(false);
         scroll.reset();
+        revealDropdownHeader(match.parents.isEmpty() ? match.setting.id : match.parents.get(0).id);
         showToast(match.setting.label + " opened");
     }
 
@@ -1703,7 +1845,7 @@ public class AppleSettingsScreen extends AppleScreen {
             return;
         }
         if ("item-animation-open-editor".equals(id)) {
-            Minecraft.getMinecraft().displayGuiScreen(HudEditorScreen.openItemAnimation(this));
+            Minecraft.getMinecraft().displayGuiScreen(new ItemAnimationEditorScreen(this));
             return;
         }
         if (handleChatAction(id)) return;

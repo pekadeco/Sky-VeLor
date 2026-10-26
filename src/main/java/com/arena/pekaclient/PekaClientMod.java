@@ -271,7 +271,7 @@ public class PekaClientMod {
 
     /**
      * Emits the real launcher/coremod state once per joined world. Persisted sliders alone are not evidence that
-     * Forge accepted the transformer, so both the client log and in-game chat show ACTIVE or FAILED plus why.
+     * Forge accepted the transformer, so the client log and in-game chat show the concise Hook state.
      */
     private void reportItemAnimationWorldJoin(Minecraft mc) {
         if (mc.theWorld == null || mc.thePlayer == null) {
@@ -293,11 +293,11 @@ public class PekaClientMod {
         if (version.endsWith("v")) {
             version = version.substring(0, version.length() - 1);
         }
-        String state = ItemAnimationHookStatus.isActive() ? "ACTIVE" : "FAILED";
-        String line = "Sky VeLor " + version + " | Item Animation: /velor itemanimation | Hook: " + state
-                + " " + ItemAnimationHookStatus.getReason();
+        String line = "Sky VeLor " + version + " | Item Animation: /velor itemanimation | "
+                + ItemAnimationHookStatus.getDisplay();
         System.out.println("[Sky VeLor] " + line);
-        mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b" + line));
+        String color = ItemAnimationHookStatus.isActive() ? "\u00a7a" : "\u00a7c";
+        mc.thePlayer.addChatMessage(new ChatComponentText(color + line));
     }
 
     /**

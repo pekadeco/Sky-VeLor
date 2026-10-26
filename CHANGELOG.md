@@ -1,5 +1,25 @@
 # Changelog
 
+## Beta-0.10.8.9.8v — 2026-10-26
+
+- Flattened every visible settings owner to one disclosure level with compact plain section labels, fixed toggle and
+  chevron columns, standard `38 × 20` master pills, 150 ms clipped inner-panel expansion, 8 px expanded padding,
+  dimmed-but-editable master-off options, per-page accordion state, and search-driven disclosure.
+- Replaced reset rows/dropdowns with one compact trailing **Reset to defaults** link per expanded feature while
+  preserving the existing owner reset behavior and exact configurable-id inventory.
+- Added distinct no-chevron **Edit** rows for Boss Health HUD, HUD Editor, and Item Animation; made Hurt Camera Shake
+  an inline slider, kept Spirit Leap master/key controls together, and retained Terminal Helper as a no-master live
+  `n / 5 on` dropdown.
+- Rewrote player-facing catalog text to short Title Case/sentence case and added the documented old-to-new text table.
+- Replaced the accessible Item Animation HUD-editor target with `ItemAnimationEditorScreen`: an undimmed left-edge
+  panel with Close X, requested renderer controls, Preview Swing, Reset to Defaults, and green `Hook: active` / plain
+  `Hook: failed (reason)` status. Retired Item Animation background/transparency/opacity keys remain ignored.
+- Added depth/count/accordion/search/copy/binding/scale/panel-exclusion regression coverage and updated the release
+  JAR verifier for the standalone panel contract.
+- Updated display metadata, Forge metadata, build contract, verifier examples, documentation, and archive references
+  to `Beta-0.10.8.9.8v` / numeric `0.10.8.9.8`.
+- **NOT tested in-game.** A real Minecraft 1.8.9 Forge render/input/gameplay pass remains required.
+
 ## Beta-0.10.8.9.7v — 2026-10-24
 
 - Replaced retired feature-specific settings screens with persisted, collapsed inline dropdowns in

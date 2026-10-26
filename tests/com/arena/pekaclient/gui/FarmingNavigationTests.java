@@ -25,7 +25,9 @@ public final class FarmingNavigationTests {
         List<ReferenceSettingsCatalog.Match> matches = ReferenceSettingsCatalog.search("sprout");
         check("Farming exposes its empty-channel message through search", matches.size() == 1
                 && matches.get(0).tab == ReferenceSettingsCatalog.Tab.FARMING
-                && "No farming features yet".equals(matches.get(0).setting.label));
+                && "No Farming Features Yet".equals(matches.get(0).setting.label));
+        check("Farming title copy is title cased", "No Farming Features Yet.".equals(
+                ReferenceSettingsCatalog.Tab.FARMING.caption));
         check("Farming does not fabricate a persisted feature card", ReferenceSettingsCatalog.cards(
                 ReferenceSettingsCatalog.Tab.FARMING).isEmpty() && ReferenceSettingsCatalog.find("farming-empty") == null);
     }

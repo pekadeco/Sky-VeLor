@@ -74,9 +74,9 @@ public final class ThemeTests {
     }
 
     private static void semanticStatusColorsRemainPurposeBound() {
-        check("warnings and critical errors retain dedicated semantic tokens",
-                Theme.STATUS_WARNING != Theme.ACCENT_BLUE && Theme.STATUS_CRITICAL != Theme.ACCENT_BLUE
-                        && Theme.STATUS_UNAVAILABLE != Theme.ACCENT_BLUE);
+        check("warnings, success, and critical errors retain dedicated semantic tokens",
+                Theme.STATUS_WARNING != Theme.ACCENT_BLUE && Theme.STATUS_SUCCESS != Theme.ACCENT_BLUE
+                        && Theme.STATUS_CRITICAL != Theme.ACCENT_BLUE && Theme.STATUS_UNAVAILABLE != Theme.ACCENT_BLUE);
         check("shared utility surfaces are tokenized", Theme.NOTE_PANEL != 0 && Theme.LEAP_CARD != 0
                 && Theme.LOADING_BLUE != 0 && Theme.DEBUG_HOT != 0);
     }

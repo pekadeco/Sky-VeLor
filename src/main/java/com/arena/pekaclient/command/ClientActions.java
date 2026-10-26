@@ -1,7 +1,7 @@
 package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.gui.AppleSettingsScreen;
-import com.arena.pekaclient.gui.HudEditorScreen;
+import com.arena.pekaclient.gui.ItemAnimationEditorScreen;
 import com.arena.pekaclient.notes.QuickNoteScreen;
 import com.arena.pekaclient.notes.QuickNotes;
 import net.minecraft.client.Minecraft;
@@ -29,7 +29,7 @@ public final class ClientActions {
         notesPending = true;
     }
 
-    /** Opens the HUD editor directly on its non-draggable Item Animation renderer panel. */
+    /** Opens the standalone non-draggable Item Animation panel. */
     public static void requestItemAnimation() {
         itemAnimationPending = true;
     }
@@ -48,7 +48,7 @@ public final class ClientActions {
             itemAnimationPending = false;
             hubPending = false;
             chatEditorPending = false;
-            mc.displayGuiScreen(HudEditorScreen.openItemAnimation(null));
+            mc.displayGuiScreen(new ItemAnimationEditorScreen(null));
         } else if (chatEditorPending) {
             chatEditorPending = false;
             hubPending = false;

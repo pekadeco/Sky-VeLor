@@ -66,7 +66,8 @@ public final class SvCommand extends CommandBase {
         String matched = dungeon.matchedScoreboardLine.length() == 0 ? "<none>" : dungeon.matchedScoreboardLine;
         mc.thePlayer.addChatMessage(new ChatComponentText("§7dungeon: §finDungeon: " + dungeon.inDungeon
                 + ", reason: " + dungeon.reason + ", matched scoreboard line: " + matched));
-        mc.thePlayer.addChatMessage(new ChatComponentText("§7item-animation hook: §f" + (ItemAnimationHookStatus.isActive() ? "ACTIVE" : "FAILED") + " (" + ItemAnimationHookStatus.getReason() + ")"));
+        mc.thePlayer.addChatMessage(new ChatComponentText("§7item-animation: §f"
+                + ItemAnimationHookStatus.getDisplay()));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7block-particle hook: §f" + (BlockParticleHookStatus.isActive() ? "ACTIVE" : "FAILED")
                 + " (" + BlockParticleHookStatus.getReason() + ")"));
         mc.thePlayer.addChatMessage(new ChatComponentText("§7item-lock/swap hook: §f"

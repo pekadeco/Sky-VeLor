@@ -21,7 +21,8 @@ public final class ItemAnimationHookStatus {
     private static volatile boolean failed;
     private static volatile String reason = WAITING;
     private static volatile String targetVariant = "unresolved";
-    private static volatile String display = "HOOK INACTIVE — Awaiting ItemRenderer transformation";
+    /** Short player-facing panel text; detailed transformer diagnostics remain available through getReason(). */
+    private static volatile String display = "Hook: checking";
 
     private static volatile long renderWindowStartedNanos;
     private static volatile int renderCallsThisSecond;
@@ -146,7 +147,7 @@ public final class ItemAnimationHookStatus {
                 fail("Item Animation hook is incomplete");
             }
         }
-        return isActive() ? "ACTIVE: " + targetVariant + " ItemRenderer hook" : "FAILED: " + reason;
+        return getDisplay();
     }
 
     private static void refreshState() {
@@ -163,7 +164,20 @@ public final class ItemAnimationHookStatus {
     }
 
     private static void refreshDisplay() {
-        display = isActive() ? "HOOK ACTIVE — " + targetVariant + " ItemRenderer"
-                : "HOOK INACTIVE — " + reason;
+        if (isActive()) {
+            display = "Hook: active";
+        } else if (failed) {
+            display = "Hook: failed (" + playerReason(reason) + ")";
+        } else {
+            display = "Hook: checking";
+        }
+    }
+
+    private static String playerReason(String detail) {
+        String value = detail == null ? "" : detail.toLowerCase(java.util.Locale.ROOT);
+        if (value.contains("not found")) return "game version changed";
+        if (value.contains("incomplete")) return "setup incomplete";
+        if (value.contains("error")) return "setup error";
+        return "unavailable";
     }
 }

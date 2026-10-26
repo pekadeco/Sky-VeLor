@@ -30,6 +30,8 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsControlLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HardcodedGuiColorTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HudEditorSelectionPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineSettingsCatalogTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.FlatDropdownContractTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.PlayerFacingTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.FarmingNavigationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.ReleaseClaimsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.chat.ClipboardChainTests
@@ -55,6 +57,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.WitherDoorCacheTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineEspCatalogTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineSettingsBindingsTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.FlatCatalogBindingAuditTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineOptionPreservationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests

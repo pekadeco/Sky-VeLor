@@ -2,27 +2,46 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.feature.ItemAnimation;
 
-/** Ensures the one permitted renderer editor stays reachable without reviving generic feature editors. */
+import java.util.Arrays;
+import java.util.List;
+
+/** Contract for the standalone renderer-only Item Animation editor. */
 public final class ItemAnimationReachabilityTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
-        itemAnimationIsTheOnlyDedicatedRendererEditorRoute();
+        itemAnimationUsesOneDistinctEditorRow();
+        standalonePanelContainsOnlyItsOwnSurfaceAndControls();
         realPreviewSwingRemainsRendererOnly();
         done();
     }
 
-    private static void itemAnimationIsTheOnlyDedicatedRendererEditorRoute() {
-        ReferenceSettingsCatalog.Setting master = ReferenceSettingsCatalog.find("item-animation");
-        ReferenceSettingsCatalog.Setting action = ReferenceSettingsCatalog.find("item-animation-open-editor");
-        check("Item Animation retains an inline master dropdown", master != null && master.isDropdown()
-                && master.control == ReferenceSettingsCatalog.Control.TOGGLE);
-        check("Item Animation opens the permitted editor", action != null
-                && action.control == ReferenceSettingsCatalog.Control.ACTION
-                && "Item Animation Editor".equals(action.actionLabel));
-        check("HUD Editor remains the other permitted editor action", ReferenceSettingsCatalog.find("open-hud-editor") != null
-                && "HUD Editor".equals(ReferenceSettingsCatalog.find("open-hud-editor").actionLabel));
+    private static void itemAnimationUsesOneDistinctEditorRow() {
+        ReferenceSettingsCatalog.Setting row = ReferenceSettingsCatalog.find("item-animation");
+        check("Item Animation is a toggle plus Edit editor row", row != null && row.isEditor()
+                && row.hasMasterToggle() && "item-animation-open-editor".equals(row.editorActionId));
+        check("Item Animation no longer owns a dropdown or a separate action row", row != null && !row.isDropdown()
+                && ReferenceSettingsCatalog.find("item-animation-open-editor") == null);
+        check("standalone panel stays near twenty-eight percent wide", ItemAnimationEditorScreen.PANEL_WIDTH_FRACTION >= .27f
+                && ItemAnimationEditorScreen.PANEL_WIDTH_FRACTION <= .29f);
+    }
+
+    private static void standalonePanelContainsOnlyItsOwnSurfaceAndControls() {
+        check("renderer paints only the Item Animation panel layer", ItemAnimationPanelModel.renderLayers().equals(
+                Arrays.asList("item-animation-panel")));
+        List<String> controls = ItemAnimationPanelModel.controlLabels();
+        String[] required = {"Hook", "Enable", "Scale", "Position", "X", "Y", "Z", "Animation",
+                "Custom Hit/Slash Style", "Custom Hit/Slash Speed", "Smooth Swing", "Smoothness", "Options",
+                "Remove Haste Effect", "Loop Preview Swing", "Preview Swing", "Reset to Defaults"};
+        for (String label : required) check("standalone control retained: " + label, controls.contains(label));
+        check("standalone panel excludes old background controls", !ItemAnimationPanelModel.hasRetiredBackgroundControl());
+        check("active Hook state has a dedicated green semantic color",
+                com.arena.pekaclient.render.Theme.STATUS_SUCCESS != com.arena.pekaclient.render.Theme.ACCENT_BLUE
+                        && (com.arena.pekaclient.render.Theme.STATUS_SUCCESS & 0x00FF00) > 0);
+        check("failed Hook state has a distinct critical semantic color",
+                com.arena.pekaclient.render.Theme.STATUS_CRITICAL
+                        != com.arena.pekaclient.render.Theme.STATUS_SUCCESS);
     }
 
     private static void realPreviewSwingRemainsRendererOnly() {

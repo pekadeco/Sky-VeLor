@@ -34,8 +34,9 @@ public final class ReleaseClaimsTests {
 
     private static void onlyAllowedEditorScreensRemain() {
         check("HUD editor remains", classExists("com.arena.pekaclient.gui.HudEditorScreen"));
-        check("retained HUD editor owns Item Animation editor mode", classText("com.arena.pekaclient.gui.HudEditorScreen")
-                .contains("Item Animation"));
+        check("Item Animation owns a separate editor surface", classExists("com.arena.pekaclient.gui.ItemAnimationEditorScreen")
+                && classText("com.arena.pekaclient.command.ClientActions").contains("ItemAnimationEditorScreen")
+                && !classExists("com.arena.pekaclient.gui.ItemAnimationUiModel"));
         String[] retired = {
                 "com.arena.pekaclient.gui.FeatureSettingsEditorScreen",
                 "com.arena.pekaclient.gui.FeatureSettingsEditors",
@@ -50,14 +51,16 @@ public final class ReleaseClaimsTests {
         String[] destinations = {"Home", "Gameplay", "Dungeon", "Farming", "Mining", "Fishing", "Visuals", "System"};
         check("reference shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
-        check("screen has search and persisted inline disclosure", screen.contains("Search settings")
+        check("screen has search, accordion disclosure, and header reveal", screen.contains("Search settings")
                 && screen.contains("HIT_DISCLOSURE") && screen.contains("dropdownOpen")
-                && screen.contains("expandSearchResult"));
+                && screen.contains("expandSearchResult") && screen.contains("openAccordion")
+                && screen.contains("normalizeAccordion") && screen.contains("revealDropdownHeader"));
         check("screen clips its rounded shell and one settings viewport", screen.contains("roundedClipBegin")
                 && screen.contains("scissorBegin") && screen.contains("GuiLayoutToolkit$Scroll"));
         check("screen packages title drag, fullscreen persistence and right-aligned control layout",
                 screen.contains("smallWindowOffsetX") && screen.contains("settingsWindowFullscreen")
-                        && screen.contains("SettingsControlLayout") && screen.contains("drawFullscreenGlyph"));
+                        && screen.contains("SettingsControlLayout") && screen.contains("drawFullscreenGlyph")
+                        && screen.contains("[Edit]"));
         check("Chat command route enters the inline owner", classText("com.arena.pekaclient.command.ClientActions")
                 .contains("openChatSettings") && !classText("com.arena.pekaclient.command.ClientActions").contains("ChatEditorScreen"));
     }
@@ -84,10 +87,15 @@ public final class ReleaseClaimsTests {
         check("chat and ESP preview-only classes remain absent", !classExists("com.arena.pekaclient.gui.ChatEditorPreview")
                 && !classExists("com.arena.pekaclient.gui.DungeonEspPreviewRenderer")
                 && !classExists("com.arena.pekaclient.gui.LeapPreviewData"));
+        String itemPanel = classText("com.arena.pekaclient.gui.ItemAnimationEditorScreen");
+        check("Item Animation retains Preview Swing without a HUD or world preview surface",
+                itemPanel.contains("previewSwing") && itemPanel.contains("Reset to Defaults")
+                        && !itemPanel.contains("drawDefaultBackground") && !itemPanel.contains("HudManager")
+                        && !itemPanel.contains("drawItemAnimationEditorPreview"));
         String hudEditor = classText("com.arena.pekaclient.gui.HudEditorScreen");
-        check("Item Animation retains Preview Swing without an editor item sample surface",
-                hudEditor.contains("previewSwing") && !hudEditor.contains("LIVE HELD-ITEM PREVIEW")
-                        && !hudEditor.contains("drawItemAnimationEditorPreview"));
+        check("HUD Editor retains only the compatibility route, not an Item Animation target",
+                hudEditor.contains("ItemAnimationEditorScreen") && !hudEditor.contains("ITEM_ANIMATION")
+                        && !hudEditor.contains("ItemAnimationUiModel"));
         check("retired feature routes are not reintroduced", ReferenceSettingsCatalog.find("hud-stats") == null
                 && ReferenceSettingsCatalog.find("item-protection") == null
                 && ReferenceSettingsCatalog.find("no-hurt-cam") == null);

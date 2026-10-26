@@ -1,126 +1,117 @@
-# Inline settings inventory — Beta-0.10.8.9.7v
+# Flat settings inventory — Beta-0.10.8.9.8v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The approved
-`analyze-sky-velor-mod-code.zip` reference informed the presentation contract only; the release
-ships no browser runtime, React code, or third-party GUI framework.
+`analyze-sky-velor-mod-code.zip` reference informed presentation only; this release ships no
+browser runtime, React code, or third-party GUI framework.
 
-## Settings contract
+## Presentation contract
 
-`AppleSettingsScreen` is the single visible feature-settings surface for the keybind, `/sv`,
-and menu entry points. Its fixed sidebar order is:
+`AppleSettingsScreen` remains the feature-settings entry point for the keybind, `/sv`, and menu.
+Its sidebar order is fixed:
 
 **Home → Gameplay → Dungeon → Farming → Mining → Fishing → Visuals → System**.
 
-Every feature owner is a collapsed-by-default inline dropdown. The presentation state is stored
-separately under `ui.feature.dropdown.<catalog-id>` by `FeatureUiState` /
-`FeatureUiPreferences`; it never replaces or migrates a feature configuration key. A missing
-presentation value means closed. Search indexes nested labels, ids, descriptions, and keywords;
-choosing a result changes to its tab and opens every parent dropdown needed to reveal it.
+A visible settings row is one of four patterns:
 
-Feature rows use the standard small right-aligned `AppleToggle` pill (`38 × 20` GUI pixels) or a
-disclosure dropdown. A disabled master dims dependent rows without disabling their established
-controls, so users can adjust a value before re-enabling its owner. Sliders, choices, text fields,
-reset/copy actions, and the two permitted editor launches appear only inside the relevant dropdown.
+1. a fixed-column toggle row;
+2. one inline control (slider, choice, text, or action);
+3. a feature dropdown with two or more flat child options; or
+4. a visibly distinct **Edit** row.
 
-Only these settings actions open a screen:
+Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
+`38 × 20` pill. Editor rows use a distinct **[Edit]** button and never show a chevron. Compact plain
+section labels replace icon-card headers.
 
-1. **HUD Editor** — the existing HUD layout editor, including the existing dungeon-map canvas and
-   HUD-element placement controls.
-2. **Item Animation Editor** — the existing first-person renderer editor, including the real
-   hand controls and real **Preview Swing** action.
+Each tab is a one-open accordion. Presentation-only disclosure state is stored under
+`ui.feature.dropdown.<catalog-id>` by `FeatureUiState` / `FeatureUiPreferences`; it does not replace,
+rename, or migrate a feature configuration key. Search indexes labels, ids, descriptions, and
+keywords, changes to the result tab, and opens the direct owning dropdown. Expanded panels are
+clipped lighter inner surfaces, animate their height for 150 ms, have 8 px bottom padding, and retain
+dimmed-but-visible dependent options when a master is off.
 
-There are no feature-specific settings screens, detail screens, controls-launch buttons, or
-map-settings-launch buttons. Existing key binding instructions point to Minecraft Controls.
+There is no visible nested dropdown. `ReferenceSettingsCatalog.maxDropdownDepth()` returns one and
+`everyDropdownHasAtLeastTwoOptions()` rejects a one-option disclosure. Captions group flat content
+without becoming a tree.
 
-## Old-to-new feature table
+## Reset and ownership
 
-| Previous presentation owner | New inline location | Retained values / actions |
-| --- | --- | --- |
-| Appearance focused editor | System → Appearance | Corner radius and panel opacity switches/values; Reset Appearance |
-| Performance focused editor | System → Performance | Curve quality, shadows, animation switch/speed, adaptive quality, performance boost; Reset Performance |
-| Mod Settings focused editor | System → Interface | Scroll speed and smooth scrolling; Reset Interface |
-| Inventory Assist focused editor | Gameplay → Inventory and Chat → Inventory Assist | Potion panel, Roman numerals, tooltip scrolling, rarity highlight; Reset Inventory Assist |
-| Item Lock / Swap focused editor | Gameplay → Inventory and Chat → Item Lock and Swap | Master, existing Controls guidance, cooldown, badges, line options, clear locks/pairs, full reset |
-| Chat editor | Gameplay → Inventory and Chat → Chat QoL | Background, Messages, Tabs, Menu and Highlight, Reset; custom-tab add/edit/order/delete and group/all resets |
-| Movement shortcuts focused editor | Gameplay → Inventory and Chat → Movement and Shortcuts | Wardrobe and Pets switches; Reset Movement Shortcuts |
-| Slayer focused editor | Gameplay → Inventory and Chat → Slayer Tracker | Master, Boss Timer, Price Drops, `/setprice` guidance, per-family history clears, reset |
-| Dungeon Map route | Dungeon → Run Tools → Dungeon Map | Master, rotation, names, puzzle labels, scale/zoom, party announcement; placement remains in HUD Editor |
-| Terminal Helper focused editor | Dungeon → Run Tools → Terminal Helper | No-master status dropdown: visual helpers, auto click, hide/prevent incorrect choices, waypoints, scale, reset |
-| Spirit Leap focused editor | Dungeon → Run Tools → Spirit Leap Picker | Master, key switch, reset |
-| Boss HUD route | Dungeon → Run Tools → Boss Health HUD | Master and HUD Editor placement guidance |
-| M7 focused editor | Dungeon → Floor VII → Floor VII Overlay | Overlay, relic areas, dragon alert, Click in Order, Boss Hitboxes, Dragon Hitboxes, reset |
-| Dungeon ESP focused editors | Dungeon → Dungeon ESP → Mob ESP / Door ESP | Existing global limits and presets; compact per-Mob style tables; shared Door Style and Blood Door colour; no sample panel |
-| Dungeon Sync route | Dungeon → Party Sync | Master, diagnostics, existing endpoint guidance |
-| Mining Assistant route | Mining → Mining Speed / Mining Assistant | BPS HUD switch, ability alert, Puzzler helper, assistant HUD, reset |
-| Catch/Fishing routes | Fishing → Fishing Tracker | Catch Counter/Festival/reset, Sea Creature Health HUD, Jawbus and nearby encounter alerts |
-| HUD routes | Visuals → HUD | HUD Editor launch plus Player Doll and Inventory HUD owners |
-| Item Animation route | Visuals → Item Animation | Master and Item Animation Editor launch; all renderer controls remain in that permitted editor |
-| Commands focused editor | System → Commands | `/sv`, `/qn`, diagnostics guidance, reset |
+Every expanded feature has at most one compact **Reset to defaults** text link and that link is the
+last expanded option. Reset behavior continues to use the established owners; no reset row or reset
+dropdown was added.
+
+- **Hurt Camera Shake** is one inline slider.
+- **Spirit Leap Picker** is a master dropdown containing its key option.
+- **Terminal Helper** has no master; it shows its live `n / 5 on` count.
+- **Boss Health HUD** is a master toggle plus **Edit**.
+- **HUD Editor** is an **Edit** row.
+- **Item Animation** is a master toggle plus **Edit**.
+- Map, Item Lock / Swap, inventory, movement, Slayer, M7, Mob/Door ESP, mining, fishing, and System
+  owners retain their existing option ids and configuration owners.
+
+## Item Animation standalone panel
+
+**Visuals → Item Animation → Edit** and `/velor itemanimation` open `ItemAnimationEditorScreen`, not
+the HUD editor. It is an undimmed left-edge rounded panel at roughly 28% of GUI width, with Close X
+and **Reset to Defaults**. Its render plan contains only the Item Animation panel: no HUD canvas,
+HUD-editor bar, world overlay, or held-item sample surface is drawn behind it.
+
+The panel retains only:
+
+- Hook status; Enable; Scale; compact Position X/Y/Z;
+- Animation: Custom Hit/Slash Style, Custom Hit/Slash Speed, Smooth Swing, Smoothness;
+- Options: Remove Haste Effect; Loop Preview Swing; Preview Swing; Reset to Defaults.
+
+The status is **Hook: active** with a green semantic indicator when the hook is available, or
+**Hook: failed (reason)** otherwise. Detailed transformer diagnostics remain out of the standard
+panel and join line. Item Animation background/transparency/opacity controls are absent. Legacy Item Animation
+background/opacity keys are ignored on load and removed on the next normal save; other old Item
+Animation values continue to load unchanged.
+
+## Player-facing text migration
+
+All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
+sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
+
+| Earlier player-facing text | Beta-0.10.8.9.8v text |
+| --- | --- |
+| `No farming features yet` | `No Farming Features Yet` |
+| `Item Lock / Swap` | `Item Lock And Swap` |
+| `Hurt camera shake` | `Hurt Camera Shake` |
+| `Boss health HUD` | `Boss Health HUD` |
+| `Menu and Highlight` | `Click Menu` |
+| `Custom accent colour` | `Accent Color` |
+| `Filter type` | `Filter Type` |
+| `Message sound` | `Message Sound` |
+| `Open chat background` | `Open Chat Background` |
+| `Item Animation Editor` route | `Item Animation` with `[Edit]` |
+| `HOOK ACTIVE — …` | `Hook: active` |
+| `HOOK INACTIVE — …` | `Hook: failed (reason)` or `Hook: checking` |
 
 ## Channel placement
 
-- **Mining**: Mining Speed/BPS and Mining Assistant moved from the broader Gameplay presentation
-  channel to **Mining** only. Their existing `HudManager`/`AssistSettings` owners and keys remain
-  unchanged.
-- **Fishing**: Catch Counter, Sea Creature Health, Jawbus, and nearby-encounter controls moved to
-  **Fishing** only. Their `AppleSettings`, `FishingStats`, and HUD owners remain unchanged.
-- **Farming**: the repository has no genuine crop/farming feature to move. It deliberately shows
-  only **No farming features yet**; no crop automation, macros, auto-clicking, auto-breaking, or
-  movement behavior was introduced.
-- **Uncertain placement kept conservative**: Slayer remains Gameplay, Terminal/M7/ESP remain
-  Dungeon, and HUD/Item Animation remain Visuals.
-
-## Requested grouped surfaces
-
-- **Chat QoL** contains exactly **Background**, **Messages**, **Tabs**, **Menu and Highlight**, and
-  **Reset**. Custom tab fields are edited in Tabs and save directly through `ChatQolSettings`.
-- **Terminal Helper** is deliberately a status dropdown rather than a synthetic master feature;
-  each existing terminal setting remains independently opt-in.
-- **Mob ESP** keeps the compact Global/Mob Category style hierarchy. Each category exposes color,
-  render mode, Through Walls, outline width/opacity, fill opacity, and the existing session-only
-  copy/apply actions.
-- **Door ESP** keeps Door Scope, key/distance options, presets/reset, the single shared Door Style
-  (color, mode, Through Walls, width, outline opacity, fill opacity), and Blood Door color. It does
-  not invent Mob-only clipboard actions for doors.
-- **Item Lock and Swap**, **Fishing**, **Dungeon Map**, **Spirit Leap**, **Boss HUD**, **M7**,
-  **Auto Sprint**, and **Hurt Camera Shake** retain their original settings owners and runtime paths.
-
-## Removed-only presentation code
-
-Retired code consists solely of presentation/sample paths and obsolete focused-editor models:
-
-- Chat sample/demo/send-test/automatic sample controls and their screen/model/layout.
-- Inventory/Swap sample cards, Dungeon ESP hitbox sample panels, Door sample panels, and the
-  Spirit Leap local sample data path.
-- Generic focused feature-editor, settings-audit, chat, ESP, fishing, quality-of-life, and mod
-  settings model/screen classes.
-
-The Item Animation renderer remains intact. Its real `Preview Swing` starts only the temporary local
-hand-render path; it does not send input, packets, or gameplay actions. The editor contains no held-item
-sample card.
-
-## Screenshot and shell behavior
-
-The compact **Safe by default** notice is one line with its icon. The fullscreen control uses a
-crisp corner-bracket glyph and persists only `settings.window.fullscreen`. Sky VeLor does not draw
-or reserve external launcher MOUSE/GUI indicators; those belong to the launcher, not this client
-GUI. The shell is rounded/clipped, draggable in small mode, and uses a single scroll viewport.
+- **Mining** owns Mining Speed/BPS and Mining Assistant presentation. Existing `HudManager` and
+  `AssistSettings` owners remain unchanged.
+- **Fishing** owns Catch Counter, Sea Creature Health, Jawbus, and nearby-encounter presentation.
+  Existing `AppleSettings`, `FishingStats`, and HUD owners remain unchanged.
+- **Farming** deliberately shows only **No Farming Features Yet**. No crop automation, macros,
+  auto-clicking, auto-breaking, or movement behavior was introduced.
+- Slayer remains Gameplay; Terminal/M7/ESP remain Dungeon; HUD and Item Animation remain Visuals.
 
 ## Automated coverage and release boundary
 
-Headless tests cover the eight-tab order, empty Farming channel, owner/config-key bridges,
-old-property loading, collapsed disclosure persistence, parent-expanding search, option inventory,
-allowed editor boundaries, ESP tables, standard toggle dimensions, and scale-1–4 row geometry.
-`tools/verify_release_jar.py` checks the packaged class boundary: retired focused editor/sample
-classes must be absent; inline catalog/binding classes and retained runtime owners must be present.
+Headless coverage includes flat depth/count invariants, fixed-column scale-1–4 geometry, editor row
+and no-tree behavior, accordion persistence, search disclosure, player-copy validation, old-config
+loading, exact configurable-id preservation, direct binding audit, and Item Animation panel render
+list/control exclusion. `tools/verify_release_jar.py` additionally checks the packaged class and
+presentation boundary.
 
-Build with Java 8 Forge and verify the result, for example:
+Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.7v.jar \
-  --version Beta-0.10.8.9.7v --mcmod-version 0.10.8.9.7
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.8.9.8v.jar \
+  --version Beta-0.10.8.9.8v --mcmod-version 0.10.8.9.8
 ```
 
-The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are **NOT tested
-in-game**.
+The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are
+**NOT tested in-game**.

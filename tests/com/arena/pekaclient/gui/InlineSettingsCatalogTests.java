@@ -7,20 +7,19 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
-/** Headless contract for the persisted inline settings catalog. */
+/** Headless contract for the persisted flat inline settings catalog. */
 public final class InlineSettingsCatalogTests {
     private static int passed;
     private static int failed;
 
     public static void main(String[] args) {
         exactEightDestinationOrder();
-        everyFeatureUsesAnInlineOwner();
+        everyFeatureUsesAFlatInlineOwner();
         requiredOwnersAndMovesArePresent();
-        searchCarriesAndOpensItsParentPath();
+        searchOpensOneOwningDropdown();
         dropdownStateIsCollapsedByDefaultAndPersistsSeparately();
-        catalogIdsAreUniqueAndNoFocusedEditorsRemain();
+        catalogIdsAreUniqueAndOnlyTwoEditorDestinationsRemain();
         done();
     }
 
@@ -30,38 +29,29 @@ public final class InlineSettingsCatalogTests {
                 Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
         check("catalog tabs use the same eight-tab order", ReferenceSettingsCatalog.TABS.length == expected.length
                 && ReferenceSettingsCatalog.TABS[0] == ReferenceSettingsCatalog.Tab.HOME
-                && ReferenceSettingsCatalog.TABS[1] == ReferenceSettingsCatalog.Tab.GAMEPLAY
-                && ReferenceSettingsCatalog.TABS[2] == ReferenceSettingsCatalog.Tab.DUNGEON
-                && ReferenceSettingsCatalog.TABS[3] == ReferenceSettingsCatalog.Tab.FARMING
-                && ReferenceSettingsCatalog.TABS[4] == ReferenceSettingsCatalog.Tab.MINING
-                && ReferenceSettingsCatalog.TABS[5] == ReferenceSettingsCatalog.Tab.FISHING
-                && ReferenceSettingsCatalog.TABS[6] == ReferenceSettingsCatalog.Tab.VISUALS
                 && ReferenceSettingsCatalog.TABS[7] == ReferenceSettingsCatalog.Tab.SYSTEM);
         check("Farming remains an explicit empty channel", ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.FARMING).isEmpty()
                 && ReferenceSettingsCatalog.search("sprout").size() == 1);
     }
 
-    private static void everyFeatureUsesAnInlineOwner() {
+    private static void everyFeatureUsesAFlatInlineOwner() {
         for (ReferenceSettingsCatalog.Tab tab : ReferenceSettingsCatalog.TABS) {
             for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(tab)) {
                 for (ReferenceSettingsCatalog.Setting setting : card.settings) {
-                    check("top-level row is toggle or dropdown: " + setting.id,
+                    check("top-level row is a supported player row: " + setting.id,
                             setting.control == ReferenceSettingsCatalog.Control.TOGGLE
-                                    || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN);
-                    assertInlineChildren(setting);
+                                    || setting.control == ReferenceSettingsCatalog.Control.SLIDER
+                                    || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN
+                                    || setting.control == ReferenceSettingsCatalog.Control.EDITOR);
+                    for (ReferenceSettingsCatalog.Setting child : setting.children) {
+                        check("expanded option is never a nested disclosure: " + child.id, !child.isDropdown());
+                    }
                 }
             }
         }
-        check("only allowed dedicated editor actions remain", dedicatedEditorActionIds().equals(Arrays.asList(
+        check("only HUD and Item Animation editor buttons remain", dedicatedEditorActionIds().equals(Arrays.asList(
                 "open-hud-editor", "item-animation-open-editor")));
-        check("retained maintenance actions never reopen a focused feature screen", noRetiredOpenActionLabels());
-    }
-
-    private static void assertInlineChildren(ReferenceSettingsCatalog.Setting setting) {
-        if (setting.hasChildren()) {
-            check("owner has a disclosure row: " + setting.id, setting.isDropdown());
-            for (ReferenceSettingsCatalog.Setting child : setting.children) assertInlineChildren(child);
-        }
+        check("maintenance actions never reopen a feature screen", noRetiredOpenActionLabels());
     }
 
     private static void requiredOwnersAndMovesArePresent() {
@@ -74,39 +64,39 @@ public final class InlineSettingsCatalogTests {
                 "fishing-tracker", "hud-editor", "item-animation", "system-appearance", "system-performance"
         };
         for (String id : preserved) check("preserved option owner: " + id, ReferenceSettingsCatalog.find(id) != null);
-        check("genuine Mining options moved without a new owner", ownerOf("mining-bps") == ReferenceSettingsCatalog.Tab.MINING
-                && ownerOf("mining-assistant-settings") == ReferenceSettingsCatalog.Tab.MINING);
-        check("genuine Fishing options moved without a new owner", ownerOf("fishing-tracker") == ReferenceSettingsCatalog.Tab.FISHING
-                && ownerOf("catch-counter") == ReferenceSettingsCatalog.Tab.FISHING
-                && ownerOf("sea-hp-hud-route") == ReferenceSettingsCatalog.Tab.FISHING);
+        check("genuine Mining options moved without a new owner", ReferenceSettingsCatalog.ownerOf("mining-bps") == ReferenceSettingsCatalog.Tab.MINING
+                && ReferenceSettingsCatalog.ownerOf("mining-assistant-settings") == ReferenceSettingsCatalog.Tab.MINING);
+        check("genuine Fishing options moved without a new owner", ReferenceSettingsCatalog.ownerOf("fishing-tracker") == ReferenceSettingsCatalog.Tab.FISHING
+                && ReferenceSettingsCatalog.ownerOf("catch-counter") == ReferenceSettingsCatalog.Tab.FISHING
+                && ReferenceSettingsCatalog.ownerOf("sea-hp-hud-route") == ReferenceSettingsCatalog.Tab.FISHING);
         check("Slayer stays in Gameplay and HUD/item animation remain in Visuals",
-                ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.GAMEPLAY
-                        && ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
-                        && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
-        check("Terminal Helper is a no-master status dropdown", ReferenceSettingsCatalog.find("terminal-assist") != null
+                ReferenceSettingsCatalog.ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.GAMEPLAY
+                        && ReferenceSettingsCatalog.ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
+                        && ReferenceSettingsCatalog.ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
+        check("Terminal Helper is a no-master dropdown", ReferenceSettingsCatalog.find("terminal-assist") != null
                 && ReferenceSettingsCatalog.find("terminal-assist").control == ReferenceSettingsCatalog.Control.DROPDOWN);
-        check("Mob and Door ESP remain compact nested tables", ReferenceSettingsCatalog.find("esp-starred-color") != null
+        check("Mob and Door ESP keep every flat style control", ReferenceSettingsCatalog.find("esp-starred-color") != null
                 && ReferenceSettingsCatalog.find("door-style-color") != null
-                && ReferenceSettingsCatalog.find("esp-starred").isDropdown()
-                && ReferenceSettingsCatalog.find("door-wither-style").isDropdown());
+                && !ReferenceSettingsCatalog.find("esp-starred").isDropdown()
+                && !ReferenceSettingsCatalog.find("door-wither-style").isDropdown());
     }
 
-    private static void searchCarriesAndOpensItsParentPath() {
+    private static void searchOpensOneOwningDropdown() {
         ReferenceSettingsCatalog.Match chat = matchFor("chat-tab-filter-text");
         check("search finds hidden Chat custom-tab field", chat != null);
-        check("search carries Chat QoL and Tabs disclosure parents", chat != null && parentIds(chat).equals(
-                Arrays.asList("chat-qol", "chat-tabs-group")));
+        check("search carries only the Chat QoL owner", chat != null && parentIds(chat).equals(
+                Arrays.asList("chat-qol")));
         ReferenceSettingsCatalog.Match m7 = matchFor("m7-dragon-flame");
-        check("search carries nested M7 disclosure parents", m7 != null && parentIds(m7).equals(
-                Arrays.asList("m7-overlay", "m7-dragons")));
+        check("search carries only the M7 owner", m7 != null && parentIds(m7).equals(
+                Arrays.asList("m7-overlay")));
         Properties p = new Properties();
         FeatureUiPreferences.load(p);
         openParents(chat);
-        check("search expansion stores every Chat parent", FeatureUiPreferences.dropdownOpen("chat-qol")
-                && FeatureUiPreferences.dropdownOpen("chat-tabs-group"));
+        check("search expansion stores its one owning dropdown", FeatureUiPreferences.dropdownOpen("chat-qol")
+                && !FeatureUiPreferences.dropdownOpen("chat-tabs-group"));
         FeatureUiPreferences.save(p);
         check("search expansion serializes presentation keys only", "true".equals(p.getProperty("ui.feature.dropdown.chat-qol"))
-                && "true".equals(p.getProperty("ui.feature.dropdown.chat-tabs-group")));
+                && p.getProperty("ui.feature.dropdown.chat-tabs-group") == null);
     }
 
     private static void dropdownStateIsCollapsedByDefaultAndPersistsSeparately() {
@@ -119,16 +109,15 @@ public final class InlineSettingsCatalogTests {
         state.load(original);
         check("saved disclosure reopens the same row", state.dropdownOpen("item-lock-swap"));
         check("retired tree state does not reopen a row", !state.dropdownOpen("retired"));
-        state.setDropdownOpen("item-lock-swap", false);
-        state.setDropdownOpen("chat-qol", true);
+        state.openAccordion("chat-qol", ReferenceSettingsCatalog.dropdownIds(ReferenceSettingsCatalog.Tab.GAMEPLAY));
         state.save(original);
         check("existing gameplay key survives UI-state save", "false".equals(original.getProperty("dungeonMap")));
-        check("state save writes only additive ui.feature.dropdown keys",
+        check("accordion save closes peers and writes additive presentation keys",
                 "false".equals(original.getProperty("ui.feature.dropdown.item-lock-swap"))
                         && "true".equals(original.getProperty("ui.feature.dropdown.chat-qol")));
     }
 
-    private static void catalogIdsAreUniqueAndNoFocusedEditorsRemain() {
+    private static void catalogIdsAreUniqueAndOnlyTwoEditorDestinationsRemain() {
         List<String> ids = ReferenceSettingsCatalog.allIds();
         check("catalog option ids are unique", ids.size() == new HashSet<String>(ids).size());
         String[] retired = {
@@ -145,8 +134,7 @@ public final class InlineSettingsCatalogTests {
         List<String> values = new ArrayList<String>();
         for (String id : ReferenceSettingsCatalog.allIds()) {
             ReferenceSettingsCatalog.Setting setting = ReferenceSettingsCatalog.find(id);
-            if (setting != null && setting.control == ReferenceSettingsCatalog.Control.ACTION
-                    && setting.actionLabel.endsWith("Editor")) values.add(id);
+            if (setting != null && setting.isEditor() && !values.contains(setting.editorActionId)) values.add(setting.editorActionId);
         }
         return values;
     }
@@ -155,7 +143,6 @@ public final class InlineSettingsCatalogTests {
         for (String id : ReferenceSettingsCatalog.allIds()) {
             ReferenceSettingsCatalog.Setting setting = ReferenceSettingsCatalog.find(id);
             if (setting == null || setting.control != ReferenceSettingsCatalog.Control.ACTION) continue;
-            if ("open-hud-editor".equals(id) || "item-animation-open-editor".equals(id)) continue;
             String label = setting.actionLabel.toLowerCase(java.util.Locale.ROOT);
             if (label.startsWith("open") || label.contains("settings") || label.contains("details") || label.contains("controls")) {
                 return false;
@@ -166,8 +153,11 @@ public final class InlineSettingsCatalogTests {
 
     private static void openParents(ReferenceSettingsCatalog.Match match) {
         if (match == null) return;
-        for (ReferenceSettingsCatalog.Setting parent : match.parents) FeatureUiPreferences.setDropdownOpen(parent.id, true);
-        if (match.setting.isDropdown()) FeatureUiPreferences.setDropdownOpen(match.setting.id, true);
+        for (ReferenceSettingsCatalog.Setting parent : match.parents) {
+            FeatureUiPreferences.openAccordion(parent.id, ReferenceSettingsCatalog.dropdownIds(match.tab));
+        }
+        if (match.setting.isDropdown()) FeatureUiPreferences.openAccordion(match.setting.id,
+                ReferenceSettingsCatalog.dropdownIds(match.tab));
     }
 
     private static ReferenceSettingsCatalog.Match matchFor(String id) {
@@ -181,22 +171,6 @@ public final class InlineSettingsCatalogTests {
         List<String> values = new ArrayList<String>();
         if (match != null) for (ReferenceSettingsCatalog.Setting parent : match.parents) values.add(parent.id);
         return values;
-    }
-
-    private static ReferenceSettingsCatalog.Tab ownerOf(String id) {
-        for (ReferenceSettingsCatalog.Tab tab : ReferenceSettingsCatalog.TABS) {
-            for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(tab)) {
-                if (contains(card.settings, id)) return tab;
-            }
-        }
-        return null;
-    }
-
-    private static boolean contains(List<ReferenceSettingsCatalog.Setting> values, String id) {
-        for (ReferenceSettingsCatalog.Setting value : values) {
-            if (id.equals(value.id) || contains(value.children, id)) return true;
-        }
-        return false;
     }
 
     private static boolean classExists(String binaryName) {

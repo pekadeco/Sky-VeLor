@@ -27,6 +27,8 @@ public final class Theme {
     public static final int ACCENT_BLUE = 0xFF2F7DFF;
     public static final int ACCENT_BLUE_HOVER = 0xFF5A9CFF;
     public static final int STATUS_WARNING = 0xFFFFB347;
+    /** Semantic success is reserved for compact health/availability indicators, not a second interaction accent. */
+    public static final int STATUS_SUCCESS = 0xFF4CCB78;
     public static final int STATUS_CRITICAL = 0xFFFF5B57;
     public static final int STATUS_UNAVAILABLE = 0xFF9AA6B5;
 

@@ -47,6 +47,17 @@ public final class FeatureUiState {
         dropdowns.put(key, open);
     }
 
+    /** Opens one page disclosure and closes its peers without touching a feature configuration value. */
+    public void openAccordion(String featureId, Iterable<String> peers) {
+        if (peers != null) {
+            for (String peer : peers) {
+                String key = cleanId(peer);
+                if (key.length() > 0 && !key.equals(cleanId(featureId))) setDropdownOpen(key, false);
+            }
+        }
+        setDropdownOpen(featureId, true);
+    }
+
     /** Loads valid editor selections and ignores retired ui.feature.tree.* values without touching feature keys. */
     public void load(Properties source) {
         selections.clear();

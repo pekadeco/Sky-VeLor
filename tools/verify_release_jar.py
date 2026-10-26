@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.7v] [--mcmod-version 0.10.8.9.7]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.8.9.8v] [--mcmod-version 0.10.8.9.8]
 """
 
 import argparse
@@ -101,7 +101,8 @@ REQUIRED_CLASSES = [
     'gui/HudEditorScreen',
     'gui/HudEditorLayout',
     'gui/HudEditorSelectionPolicy',
-    'gui/ItemAnimationUiModel',
+    'gui/ItemAnimationEditorScreen',
+    'gui/ItemAnimationPanelModel',
     'dungeon/TerminalSolver',
     'dungeon/DungeonMapOverlay',
     'dungeon/PuzzleRoomDatabase',
@@ -210,8 +211,8 @@ FORBIDDEN_CLASSES = [
     # FPS, memory and ping must remain Home-only settings telemetry, never a registered HUD.
     'hud/StatsHud',
     'hud/StatsHudText',
-    # Stage 2 folds every feature-specific screen into AppleSettingsScreen. HUD and Item Animation stay in
-    # HudEditorScreen, so no generic, Chat, ESP, or Mod Settings editor class may ship.
+    # Settings features stay inline. HUD keeps its editor while Item Animation has one purpose-built standalone
+    # panel; no generic, Chat, ESP, or Mod Settings editor class may ship.
     'gui/FeatureSettingsEditorScreen',
     'gui/FeatureSettingsEditors',
     'gui/FeatureSettingsUiModel',
@@ -346,8 +347,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.7v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.7')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.8.9.8v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.8.9.8')
     args = ap.parse_args()
 
     path = args.jar
@@ -487,7 +488,8 @@ def main():
     # The catalog owns presentation only. It must expose every established owner through persisted collapsed
     # dropdowns, while the old focused-screen framework and all preview surfaces are genuinely absent.
     settings_screen_raw = raw_of('gui/AppleSettingsScreen')
-    reference_catalog_raw = raw_of('gui/ReferenceSettingsCatalog') + raw_of('gui/ReferenceSettingsCatalog$Tab')
+    reference_catalog_raw = (raw_of('gui/ReferenceSettingsCatalog') + raw_of('gui/ReferenceSettingsCatalog$Tab')
+                             + raw_of('gui/ReferenceSettingsCatalog$Control'))
     bindings_raw = raw_of('gui/InlineSettingsBindings')
     feature_state_raw = raw_of('gui/FeatureUiState')
     preferences_raw = raw_of('config/FeatureUiPreferences')
@@ -502,6 +504,9 @@ def main():
     hud_manager_raw = raw_of('hud/HudManager')
     hud_element_raw = raw_of('hud/HudElement')
     item_slots_raw = raw_of('hud/ItemSlots')
+    item_animation_editor_raw = raw_of('gui/ItemAnimationEditorScreen')
+    item_animation_panel_raw = raw_of('gui/ItemAnimationPanelModel')
+    hook_status_raw = raw_of('render/itemanimation/ItemAnimationHookStatus')
 
     retired_inline_classes = (
         'gui/FeatureSettingsEditorScreen', 'gui/FeatureSettingsEditors', 'gui/FeatureSettingsUiModel',
@@ -517,41 +522,46 @@ def main():
                 (b'ItemLockSwapSettings', b'ChatQolSettings', b'DungeonEspSettings', b'M7Settings',
                  b'FishingStats', b'StyleClipboard')) and b'setProperty' not in bindings_raw,
             'InlineSettingsBindings writes existing feature owners and keeps the ESP clipboard session-only')
-    r.check(all(value in feature_state_raw for value in (b'dropdowns', b'ui.feature.dropdown.', b'MAX_ENTRIES'))
-                and b'dropdownOpen' in preferences_raw and b'setDropdownOpen' in preferences_raw,
-            'collapsed inline dropdown state defaults separately from feature configuration and persists under ui.feature.dropdown')
+    r.check(all(value in feature_state_raw for value in (b'dropdowns', b'ui.feature.dropdown.', b'MAX_ENTRIES', b'openAccordion'))
+                and all(value in preferences_raw for value in (b'dropdownOpen', b'setDropdownOpen', b'openAccordion')),
+            'collapsed inline dropdown state persists separately and provides one-open accordion behavior')
     r.check(all(value in settings_screen_raw for value in
                 (b'HIT_DISCLOSURE', b'FeatureUiPreferences', b'childBlockHeight', b'reserveValueDropdown',
-                 b'expandSearchResult', b'drawFullscreenGlyph', b'open-hud-editor', b'item-animation-open-editor'))
+                 b'expandSearchResult', b'drawFullscreenGlyph', b'open-hud-editor', b'item-animation-open-editor',
+                 b'drawGroupCaption', b'drawResetFooter', b'EXPANDED_BOTTOM_PADDING', b'GuiMotion'))
                 and b'AppleToggle' in settings_screen_raw and b'AppleDropdown' in settings_screen_raw
                 and b'AppleSegmented' not in settings_screen_raw,
-            'AppleSettingsScreen uses persisted recursive inline dropdowns, parent-expanding search, standard toggle pills and flow-reserved value dropdowns')
+            'AppleSettingsScreen uses one-level persisted dropdowns, search-driven accordion opening, fixed controls and reset-link footers')
+    r.check(all(value in reference_catalog_raw for value in
+                (b'CAPTION', b'EDITOR', b'maxDropdownDepth', b'everyDropdownHasAtLeastTwoOptions', b'dropdownIds',
+                 b'playerTextViolations')),
+            'catalog packages flat captions, editor rows, depth/count guards and player-copy validation')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Home', b'Gameplay', b'Dungeon', b'Farming', b'Mining', b'Fishing', b'Visuals', b'System',
-                 b'No farming features yet', b'Mining Assistant', b'Fishing Tracker', b'Slayer Tracker')),
+                 b'No Farming Features Yet', b'Mining Assistant', b'Fishing Tracker', b'Slayer Tracker')),
             'catalog packages the requested eight-tab sidebar, empty Farming message, and genuine Mining/Fishing moves')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Dungeon Map', b'Terminal Helper', b'Spirit Leap Picker', b'Boss Health HUD', b'Floor VII Overlay',
                  b'Mob ESP', b'Door ESP', b'Maxor', b'Storm', b'Goldor', b'Necron', b'Power', b'Apex', b'Soul',
-                 b'Ice', b'Flame', b'Item Lock and Swap')),
-            'inline Dungeon groups retain map, no-master Terminal Helper, Spirit Leap, boss HUD, M7 and compact Mob/Door controls')
+                 b'Ice', b'Flame', b'Item Lock And Swap')),
+            'flat Dungeon owners retain map, no-master Terminal Helper, Spirit Leap, boss HUD, M7 and Mob/Door controls')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Background', b'Messages', b'Tabs', b'Menu and Highlight', b'Reset', b'Add custom tab',
-                 b'Custom accent colour', b'Filter type', b'Message sound', b'Open chat background'))
+                (b'Background', b'Messages', b'Tabs', b'Click Menu', b'Reset to defaults', b'Add Custom Tab',
+                 b'Accent Color', b'Filter Type', b'Message Sound', b'Open Chat Background'))
                 and b'ChatEditorScreen' not in settings_screen_raw and b'openChatSettings' in command_actions_raw,
-            'Chat settings and custom-tab editing live inline in the five requested groups; commands route to that owner')
-    r.check(all(value in reference_catalog_raw for value in
-                (b'HUD Editor', b'Item Animation Editor', b'Preview Swing'))
-                and b'HudEditorScreen' in settings_screen_raw,
-            'only HUD Editor and the real Item Animation hand editor remain reachable')
+            'Chat settings and custom-tab editing live in one flat owning dropdown; commands route to that owner')
+    r.check(all(value in reference_catalog_raw for value in (b'HUD Editor', b'Item Animation'))
+                and b'HudEditorScreen' in settings_screen_raw and b'ItemAnimationEditorScreen' in settings_screen_raw
+                and b'item-animation-open-editor' in settings_screen_raw,
+            'HUD Editor and the standalone Item Animation editor remain reachable')
     r.check(b'CHAT_PREVIEW_' not in theme_raw and b'ChatEditorPreview' not in settings_screen_raw
                 and b'DungeonEspPreviewRenderer' not in settings_screen_raw,
             'no retired live-preview color surface or focused-editor preview route remains')
     r.check(all(value in settings_screen_raw for value in
-                (b'SettingsRailLayout', b'SettingsPageLayout', b'Settings rail', b'Settings card', b'Settings row'))
+                (b'SettingsRailLayout', b'SettingsPageLayout', b'Settings rail', b'Settings section', b'Settings row'))
                 and all(value in rail_layout_raw for value in (b'ENTRY_HEIGHT', b'ENTRY_GAP', b'COMPACT_COLUMNS'))
                 and b'NARROW_CONTENT_WIDTH' in page_layout_raw,
-            'settings shell retains shared scale-1–4 spacing, compact rail reflow and debug bounds')
+            'settings shell retains shared scale-1–4 spacing, compact rail reflow and plain-section debug bounds')
     r.check(all(value not in settings_screen_raw for value in (b'MOUSE', b'MOUSE/GUI', b'GUI AREA')),
             'settings shell packages no launcher-owned MOUSE/GUI indicator labels')
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth'))
@@ -593,10 +603,10 @@ def main():
                  'Cyan', 'Gold', 'Purple')),
             'DungeonEspSettings packages the persisted modes, door scope and color palette')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Force Render All Mobs in Room', b'Wither Door Style', b'Blood Door Color', b'Apply Copied Style',
-                 b'Apply This Style to All', b'Mob Category Labels', b'Maximum Mob Labels'))
+                (b'Force All Room Mobs', b'Wither Door Style', b'Blood Door Color', b'Apply Copied Style',
+                 b'Apply Style To All', b'Mob Labels', b'Maximum Labels'))
                 and b'drawStyledBox' in esp_batch_raw,
-            'inline ESP tables retain every cached Mob/Door control without a hitbox or door preview surface')
+            'flat ESP tables retain every cached Mob/Door control without a hitbox or door preview surface')
     r.check(all(value in esp_batch_raw for value in
                 (b'DungeonEspMobDisplay', b'layoutMobLabels', b'drawLabelBackdrop', b'restoreWorldRenderState'))
                 and all(value in esp_display_raw for value in (b'MINIBOSS', b'SPECIAL', b'ENDERMAN', b'HARD_LABEL_CAP')),
@@ -608,15 +618,24 @@ def main():
                 and b'espdump' in esp_command_raw and b'MAX_CANDIDATES' in esp_tracker_raw,
             'Dungeon ESP runtime retains its timer cache, filtering, head support and diagnostics')
 
-    item_ui_constants = constants_of('gui/ItemAnimationUiModel')
+    item_panel_constants = constants_of('gui/ItemAnimationPanelModel')
     hud_editor_raw = raw_of('gui/HudEditorScreen')
-    r.check(all(value in item_ui_constants for value in
-                ('Item Animation', 'item-animation-open-editor', 'Scale', 'Position', 'Preview Swing',
-                 'Loop Preview Swing', 'Reset to Defaults'))
-                and b'previewSwing' in hud_editor_raw and b'ItemAnimation' in hud_editor_raw,
-            'Item Animation retains the real hand renderer controls and renderer-only Preview Swing')
-    r.check(b'LIVE HELD-ITEM PREVIEW' not in hud_editor_raw and b'drawItemAnimationEditorPreview' not in hud_editor_raw,
-            'HUD Editor contains no Item Animation sample-panel surface')
+    r.check(all(value in item_panel_constants for value in
+                ('item-animation-panel', 'Hook', 'Enable', 'Scale', 'Position', 'Animation', 'Options',
+                 'Custom Hit/Slash Style', 'Custom Hit/Slash Speed', 'Smooth Swing', 'Smoothness',
+                 'Remove Haste Effect', 'Loop Preview Swing', 'Preview Swing', 'Reset to Defaults'))
+                and b'previewSwing' in item_animation_editor_raw and b'ItemAnimation' in item_animation_editor_raw,
+            'standalone Item Animation panel retains only the requested real hand-renderer controls and Preview Swing')
+    r.check(all(value not in item_panel_constants for value in ('Transparency', 'Opacity', 'Background'))
+                and b'drawDefaultBackground' not in item_animation_editor_raw
+                and b'HudManager' not in item_animation_editor_raw
+                and b'Hook: active' in hook_status_raw and b'Hook: failed (' in hook_status_raw
+                and b'STATUS_SUCCESS' in item_animation_editor_raw,
+            'Item Animation is an undimmed standalone panel with no HUD/world surface or retired background controls')
+    r.check(b'LIVE HELD-ITEM PREVIEW' not in hud_editor_raw and b'drawItemAnimationEditorPreview' not in hud_editor_raw
+                and b'ItemAnimationUiModel' not in hud_editor_raw and b'ITEM_ANIMATION' not in hud_editor_raw
+                and b'ItemAnimationHookStatus' not in hud_editor_raw,
+            'HUD Editor contains no Item Animation target, sample-panel surface, or renderer controls')
 
     chat_settings_raw = raw_of('config/ChatQolSettings')
     tabs_raw = raw_of('feature/ChatChannelTabs')

@@ -8,7 +8,27 @@ package com.arena.pekaclient.gui;
  * drift controls into text or leave sibling controls misaligned.</p>
  */
 public final class SettingsControlLayout {
+    /** Reserved by every settings row so toggles and disclosure arrows never drift between row types. */
+    public static final float CHEVRON_COLUMN_WIDTH = 18f;
+    public static final float TOGGLE_COLUMN_WIDTH = 38f;
+    public static final float COLUMN_GAP = 5f;
+
     private SettingsControlLayout() {
+    }
+
+    /** Fixed chevron centre; the disclosure column comes immediately before the rightmost toggle column. */
+    public static float chevronCenterX(float rowX, float rowWidth, float trailingPadding) {
+        return toggleX(rowX, rowWidth, trailingPadding) - COLUMN_GAP - CHEVRON_COLUMN_WIDTH * .5f;
+    }
+
+    /** Fixed small-toggle left edge at the rightmost trailing column. */
+    public static float toggleX(float rowX, float rowWidth, float trailingPadding) {
+        return rowX + Math.max(0f, rowWidth) - Math.max(0f, trailingPadding) - TOGGLE_COLUMN_WIDTH;
+    }
+
+    /** Last usable x coordinate before the shared chevron/toggle columns. */
+    public static float contentRight(float rowX, float rowWidth, float trailingPadding, float gap) {
+        return chevronCenterX(rowX, rowWidth, trailingPadding) - CHEVRON_COLUMN_WIDTH * .5f - Math.max(0f, gap);
     }
 
     /** Right edge for a control inside a row with the declared trailing padding. */

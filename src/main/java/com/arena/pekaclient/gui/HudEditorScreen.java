@@ -1,19 +1,16 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
-import com.arena.pekaclient.feature.ItemAnimation;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.hud.HudPlacement;
 import com.arena.pekaclient.render.Anim;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
-import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleSlider;
 import com.arena.pekaclient.widget.AppleToggle;
-import com.arena.pekaclient.widget.SearchField;
 import com.arena.pekaclient.widget.Widget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -28,8 +25,8 @@ import java.util.List;
 
 /**
  * HUD editor. Click an on-screen HUD element to select it, then drag it to move it; disabled elements remain
- * dimmed, selectable placeholders. The Dungeon Map has its own unclamped placement controls, and Item Animation
- * is a clearly labelled visual renderer configuration target. Every change is saved when the editor closes.
+ * dimmed, selectable placeholders. The Dungeon Map has its own unclamped placement controls; Item Animation
+ * is opened in its separate renderer-only panel. Every change is saved when the editor closes.
  *
  * Works with mouse and touch (PojavLauncher): a tap is a click, a drag moves an element or scrolls
  * the card, and a swipe never activates a control.
@@ -54,7 +51,7 @@ public final class HudEditorScreen extends AppleScreen {
 
         Entry(String label, Widget control) {
             this(label, control, label == null, control instanceof AppleSlider || control instanceof AppleDropdown
-                    || control instanceof SearchField || control instanceof HorizontalDragWidget);
+                    || control instanceof HorizontalDragWidget);
         }
 
         Entry(String label, Widget control, boolean fullWidth, boolean stretchControl) {
@@ -65,203 +62,10 @@ public final class HudEditorScreen extends AppleScreen {
         }
     }
 
-    /** A non-clickable launcher status strip. Inactive is intentionally red inside the renderer panel. */
-    private static final class ItemAnimationHookWidget extends Widget {
-        ItemAnimationHookWidget(float width) {
-            super(width, 22f);
-        }
-
-        @Override
-        public void draw(int mouseX, int mouseY) {
-            boolean active = ItemAnimationHookStatus.isActive();
-            int accent = active ? Theme.ACCENT_BLUE : Theme.STATUS_CRITICAL;
-            int fill = active ? UIRender.withAlpha(Theme.ACCENT_BLUE, .16f) : UIRender.withAlpha(Theme.STATUS_CRITICAL, .22f);
-            UIRender.roundRectBorder(x, y, w, h, 5f, fill, fill, accent);
-            String status = fit(font(), ItemAnimationHookStatus.getDisplay(), Math.max(0f, w - 14f));
-            UIRender.text(font(), status, x + 7f, y + 7f,
-                    active ? Theme.TEXT_PRIMARY : Theme.STATUS_CRITICAL, 0.72f, false);
-        }
-
-        @Override
-        public void onPress(int mouseX, int mouseY) {
-            // Status is informational. It must not look like a toggle or hide an injection failure.
-        }
-    }
-
-    /** Informational rather than interactive: translucent ghost re-renders are intentionally not attempted. */
-    private static final class ItemAnimationNoteWidget extends Widget {
-        private final String note;
-
-        ItemAnimationNoteWidget(float width, String note) {
-            super(width, 22f);
-            this.note = note == null ? "" : note;
-        }
-
-        @Override
-        public void draw(int mouseX, int mouseY) {
-            int fill = UIRender.withAlpha(Theme.buttonFill, .78f);
-            int border = UIRender.mix(Theme.border, Theme.textTertiary, .24f);
-            UIRender.roundRectBorder(x, y, w, h, 5f, fill, fill, border);
-            UIRender.text(font(), fit(font(), note, Math.max(0f, w - 14f)), x + 7f, y + 7f,
-                    Theme.textSecondary, 0.68f, false);
-        }
-
-        @Override
-        public void onPress(int mouseX, int mouseY) {
-            // Informational only; this deliberately cannot be mistaken for a blur toggle or intensity slider.
-        }
-    }
-
-    /** One compact slider plus exact-number box. It is still one fixed inspector row, not two overlapping rows. */
-    private final class ExactSliderWidget extends Widget implements HorizontalDragWidget {
-        private final ItemAnimationValue value;
-        private final AppleSlider slider;
-        private final SearchField field;
-        private int lastDisplayed = Integer.MIN_VALUE;
-
-        ExactSliderWidget(ItemAnimationValue value, AppleSlider slider, SearchField field) {
-            super(136f, CONTROL_H);
-            this.value = value;
-            this.slider = slider;
-            this.field = field;
-        }
-
-        private void arrange() {
-            // Keep the compact components disjoint even at the narrowest supported GUI scale.
-            float fieldW = Math.min(62f, Math.max(24f, w * 0.40f));
-            field.w = fieldW;
-            field.h = 20f;
-            field.x = x + w - fieldW;
-            field.y = y + (h - field.h) * 0.5f;
-            slider.w = Math.max(0f, field.x - x - 3f);
-            slider.x = x;
-            slider.y = y + (h - slider.h) * 0.5f;
-        }
-
-        private void syncNumberBox() {
-            int raw = configuredItemAnimationValue(value);
-            if (!field.isFocused() && (raw != lastDisplayed || field.isEmpty())) {
-                field.setText(formatExactValue(value, raw));
-                lastDisplayed = raw;
-            }
-        }
-
-        @Override
-        protected void updateWidget(float dt) {
-            arrange();
-            slider.update(dt);
-            field.update(dt);
-        }
-
-        @Override
-        public void draw(int mouseX, int mouseY) {
-            arrange();
-            syncNumberBox();
-            slider.draw(mouseX, mouseY);
-            field.draw(mouseX, mouseY);
-        }
-
-        @Override
-        public void onPress(int mouseX, int mouseY) {
-            super.onPress(mouseX, mouseY);
-            arrange();
-            if (pressed && slider.contains(mouseX, mouseY)) {
-                slider.onPress(mouseX, mouseY);
-            }
-        }
-
-        @Override
-        public void onDrag(int mouseX, int mouseY) {
-            slider.onDrag(mouseX, mouseY);
-        }
-
-        @Override
-        public void onRelease(int mouseX, int mouseY, boolean activate) {
-            slider.onRelease(mouseX, mouseY, activate && slider.contains(mouseX, mouseY));
-            super.onRelease(mouseX, mouseY, activate);
-        }
-    }
-
-    /** Compact accordion row used for Position, Animation, and Options. Position also exposes its small reset. */
-    private final class GroupWidget extends Widget {
-        private final String title;
-        private final String summary;
-        private final boolean expanded;
-        private final Runnable toggle;
-        private final Runnable reset;
-        private boolean resetPressed;
-
-        GroupWidget(String title, String summary, boolean expanded, Runnable toggle, Runnable reset) {
-            super(160f, CONTROL_H);
-            this.title = title;
-            this.summary = summary == null ? "" : summary;
-            this.expanded = expanded;
-            this.toggle = toggle;
-            this.reset = reset;
-        }
-
-        private float resetX() {
-            return x + w - 49f;
-        }
-
-        @Override
-        public void draw(int mouseX, int mouseY) {
-            beginAnimatedDraw(0.012f, 0.018f, 0.008f);
-            int fill = UIRender.mix(Theme.buttonFill, Theme.buttonHover, hoverAmount * 0.45f);
-            float radius = Math.min(Theme.radius * 0.6f, h * 0.5f);
-            UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.4f);
-            drawBorder(radius, Theme.border);
-            String prefix = expanded ? "▾ " : "▸ ";
-            float reserve = reset == null ? 8f : 56f;
-            String line = prefix + title + (summary.length() == 0 ? "" : "  " + summary);
-            UIRender.text(font(), fit(font(), line, Math.max(0f, w - reserve)), x + 8f,
-                    y + (h - 9f) * 0.5f + 1f, Theme.textPrimary, 0.9f, false);
-            if (reset != null) {
-                float bx = resetX();
-                boolean hot = mouseX >= bx && mouseX < bx + 41f && mouseY >= y + 4f && mouseY < y + h - 4f;
-                UIRender.roundRect(bx, y + 4f, 41f, h - 8f, 7f, Theme.track, Theme.track, 0.3f);
-                UIRender.text(font(), "Reset", bx + 6f, y + (h - 8f - 8f) * 0.5f + 5f,
-                        hot ? Theme.accent : Theme.textSecondary, 0.75f, false);
-            }
-            endAnimatedDraw();
-        }
-
-        @Override
-        public void onPress(int mouseX, int mouseY) {
-            super.onPress(mouseX, mouseY);
-            resetPressed = reset != null && mouseX >= resetX() && mouseX < resetX() + 41f;
-        }
-
-        @Override
-        public void onRelease(int mouseX, int mouseY, boolean activate) {
-            boolean fire = pressed && activate && contains(mouseX, mouseY);
-            super.onRelease(mouseX, mouseY, activate);
-            if (!fire) return;
-            if (resetPressed && reset != null) {
-                reset.run();
-            } else if (toggle != null) {
-                toggle.run();
-            }
-        }
-    }
-
     private final GuiScreen parent;
     private final Anim openAnim = new Anim(0f);
     private final List<Entry> entries = new ArrayList<Entry>();
     private final List<Widget> bar = new ArrayList<Widget>();
-    // Exact-value fields deliberately live in the same inspector card as their sliders. Clicking one starts a
-    // fresh numeric entry, so touch users do not need cursor-selection support to replace a value exactly.
-    private final SearchField itemAnimationXField = new SearchField("Type -150 to 150");
-    private final SearchField itemAnimationYField = new SearchField("Type -150 to 150");
-    private final SearchField itemAnimationZField = new SearchField("Type -150 to 150");
-    private final SearchField itemAnimationSizeField = new SearchField("Type 30 to 200");
-    private final SearchField itemAnimationSpeedField = new SearchField("Type 25 to 400");
-    private final ItemAnimationUiModel.PanelState itemAnimationPanel = new ItemAnimationUiModel.PanelState();
-    private final ExactSliderWidget itemAnimationXControl;
-    private final ExactSliderWidget itemAnimationYControl;
-    private final ExactSliderWidget itemAnimationZControl;
-    private final ExactSliderWidget itemAnimationSizeControl;
-    private final ExactSliderWidget itemAnimationSpeedControl;
     private final AppleButton resetAllBtn;
     private final AppleButton doneBtn;
     private final ScrollState scroll = new ScrollState();
@@ -270,8 +74,7 @@ public final class HudEditorScreen extends AppleScreen {
     /** Shared clamp authority for the editor shell; every nested inspector is then measured from this safe rect. */
     private final GuiLayoutToolkit.Rect editorPanel = new GuiLayoutToolkit.Rect();
 
-    private enum EditorTarget { HUD_ELEMENT, DUNGEON_MAP, ITEM_ANIMATION }
-    private enum ItemAnimationValue { X, Y, Z, SIZE, SPEED }
+    private enum EditorTarget { HUD_ELEMENT, DUNGEON_MAP }
 
     private HudElement selected = HudManager.MINING;
     private EditorTarget target = EditorTarget.HUD_ELEMENT;
@@ -322,70 +125,14 @@ public final class HudEditorScreen extends AppleScreen {
         this.parent = parent;
         this.resetAllBtn = new AppleButton("Reset all", 74f, 22f, false, this::resetAll);
         this.doneBtn = new AppleButton("Done", 56f, 22f, true, this::close);
-        configureItemAnimationExactField(itemAnimationXField);
-        configureItemAnimationExactField(itemAnimationYField);
-        configureItemAnimationExactField(itemAnimationZField);
-        configureItemAnimationExactField(itemAnimationSizeField);
-        configureItemAnimationExactField(itemAnimationSpeedField);
-        itemAnimationXControl = compactSlider(ItemAnimationValue.X, itemAnimationXField,
-                new AppleSlider(ItemAnimation.MIN_OFFSET, ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W,
-                        () -> AppleSettings.itemAnimationX, value -> {
-                            AppleSettings.itemAnimationX = ItemAnimation.clampOffset(value);
-                            changed();
-                        }).fineStep(1).onDoubleClick(() -> {
-                            AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
-                            changed();
-                        }).hideValue());
-        itemAnimationYControl = compactSlider(ItemAnimationValue.Y, itemAnimationYField,
-                new AppleSlider(ItemAnimation.MIN_OFFSET, ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W,
-                        () -> AppleSettings.itemAnimationY, value -> {
-                            AppleSettings.itemAnimationY = ItemAnimation.clampOffset(value);
-                            changed();
-                        }).fineStep(1).onDoubleClick(() -> {
-                            AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
-                            changed();
-                        }).hideValue());
-        itemAnimationZControl = compactSlider(ItemAnimationValue.Z, itemAnimationZField,
-                new AppleSlider(ItemAnimation.MIN_OFFSET, ItemAnimation.MAX_OFFSET, 5, "", CONTROL_W,
-                        () -> AppleSettings.itemAnimationZ, value -> {
-                            AppleSettings.itemAnimationZ = ItemAnimation.clampOffset(value);
-                            changed();
-                        }).fineStep(1).onDoubleClick(() -> {
-                            AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
-                            changed();
-                        }).hideValue());
-        itemAnimationSizeControl = compactSlider(ItemAnimationValue.SIZE, itemAnimationSizeField,
-                new AppleSlider(ItemAnimation.MIN_SIZE_PERCENT, ItemAnimation.MAX_SIZE_PERCENT, 5, "%", CONTROL_W,
-                        AppleSettings::effectiveItemAnimationSize, value -> {
-                            AppleSettings.itemAnimationSizeOn = true;
-                            AppleSettings.itemAnimationSize = ItemAnimation.clampSize(value);
-                            changed();
-                        }).fineStep(1).onDoubleClick(() -> {
-                            AppleSettings.itemAnimationSizeOn = true;
-                            AppleSettings.itemAnimationSize = ItemAnimation.DEFAULT_SIZE_PERCENT;
-                            changed();
-                        }).hideValue());
-        itemAnimationSpeedControl = compactSlider(ItemAnimationValue.SPEED, itemAnimationSpeedField,
-                new AppleSlider(ItemAnimation.MIN_SPEED_PERCENT, ItemAnimation.MAX_SPEED_PERCENT, 5, "%", CONTROL_W,
-                        AppleSettings::effectiveItemAnimationSpeed, value -> {
-                            AppleSettings.itemAnimationSpeedOn = true;
-                            AppleSettings.itemAnimationSpeed = ItemAnimation.clampSpeed(value);
-                            changed();
-                        }).fineStep(1).onDoubleClick(() -> {
-                            AppleSettings.itemAnimationSpeedOn = true;
-                            AppleSettings.itemAnimationSpeed = ItemAnimation.DEFAULT_SPEED_PERCENT;
-                            changed();
-                        }).hideValue());
         bar.add(doneBtn);
         bar.add(resetAllBtn);
         openAnim.to(1f);
     }
 
-    /** Opens the renderer inspector directly instead of hiding it behind the generic target dropdown. */
-    public static HudEditorScreen openItemAnimation(GuiScreen parent) {
-        HudEditorScreen editor = new HudEditorScreen(parent);
-        editor.target = EditorTarget.ITEM_ANIMATION;
-        return editor;
+    /** Compatibility route: Item Animation now owns a standalone panel rather than a HUD-editor target. */
+    public static GuiScreen openItemAnimation(GuiScreen parent) {
+        return new ItemAnimationEditorScreen(parent);
     }
 
     /** Opens the standard editor on one ordinary HUD element, keeping its existing saved placement untouched. */
@@ -423,7 +170,6 @@ public final class HudEditorScreen extends AppleScreen {
     public void onGuiClosed() {
         super.onGuiClosed();
         Keyboard.enableRepeatEvents(false);
-        ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
         // The editor combines HUD primitives and entity rendering. Always leave a neutral
@@ -448,16 +194,8 @@ public final class HudEditorScreen extends AppleScreen {
         resetInspector();
     }
 
-    private void selectItemAnimation() {
-        if (target == EditorTarget.ITEM_ANIMATION && !cardHidden) return;
-        target = EditorTarget.ITEM_ANIMATION;
-        cardHidden = false;
-        resetInspector();
-    }
-
     private void resetInspector() {
         openDropdown = null;
-        clearItemAnimationExactFields();
         scroll.reset();
         rebuild();
     }
@@ -466,27 +204,12 @@ public final class HudEditorScreen extends AppleScreen {
         dirty = true;
     }
 
-    private void configureItemAnimationExactField(SearchField field) {
-        field.w = CONTROL_W;
-        field.h = 22f;
-    }
-
-    private ExactSliderWidget compactSlider(ItemAnimationValue value, SearchField field, AppleSlider slider) {
-        return new ExactSliderWidget(value, slider, field);
-    }
-
-    /** Rebuilds the inspector for an ordinary HUD element, the map, or the Item Animation renderer. */
+    /** Rebuilds the inspector for an ordinary HUD element or the map. */
     private void rebuild() {
         entries.clear();
         // The inspector follows the element clicked on the canvas; it deliberately has no target list or sidebar.
         if (target == EditorTarget.DUNGEON_MAP) {
             buildDungeonMapEntries();
-            return;
-        }
-        if (target == EditorTarget.ITEM_ANIMATION) {
-            // Return before HudSettingsBuilder.build(): common(HudElement) owns generic Use opacity/Opacity/Background
-            // controls for real HUD elements only, never the first-person renderer-only Item Animation target.
-            buildItemAnimationEntries();
             return;
         }
         List<HudSettingsBuilder.Item> items = HudSettingsBuilder.build(selected, this::changed, true);
@@ -554,323 +277,19 @@ public final class HudEditorScreen extends AppleScreen {
         })));
     }
 
-    /**
-     * Item Animation is deliberately an inspector-only renderer panel: it cannot be dragged like a HUD element.
-     * Compact slider-and-exact-field rows stay in one fixed inspector row; Enter applies a clamped value and
-     * persists it right away.
-     */
-    private void buildItemAnimationEntries() {
-        // Item Animation is a first-person renderer target, never a draggable HUD element or combat setting.
-        entries.add(new Entry(null, new ItemAnimationHookWidget(CONTROL_W)));
-        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("enable", itemAnimationPanel),
-                new AppleToggle(ItemAnimation::isEnabled, value -> {
-                    AppleSettings.itemAnimationEnabled = value;
-                    changed();
-                })));
-        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("scale", itemAnimationPanel),
-                itemAnimationSizeControl));
-
-        entries.add(new Entry(null, new GroupWidget(ItemAnimationUiModel.panelControlLabel("position", itemAnimationPanel),
-                positionSummary(), itemAnimationPanel.isPositionExpanded(), this::togglePositionGroup,
-                this::resetItemAnimationPosition)));
-        if (itemAnimationPanel.isPositionExpanded()) {
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("x", itemAnimationPanel), itemAnimationXControl));
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("y", itemAnimationPanel), itemAnimationYControl));
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("z", itemAnimationPanel), itemAnimationZControl));
-        }
-
-        entries.add(new Entry(null, new GroupWidget(ItemAnimationUiModel.panelControlLabel("animation", itemAnimationPanel),
-                animationSummary(), itemAnimationPanel.isAnimationExpanded(), this::toggleAnimationGroup, null)));
-        if (itemAnimationPanel.isAnimationExpanded()) {
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("hit-slash-style", itemAnimationPanel),
-                    new AppleDropdown(AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES, null, CONTROL_W, CONTROL_H,
-                            () -> AppleSettings.itemAnimationHitSlashStyle, value -> {
-                                AppleSettings.itemAnimationHitSlashStyle = ItemAnimation.clampHitSlashStyle(value);
-                                changed();
-                            })));
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("hit-slash-speed", itemAnimationPanel),
-                    itemAnimationSpeedControl));
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("smooth-swing", itemAnimationPanel),
-                    new AppleToggle(ItemAnimation::isSmoothSwingEnabled, value -> {
-                        AppleSettings.itemAnimationSmoothSwing = value;
-                        changed();
-                    })));
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("smoothness", itemAnimationPanel),
-                    new AppleSlider(ItemAnimation.MIN_SMOOTHNESS_PERCENT, ItemAnimation.MAX_SMOOTHNESS_PERCENT,
-                            5, "%", CONTROL_W, ItemAnimation::getSmoothness, value -> {
-                                AppleSettings.itemAnimationSmoothness = ItemAnimation.clampSmoothness(value);
-                                changed();
-                            }).fineStep(1)));
-            entries.add(new Entry(null, new ItemAnimationNoteWidget(CONTROL_W,
-                    ItemAnimationUiModel.panelControlLabel("swing-blur-status", itemAnimationPanel))));
-        }
-
-        entries.add(new Entry(null, new GroupWidget(ItemAnimationUiModel.panelControlLabel("options", itemAnimationPanel),
-                optionsSummary(), itemAnimationPanel.isOptionsExpanded(), this::toggleOptionsGroup, null)));
-        if (itemAnimationPanel.isOptionsExpanded()) {
-            entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("remove-haste", itemAnimationPanel), new AppleToggle(
-                    ItemAnimation::isHasteEffectRemoved, value -> {
-                        AppleSettings.itemAnimationRemoveHasteEffect = value;
-                        changed();
-                    })));
-        }
-        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("preview-swing-loop", itemAnimationPanel),
-                new AppleToggle(ItemAnimation::isPreviewSwingLoop, ItemAnimation::setPreviewSwingLoop)));
-        entries.add(new Entry(ItemAnimationUiModel.panelControlLabel("preview-swing", itemAnimationPanel),
-                new AppleButton("Preview", 74f, CONTROL_H, true, ItemAnimation::previewSwing)));
-        entries.add(new Entry(null, new AppleButton(ItemAnimationUiModel.panelControlLabel("reset-defaults", itemAnimationPanel),
-                CONTROL_W, CONTROL_H, false, () -> {
-                    ItemAnimation.resetToDefaults();
-                    clearItemAnimationExactFields();
-                    changed();
-                    AppleSettings.save();
-                })));
-    }
-
-    private void togglePositionGroup() {
-        itemAnimationPanel.togglePosition();
-        openDropdown = null;
-        rebuild();
-    }
-
-    private void toggleAnimationGroup() {
-        itemAnimationPanel.toggleAnimation();
-        openDropdown = null;
-        rebuild();
-    }
-
-    private void toggleOptionsGroup() {
-        itemAnimationPanel.toggleOptions();
-        openDropdown = null;
-        rebuild();
-    }
-
-    private void resetItemAnimationPosition() {
-        AppleSettings.itemAnimationX = AppleSettings.DEFAULT_ITEM_ANIMATION_X;
-        AppleSettings.itemAnimationY = AppleSettings.DEFAULT_ITEM_ANIMATION_Y;
-        AppleSettings.itemAnimationZ = AppleSettings.DEFAULT_ITEM_ANIMATION_Z;
-        clearItemAnimationPositionFields();
-        changed();
-    }
-
-    private String positionSummary() {
-        return "X " + formatOffset(AppleSettings.itemAnimationX) + "  Y "
-                + formatOffset(AppleSettings.itemAnimationY) + "  Z " + formatOffset(AppleSettings.itemAnimationZ);
-    }
-
-    private String animationSummary() {
-        int style = ItemAnimation.clampHitSlashStyle(AppleSettings.itemAnimationHitSlashStyle);
-        String smooth = AppleSettings.itemAnimationSmoothSwing ? "Smooth " + ItemAnimation.getSmoothness() + "%"
-                : "Smooth off";
-        // A matrix-local hook has no safe second translucent first-person pass, so ghost blur is intentionally absent.
-        return AppleSettings.ITEM_ANIMATION_HIT_SLASH_STYLES[style] + "  "
-                + AppleSettings.effectiveItemAnimationSpeed() + "%  " + smooth + "  Blur unavailable";
-    }
-
-    private String optionsSummary() {
-        return "Haste " + (AppleSettings.itemAnimationRemoveHasteEffect ? "off" : "on");
-    }
-
-    private int configuredItemAnimationValue(ItemAnimationValue value) {
-        switch (value) {
-            case X: return ItemAnimation.clampOffset(AppleSettings.itemAnimationX);
-            case Y: return ItemAnimation.clampOffset(AppleSettings.itemAnimationY);
-            case Z: return ItemAnimation.clampOffset(AppleSettings.itemAnimationZ);
-            case SIZE: return ItemAnimation.clampSize(AppleSettings.effectiveItemAnimationSize());
-            case SPEED: return ItemAnimation.clampSpeed(AppleSettings.effectiveItemAnimationSpeed());
-            default: return 0;
-        }
-    }
-
-    private static String formatOffset(int value) {
-        int clamped = ItemAnimation.clampOffset(value);
-        int absolute = Math.abs(clamped);
-        String hundredths = absolute % 100 < 10 ? "0" + (absolute % 100) : Integer.toString(absolute % 100);
-        return (clamped < 0 ? "-" : "") + (absolute / 100) + "." + hundredths;
-    }
-
-    private static String formatExactValue(ItemAnimationValue value, int raw) {
-        return value == ItemAnimationValue.X || value == ItemAnimationValue.Y || value == ItemAnimationValue.Z
-                ? formatOffset(raw) : Integer.toString(raw);
-    }
-
-    private void clearItemAnimationPositionFields() {
-        itemAnimationXField.clear();
-        itemAnimationYField.clear();
-        itemAnimationZField.clear();
-        itemAnimationXField.setFocused(false);
-        itemAnimationYField.setFocused(false);
-        itemAnimationZField.setFocused(false);
-    }
-
-    private SearchField itemAnimationField(ItemAnimationValue value) {
-        switch (value) {
-            case X: return itemAnimationXField;
-            case Y: return itemAnimationYField;
-            case Z: return itemAnimationZField;
-            case SIZE: return itemAnimationSizeField;
-            case SPEED: return itemAnimationSpeedField;
-            default: return null;
-        }
-    }
-
-    private ItemAnimationValue itemAnimationValue(SearchField field) {
-        if (field == itemAnimationXField) return ItemAnimationValue.X;
-        if (field == itemAnimationYField) return ItemAnimationValue.Y;
-        if (field == itemAnimationZField) return ItemAnimationValue.Z;
-        if (field == itemAnimationSizeField) return ItemAnimationValue.SIZE;
-        if (field == itemAnimationSpeedField) return ItemAnimationValue.SPEED;
-        return null;
-    }
-
-    private SearchField focusedItemAnimationField() {
-        for (ItemAnimationValue value : ItemAnimationValue.values()) {
-            SearchField field = itemAnimationField(value);
-            if (field.isFocused()) return field;
-        }
-        return null;
-    }
-
-    private void clearItemAnimationExactFields() {
-        for (ItemAnimationValue value : ItemAnimationValue.values()) {
-            SearchField field = itemAnimationField(value);
-            field.clear();
-            field.setFocused(false);
-        }
-    }
-
-    private void focusItemAnimationExactField(SearchField field) {
-        if (field.isFocused()) {
-            return;
-        }
-        SearchField previous = focusedItemAnimationField();
-        if (previous != null) {
-            applyItemAnimationExact(previous);
-        }
-        field.clear();
-        field.setFocused(true);
-    }
-
-    private boolean isItemAnimationValueVisible(ItemAnimationValue value) {
-        if (value == ItemAnimationValue.X || value == ItemAnimationValue.Y || value == ItemAnimationValue.Z) {
-            return itemAnimationPanel.isPositionExpanded();
-        }
-        return value != ItemAnimationValue.SPEED || itemAnimationPanel.isAnimationExpanded();
-    }
-
-    private SearchField itemAnimationExactAt(int mx, int my) {
-        if (target != EditorTarget.ITEM_ANIMATION || !inCardView(mx, my)) {
-            return null;
-        }
-        for (ItemAnimationValue value : ItemAnimationValue.values()) {
-            if (!isItemAnimationValueVisible(value)) {
-                continue;
-            }
-            SearchField field = itemAnimationField(value);
-            if (field.contains(mx, my)) {
-                return field;
-            }
-        }
-        return null;
-    }
-
-    /** Applies a single exact typed Item Animation value, clamps it, and atomically saves the result. */
-    private boolean applyItemAnimationExact(SearchField field) {
-        ItemAnimationValue value = itemAnimationValue(field);
-        if (value == null) return false;
-        String typed = field.text().trim();
-        if (typed.length() == 0 || "-".equals(typed)) {
-            field.setFocused(false);
-            return false;
-        }
-        final int requested;
-        try {
-            if ((value == ItemAnimationValue.X || value == ItemAnimationValue.Y || value == ItemAnimationValue.Z)
-                    && typed.indexOf('.') >= 0) {
-                double units = Double.parseDouble(typed);
-                if (Double.isNaN(units) || Double.isInfinite(units)) {
-                    throw new NumberFormatException("non-finite offset");
-                }
-                requested = Math.round((float) units * 100.0F);
-            } else {
-                // Keep existing saved/editor integer semantics: 50 still means +0.50 for X/Y/Z.
-                requested = Integer.parseInt(typed);
-            }
-        } catch (NumberFormatException ignored) {
-            field.clear();
-            field.setFocused(false);
-            return false;
-        }
-        int applied;
-        switch (value) {
-            case X:
-                applied = ItemAnimation.clampOffset(requested);
-                AppleSettings.itemAnimationX = applied;
-                break;
-            case Y:
-                applied = ItemAnimation.clampOffset(requested);
-                AppleSettings.itemAnimationY = applied;
-                break;
-            case Z:
-                applied = ItemAnimation.clampOffset(requested);
-                AppleSettings.itemAnimationZ = applied;
-                break;
-            case SIZE:
-                applied = ItemAnimation.clampSize(requested);
-                AppleSettings.itemAnimationSizeOn = true;
-                AppleSettings.itemAnimationSize = applied;
-                break;
-            case SPEED:
-                applied = ItemAnimation.clampSpeed(requested);
-                AppleSettings.itemAnimationSpeedOn = true;
-                AppleSettings.itemAnimationSpeed = applied;
-                break;
-            default:
-                return false;
-        }
-        field.setText(formatExactValue(value, applied));
-        field.setFocused(false);
-        changed();
-        AppleSettings.save();
-        return true;
-    }
-
-    private void applyFocusedItemAnimationExact() {
-        SearchField field = focusedItemAnimationField();
-        if (field != null) {
-            applyItemAnimationExact(field);
-        }
-    }
-
-    private boolean acceptsItemAnimationKey(SearchField field, char typed, int keyCode) {
-        if (keyCode == Keyboard.KEY_BACK || keyCode == Keyboard.KEY_DELETE || keyCode == Keyboard.KEY_HOME) {
-            return true;
-        }
-        if (Character.isDigit(typed) || (typed == '-' && field.text().length() == 0)) {
-            return true;
-        }
-        ItemAnimationValue value = itemAnimationValue(field);
-        return typed == '.' && (value == ItemAnimationValue.X || value == ItemAnimationValue.Y
-                || value == ItemAnimationValue.Z) && field.text().indexOf('.') < 0;
-    }
-
     private void resetAll() {
         HudManager.resetAll();
         AppleSettings.resetDungeonMapPosition();
         AppleSettings.dungeonMapScale = 100;
         AppleSettings.dungeonMapScaleOn = true;
         AppleSettings.dungeonMapZoom = 100;
-        ItemAnimation.resetToDefaults();
-        clearItemAnimationExactFields();
         openDropdown = null;
         rebuild();
-        ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
     }
 
     private void close() {
-        ItemAnimation.stopPreviewSwingLoop();
         HudManager.save();
         AppleSettings.save();
         Minecraft.getMinecraft().displayGuiScreen(parent);
@@ -916,9 +335,6 @@ public final class HudEditorScreen extends AppleScreen {
             control.x = entry.bounds.controlX;
             control.y = entry.bounds.controlY;
             control.w = entry.bounds.controlW;
-            if (control instanceof ExactSliderWidget) {
-                ((ExactSliderWidget) control).arrange();
-            }
         }
     }
 
@@ -962,7 +378,6 @@ public final class HudEditorScreen extends AppleScreen {
     /** Uses the feature names shown in the hub where a HUD implementation uses a shorter internal caption. */
     private String selectedSettingsTitle() {
         if (target == EditorTarget.DUNGEON_MAP) return "Dungeon Map Settings";
-        if (target == EditorTarget.ITEM_ANIMATION) return "Item Animation Settings";
         if (selected == null) return "HUD Settings";
         if ("doll".equals(selected.id)) return "Player Doll Settings";
         if ("inventory".equals(selected.id)) return "Inventory HUD Settings";
@@ -1133,9 +548,6 @@ public final class HudEditorScreen extends AppleScreen {
 
     /** Thin rounded ring around the selected HUD target or the dedicated map placement canvas. */
     private void drawSelection() {
-        if (target == EditorTarget.ITEM_ANIMATION) {
-            return;
-        }
         if (target == EditorTarget.DUNGEON_MAP) {
             int[] bounds = new int[3];
             dungeonMapBounds(bounds);
@@ -1336,7 +748,6 @@ public final class HudEditorScreen extends AppleScreen {
 
         // Canvas targets deliberately win before inspector hit testing: no sidebar/list is needed to reach a
         // disabled placeholder or an element stacked underneath another one.
-        applyFocusedItemAnimationExact();
         int[] mapBounds = new int[3];
         dungeonMapBounds(mapBounds);
         if (mx >= mapBounds[0] && mx <= mapBounds[0] + mapBounds[2]
@@ -1359,8 +770,7 @@ public final class HudEditorScreen extends AppleScreen {
         }
 
         if (inCardHeader(mx, my)) {
-            applyFocusedItemAnimationExact();
-            if (inHideButton(mx, my)) {
+                if (inHideButton(mx, my)) {
                 cardHidden = !cardHidden;
                 openDropdown = null;
                 scroll.reset();
@@ -1381,12 +791,6 @@ public final class HudEditorScreen extends AppleScreen {
             return;
         }
 
-        SearchField exactField = itemAnimationExactAt(mx, my);
-        if (exactField != null) {
-            focusItemAnimationExactField(exactField);
-            return;
-        }
-        applyFocusedItemAnimationExact();
         Widget w = widgetAt(mx, my);
         if (w != null) {
             beginWidgetGesture(w, mx, my);
@@ -1503,25 +907,11 @@ public final class HudEditorScreen extends AppleScreen {
 
     @Override
     protected void keyTyped(char c, int code) throws IOException {
-        SearchField exactField = focusedItemAnimationField();
         if (code == Keyboard.KEY_ESCAPE) {
             if (openDropdown != null) {
                 openDropdown = null;
-            } else if (exactField != null) {
-                exactField.clear();
-                exactField.setFocused(false);
             } else {
                 close();
-            }
-            return;
-        }
-        if (exactField != null) {
-            if (code == Keyboard.KEY_RETURN || code == Keyboard.KEY_NUMPADENTER) {
-                applyItemAnimationExact(exactField);
-                return;
-            }
-            if (acceptsItemAnimationKey(exactField, c, code)) {
-                exactField.keyTyped(c, code);
             }
             return;
         }

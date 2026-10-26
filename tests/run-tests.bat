@@ -36,6 +36,8 @@ call :run com.arena.pekaclient.gui.SettingsControlLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HardcodedGuiColorTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
 call :run com.arena.pekaclient.gui.InlineSettingsCatalogTests || goto fail
+call :run com.arena.pekaclient.gui.FlatDropdownContractTests || goto fail
+call :run com.arena.pekaclient.gui.PlayerFacingTextTests || goto fail
 call :run com.arena.pekaclient.gui.FarmingNavigationTests || goto fail
 call :run com.arena.pekaclient.gui.ReleaseClaimsTests || goto fail
 call :run com.arena.pekaclient.chat.ClipboardChainTests || goto fail
@@ -62,6 +64,7 @@ call :run com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.WitherDoorCacheTests || goto fail
 call :run com.arena.pekaclient.gui.InlineEspCatalogTests || goto fail
 call :run com.arena.pekaclient.gui.InlineSettingsBindingsTests || goto fail
+call :run com.arena.pekaclient.gui.FlatCatalogBindingAuditTests || goto fail
 call :run com.arena.pekaclient.gui.InlineOptionPreservationTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests || goto fail
 call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests || goto fail

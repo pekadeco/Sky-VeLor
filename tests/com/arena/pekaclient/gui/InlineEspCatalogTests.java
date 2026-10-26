@@ -54,7 +54,7 @@ public final class InlineEspCatalogTests {
         }
         List<String> parents = new ArrayList<String>();
         if (match != null) for (ReferenceSettingsCatalog.Setting parent : match.parents) parents.add(parent.id);
-        check("style search reveals Mob ESP then Starred owner", parents.equals(Arrays.asList("mob-esp-enabled", "esp-starred")));
+        check("style search opens the one flat Mob ESP owner", parents.equals(Arrays.asList("mob-esp-enabled")));
     }
 
     private static void check(String name, boolean okay) {
