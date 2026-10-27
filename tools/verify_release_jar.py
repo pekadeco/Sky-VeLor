@@ -632,7 +632,8 @@ def main():
     aspect_path_raw = raw_of('assist/visual/AspectTeleportCameraPath')
     aspect_hooks_raw = raw_of('assist/visual/AspectTeleportCameraHooks')
     aspect_status_raw = raw_of('assist/visual/AspectTeleportCameraHookStatus')
-    aspect_transformer_raw = raw_of('assist/visual/AspectTeleportCameraTransformer')
+    # The ASM visitors that contain injected descriptors live in nested classes, so inspect the whole transformer family.
+    aspect_transformer_raw = raw_family_of('assist/visual/AspectTeleportCameraTransformer')
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.movement.autoSprint',
                  b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
