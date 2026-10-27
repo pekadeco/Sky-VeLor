@@ -623,8 +623,8 @@ def main():
             'AssistSettings retains bounded Hurt Camera Shake, render-only Smooth Aspect Teleport, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
     # raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
     r.check(all(value in aspect_policy_raw for value in
-                (b'isAspectTeleportItem', b'isLargePositionJump', b'veilAlpha', b'Aspect of the End',
-                 b'Aspect of the Void', b'DURATION_NANOS'))
+                (b'isAspectTeleportItem', b'isLargePositionJump', b'veilAlpha', b'aspect of the end',
+                 b'aspect of the void', b'DURATION_NANOS'))
                 and all(value in aspect_renderer_raw for value in
                         (b'tick', b'render', b'AspectTeleportTransitionPolicy', b'AssistSettings', b'UIRender'))
                 # Minecraft member names are reobfuscated in a real release, so do not require the MCP getHeldItem
