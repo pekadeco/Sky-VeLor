@@ -616,19 +616,17 @@ def main():
     mining_raw = raw_of('assist/mining/MiningAssistController')
     aspect_policy_raw = raw_of('assist/visual/AspectTeleportTransitionPolicy')
     aspect_renderer_raw = raw_of('assist/visual/AspectTeleportTransitionRenderer')
-    aspect_policy_members = members_of('assist/visual/AspectTeleportTransitionPolicy')
-    aspect_renderer_members = members_of('assist/visual/AspectTeleportTransitionRenderer')
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.movement.autoSprint',
                  b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
                  b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
             'AssistSettings retains bounded Hurt Camera Shake, render-only Smooth Aspect Teleport, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
-    r.check(all(value in aspect_policy_members for value in
-                ('isAspectTeleportItem', 'isLargePositionJump', 'veilAlpha'))
-                and all(value in aspect_renderer_members for value in ('tick', 'render'))
-                and all(value in aspect_policy_raw for value in (b'Aspect of the End', b'Aspect of the Void', b'DURATION_NANOS'))
+    # raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
+    r.check(all(value in aspect_policy_raw for value in
+                (b'isAspectTeleportItem', b'isLargePositionJump', b'veilAlpha', b'Aspect of the End',
+                 b'Aspect of the Void', b'DURATION_NANOS'))
                 and all(value in aspect_renderer_raw for value in
-                        (b'AspectTeleportTransitionPolicy', b'AssistSettings', b'UIRender'))
+                        (b'tick', b'render', b'AspectTeleportTransitionPolicy', b'AssistSettings', b'UIRender'))
                 # Minecraft member names are reobfuscated in a real release, so do not require the MCP getHeldItem
                 # spelling here. Network/controller/position-writing owner paths must remain absent in every mapping.
                 and all(value not in aspect_renderer_raw for value in
