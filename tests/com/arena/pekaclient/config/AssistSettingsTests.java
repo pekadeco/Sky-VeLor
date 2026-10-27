@@ -22,6 +22,7 @@ public final class AssistSettingsTests {
         check("fresh local inventory presentation is useful by default", AssistSettings.romanNumerals
                 && AssistSettings.tooltipScroll && AssistSettings.rarityHighlight && !AssistSettings.hidePotionEffects);
         check("dead dungeon ESP targets are hidden by default", AssistSettings.hideDeadMobs);
+        check("Aspect teleport visual transition defaults on", AssistSettings.smoothAspectTeleport);
         check("hurt camera defaults to vanilla 100 percent", AssistSettings.hurtCameraShake == 100
                 && Math.abs(AssistSettings.hurtCameraShakeMultiplier() - 1f) < .00001f);
         check("endpoint default is usable", AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
@@ -45,6 +46,7 @@ public final class AssistSettingsTests {
         check("old zero-health ESP choice migrates to Comfort", !AssistSettings.hideDeadMobs);
         check("established config does not acquire newly defaulted inventory visuals", !AssistSettings.romanNumerals
                 && !AssistSettings.tooltipScroll && !AssistSettings.rarityHighlight);
+        check("established config receives the safe render-only Aspect transition default", AssistSettings.smoothAspectTeleport);
         Properties rewritten = new Properties();
         rewritten.putAll(old);
         AssistSettings.save(rewritten);
@@ -112,6 +114,7 @@ public final class AssistSettingsTests {
         AssistSettings.resetDefaults();
         AssistSettings.tooltipScroll = true;
         AssistSettings.hurtCameraShake = 44;
+        AssistSettings.smoothAspectTeleport = false;
         AssistSettings.autoSprint = true;
         AssistSettings.hideDeadMobs = false;
         AssistSettings.dungeonSync = true;
@@ -122,15 +125,19 @@ public final class AssistSettingsTests {
         Properties saved = new Properties();
         AssistSettings.save(saved);
         check("retained keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
-                && saved.containsKey("assist.visual.hurtCameraShake") && saved.containsKey("assist.movement.autoSprint")
+                && saved.containsKey("assist.visual.hurtCameraShake")
+                && saved.containsKey("assist.visual.smoothAspectTeleport") && saved.containsKey("assist.movement.autoSprint")
                 && saved.containsKey("assist.comfort.hideDeadMobs") && saved.containsKey("assist.dungeon.sync.enabled")
                 && saved.containsKey("assist.dungeon.terminal.autoClick")
                 && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.hurtCameraShake == 44
-                && AssistSettings.autoSprint && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
+                && !AssistSettings.smoothAspectTeleport && AssistSettings.autoSprint && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
                 && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint)
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222);
+        saved.setProperty("assist.visual.smoothAspectTeleport", "true");
+        AssistSettings.load(saved);
+        check("explicit Aspect transition preference loads", AssistSettings.smoothAspectTeleport);
         saved.setProperty("assist.dungeon.sync.endpoint", "http://not-secure.invalid");
         saved.setProperty("assist.dungeon.terminal.scale", "9999");
         AssistSettings.load(saved);

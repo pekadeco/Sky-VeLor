@@ -100,7 +100,7 @@ public final class DungeonEspRenderBatch {
      * Collects cached tick targets through their current real bounding boxes. Dead, zero-health, and death-animation
      * targets are removed at render time too, so the Comfort policy takes effect before the next configured scan.
      */
-    public void collectMobs(DungeonEspTracker tracker, double playerX, double playerY, double playerZ,
+    public void collectMobs(DungeonEspTracker tracker, Entity localPlayer, double playerX, double playerY, double playerZ,
                             double cameraX, double cameraY, double cameraZ, float partialTicks) {
         if (tracker == null) return;
         for (int slot = 0; slot < tracker.slotCapacity() && mobCandidateCount < DungeonEspTracker.MAX_TRACKED; slot++) {
@@ -111,6 +111,11 @@ public final class DungeonEspRenderBatch {
                 continue;
             }
             Entity entity = (Entity) tracked.reference;
+            // Scan-time identity filtering is authoritative; this live guard closes the interval before the next scan.
+            if (isLocalPlayerEntity(entity, localPlayer)) {
+                tracker.remove(tracked.entityId);
+                continue;
+            }
             if (entity.isDead || (AssistSettings.hideDeadMobs && entity instanceof EntityLivingBase
                     && (((EntityLivingBase) entity).deathTime > 0 || ((EntityLivingBase) entity).getHealth() <= 0F))) {
                 tracker.remove(tracked.entityId);
@@ -161,6 +166,11 @@ public final class DungeonEspRenderBatch {
         boxCount = Math.min(mobCandidateCount, DungeonEspSettings.maxBoxes);
         renderedMobCount = boxCount;
         layoutMobLabels();
+    }
+
+    /** Kept explicit so the live render safety guard remains identity-based, not a broad player/NPC exclusion. */
+    private static boolean isLocalPlayerEntity(Entity entity, Entity localPlayer) {
+        return entity != null && entity == localPlayer;
     }
 
     /** Adds a cached static closed-door prism to the same render batch after frustum culling. */

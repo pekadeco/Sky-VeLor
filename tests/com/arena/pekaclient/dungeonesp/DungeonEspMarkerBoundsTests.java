@@ -12,8 +12,10 @@ public final class DungeonEspMarkerBoundsTests {
         double depth = DungeonEspMarkerBounds.maxZ(z) - DungeonEspMarkerBounds.minZ(z);
         check("marker remains centered horizontally", close(DungeonEspMarkerBounds.minX(x) + width * .5D, x)
                 && close(DungeonEspMarkerBounds.minZ(z) + depth * .5D, z));
-        check("sleeping Fel marker proxy is narrower than the old 1.1 outline", width < 1.1D && depth < 1.1D);
-        check("sleeping Fel marker proxy is shorter than the old 2.7 outline", height < 2.7D && height >= 1.5D);
+        check("head marker proxy is the refined 0.68 width", close(width, .68D) && close(depth, .68D));
+        check("head marker proxy is the refined 1.60 height", close(height, 1.60D));
+        check("head marker proxy begins just below its skull anchor", close(DungeonEspMarkerBounds.minY(y), y - .10D));
+        check("sleeping Fel marker proxy stays shorter than the old 2.7 outline", height < 2.7D && height >= 1.5D);
         System.out.println("Dungeon ESP marker bounds: passed " + passed + ", failed " + failed);
         if (failed != 0) System.exit(1);
     }

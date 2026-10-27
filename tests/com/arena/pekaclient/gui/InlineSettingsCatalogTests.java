@@ -58,7 +58,7 @@ public final class InlineSettingsCatalogTests {
     private static void requiredOwnersAndMovesArePresent() {
         check("required feature ownership remains complete", ReferenceSettingsCatalog.routesAreComplete());
         String[] preserved = {
-                "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "auto-sprint",
+                "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
                 "item-lock-swap", "chat-qol", "slayer-tracker", "dungeon-map", "terminal-assist",
                 "spirit-leap", "dungeon-boss-hud", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
                 "dungeon-sync-enabled", "mining-bps", "mining-assistant-settings", "catch-counter",

@@ -4,13 +4,13 @@ package com.arena.pekaclient.dungeonesp;
  * Tight, pure geometry contract for the Dungeon Enderman/Fel armor-stand head marker.
  *
  * <p>The marker has no useful vanilla body hitbox, but the old 1.1 by 2.7 proxy was too large for sleeping Fels.
- * These bounds retain a visible target while avoiding the oversized outline shown around nearby floor targets.</p>
+ * This head-focused 0.68 by 1.60 proxy stays visible while avoiding an oversized outline around floor targets.</p>
  */
 public final class DungeonEspMarkerBounds {
 
-    public static final double HALF_WIDTH = .38D;
-    public static final double MIN_Y_OFFSET = 0D;
-    public static final double HEIGHT = 1.85D;
+    public static final double HALF_WIDTH = .34D;
+    public static final double MIN_Y_OFFSET = -.10D;
+    public static final double HEIGHT = 1.60D;
 
     private DungeonEspMarkerBounds() {
     }

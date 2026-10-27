@@ -1,29 +1,23 @@
-# Sky VeLor — Beta-0.10.9.1.3v
+# Sky VeLor — Beta-0.10.9.1.4v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.3v — Compact settings, clean Starred Mobs ESP
+## Beta-0.10.9.1.4v — safer Dungeon ESP and smooth Aspect visuals
 
-- Makes the normal settings shell substantially more compact (`72%` width / `78%` height, capped at `720 × 480`
-  logical GUI pixels). A one-time `settings.window.layoutVersion` migration converts a legacy saved fullscreen shell
-  to compact; a fullscreen choice made after that migration still persists normally.
-- Snaps vanilla bitmap-font origins and scales to the active physical GUI pixel grid once per render frame. This keeps
-  the existing compact type hierarchy while avoiding fractional-scale blur; it does not add a custom-font dependency.
-- Raises rounded-corner capacity and makes even the Fast quality use eight quarter-arc segments. New/reset settings
-  use Smooth, while old quality values remain compatible.
-- Removes the **Default Preset** and **Subtle Preset** actions from **Dungeons → Starred Mobs**. Removes the dedicated
-  Skeletor style/category; a star-tagged Skeletor now uses the normal **Starred Mob** style. **Other Mobs** remains absent.
-- Removes ESP tracers end-to-end: no visible control, active config value, or render path remains. Retired tracer,
-  Skeletor, and room-wide keys load harmlessly and are cleaned on save.
-- Moves the former **Hide Zero Health** ESP switch to **Player → Comfort → Hide Dead Mobs**. It defaults on, migrates
-  the old `dungeonEsp.hideZeroHealth` choice to `assist.comfort.hideDeadMobs`, and removes zero-health as well as
-  `deathTime > 0` targets before their despawn/next scan.
-- Tightens the fixed sleeping Fel/Enderman head-marker proxy from `1.1 × 2.7` to `0.76 × 1.85` blocks so its purple
-  outline no longer covers an oversized area.
-- Retains Minecraft 1.8.9 Forge compatibility, existing unrelated features, the SkyVeLor wordmark, eight-route
-  navigation, dropdown behavior, optional GUI transparency, fullscreen action, and the HUD/Item Animation editors.
+- Excludes the local player by identity during the Dungeon ESP scan and again in the live render pass. This prevents
+  a player-owned mob-style outline/hitbox while retaining valid player-shaped dungeon NPC targets.
+- Makes direct Enderman/Fel head markers conservative: a shared skull texture now needs its own star or a nearby
+  resolved Starred/Special tag, and a marker at least two blocks above the player is suppressed. The fixed marker
+  proxy is refined to a head-focused `0.68 × 1.60` blocks.
+- Adds **Player → Comfort → Smooth Aspect Teleport**, enabled by default. After an already-completed local
+  Aspect of the End/Void position jump, it uses a short `220 ms` dark-blue visual ease veil to soften the abrupt
+  view change. It only observes local state: it does not initiate teleports, write movement/camera coordinates,
+  alter input, or send packets.
+- Keeps Minecraft 1.8.9 Forge compatibility, safe old-config loading, existing unrelated settings/features, the
+  `SkyVeLor` wordmark, eight-route navigation, dropdown behavior, optional GUI transparency, fullscreen action,
+  and the HUD/Item Animation editors.
 
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
@@ -76,7 +70,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.4v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -87,8 +81,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar \
-  --version Beta-0.10.9.1.3v --mcmod-version 0.10.9.1.3
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.4v.jar \
+  --version Beta-0.10.9.1.4v --mcmod-version 0.10.9.1.4
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -96,8 +90,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1.3v-source.zip \
-  --version Beta-0.10.9.1.3v
+  SkyVeLor-1.8.9-Beta-0.10.9.1.4v-source.zip \
+  --version Beta-0.10.9.1.4v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -107,7 +101,7 @@ and unrelated archives do not belong in the source ZIP.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.4v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
@@ -118,8 +112,12 @@ and unrelated archives do not belong in the source ZIP.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
 - **Dungeons → Dungeon ESP → Starred Mobs** owns Starred Mob, Miniboss, Special Starred Mob, and Enderman styles.
-  Skeletor uses the normal Starred Mob style when a nearby star tag selects it; NPC/player-shaped bodies remain eligible.
+  Skeletor uses the normal Starred Mob style when a nearby star tag selects it; player-shaped dungeon NPCs remain
+  eligible, while the local player is excluded in both scan and render paths. Direct Enderman/Fel head markers need
+  star evidence and are suppressed at least two blocks above the player.
 - **Player → Comfort → Hide Dead Mobs** defaults on and removes a Dungeon ESP target during its death animation.
+- **Player → Comfort → Smooth Aspect Teleport** defaults on and applies only a short render-only visual ease after an
+  already-observed Aspect of the End/Void jump. It never initiates movement, changes camera/player coordinates, or sends packets.
 - **HUD & Visuals → HUD → HUD Editor** opens the allowed editor for HUD and map placement.
 - **HUD & Visuals → Item Animation → Edit** opens the standalone left-edge renderer panel. Its live
   values affect only Minecraft's first-person hand path; it neither sends packets nor changes attack,

@@ -130,7 +130,7 @@ public final class ReferenceSettingsCatalog {
 
     /** Direct feature owners; ids are presentation ids, never replacement configuration keys. */
     public static final String[] REQUIRED_ROUTE_IDS = {
-            "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "auto-sprint",
+            "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
             "item-lock-swap", "inventory-assist", "chat-qol", "movement-shortcuts", "slayer-tracker",
             "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "m7-overlay",
             "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
@@ -149,6 +149,8 @@ public final class ReferenceSettingsCatalog {
                     toggle("disable-hotbar-scrolling", "Lock Hotbar Scroll", "Keep the mouse wheel from changing slots.", "mouse wheel hotbar"),
                     slider("hurt-camera-shake", "Hurt Camera Shake", "Adjust the camera tilt after damage.",
                             "damage camera tilt", 0, 100, 1, "%"),
+                    toggle("smooth-aspect-teleport", "Smooth Aspect Teleport",
+                            "Ease Aspect of the End or Void view changes.", "aote aotv visual transition"),
                     toggle("hide-dead-mobs", "Hide Dead Mobs", "Hide dungeon ESP during the death animation.",
                             "dungeon esp dying defeated"),
                     toggle("auto-sprint", "Auto Sprint", "Sprint while moving forward when possible.", "sprint movement")),

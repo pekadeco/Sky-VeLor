@@ -32,6 +32,8 @@ public final class DungeonEspTracker {
         public boolean armorStand;
         public boolean living;
         public boolean player;
+        /** True only for this client's own player entity, never for a player-shaped dungeon NPC. */
+        public boolean localPlayer;
         public boolean dead;
         /** True while a living body is playing its deathTime animation, before vanilla marks it dead. */
         public boolean dying;
@@ -59,6 +61,7 @@ public final class DungeonEspTracker {
             armorStand = false;
             living = false;
             player = false;
+            localPlayer = false;
             dead = false;
             dying = false;
             enderman = false;
@@ -122,6 +125,7 @@ public final class DungeonEspTracker {
         boolean dead;
         boolean enderman;
         boolean directEndermanMarker;
+        boolean markerHasStar;
         boolean pet;
         boolean matched;
         Object reference;
@@ -136,6 +140,7 @@ public final class DungeonEspTracker {
             dead = entity.dead;
             enderman = entity.enderman;
             directEndermanMarker = directMarker;
+            markerHasStar = directMarker && DungeonEspMatcher.hasStar(entity.name);
             pet = entity.pet;
             matched = false;
             reference = entity.reference;
@@ -211,13 +216,16 @@ public final class DungeonEspTracker {
                 if (scratch.dead) continue;
                 boolean headMarker = scratch.endermanHead || (scratch.headTexture != null
                         && DungeonEspMatcher.isEndermanMarkerName(scratch.name));
-                if (headMarker) addCandidate(scratch, true);
+                // At least two blocks above the local player is the unstarred-Enderman false-positive pattern.
+                if (headMarker && DungeonEspEndermanHeadPolicy.belowPlayerCeiling(scratch.y, playerY)) {
+                    addCandidate(scratch, true);
+                }
                 if (DungeonEspMatcher.isTagCandidate(scratch.name)) addTag(scratch);
                 continue;
             }
             // Hypixel can represent starred bodies and minibosses as player-shaped NPC entities. Keep every live,
-            // non-pet body eligible here; untagged players/NPCs still never render because only tags create records.
-            if (!scratch.living || scratch.dead || scratch.pet
+            // non-pet NPC body eligible, but never permit the local player to enter this candidate pool.
+            if (!scratch.living || scratch.localPlayer || scratch.dead || scratch.pet
                     || (hideDeadMobs && (scratch.dying
                     || (!Float.isNaN(scratch.health) && scratch.health <= 0F)))) {
                 continue;
@@ -237,10 +245,11 @@ public final class DungeonEspTracker {
                     : (tag.split ? DungeonEspMatchReason.SPLIT_TAG : DungeonEspMatchReason.STAR_TAG);
             upsert(best.id, category, reason, best);
         }
-        // Known Enderman-head armor stands represent their own entity target and need no nearby living body/tag.
+        // A known head texture alone also appears on unstarred Endermen. Direct marker records therefore require
+        // either their own star or a nearby resolved star/special Enderman tag.
         for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++) {
             Candidate candidate = candidates[candidateIndex];
-            if (candidate.directEndermanMarker) {
+            if (candidate.directEndermanMarker && hasStarredEndermanAssociation(candidate)) {
                 upsert(candidate.id, DungeonEspCategory.ENDERMAN, DungeonEspMatchReason.ENDERMAN_HEAD, candidate);
             }
         }
@@ -346,6 +355,19 @@ public final class DungeonEspTracker {
             }
             tag.split = split;
         }
+    }
+
+    /** Direct skull markers require explicit star evidence so a shared Fel/Enderman head texture is not enough. */
+    private boolean hasStarredEndermanAssociation(Candidate marker) {
+        if (marker.markerHasStar) return true;
+        for (int i = 0; i < tagCount; i++) {
+            Tag tag = tags[i];
+            if (!DungeonEspEndermanHeadPolicy.acceptsAssociatedCategory(tag.category)) continue;
+            if (DungeonEspEndermanHeadPolicy.isNearbyTag(marker.x, marker.y, marker.z, tag.x, tag.y, tag.z)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Candidate bestBodyFor(Tag tag) {

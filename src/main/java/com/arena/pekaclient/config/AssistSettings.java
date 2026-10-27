@@ -17,6 +17,8 @@ public final class AssistSettings {
     public static final int MIN_HURT_CAMERA_SHAKE = 0;
     public static final int MAX_HURT_CAMERA_SHAKE = 100;
     public static final int DEFAULT_HURT_CAMERA_SHAKE = 100;
+    /** A short render-only veil makes an already-completed AOTE/AOTV view change less abrupt. */
+    public static final boolean DEFAULT_SMOOTH_ASPECT_TELEPORT = true;
     /** Fresh installs enable only these client-side inventory presentation helpers. */
     public static final boolean DEFAULT_ROMAN_NUMERALS = true;
     public static final boolean DEFAULT_TOOLTIP_SCROLL = true;
@@ -33,6 +35,8 @@ public final class AssistSettings {
     public static boolean rarityHighlight;
     /** Whole-number percentage of vanilla's local hurt-camera tilt. Zero removes only that tilt. */
     public static int hurtCameraShake;
+    /** Render-only Aspect of the End/Void discontinuity veil. It never changes movement or packets. */
+    public static boolean smoothAspectTeleport;
 
     public static boolean autoSprint;
     public static boolean wardrobeShortcut;
@@ -61,7 +65,8 @@ public final class AssistSettings {
 
     /**
      * Existing configurations must not acquire a new visible inventory behavior merely because an old file lacks a
-     * newly-defaulted key. Gameplay, network and input assists remain opt-in in both paths.
+     * newly-defaulted key. Gameplay, network and input assists remain opt-in in both paths; the separately requested
+     * Aspect transition is a bounded render-only effect, so it is safe to default on for either configuration age.
      */
     private static void resetDefaults(boolean freshInstall) {
         miningAbilityAlert = false;
@@ -71,6 +76,7 @@ public final class AssistSettings {
         tooltipScroll = freshInstall && DEFAULT_TOOLTIP_SCROLL;
         rarityHighlight = freshInstall && DEFAULT_RARITY_HIGHLIGHT;
         hurtCameraShake = DEFAULT_HURT_CAMERA_SHAKE;
+        smoothAspectTeleport = DEFAULT_SMOOTH_ASPECT_TELEPORT;
         autoSprint = false;
         wardrobeShortcut = false;
         petsShortcut = false;
@@ -100,6 +106,7 @@ public final class AssistSettings {
         tooltipScroll = bool(p, "inventory.tooltipScroll", "scrollableTooltipsEnabled", tooltipScroll);
         rarityHighlight = bool(p, "inventory.rarityHighlight", "itemRarityBordersEnabled", rarityHighlight);
         hurtCameraShake = hurtCameraShake(p);
+        smoothAspectTeleport = bool(p, "visual.smoothAspectTeleport", null, smoothAspectTeleport);
         // Retired Item Protection keys (assist.itemGuard.* and old itemProtection*) are deliberately unread.
         autoSprint = bool(p, "movement.autoSprint", "autoSprintEnabled", false);
         wardrobeShortcut = bool(p, "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
@@ -137,6 +144,7 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "inventory.tooltipScroll", Boolean.toString(tooltipScroll));
         p.setProperty(PREFIX + "inventory.rarityHighlight", Boolean.toString(rarityHighlight));
         p.setProperty(PREFIX + "visual.hurtCameraShake", Integer.toString(hurtCameraShake));
+        p.setProperty(PREFIX + "visual.smoothAspectTeleport", Boolean.toString(smoothAspectTeleport));
         p.setProperty(PREFIX + "movement.autoSprint", Boolean.toString(autoSprint));
         p.setProperty(PREFIX + "shortcuts.wardrobe", Boolean.toString(wardrobeShortcut));
         p.setProperty(PREFIX + "shortcuts.pets", Boolean.toString(petsShortcut));

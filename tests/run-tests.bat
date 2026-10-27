@@ -61,6 +61,7 @@ call :run com.arena.pekaclient.config.AssistSettingsTests || goto fail
 call :run com.arena.pekaclient.assist.AssistFeatureTests || goto fail
 call :run com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests || goto fail
+call :run com.arena.pekaclient.dungeonesp.DungeonEspEndermanHeadPolicyTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.WitherDoorCacheTests || goto fail
 call :run com.arena.pekaclient.gui.InlineEspCatalogTests || goto fail
@@ -84,6 +85,7 @@ call :run com.arena.pekaclient.feature.HotbarScrollPolicyTests || goto fail
 call :run com.arena.pekaclient.feature.BlockParticlePolicyTests || goto fail
 call :run com.arena.pekaclient.render.blockparticles.BlockParticleTransformerTests || goto fail
 call :run com.arena.pekaclient.assist.visual.VisualAssistTransformerTests || goto fail
+call :run com.arena.pekaclient.assist.visual.AspectTeleportTransitionPolicyTests || goto fail
 call :run com.arena.pekaclient.feature.ItemAnimationTests || goto fail
 call :run com.arena.pekaclient.feature.VisualSwingStateMachineTests || goto fail
 call :run com.arena.pekaclient.feature.SwingEasingTests || goto fail

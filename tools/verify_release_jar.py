@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.3v] [--mcmod-version 0.10.9.1.3]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.4v] [--mcmod-version 0.10.9.1.4]
 """
 
 import argparse
@@ -115,6 +115,7 @@ REQUIRED_CLASSES = [
     'dungeonesp/WitherDoorCache',
     'dungeonesp/DungeonEspRenderBatch',
     'dungeonesp/DungeonEspMarkerBounds',
+    'dungeonesp/DungeonEspEndermanHeadPolicy',
     'dungeonesp/DungeonEspMobDisplay',
     'render/itemanimation/ItemAnimationHooks',
     'render/itemanimation/ItemAnimationHookStatus',
@@ -166,6 +167,8 @@ REQUIRED_CLASSES = [
     'assist/visual/VisualAssistHookStatus',
     'assist/visual/VisualAssistHooks',
     'assist/visual/VisualAssistTransformer',
+    'assist/visual/AspectTeleportTransitionPolicy',
+    'assist/visual/AspectTeleportTransitionRenderer',
     'hud/MiningAssistantHud',
     'hud/DungeonBossHud',
 ]
@@ -349,8 +352,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.3v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.3')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.4v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.4')
     args = ap.parse_args()
 
     path = args.jar
@@ -611,11 +614,22 @@ def main():
     sync_manager_raw = raw_of('assist/sync/DungeonSyncManager')
     terminal_raw = raw_of('assist/dungeon/DungeonTerminalAssistController')
     mining_raw = raw_of('assist/mining/MiningAssistController')
+    aspect_policy_raw = raw_of('assist/visual/AspectTeleportTransitionPolicy')
+    aspect_renderer_raw = raw_of('assist/visual/AspectTeleportTransitionRenderer')
     r.check(all(value in assist_settings_raw for value in
-                (b'assist.visual.hurtCameraShake', b'assist.movement.autoSprint', b'assist.comfort.hideDeadMobs',
-                 b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint', b'assist.dungeon.terminal.autoClick',
-                 b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
-            'AssistSettings retains bounded Hurt Camera Shake, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
+                (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.movement.autoSprint',
+                 b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
+                 b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
+            'AssistSettings retains bounded Hurt Camera Shake, render-only Smooth Aspect Teleport, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
+    r.check(all(value in aspect_policy_raw for value in
+                (b'Aspect of the End', b'Aspect of the Void', b'isLargePositionJump', b'veilAlpha', b'DURATION_NANOS'))
+                and all(value in aspect_renderer_raw for value in
+                        (b'smoothAspectTeleport', b'getHeldItem', b'UIRender', b'observedWorld'))
+                and all(value not in aspect_renderer_raw for value in
+                        (b'sendPacket', b'sendQueue', b'playerController', b'setPosition', b'setLocationAndAngles')),
+            'Smooth Aspect Teleport packages only held-item/jump observation and a bounded HUD veil, with no movement or packet path')
+    r.check(b'AspectTeleportTransitionRenderer' in client_raw and b'aspectTeleportTransition' in client_raw,
+            'client tick and overlay bridge package the Aspect visual transition renderer')
     r.check(all(value in sync_client_raw for value in (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
                 and b'DungeonSyncEnvironment' in sync_manager_raw and b'rememberSyncedPuzzle' in sync_manager_raw,
@@ -629,6 +643,7 @@ def main():
     esp_tracker_raw = raw_of('dungeonesp/DungeonEspTracker')
     esp_batch_raw = raw_of('dungeonesp/DungeonEspRenderBatch')
     esp_marker_bounds_raw = raw_of('dungeonesp/DungeonEspMarkerBounds')
+    esp_enderman_head_policy_raw = raw_of('dungeonesp/DungeonEspEndermanHeadPolicy')
     esp_display_raw = raw_of('dungeonesp/DungeonEspMobDisplay')
     esp_command_raw = raw_of('command/ItemDebugCommand')
     r.check(all(value in esp_settings_constants for value in
@@ -637,7 +652,7 @@ def main():
             'DungeonEspSettings packages the persisted modes, door scope and color palette')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Starred Mobs', b'Wither Door Style', b'Blood Door Color', b'Starred Mob Labels', b'Maximum Labels',
-                 b'Hide Dead Mobs'))
+                 b'Hide Dead Mobs', b'Smooth Aspect Teleport', b'smooth-aspect-teleport'))
                 and all(value not in reference_catalog_raw for value in
                         (b'Other Mobs', b'Force All Room Mobs', b'Include Bats', b'Include Invisible Mobs',
                          b'Copy Starred Mob Style', b'Apply Copied Style', b'Apply Style To All', b'esp-skeletor',
@@ -646,21 +661,25 @@ def main():
             'flat ESP tables retain Starred Mobs and Door controls while old categories, tracers, mob presets and room-wide controls stay absent')
     r.check(all(value in esp_batch_raw for value in
                 (b'DungeonEspMobDisplay', b'layoutMobLabels', b'drawLabelBackdrop', b'restoreWorldRenderState',
-                 b'AssistSettings', b'hideDeadMobs', b'DungeonEspMarkerBounds'))
-                and all(value in esp_marker_bounds_raw for value in (b'HALF_WIDTH', b'HEIGHT'))
+                 b'AssistSettings', b'hideDeadMobs', b'DungeonEspMarkerBounds', b'isLocalPlayerEntity'))
+                and all(value in esp_marker_bounds_raw for value in (b'HALF_WIDTH', b'MIN_Y_OFFSET', b'HEIGHT'))
+                and all(value in esp_enderman_head_policy_raw for value in
+                        (b'MAX_MARKER_ABOVE_PLAYER', b'belowPlayerCeiling', b'acceptsAssociatedCategory', b'isNearbyTag'))
                 and all(value in esp_display_raw for value in (b'MINIBOSS', b'SPECIAL', b'ENDERMAN', b'HARD_LABEL_CAP'))
                 and b'SKELETOR' not in esp_display_raw and b'drawTracers' not in esp_batch_raw
                 and b'HOSTILE' not in esp_display_raw,
-            'Starred Mobs keeps bounded labels, death-animation cleanup, tight Fel marker bounds and no tracer draw path')
+            'Starred Mobs keeps bounded labels, local-player live exclusion, conservative Fel marker bounds and no tracer draw path')
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
-                 b'AssistSettings', b'hideDeadMobs', b'SkullOwner', b'espDump'))
+                 b'AssistSettings', b'hideDeadMobs', b'SkullOwner', b'localPlayer', b'espDump'))
+                and all(value in esp_tracker_raw for value in
+                        (b'localPlayer', b'belowPlayerCeiling', b'hasStarredEndermanAssociation'))
                 and all(value not in esp_controller_raw for value in
                         (b'forceRenderAllMobs', b'includeBats', b'includeInvisibleMobs'))
                 and b'FORCE_ROOM_MOB' not in esp_tracker_raw
                 and b'RenderWorldLastEvent' in esp_controller_raw and b'espdebug' in esp_command_raw
                 and b'espdump' in esp_command_raw and b'MAX_CANDIDATES' in esp_tracker_raw,
-            'Starred Mobs runtime retains timer caching, NPC tag association, head support and diagnostics without a generic room fallback')
+            'Starred Mobs runtime retains timer caching, local-player/NPC separation, star-gated head support and diagnostics without a generic room fallback')
 
     item_panel_constants = constants_of('gui/ItemAnimationPanelModel')
     hud_editor_raw = raw_of('gui/HudEditorScreen')

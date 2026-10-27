@@ -89,7 +89,7 @@ public final class DungeonEspController {
         boolean scanned = false;
         if (entering || ++entityTicks >= interval) {
             entityTicks = 0;
-            entitySource.setWorld(world);
+            entitySource.setWorld(world, player);
             long started = System.nanoTime();
             tracker.scan(entitySource, player.posX, player.posY, player.posZ,
                     DungeonEspSettings.maxDistance, AssistSettings.hideDeadMobs);
@@ -120,7 +120,7 @@ public final class DungeonEspController {
         double cameraY = renderManager.viewerPosY;
         double cameraZ = renderManager.viewerPosZ;
         renderBatch.begin(cameraX, cameraY, cameraZ);
-        renderBatch.collectMobs(tracker, player.posX, player.posY, player.posZ,
+        renderBatch.collectMobs(tracker, player, player.posX, player.posY, player.posZ,
                 cameraX, cameraY, cameraZ, event.partialTicks);
         collectDoors(player);
         renderBatch.render(minecraft, renderManager, cameraX, cameraY, cameraZ);
@@ -199,7 +199,7 @@ public final class DungeonEspController {
                     + " force=" + (hostile ? "hostile" : (bat ? "bat" : "non-hostile"))
                     + (invisible ? "/invisible" : "") + (npc ? "/npc" : "") + (pet ? "/pet" : "")
                     + " geometry=" + (reason == DungeonEspMatchReason.ENDERMAN_HEAD
-                            ? "fixed-0.76x1.85/" + boxText(box) : boxText(box))
+                            ? "fixed-0.68x1.60/" + boxText(box) : boxText(box))
                     + " espMatch=" + selected + "/" + reason.text());
         }
         if (nearby == 0) lines.add("No nearby entities inside the ESP range.");
@@ -311,9 +311,11 @@ public final class DungeonEspController {
     /** Thin adapter that fills the tracker scratch object in-place and never creates a per-entity snapshot. */
     private static final class MinecraftEntitySource implements DungeonEspTracker.EntitySource {
         private List<Entity> entities;
+        private EntityPlayerSP localPlayer;
 
-        void setWorld(World world) {
+        void setWorld(World world, EntityPlayerSP player) {
             entities = world == null ? null : world.loadedEntityList;
+            localPlayer = player;
         }
 
         @Override
@@ -327,6 +329,8 @@ public final class DungeonEspController {
             Entity entity = entities.get(index);
             if (entity == null) return;
             into.id = entity.getEntityId();
+            // Identity is used rather than EntityPlayer alone: player-shaped dungeon NPCs remain valid candidates.
+            into.localPlayer = entity == localPlayer;
             into.x = entity.posX;
             into.y = entity.posY;
             into.z = entity.posZ;

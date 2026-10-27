@@ -28,6 +28,7 @@ final class InlineSettingsBindings {
         if ("no-block-particles".equals(id)) return AppleSettings.noBlockParticles;
         if ("disable-hotbar-scrolling".equals(id)) return AppleSettings.disableHotbarScrolling;
         if ("auto-sprint".equals(id)) return AssistSettings.autoSprint;
+        if ("smooth-aspect-teleport".equals(id)) return AssistSettings.smoothAspectTeleport;
 
         if ("item-lock-swap".equals(id)) return ItemLockSwapSettings.enabled;
         if ("item-lock-icons".equals(id)) return ItemLockSwapSettings.showLockIcons;
@@ -128,6 +129,7 @@ final class InlineSettingsBindings {
         if ("no-block-particles".equals(id)) AppleSettings.noBlockParticles = value;
         else if ("disable-hotbar-scrolling".equals(id)) AppleSettings.disableHotbarScrolling = value;
         else if ("auto-sprint".equals(id)) AssistSettings.autoSprint = value;
+        else if ("smooth-aspect-teleport".equals(id)) AssistSettings.smoothAspectTeleport = value;
         else if ("hide-dead-mobs".equals(id)) AssistSettings.hideDeadMobs = value;
 
         else if ("item-lock-swap".equals(id)) ItemLockSwapSettings.enabled = value;

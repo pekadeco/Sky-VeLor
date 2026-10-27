@@ -54,6 +54,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.config.AssistSettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.AssistFeatureTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests
+java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspEndermanHeadPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspMarkerBoundsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.WitherDoorCacheTests
@@ -79,6 +80,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.feature.HotbarScrollPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.BlockParticlePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.render.blockparticles.BlockParticleTransformerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.VisualAssistTransformerTests
+java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.AspectTeleportTransitionPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ItemAnimationTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.VisualSwingStateMachineTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.SwingEasingTests

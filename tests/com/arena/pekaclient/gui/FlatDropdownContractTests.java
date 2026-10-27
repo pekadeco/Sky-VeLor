@@ -107,6 +107,7 @@ public final class FlatDropdownContractTests {
 
     private static void requestedFeatureRowsUseTheirRequiredTypes() {
         ReferenceSettingsCatalog.Setting hurt = ReferenceSettingsCatalog.find("hurt-camera-shake");
+        ReferenceSettingsCatalog.Setting aspect = ReferenceSettingsCatalog.find("smooth-aspect-teleport");
         ReferenceSettingsCatalog.Setting leap = ReferenceSettingsCatalog.find("spirit-leap");
         ReferenceSettingsCatalog.Setting terminal = ReferenceSettingsCatalog.find("terminal-assist");
         ReferenceSettingsCatalog.Setting boss = ReferenceSettingsCatalog.find("dungeon-boss-hud");
@@ -114,6 +115,9 @@ public final class FlatDropdownContractTests {
         ReferenceSettingsCatalog.Setting hud = ReferenceSettingsCatalog.find("hud-editor");
         check("Hurt Camera Shake is one inline slider", hurt != null && hurt.control == ReferenceSettingsCatalog.Control.SLIDER
                 && ReferenceSettingsCatalog.find("hurt-camera") == null);
+        check("Smooth Aspect Teleport is a direct Player visual toggle", aspect != null
+                && aspect.control == ReferenceSettingsCatalog.Control.TOGGLE
+                && ReferenceSettingsCatalog.ownerOf("smooth-aspect-teleport") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
         check("Spirit Leap is a master dropdown with its key inside", leap != null && leap.isDropdown()
                 && leap.hasMasterToggle() && contains(leap, "leap-key"));
         check("Terminal Helper is a no-master dropdown", terminal != null && terminal.isDropdown()

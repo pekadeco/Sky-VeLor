@@ -1,5 +1,31 @@
 # Changelog
 
+## Beta-0.10.9.1.4v — 2026-10-27
+
+### Fixed
+
+- Dungeon ESP now excludes the local player by identity in its cached scanner and live render collector, so the client
+  cannot receive a dungeon mob outline/hitbox. Player-shaped dungeon NPCs remain eligible when a real nearby dungeon
+  tag selects them.
+- Enderman/Fel skull markers now require explicit star evidence (their own star or a nearby resolved Starred/Special
+  tag), and markers at least two blocks above the player are suppressed. Their fixed proxy is refined to a
+  head-focused `0.68 × 1.60` blocks.
+
+### Added
+
+- **Player → Comfort → Smooth Aspect Teleport**, persisted as `assist.visual.smoothAspectTeleport` and enabled by
+  default. It observes only an already-completed local Aspect of the End/Void position jump and draws a `220 ms`
+  render-only visual ease veil. It does not initiate movement or teleports, write player/camera coordinates, alter
+  input, or send packets.
+
+### Verification boundary
+
+- Added pure scanner/head-policy/marker-geometry and Aspect-transition-policy regressions, config and inline-owner
+  coverage, and packaged-JAR checks for the local-player render guard, star evidence, height suppression, and
+  render-only transition boundary.
+- Automated checks do not launch Minecraft; the local-player exclusion, Enderman marker placement, and visual
+  transition still require a real Minecraft 1.8.9 Forge in-game pass.
+
 ## Beta-0.10.9.1.3v — 2026-10-27
 
 - Compacted the normal native settings shell to 72% safe width / 78% safe height with a `720 × 480` logical cap.

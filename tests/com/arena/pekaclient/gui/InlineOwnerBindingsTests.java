@@ -20,12 +20,14 @@ public final class InlineOwnerBindingsTests {
     private static void booleanOwnersRemainDirect() {
         boolean oldParticles = AppleSettings.noBlockParticles;
         boolean oldSprint = AssistSettings.autoSprint;
+        boolean oldAspectTeleport = AssistSettings.smoothAspectTeleport;
         boolean oldHideDead = AssistSettings.hideDeadMobs;
         boolean oldMap = AppleSettings.dungeonMap;
         boolean oldChat = ChatQolSettings.enabled;
         try {
             InlineSettingsBindings.setBoolean("no-block-particles", !oldParticles);
             InlineSettingsBindings.setBoolean("auto-sprint", !oldSprint);
+            InlineSettingsBindings.setBoolean("smooth-aspect-teleport", !oldAspectTeleport);
             InlineSettingsBindings.setBoolean("hide-dead-mobs", !oldHideDead);
             InlineSettingsBindings.setBoolean("dungeon-map", !oldMap);
             InlineSettingsBindings.setBoolean("chat-qol", !oldChat);
@@ -33,6 +35,8 @@ public final class InlineOwnerBindingsTests {
                     && InlineSettingsBindings.booleanValue("no-block-particles") == !oldParticles);
             check("sprint row writes AssistSettings owner", AssistSettings.autoSprint == !oldSprint
                     && InlineSettingsBindings.booleanValue("auto-sprint") == !oldSprint);
+            check("Smooth Aspect Teleport writes its AssistSettings visual owner", AssistSettings.smoothAspectTeleport == !oldAspectTeleport
+                    && InlineSettingsBindings.booleanValue("smooth-aspect-teleport") == !oldAspectTeleport);
             check("Hide Dead Mobs writes the Player Comfort AssistSettings owner", AssistSettings.hideDeadMobs == !oldHideDead
                     && InlineSettingsBindings.booleanValue("hide-dead-mobs") == !oldHideDead);
             check("map row writes original dungeon-map owner", AppleSettings.dungeonMap == !oldMap
@@ -42,6 +46,7 @@ public final class InlineOwnerBindingsTests {
         } finally {
             AppleSettings.noBlockParticles = oldParticles;
             AssistSettings.autoSprint = oldSprint;
+            AssistSettings.smoothAspectTeleport = oldAspectTeleport;
             AssistSettings.hideDeadMobs = oldHideDead;
             AppleSettings.dungeonMap = oldMap;
             ChatQolSettings.enabled = oldChat;

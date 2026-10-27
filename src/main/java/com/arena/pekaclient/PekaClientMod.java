@@ -7,6 +7,7 @@ import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonWaypointController;
 import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.movement.AutoSprintController;
+import com.arena.pekaclient.assist.visual.AspectTeleportTransitionRenderer;
 import com.arena.pekaclient.command.ClientActions;
 import com.arena.pekaclient.command.ItemDebugCommand;
 import com.arena.pekaclient.command.PriceSetCommand;
@@ -131,6 +132,7 @@ public class PekaClientMod {
     private final DungeonMapOverlay dungeonMapOverlay = new DungeonMapOverlay();
     private final DungeonSyncManager dungeonSyncManager = new DungeonSyncManager(dungeonMapOverlay);
     private final DungeonEspController dungeonEspController = new DungeonEspController();
+    private final AspectTeleportTransitionRenderer aspectTeleportTransition = new AspectTeleportTransitionRenderer();
     private final DragonKillAlert dragonKill = new DragonKillAlert(m7Overlay);
     private final TerminalSolver terminalSolver = new TerminalSolver();
     private final FishingStats fishingStats = new FishingStats();
@@ -243,6 +245,8 @@ public class PekaClientMod {
             dragonKill.tick(System.currentTimeMillis());
             return;
         }
+        // This only observes the client's completed position and draws a brief HUD veil; it never changes movement.
+        aspectTeleportTransition.tick(mc);
         ClientActions.run(mc);
         if (OPEN_KEY.isPressed() && mc.currentScreen == null) {
             mc.displayGuiScreen(new AppleSettingsScreen(null));
@@ -362,6 +366,8 @@ public class PekaClientMod {
         Minecraft mc = Minecraft.getMinecraft();
         // The editor draws the elements itself, so skip the in-game copy while it is open.
         if (!(mc.currentScreen instanceof HudEditorScreen) && HudManager.visibleInGame()) {
+            // Draw first so retained HUD elements stay legible through the short visual teleport transition.
+            aspectTeleportTransition.render(event.resolution);
             HudManager.render(event.resolution);
         }
     }

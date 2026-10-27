@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.3v
+# Apple settings inventory — Beta-0.10.9.1.4v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -56,6 +56,10 @@ last expanded option. Reset behavior continues to use the established owners; no
 dropdown was added.
 
 - **Hurt Camera Shake** is one inline slider.
+- **Player → Comfort → Smooth Aspect Teleport** is a direct toggle backed by
+  `assist.visual.smoothAspectTeleport`. It defaults on and draws only a 220 ms HUD-space ease veil after an
+  already-observed local Aspect of the End/Void position jump. It does not initiate a teleport, write player/camera
+  coordinates, alter input, or send packets.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
 - **Boss Health HUD** is a master toggle plus **Edit**.
@@ -63,7 +67,8 @@ dropdown was added.
 - **Item Animation** is a master toggle plus **Edit**.
 - **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its four retained target styles
   are Starred Mob, Miniboss, Special Starred Mob, and Enderman. A star-tagged Skeletor resolves through normal
-  Starred Mob styling; player-shaped/NPC bodies remain eligible when a nearby tag selects them.
+  Starred Mob styling; player-shaped/NPC bodies remain eligible when a nearby tag selects them, while the local
+  player is excluded by identity in both scan and live render collection.
 - **Player → Comfort → Hide Dead Mobs** is on by default. It owns `assist.comfort.hideDeadMobs`, migrates the former
   `dungeonEsp.hideZeroHealth` choice, and hides zero-health or `deathTime > 0` living targets before despawn.
 - The former Other Mobs/Force All Room Mobs fallback, dedicated Skeletor style, tracer path, Starred Mobs
@@ -71,8 +76,9 @@ dropdown was added.
   `dungeonEsp.otherMobs.*`, `dungeonEsp.forceRenderAllMobs`, `dungeonEsp.includeBats`,
   `dungeonEsp.includeInvisibleMobs`, `dungeonEsp.skeletor.*`, and `dungeonEsp.tracers` keys load harmlessly and
   are removed on the next normal save.
-- Enderman/Fel armor-stand head markers retain a tight `0.76 × 1.85` fixed proxy rather than the retired oversized
-  `1.1 × 2.7` outline.
+- Enderman/Fel armor-stand head markers use a head-focused `0.68 × 1.60` fixed proxy rather than the retired
+  `1.1 × 2.7` outline. A shared head texture alone is not enough: direct markers require their own star or a nearby
+  resolved Starred/Special tag, and a marker at least two blocks above the local player is suppressed.
 - Map, Item Lock / Swap, inventory, movement, Slayer, M7, Starred Mobs/Door ESP, mining, fishing, and Misc
   owners retain their active option ids and configuration owners.
 - **Misc → Appearance** exposes **Custom GUI Transparency** plus **GUI Transparency**. These controls retain
@@ -103,7 +109,7 @@ Animation values continue to load unchanged.
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.3v text |
+| Earlier player-facing text | Beta-0.10.9.1.4v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -117,6 +123,7 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 | `Item Animation Editor` route | `Item Animation` with `[Edit]` |
 | `Mob ESP` | `Starred Mobs` |
 | `Hide Zero Health` under Starred Mobs | `Hide Dead Mobs` under Player → Comfort |
+| No Aspect visual easing | `Smooth Aspect Teleport` under Player → Comfort; render-only |
 | Dedicated Skeletor style | Normal `Starred Mob` style for star-tagged Skeletor |
 | Tracers; Starred Mobs Default/Subtle actions | Removed; legacy keys clean up on save |
 | `Other Mobs`, Force All Room Mobs, bat/invisible controls | Removed; legacy keys clean up on save |
@@ -149,8 +156,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.3v.jar \
-  --version Beta-0.10.9.1.3v --mcmod-version 0.10.9.1.3
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.4v.jar \
+  --version Beta-0.10.9.1.4v --mcmod-version 0.10.9.1.4
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

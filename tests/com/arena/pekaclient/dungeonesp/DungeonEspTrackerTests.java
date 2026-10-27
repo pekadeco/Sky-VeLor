@@ -17,6 +17,8 @@ public final class DungeonEspTrackerTests {
         nearestUnmatchedBodiesAndDeathsAreHandled();
         dyingBodiesAreHiddenBeforeDespawn();
         realAndHeadEndermenAreHandled();
+        directHeadMarkersRequireStarEvidenceAndRespectPlayerCeiling();
+        localPlayerIsNeverSelectedWhileNpcBodiesStillWork();
         taggedNpcBodiesAreSelectedWhileUntaggedMobsStayExcluded();
         mockFiveHundredEntitySteadyStateReusesStorage();
         done();
@@ -133,14 +135,40 @@ public final class DungeonEspTrackerTests {
                 && real.matchReason == DungeonEspMatchReason.REAL_ENDERMAN && !real.fixedArmorStandBox);
 
         DungeonEspTracker headTracker = new DungeonEspTracker();
-        MockSource headWorld = new MockSource(1);
+        MockSource headWorld = new MockSource(2);
         Object head = new Object();
         headWorld.setEndermanHead(0, 31, 4D, 65D, 4D, "Fel head marker", head);
+        headWorld.setTag(1, 32, 4.1D, 65D, 4D, "\u272e [Lv100] Enderman");
         headTracker.scan(headWorld, 0D, 64D, 0D, 60D, true);
         DungeonEspTracker.TrackedMob marker = find(headTracker, 31);
         check("Enderman-head armor stand gets fixed target", marker != null
                 && marker.category == DungeonEspCategory.ENDERMAN && marker.fixedArmorStandBox
                 && marker.matchReason == DungeonEspMatchReason.ENDERMAN_HEAD);
+    }
+
+    private static void directHeadMarkersRequireStarEvidenceAndRespectPlayerCeiling() {
+        DungeonEspTracker unstarredTracker = new DungeonEspTracker();
+        MockSource unstarredWorld = new MockSource(1);
+        unstarredWorld.setEndermanHead(0, 40, 5D, 65D, 5D, "Fel head marker", new Object());
+        unstarredTracker.scan(unstarredWorld, 0D, 64D, 0D, 60D, true);
+        check("unstarred Enderman skull never becomes a direct marker", unstarredTracker.trackedCount() == 0);
+
+        DungeonEspTracker elevatedTracker = new DungeonEspTracker();
+        MockSource elevatedWorld = new MockSource(2);
+        elevatedWorld.setEndermanHead(0, 41, 5D, 66D, 5D, "Fel head marker", new Object());
+        elevatedWorld.setTag(1, 42, 5D, 66D, 5D, "\u272e [Lv100] Enderman");
+        elevatedTracker.scan(elevatedWorld, 0D, 64D, 0D, 60D, true);
+        check("marker two blocks above player is suppressed even with a star tag", elevatedTracker.trackedCount() == 0);
+    }
+
+    private static void localPlayerIsNeverSelectedWhileNpcBodiesStillWork() {
+        DungeonEspTracker tracker = new DungeonEspTracker();
+        MockSource world = new MockSource(2);
+        world.setTag(0, 50, 2D, 66.7D, 2D, "\u272e [Lv100] Zombie");
+        world.setLocalPlayer(1, 51, 2D, 64D, 2D);
+        tracker.scan(world, 0D, 64D, 0D, 60D, true);
+        check("local player is excluded from a nearby dungeon star tag", tracker.trackedCount() == 0
+                && find(tracker, 51) == null);
     }
 
     private static void taggedNpcBodiesAreSelectedWhileUntaggedMobsStayExcluded() {
@@ -267,6 +295,10 @@ public final class DungeonEspTrackerTests {
             m.y = y;
             m.z = z;
         }
+        void setLocalPlayer(int index, int id, double x, double y, double z) {
+            setPlayer(index, id, x, y, z);
+            entities[index].localPlayer = true;
+        }
         @Override public int size() { return entities.length; }
         @Override public void read(int index, DungeonEspTracker.MutableEntity into) {
             Mock m = entities[index];
@@ -279,6 +311,7 @@ public final class DungeonEspTrackerTests {
             into.armorStand = m.armorStand;
             into.living = m.living;
             into.player = m.player;
+            into.localPlayer = m.localPlayer;
             into.dead = m.dead;
             into.dying = m.dying;
             into.enderman = m.enderman;
@@ -298,7 +331,7 @@ public final class DungeonEspTrackerTests {
         int id;
         double x, y, z, height = 1.8D;
         float health = Float.NaN;
-        boolean armorStand, living, player, dead, dying, enderman, endermanHead;
+        boolean armorStand, living, player, localPlayer, dead, dying, enderman, endermanHead;
         boolean hostile, bat, invisible, npc, pet;
         String headTexture, name;
         Object reference;
@@ -307,7 +340,7 @@ public final class DungeonEspTrackerTests {
             x = y = z = 0D;
             height = 1.8D;
             health = Float.NaN;
-            armorStand = living = player = dead = dying = enderman = endermanHead = false;
+            armorStand = living = player = localPlayer = dead = dying = enderman = endermanHead = false;
             hostile = bat = invisible = npc = pet = false;
             headTexture = null;
             name = null;
