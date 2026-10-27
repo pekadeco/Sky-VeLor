@@ -16,7 +16,7 @@ public final class DungeonRunReadout {
     private static final Pattern SECRETS_PERCENT = Pattern.compile(
             "(?i)\\bsecrets?(?:\\s+found)?\\s*[:=]?\\s*(\\d{1,3})\\s*%");
     private static final Pattern TIME = Pattern.compile(
-            "(?i)\\btime\\s*[:=]?\\s*(\\d{1,2}):(\\d{2})\\b");
+            "(?i)\\btime(?:\\s+elapsed)?\\s*[:=]?\\s*(\\d{1,2}):(\\d{2})\\b");
     private static final Pattern CLEARED = Pattern.compile(
             "(?i)\\bcleared\\s*[:=]?\\s*(\\d{1,3})\\s*%");
     private static final Pattern DEATHS = Pattern.compile(
