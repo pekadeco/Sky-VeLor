@@ -17,8 +17,8 @@ public final class AssistSettingsTests {
 
     private static void defaultsAreSafeAndVanillaCameraIsFullStrength() {
         AssistSettings.load(new Properties());
-        check("intrusive controls default off", !AssistSettings.autoSprint && !AssistSettings.dungeonSync
-                && !AssistSettings.terminalAutoClick && !AssistSettings.miningAbilityAlert);
+        check("intrusive controls and opt-in locator default off", !AssistSettings.autoSprint && !AssistSettings.dungeonSync
+                && !AssistSettings.terminalAutoClick && !AssistSettings.miningAbilityAlert && !AssistSettings.spiritBowLocator);
         check("fresh local inventory presentation is useful by default", AssistSettings.romanNumerals
                 && AssistSettings.tooltipScroll && AssistSettings.rarityHighlight && !AssistSettings.hidePotionEffects);
         check("dead dungeon ESP targets are hidden by default", AssistSettings.hideDeadMobs);
@@ -47,6 +47,7 @@ public final class AssistSettingsTests {
         check("established config does not acquire newly defaulted inventory visuals", !AssistSettings.romanNumerals
                 && !AssistSettings.tooltipScroll && !AssistSettings.rarityHighlight);
         check("established config receives the safe render-only Aspect transition default", AssistSettings.smoothAspectTeleport);
+        check("established config keeps the new Spirit Bow locator opt-in", !AssistSettings.spiritBowLocator);
         Properties rewritten = new Properties();
         rewritten.putAll(old);
         AssistSettings.save(rewritten);
@@ -119,6 +120,7 @@ public final class AssistSettingsTests {
         AssistSettings.hideDeadMobs = false;
         AssistSettings.dungeonSync = true;
         AssistSettings.dungeonSyncEndpoint = "wss://sync.example.org/ws";
+        AssistSettings.spiritBowLocator = true;
         AssistSettings.terminalHints = true;
         AssistSettings.terminalAutoClick = true;
         AssistSettings.terminalScale = 222;
@@ -128,12 +130,12 @@ public final class AssistSettingsTests {
                 && saved.containsKey("assist.visual.hurtCameraShake")
                 && saved.containsKey("assist.visual.smoothAspectTeleport") && saved.containsKey("assist.movement.autoSprint")
                 && saved.containsKey("assist.comfort.hideDeadMobs") && saved.containsKey("assist.dungeon.sync.enabled")
-                && saved.containsKey("assist.dungeon.terminal.autoClick")
+                && saved.containsKey("assist.dungeon.spiritBowLocator") && saved.containsKey("assist.dungeon.terminal.autoClick")
                 && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.hurtCameraShake == 44
                 && !AssistSettings.smoothAspectTeleport && AssistSettings.autoSprint && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
-                && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint)
+                && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint) && AssistSettings.spiritBowLocator
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222);
         saved.setProperty("assist.visual.smoothAspectTeleport", "true");
         AssistSettings.load(saved);

@@ -1,5 +1,7 @@
 package com.arena.pekaclient.command;
 
+import com.arena.pekaclient.assist.dungeon.DungeonRunTracker;
+import com.arena.pekaclient.assist.dungeon.SpiritBowLocator;
 import com.arena.pekaclient.feature.ChatChannelTabs;
 import com.arena.pekaclient.feature.ItemAnimation;
 import com.arena.pekaclient.dungeonesp.DungeonEspController;
@@ -57,6 +59,8 @@ public final class ItemDebugCommand extends CommandBase {
         if (args.length == 1 && "selftest".equalsIgnoreCase(args[0])) {
             say(sender, "Item Lock / Swap hook: " + (ItemLockSwapHookStatus.isActive() ? "ACTIVE" : "FAILED")
                     + " (" + ItemLockSwapHookStatus.getReason() + ").");
+            say(sender, "Dungeon Run HUD hook: " + DungeonRunTracker.selfTestStatus() + ".");
+            say(sender, "Spirit Bow Locator hook: " + SpiritBowLocator.selfTestStatus() + ".");
             return;
         }
         if (args.length == 1 && ("itemanimation".equalsIgnoreCase(args[0])

@@ -47,6 +47,8 @@ public final class AssistSettings {
     public static boolean dungeonSync;
     public static boolean dungeonSyncDebug;
     public static String dungeonSyncEndpoint;
+    /** Read-only client-world locator for nearby Spirit Bow marker stands. */
+    public static boolean spiritBowLocator;
 
     public static boolean terminalHints;
     public static boolean terminalAutoClick;
@@ -85,6 +87,7 @@ public final class AssistSettings {
         dungeonSync = false;
         dungeonSyncDebug = false;
         dungeonSyncEndpoint = DEFAULT_SYNC_ENDPOINT;
+        spiritBowLocator = false;
         terminalHints = false;
         terminalAutoClick = false;
         terminalHideIncorrect = false;
@@ -117,6 +120,7 @@ public final class AssistSettings {
         dungeonSync = bool(p, "dungeon.sync.enabled", "dungeonSyncEnabled", false);
         dungeonSyncDebug = bool(p, "dungeon.sync.debug", "dungeonSyncDebug", false);
         dungeonSyncEndpoint = endpoint(value(p, "dungeon.sync.endpoint", "dungeonSyncEndpoint", DEFAULT_SYNC_ENDPOINT));
+        spiritBowLocator = bool(p, "dungeon.spiritBowLocator", null, false);
         terminalHints = bool(p, "dungeon.terminal.hints", "terminalVisualHints", false);
         terminalAutoClick = bool(p, "dungeon.terminal.autoClick", "terminalAutoClick", false);
         terminalHideIncorrect = bool(p, "dungeon.terminal.hideIncorrect", "terminalHideIncorrect", false);
@@ -152,6 +156,7 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "dungeon.sync.enabled", Boolean.toString(dungeonSync));
         p.setProperty(PREFIX + "dungeon.sync.debug", Boolean.toString(dungeonSyncDebug));
         p.setProperty(PREFIX + "dungeon.sync.endpoint", dungeonSyncEndpoint);
+        p.setProperty(PREFIX + "dungeon.spiritBowLocator", Boolean.toString(spiritBowLocator));
         p.setProperty(PREFIX + "dungeon.terminal.hints", Boolean.toString(terminalHints));
         p.setProperty(PREFIX + "dungeon.terminal.autoClick", Boolean.toString(terminalAutoClick));
         p.setProperty(PREFIX + "dungeon.terminal.hideIncorrect", Boolean.toString(terminalHideIncorrect));

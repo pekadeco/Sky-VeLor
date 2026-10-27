@@ -23,6 +23,7 @@ public final class HudManager {
     public static final MiningHud MINING = new MiningHud();
     public static final MiningAssistantHud MINING_ASSIST = new MiningAssistantHud();
     public static final DungeonBossHud DUNGEON_BOSS_HP = new DungeonBossHud();
+    public static final DungeonRunHud DUNGEON_RUN = new DungeonRunHud();
     public static final InventoryHud INVENTORY = new InventoryHud();
     public static final PlayerDollHud DOLL = new PlayerDollHud();
     public static final FishingHud FISHING = new FishingHud();
@@ -31,8 +32,8 @@ public final class HudManager {
 
     /** Elements shown in the normal HUD editor, in draw order. Metrics deliberately do not register here: FPS,
      * memory and ping exist only in Settings Home. */
-    public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, INVENTORY, DOLL,
-            FISHING, SEA_HP, SLAYER};
+    public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DUNGEON_RUN, INVENTORY,
+            DOLL, FISHING, SEA_HP, SLAYER};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient-hud.properties";
