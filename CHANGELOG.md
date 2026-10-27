@@ -10,6 +10,9 @@
   position to the accepted destination.
 - Replaced every generic editor button with a clear route CTA: **Open HUD Editor** for HUD destinations and
   **Open Item Animation Editor** for the existing held-item editor. No extra editor screen was added.
+- A normal new settings GUI visit now collapses all remembered feature disclosures, including legacy persisted-open
+  rows. The existing child-editor return keeps its parent instance intact, and the intentional Chat route opens
+  Chat QoL after the normal reset.
 
 ### Safety and verification
 

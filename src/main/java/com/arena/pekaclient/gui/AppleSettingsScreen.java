@@ -163,6 +163,8 @@ public class AppleSettingsScreen extends AppleScreen {
     /** Opens the supplied reference destination; null intentionally falls back to Home. */
     public AppleSettingsScreen(GuiScreen parent, ReferenceSettingsCatalog.Tab initialTab) {
         this.parent = parent;
+        // A fresh top-level settings visit starts clean. A child editor returns to this existing instance instead.
+        FeatureUiPreferences.closeAllDropdowns();
         this.activeTab = initialTab == null ? ReferenceSettingsCatalog.Tab.HOME : initialTab;
         this.fullscreenWindow = AppleSettings.settingsWindowFullscreen;
         refreshReferenceTheme();
@@ -170,8 +172,10 @@ public class AppleSettingsScreen extends AppleScreen {
 
     /** Opens the visible Player category through its stable GAMEPLAY route with Chat QoL disclosed. */
     public static AppleSettingsScreen openChatSettings(GuiScreen parent) {
-        FeatureUiPreferences.setDropdownOpen("chat-qol", true);
-        return new AppleSettingsScreen(parent, ReferenceSettingsCatalog.Tab.GAMEPLAY);
+        AppleSettingsScreen screen = new AppleSettingsScreen(parent, ReferenceSettingsCatalog.Tab.GAMEPLAY);
+        // This is an intentional route target, so it opens after the ordinary fresh-screen reset.
+        FeatureUiPreferences.openAccordion("chat-qol", ReferenceSettingsCatalog.dropdownIds(ReferenceSettingsCatalog.Tab.GAMEPLAY));
+        return screen;
     }
 
     /** Native replacement destination order, exposed for headless regression coverage. */

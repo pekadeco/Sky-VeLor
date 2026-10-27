@@ -18,7 +18,7 @@ public final class InlineSettingsCatalogTests {
         everyFeatureUsesAFlatInlineOwner();
         requiredOwnersAndMovesArePresent();
         searchOpensOneOwningDropdown();
-        dropdownStateIsCollapsedByDefaultAndPersistsSeparately();
+        dropdownStateIsCollapsedByDefaultAndResetsForFreshGui();
         catalogIdsAreUniqueAndOnlyTwoEditorDestinationsRemain();
         optionalGuiTransparencyKeepsItsExistingOwnerAndKeys();
         done();
@@ -100,7 +100,7 @@ public final class InlineSettingsCatalogTests {
                 && p.getProperty("ui.feature.dropdown.chat-tabs-group") == null);
     }
 
-    private static void dropdownStateIsCollapsedByDefaultAndPersistsSeparately() {
+    private static void dropdownStateIsCollapsedByDefaultAndResetsForFreshGui() {
         FeatureUiState state = new FeatureUiState();
         check("unknown inline dropdown starts collapsed", !state.dropdownOpen("item-lock-swap"));
         Properties original = new Properties();
@@ -108,14 +108,26 @@ public final class InlineSettingsCatalogTests {
         original.setProperty("ui.feature.tree.retired", "ignored");
         original.setProperty("ui.feature.dropdown.item-lock-swap", "true");
         state.load(original);
-        check("saved disclosure reopens the same row", state.dropdownOpen("item-lock-swap"));
+        check("legacy saved disclosure remains readable before fresh-screen reset", state.dropdownOpen("item-lock-swap"));
         check("retired tree state does not reopen a row", !state.dropdownOpen("retired"));
         state.openAccordion("chat-qol", ReferenceSettingsCatalog.dropdownIds(ReferenceSettingsCatalog.Tab.GAMEPLAY));
+        state.setDropdownOpen("dungeon-map", true);
         state.save(original);
         check("existing gameplay key survives UI-state save", "false".equals(original.getProperty("dungeonMap")));
         check("accordion save closes peers and writes additive presentation keys",
                 "false".equals(original.getProperty("ui.feature.dropdown.item-lock-swap"))
                         && "true".equals(original.getProperty("ui.feature.dropdown.chat-qol")));
+        state.closeAllDropdowns();
+        check("fresh GUI reset closes loaded and active disclosures", !state.dropdownOpen("item-lock-swap")
+                && !state.dropdownOpen("chat-qol") && !state.dropdownOpen("dungeon-map"));
+        state.save(original);
+        check("fresh GUI reset serializes false instead of resurrecting legacy disclosure state",
+                "false".equals(original.getProperty("ui.feature.dropdown.item-lock-swap"))
+                        && "false".equals(original.getProperty("ui.feature.dropdown.chat-qol"))
+                        && "false".equals(original.getProperty("ui.feature.dropdown.dungeon-map")));
+        state.openAccordion("chat-qol", ReferenceSettingsCatalog.dropdownIds(ReferenceSettingsCatalog.Tab.GAMEPLAY));
+        check("explicit Chat route can disclose its target after the normal fresh-GUI reset",
+                state.dropdownOpen("chat-qol") && !state.dropdownOpen("item-lock-swap"));
     }
 
     private static void optionalGuiTransparencyKeepsItsExistingOwnerAndKeys() {

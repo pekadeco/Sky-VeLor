@@ -51,10 +51,11 @@ public final class ReleaseClaimsTests {
         String[] destinations = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
         check("feature-oriented shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
-        check("screen has search, accordion disclosure, and header reveal", screen.contains("Search settings")
+        check("screen has search, accordion disclosure, fresh-open reset, and header reveal", screen.contains("Search settings")
                 && screen.contains("HIT_DISCLOSURE") && screen.contains("dropdownOpen")
                 && screen.contains("expandSearchResult") && screen.contains("openAccordion")
-                && screen.contains("normalizeAccordion") && screen.contains("revealDropdownHeader"));
+                && screen.contains("closeAllDropdowns") && screen.contains("normalizeAccordion")
+                && screen.contains("revealDropdownHeader"));
         check("screen clips its rounded shell and one settings viewport", screen.contains("roundedClipBegin")
                 && screen.contains("scissorBegin") && screen.contains("GuiLayoutToolkit$Scroll"));
         check("screen packages wordmark drag, fullscreen persistence and named editor control layout",
@@ -64,8 +65,10 @@ public final class ReleaseClaimsTests {
         String catalog = classText("com.arena.pekaclient.gui.ReferenceSettingsCatalog");
         check("editor routes expose clear destination labels", catalog.contains("Open HUD Editor")
                 && catalog.contains("Open Item Animation Editor"));
-        check("Chat command route enters the inline owner", classText("com.arena.pekaclient.command.ClientActions")
-                .contains("openChatSettings") && !classText("com.arena.pekaclient.command.ClientActions").contains("ChatEditorScreen"));
+        check("Chat command route enters its requested inline owner after the ordinary reset",
+                classText("com.arena.pekaclient.command.ClientActions").contains("openChatSettings")
+                        && !classText("com.arena.pekaclient.command.ClientActions").contains("ChatEditorScreen")
+                        && screen.contains("chat-qol") && screen.contains("openAccordion"));
     }
 
     private static void sharedRoundedRendererIsPackaged() {

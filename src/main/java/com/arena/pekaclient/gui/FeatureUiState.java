@@ -47,6 +47,16 @@ public final class FeatureUiState {
         dropdowns.put(key, open);
     }
 
+    /**
+     * Collapses every known disclosure for a fresh top-level settings screen.
+     *
+     * <p>Unknown ids already resolve to collapsed. Retaining explicit {@code false} values lets the next save
+     * replace a legacy persisted {@code true}, rather than allowing it to reappear on a later load.</p>
+     */
+    public void closeAllDropdowns() {
+        for (Map.Entry<String, Boolean> entry : dropdowns.entrySet()) entry.setValue(Boolean.FALSE);
+    }
+
     /** Opens one page disclosure and closes its peers without touching a feature configuration value. */
     public void openAccordion(String featureId, Iterable<String> peers) {
         if (peers != null) {

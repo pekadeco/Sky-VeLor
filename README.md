@@ -16,6 +16,9 @@ Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
   packet-drive a teleport; it does not write player/camera entity coordinates, alter input, or invoke a controller.
 - Replaces generic editor buttons with **Open HUD Editor** and **Open Item Animation Editor**, retaining exactly the
   existing HUD and Item Animation editor screens and their action routes.
+- A normal close/reopen of the top-level settings GUI now starts with all feature disclosures collapsed; the explicit
+  Chat route still opens its requested Chat QoL owner, and returns from the existing child editors preserve their
+  already-open parent instance.
 - Keeps Minecraft 1.8.9 Forge compatibility, safe old-config loading, existing unrelated settings/features, the
   `SkyVeLor` wordmark, eight-route navigation, dropdown behavior, optional GUI transparency, and fullscreen action.
 

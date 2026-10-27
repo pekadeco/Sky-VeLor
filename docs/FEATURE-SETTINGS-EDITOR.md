@@ -37,8 +37,11 @@ physical GUI pixel grid once per frame, avoiding fractional-scale blur without a
 surfaces use up to 16 quarter-arc segments; even Fast quality uses eight, and new/reset settings select Smooth.
 Presentation-only disclosure state is stored under `ui.feature.dropdown.<catalog-id>` by
 `FeatureUiState` / `FeatureUiPreferences`; it does not replace,
-rename, or migrate a feature configuration key. Search indexes labels, ids, descriptions, and
-keywords, changes to the result tab, and opens the direct owning dropdown. Expanded panels use a dark bordered
+rename, or migrate a feature configuration key. A newly created top-level settings shell closes every remembered
+disclosure, and writes those legacy `true` values back as `false` on the next save, so a normal close/reopen always
+starts collapsed. Returning from either existing child editor reuses its parent screen instance, while the explicit
+Chat route intentionally opens Chat QoL after this normal fresh-screen reset. Search indexes labels, ids, descriptions,
+and keywords, changes to the result tab, and opens the direct owning dropdown. Expanded panels use a dark bordered
 inset surface with an open-header accent, child hover feedback, and inset dividers; they animate their height for
 150 ms, have 8 px bottom padding, and retain readable muted labels plus deliberately muted-but-editable controls
 when a master is off. The protected panel surface keeps this hierarchy legible even at low GUI-opacity settings.
@@ -147,8 +150,9 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 ## Automated coverage and release boundary
 
 Headless coverage includes flat depth/count/choice invariants, fixed-column scale-1–4 geometry,
-Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree behavior, accordion persistence,
-search disclosure, player-copy validation, old-config loading, exact configurable-id preservation,
+Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree behavior, fresh-open accordion reset
+with the intentional direct-route disclosure, search behavior, player-copy validation, old-config loading, exact
+configurable-id preservation,
 direct binding audit, Item Animation panel render-list/control exclusion, deterministic Aspect camera-path easing,
 and fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
 `tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
