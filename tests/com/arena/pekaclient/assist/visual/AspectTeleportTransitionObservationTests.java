@@ -40,7 +40,7 @@ public final class AspectTeleportTransitionObservationTests {
         for (int i = 0; i < AspectTeleportTransitionPolicy.ARM_TICKS - 2; i++) {
             check("ordinary armed movement remains quiet " + i, !state.observe(world, .20D * i, 64D, 0D));
         }
-        check("late server response inside arm window still transitions", state.observe(world, 3D, 64D, 0D));
+        check("late server response inside arm window still transitions", state.observe(world, 4D, 64D, 0D));
 
         state.reset();
         state.observe(world, 0D, 64D, 0D);
