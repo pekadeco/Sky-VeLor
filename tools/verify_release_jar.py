@@ -616,17 +616,24 @@ def main():
     mining_raw = raw_of('assist/mining/MiningAssistController')
     aspect_policy_raw = raw_of('assist/visual/AspectTeleportTransitionPolicy')
     aspect_renderer_raw = raw_of('assist/visual/AspectTeleportTransitionRenderer')
+    aspect_policy_members = members_of('assist/visual/AspectTeleportTransitionPolicy')
+    aspect_renderer_members = members_of('assist/visual/AspectTeleportTransitionRenderer')
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.movement.autoSprint',
                  b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
                  b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
             'AssistSettings retains bounded Hurt Camera Shake, render-only Smooth Aspect Teleport, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
-    r.check(all(value in aspect_policy_raw for value in
-                (b'Aspect of the End', b'Aspect of the Void', b'isLargePositionJump', b'veilAlpha', b'DURATION_NANOS'))
+    r.check(all(value in aspect_policy_members for value in
+                ('isAspectTeleportItem', 'isLargePositionJump', 'veilAlpha'))
+                and all(value in aspect_renderer_members for value in ('tick', 'render'))
+                and all(value in aspect_policy_raw for value in (b'Aspect of the End', b'Aspect of the Void', b'DURATION_NANOS'))
                 and all(value in aspect_renderer_raw for value in
-                        (b'smoothAspectTeleport', b'getHeldItem', b'UIRender', b'observedWorld'))
+                        (b'AspectTeleportTransitionPolicy', b'AssistSettings', b'UIRender'))
+                # Minecraft member names are reobfuscated in a real release, so do not require the MCP getHeldItem
+                # spelling here. Network/controller/position-writing owner paths must remain absent in every mapping.
                 and all(value not in aspect_renderer_raw for value in
-                        (b'sendPacket', b'sendQueue', b'playerController', b'setPosition', b'setLocationAndAngles')),
+                        (b'net/minecraft/network', b'NetworkManager', b'sendPacket', b'sendQueue', b'playerController',
+                         b'setPosition', b'setLocationAndAngles')),
             'Smooth Aspect Teleport packages only held-item/jump observation and a bounded HUD veil, with no movement or packet path')
     r.check(b'AspectTeleportTransitionRenderer' in client_raw and b'aspectTeleportTransition' in client_raw,
             'client tick and overlay bridge package the Aspect visual transition renderer')
@@ -640,6 +647,7 @@ def main():
 
     esp_settings_constants = constants_of('config/DungeonEspSettings')
     esp_controller_raw = raw_of('dungeonesp/DungeonEspController')
+    esp_controller_family_raw = raw_family_of('dungeonesp/DungeonEspController')
     esp_tracker_raw = raw_of('dungeonesp/DungeonEspTracker')
     esp_batch_raw = raw_of('dungeonesp/DungeonEspRenderBatch')
     esp_marker_bounds_raw = raw_of('dungeonesp/DungeonEspMarkerBounds')
@@ -671,7 +679,9 @@ def main():
             'Starred Mobs keeps bounded labels, local-player live exclusion, conservative Fel marker bounds and no tracer draw path')
     r.check(all(value in esp_controller_raw for value in
                 (b'DungeonEspTracker', b'WitherDoorCache', b'DungeonEspRenderBatch', b'DungeonEspMatcher',
-                 b'AssistSettings', b'hideDeadMobs', b'SkullOwner', b'localPlayer', b'espDump'))
+                 b'AssistSettings', b'hideDeadMobs', b'SkullOwner', b'espDump'))
+                # localPlayer lives in the controller's private EntitySource inner class, so inspect its class family.
+                and b'localPlayer' in esp_controller_family_raw
                 and all(value in esp_tracker_raw for value in
                         (b'localPlayer', b'belowPlayerCeiling', b'hasStarredEndermanAssociation'))
                 and all(value not in esp_controller_raw for value in
