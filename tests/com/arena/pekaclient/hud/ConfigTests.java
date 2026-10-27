@@ -19,6 +19,7 @@ public final class ConfigTests {
 
     public static void main(String[] args) throws IOException {
         validValuesLoad();
+        dungeonRunHudIsMovableAndOptIn();
         invalidValuesFallBack();
         outOfRangeIsClamped();
         legacyPlacementLoadsForActiveHud();
@@ -60,6 +61,19 @@ public final class ConfigTests {
         check("opacity", m.opacity == 60 && m.radius == 8, "opacity/radius");
         check("text size", m.textSize == 2 && !m.background, "text/bg");
         check("mining window", m.windowSeconds() == 10 && m.decimals == 1 && m.label == 2, "window/decimals/label");
+    }
+
+    private static void dungeonRunHudIsMovableAndOptIn() throws IOException {
+        DungeonRunHud hud = new DungeonRunHud();
+        check("Dungeon Run HUD defaults off", !hud.enabled, "enabled=" + hud.enabled);
+        check("Dungeon Run HUD has a stable movable id", "dungeonRun".equals(hud.id)
+                && hud.place.anchorX == Anchor.END && hud.place.anchorY == Anchor.START, hud.place.toString());
+        hud.load(parse("dungeonRun.enabled=true\ndungeonRun.ax=CENTER\ndungeonRun.ox=20\n"));
+        check("Dungeon Run HUD loads normal shared HUD placement", hud.enabled
+                && hud.place.anchorX == Anchor.CENTER && hud.place.offsetX == 20, hud.place.toString());
+        boolean registered = false;
+        for (HudElement element : HudManager.ELEMENTS) if (element == HudManager.DUNGEON_RUN) registered = true;
+        check("Dungeon Run HUD is registered with the existing HUD editor", registered, "registered=" + registered);
     }
 
     private static void invalidValuesFallBack() throws IOException {

@@ -1,6 +1,17 @@
 # Changelog
 
-## Beta-0.10.9.1.6v — 2026-10-27
+## Beta-0.10.9.1.6v — 2026-10-28
+
+### Added
+
+- Added clean-room, default-off **Dungeons → Run Tools → Spirit Bow Locator** (`assist.dungeon.spiritBowLocator`).
+  It timer-scans nearby loaded marker armor stands in a confirmed dungeon and renders only a local line/outline to the
+  nearest `Spirit Bow` name; it has no keybind, gameplay command, click, movement, controller, packet, chat, or custom
+  player-data path.
+- Added clean-room, default-off **HUD & Visuals → HUD → Dungeon Run HUD**, movable through the existing HUD Editor.
+  It reads only ordinary visible dungeon-sidebar rows at a bounded interval and displays explicitly observed floor,
+  elapsed time, cleared percentage, secrets, and deaths—never a copied score estimate, tab-list value, chat action, or
+  secret-chest action. `/velor selftest` reports concise registration status for both new hooks.
 
 ### Changed
 
@@ -16,6 +27,9 @@
 
 ### Safety and verification
 
+- Added pure marker/readout parsing, isolated config, catalog/binding, HUD persistence, `/velor selftest`, and packaged
+  JAR boundary coverage. The curated source ZIP verifier now also requires the new source/tests and explicitly rejects
+  both root reference ZIPs.
 - The Aspect path remains visual-only: it neither initiates nor alters a teleport, sends/replays packets, changes
   input, writes player/camera entity coordinates, or invokes a controller. It enables only when both verified
   1.8.9 render-coordinate hook surfaces are available.

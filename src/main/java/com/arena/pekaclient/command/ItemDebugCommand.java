@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-/** Client-side Item Animation launcher and renderer diagnosis. */
+/** Client-side feature launchers and compact renderer/runtime diagnostics. */
 public final class ItemDebugCommand extends CommandBase {
 
     @Override

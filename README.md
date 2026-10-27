@@ -4,7 +4,7 @@ Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configur
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.6v — Smooth Aspect camera glide and named editor actions
+## Beta-0.10.9.1.6v — Smooth Aspect camera glide, editor actions, and dungeon readouts
 
 - Keeps the accepted direct Enderman/Fel skull-marker behavior: local-player identity exclusion, player-shaped dungeon
   NPC support, and the compact `0.76 × 1.85` marker proxy remain unchanged.
@@ -16,6 +16,10 @@ Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
   packet-drive a teleport; it does not write player/camera entity coordinates, alter input, or invoke a controller.
 - Replaces generic editor buttons with **Open HUD Editor** and **Open Item Animation Editor**, retaining exactly the
   existing HUD and Item Animation editor screens and their action routes.
+- Adds two clean-room, default-off local dungeon displays: **Dungeons → Run Tools → Spirit Bow Locator** draws only a
+  client-side line/marker for a nearby named Spirit Bow armor stand, while **HUD & Visuals → HUD → Dungeon Run HUD** is
+  movable through the existing HUD Editor and shows only observed sidebar floor, time, clear, secrets, and deaths.
+  Neither feature has a keybind or gameplay command; `/velor selftest` only reports its registered hook status.
 - A normal close/reopen of the top-level settings GUI now starts with all feature disclosures collapsed; the explicit
   Chat route still opens its requested Chat QoL owner, and returns from the existing child editors preserve their
   already-open parent instance.
@@ -34,7 +38,8 @@ The full presentation inventory, retained routes, old-config boundary, and test 
 
 - Native settings shell and movable HUD editor with an Apple-inspired graphite-glass visual system and blue accent.
 - Dungeon map with room/puzzle templates, party labels, cached Starred Mobs/Door ESP, Floor VII overlays,
-  dragon alerts, Spirit Leap helpers, and an optional read-only Click in Order helper.
+  dragon alerts, Spirit Leap helpers, an optional read-only Click in Order helper, and opt-in local Spirit Bow/
+  sidebar-readout displays.
 - Item Animation: live first-person X/Y/Z, scale, hit/slash controls, bounded persistence,
   reset actions, and a renderer-only Preview Swing.
 - Item Lock and Item Swap: persistent player-inventory locks, safe paired-slot swaps, configurable
@@ -99,7 +104,8 @@ python3 tools/verify_source_zip.py \
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
 report, and the clean source ZIP. Generated `build/`, `.gradle/`, prior delivery files, Git state,
-and unrelated archives do not belong in the source ZIP.
+and unrelated archives do not belong in the source ZIP. In particular, the root reference archives
+`Sky-VeLor-1.0.0.zip` and `AppleGUI-1.8.9 (1).zip` are explicitly excluded and the verifier checks both names.
 
 ## Installation
 
@@ -114,6 +120,9 @@ and unrelated archives do not belong in the source ZIP.
   VeLor**; no controls screen is launched from the settings shell.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
+- **Dungeons → Run Tools → Spirit Bow Locator** defaults off and uses
+  `assist.dungeon.spiritBowLocator`. It only draws a client-side locator for the nearest nearby named marker in a
+  confirmed dungeon; it has no keybind, command, click, movement, packet, or controller path.
 - **Dungeons → Dungeon ESP → Starred Mobs** owns Starred Mob, Miniboss, Special Starred Mob, and Enderman styles.
   Skeletor uses the normal Starred Mob style when a nearby star tag selects it; player-shaped dungeon NPCs remain
   eligible, while the local player is excluded in both scan and render paths. Recognized Enderman/Fel skull markers
@@ -122,6 +131,9 @@ and unrelated archives do not belong in the source ZIP.
 - **Player → Comfort → Smooth Aspect Teleport** defaults on and arms only after a local Aspect use. After vanilla
   accepts the completed server position jump, it eases only the rendered world/camera origin for `125 ms`; it never
   initiates movement, changes player/camera entity coordinates, or sends packets.
+- **HUD & Visuals → HUD → Dungeon Run HUD** defaults off and is movable through **Open HUD Editor**. It reads only the
+  visible dungeon sidebar at a bounded interval and displays observed floor, elapsed time, cleared percentage, secrets,
+  and deaths; it does not estimate score, inspect the tab list, react to chat, or close secret chests.
 - **HUD & Visuals → HUD → Open HUD Editor** opens the allowed editor for HUD and map placement.
 - **HUD & Visuals → Item Animation → Open Item Animation Editor** opens the standalone left-edge renderer panel. Its live
   values affect only Minecraft's first-person hand path; it neither sends packets nor changes attack,

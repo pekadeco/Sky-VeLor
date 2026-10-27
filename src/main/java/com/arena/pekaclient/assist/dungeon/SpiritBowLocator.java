@@ -64,16 +64,14 @@ public final class SpiritBowLocator {
         double targetY = interpolate(marker.lastTickPosY, marker.posY, partialTicks) + .45D;
         double targetZ = interpolate(marker.lastTickPosZ, marker.posZ, partialTicks);
         RenderManager renderManager = mc.getRenderManager();
-        boolean drawing = false;
+        WorldBox.begin(renderManager.viewerPosX, renderManager.viewerPosY, renderManager.viewerPosZ, true);
         try {
-            WorldBox.begin(renderManager.viewerPosX, renderManager.viewerPosY, renderManager.viewerPosZ, true);
-            drawing = true;
             int color = Theme.accent | 0xFF000000;
             WorldBox.line(eyeX, eyeY, eyeZ, targetX, targetY, targetZ, color);
             WorldBox.outline(targetX - .18D, targetY - .28D, targetZ - .18D,
                     targetX + .18D, targetY + .18D, targetZ + .18D, color);
         } finally {
-            if (drawing) WorldBox.end();
+            WorldBox.end();
         }
     }
 

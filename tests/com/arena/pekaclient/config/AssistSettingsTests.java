@@ -39,6 +39,8 @@ public final class AssistSettingsTests {
         old.setProperty("assist.itemGuard.enabled", "true");
         old.setProperty("terminalGuiScale", "1.5");
         old.setProperty("dungeonEsp.hideZeroHealth", "false");
+        // A reference-mod namespace must not become an implicit alias for this isolated feature.
+        old.setProperty("dungeonSpiritBowTracer", "true");
         AssistSettings.load(old);
         check("retained aliases load", AssistSettings.miningAbilityAlert && AssistSettings.autoSprint
                 && AssistSettings.terminalScale == 150);
@@ -48,6 +50,7 @@ public final class AssistSettingsTests {
                 && !AssistSettings.tooltipScroll && !AssistSettings.rarityHighlight);
         check("established config receives the safe render-only Aspect transition default", AssistSettings.smoothAspectTeleport);
         check("established config keeps the new Spirit Bow locator opt-in", !AssistSettings.spiritBowLocator);
+        check("reference-mod Spirit Bow key is not imported as an alias", !AssistSettings.spiritBowLocator);
         Properties rewritten = new Properties();
         rewritten.putAll(old);
         AssistSettings.save(rewritten);

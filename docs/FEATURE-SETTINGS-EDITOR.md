@@ -69,6 +69,16 @@ dropdown was added.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
 - **Boss Health HUD** is a master toggle plus **Open HUD Editor**.
+- **Dungeons → Run Tools → Spirit Bow Locator** is a direct, searchable default-off toggle backed only by
+  `assist.dungeon.spiritBowLocator`. In a confirmed dungeon it scans nearby loaded armor stands on a bounded timer and
+  draws a local line/outline for the nearest name containing `Spirit Bow`; it never clicks, changes input/position,
+  calls a controller, sends chat/custom data/packets, or has a keybind/gameplay command. `/velor selftest` only
+  reports whether its Forge render hook registered.
+- **HUD & Visuals → HUD → Dungeon Run HUD** is a searchable default-off toggle backed by the established movable HUD
+  persistence under `dungeonRun.*`; it is edited with the existing **Open HUD Editor** route. Its Forge tracker samples
+  only the already-visible dungeon sidebar at a bounded interval and shows explicitly observed floor, elapsed time,
+  cleared percentage, secrets, and deaths. It does not estimate score, read tab-list internals, parse chat, close
+  chests, or send data; `/velor selftest` reports its sidebar-reader hook.
 - **HUD Editor** uses **Open HUD Editor**.
 - **Item Animation** is a master toggle plus **Open Item Animation Editor**.
 - **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its four retained target styles
@@ -153,8 +163,9 @@ Headless coverage includes flat depth/count/choice invariants, fixed-column scal
 Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree behavior, fresh-open accordion reset
 with the intentional direct-route disclosure, search behavior, player-copy validation, old-config loading, exact
 configurable-id preservation,
-direct binding audit, Item Animation panel render-list/control exclusion, deterministic Aspect camera-path easing,
-and fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
+direct binding audit, Spirit Bow marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, Item Animation
+panel render-list/control exclusion, deterministic Aspect camera-path easing, and fail-closed
+EntityRenderer/RenderGlobal transformer-shape checks.
 `tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
 Home, Dungeons, and GUI-scale-4 Home Java2D PNG review previews; CI uploads those previews as
 short-lived evidence. `tools/verify_release_jar.py` additionally checks the packaged class and

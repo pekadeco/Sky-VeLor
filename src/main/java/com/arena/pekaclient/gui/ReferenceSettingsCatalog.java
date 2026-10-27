@@ -132,9 +132,9 @@ public final class ReferenceSettingsCatalog {
     public static final String[] REQUIRED_ROUTE_IDS = {
             "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
             "item-lock-swap", "inventory-assist", "chat-qol", "movement-shortcuts", "slayer-tracker",
-            "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "m7-overlay",
+            "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay",
             "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
-            "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "item-animation",
+            "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation",
             "system-appearance", "system-performance", "system-general", "system-commands"
     };
 
@@ -263,7 +263,10 @@ public final class ReferenceSettingsCatalog {
                             "leap teammate", toggle("leap-key", "Spirit Leap Key", "Use the Spirit Leap key.", "leap key"),
                             reset("spirit-leap-reset")),
                     editor("dungeon-boss-hud", "Boss Health HUD", "Show boss health on screen.", "boss hp hud", true,
-                            "Open HUD Editor", "open-hud-editor")),
+                            "Open HUD Editor", "open-hud-editor"),
+                    toggle("spirit-bow-locator", "Spirit Bow Locator",
+                            "Draw a client-side line to the nearest Spirit Bow marker.",
+                            "spirit bow marker locator render only")),
             card("floor-seven", "Floor VII", "Relics, dragons, and boss outlines.", false, "",
                     masterDropdown("m7-overlay", "Floor VII Overlay", "Track relics, devices, and dragons.", "m7 floor seven dragons",
                             toggle("m7-relic-areas", "Relic Kill Areas", "Show relic areas by statues.", "relic area"),
@@ -344,6 +347,8 @@ public final class ReferenceSettingsCatalog {
             card("hud", "HUD", "Move and resize on-screen elements.", false, "",
                     editor("hud-editor", "HUD Editor", "Move and resize on-screen elements.", "hud editor", false,
                             "Open HUD Editor", "open-hud-editor"),
+                    toggle("hud-dungeon-run", "Dungeon Run HUD", "Show observed dungeon sidebar values on screen.",
+                            "dungeon run hud sidebar floor time secrets deaths"),
                     toggle("hud-player-doll", "Player Doll", "Show your player model on screen.", "doll armour"),
                     toggle("hud-inventory", "Inventory HUD", "Show inventory slots on screen.", "inventory hud")),
             card("item-animation", "Item Animation", "Change how your held item looks.", false, "",

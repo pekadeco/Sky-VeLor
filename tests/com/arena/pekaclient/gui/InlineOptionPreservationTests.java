@@ -27,7 +27,7 @@ public final class InlineOptionPreservationTests {
                 "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
                 "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
-                "dungeon-map", "dungeon-map-player-names", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
+                "dungeon-map", "dungeon-map-player-names", "hud-dungeon-run", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
                 "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
                 "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
                 "esp-miniboss", "esp-mob-labels", "esp-special", "esp-starred",
@@ -41,7 +41,7 @@ public final class InlineOptionPreservationTests {
                 "mining-assistant-hud", "mining-bps", "mining-puzzler", "mob-esp-enabled", "nearby-encounters",
                 "no-block-particles", "party-puzzle-announce", "performance-boost", "pets-shortcut", "qn-command",
                 "rarity-highlight", "roman-numerals", "sea-hp-hud-route", "shadows", "slayer-boss-timer", "slayer-pricing",
-                "slayer-tracker", "smooth-scrolling", "spirit-leap", "sv-command", "terminal-auto-click",
+                "slayer-tracker", "smooth-scrolling", "spirit-bow-locator", "spirit-leap", "sv-command", "terminal-auto-click",
                 "terminal-hide-wrong", "terminal-hints", "terminal-prevent-clicks", "terminal-scale", "terminal-waypoints",
                 "tooltip-scroll", "wardrobe-shortcut"));
         addStyleOptions(expected, "esp-starred");
@@ -58,7 +58,8 @@ public final class InlineOptionPreservationTests {
         assertPresent("chat-background-group", "chat-messages-group", "chat-tabs-group", "chat-menu-group",
                 "m7-bosses", "m7-dragons", "esp-starred-caption", "door-wither-style-caption");
         assertPresent("item-lock-swap", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud",
-                "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker", "item-animation");
+                "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker",
+                "hud-dungeon-run", "item-animation");
         check("Chat captions are not nested dropdowns", !ReferenceSettingsCatalog.find("chat-background-group").isDropdown()
                 && !ReferenceSettingsCatalog.find("chat-tabs-group").isDropdown());
     }

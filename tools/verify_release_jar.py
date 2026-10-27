@@ -154,6 +154,9 @@ REQUIRED_CLASSES = [
     'assist/mining/MiningAbilityPolicy',
     'assist/mining/PuzzlerRoute',
     'assist/dungeon/DungeonBossTracker',
+    'assist/dungeon/DungeonRunReadout',
+    'assist/dungeon/DungeonRunTracker',
+    'assist/dungeon/SpiritBowLocator',
     'assist/dungeon/DungeonTerminalAssistController',
     'assist/dungeon/DungeonWaypointController',
     'assist/dungeon/TerminalParsePolicy',
@@ -175,6 +178,7 @@ REQUIRED_CLASSES = [
     'assist/visual/AspectTeleportCameraTransformer',
     'hud/MiningAssistantHud',
     'hud/DungeonBossHud',
+    'hud/DungeonRunHud',
 ]
 
 # Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
@@ -566,21 +570,22 @@ def main():
                  b'No Farming Features Yet', b'Mining Assistant', b'Fishing Tracker', b'Slayer Tracker')),
             'catalog packages the requested feature-oriented eight-tab sidebar, empty Farming message, and genuine Mining/Fishing moves')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Dungeon Map', b'Terminal Helper', b'Spirit Leap Picker', b'Boss Health HUD', b'Floor VII Overlay',
-                 b'Starred Mobs', b'Door ESP', b'Maxor', b'Storm', b'Goldor', b'Necron', b'Power', b'Apex', b'Soul',
-                 b'Ice', b'Flame', b'Item Lock And Swap')),
-            'flat Dungeons category retains map, no-master Terminal Helper, Spirit Leap, boss HUD, M7 and Starred Mobs/Door controls')
+                (b'Dungeon Map', b'Terminal Helper', b'Spirit Leap Picker', b'Boss Health HUD', b'Spirit Bow Locator',
+                 b'spirit-bow-locator', b'Floor VII Overlay', b'Starred Mobs', b'Door ESP', b'Maxor', b'Storm',
+                 b'Goldor', b'Necron', b'Power', b'Apex', b'Soul', b'Ice', b'Flame', b'Item Lock And Swap')),
+            'flat Dungeons category retains map, terminals, leap, boss HUD, Spirit Bow locator, M7 and ESP controls')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Background', b'Messages', b'Tabs', b'Click Menu', b'Reset to defaults', b'Add Custom Tab',
                  b'Accent Color', b'Filter Type', b'Message Sound', b'Open Chat Background'))
                 and b'ChatEditorScreen' not in settings_screen_raw and b'openChatSettings' in command_actions_raw,
             'Chat settings and custom-tab editing live in one flat owning dropdown; commands route to that owner')
     r.check(all(value in reference_catalog_raw for value in
-                (b'HUD Editor', b'Item Animation', b'Open HUD Editor', b'Open Item Animation Editor'))
+                (b'HUD Editor', b'Dungeon Run HUD', b'hud-dungeon-run', b'Item Animation', b'Open HUD Editor',
+                 b'Open Item Animation Editor'))
                 and b'HudEditorScreen' in settings_screen_raw and b'ItemAnimationEditorScreen' in settings_screen_raw
                 and b'item-animation-open-editor' in settings_screen_raw and b'editorButtonWidth' in settings_screen_raw
                 and b'[Edit]' not in settings_screen_raw,
-            'HUD Editor and the standalone Item Animation editor remain reachable through clear named CTA controls')
+            'HUD Editor, movable Dungeon Run HUD and standalone Item Animation editor remain clearly reachable')
     r.check(b'CHAT_PREVIEW_' not in theme_raw and b'ChatEditorPreview' not in settings_screen_raw
                 and b'DungeonEspPreviewRenderer' not in settings_screen_raw,
             'no retired live-preview color surface or focused-editor preview route remains')
@@ -626,6 +631,11 @@ def main():
     sync_manager_raw = raw_of('assist/sync/DungeonSyncManager')
     terminal_raw = raw_of('assist/dungeon/DungeonTerminalAssistController')
     mining_raw = raw_of('assist/mining/MiningAssistController')
+    spirit_bow_locator_raw = raw_of('assist/dungeon/SpiritBowLocator')
+    dungeon_run_readout_raw = raw_of('assist/dungeon/DungeonRunReadout')
+    dungeon_run_tracker_raw = raw_of('assist/dungeon/DungeonRunTracker')
+    dungeon_run_hud_raw = raw_of('hud/DungeonRunHud')
+    selftest_command_raw = raw_of('command/ItemDebugCommand')
     aspect_policy_raw = raw_of('assist/visual/AspectTeleportTransitionPolicy')
     aspect_observation_raw = raw_of('assist/visual/AspectTeleportTransitionObservation')
     aspect_renderer_raw = raw_of('assist/visual/AspectTeleportTransitionRenderer')
@@ -637,8 +647,9 @@ def main():
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.movement.autoSprint',
                  b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
-                 b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
-            'AssistSettings retains bounded Hurt Camera Shake, render-only Smooth Aspect Teleport, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
+                 b'assist.dungeon.spiritBowLocator', b'spiritBowLocator', b'assist.dungeon.terminal.autoClick',
+                 b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
+            'AssistSettings retains bounded visual, comfort, movement, terminal, sync and opt-in Spirit Bow locator owners')
     # Raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
     aspect_policy_values = (b'isAspectTeleportItem', b'isLargePositionJump', b'cameraProgress', b'aspect of the end',
                             b'aspect of the void', b'CAMERA_INTERPOLATION_NANOS')
@@ -689,6 +700,30 @@ def main():
     r.check(b'lastAutoFingerprint' in terminal_raw and b'lastAutoSlot' in terminal_raw
                 and b'TerminalParsePolicy' in terminal_raw and b'sendChatMessage' not in mining_raw,
             'terminal automation remains fingerprint-guarded and the Puzzler helper remains read-only')
+
+    dungeon_readout_raw = spirit_bow_locator_raw + dungeon_run_readout_raw + dungeon_run_tracker_raw + dungeon_run_hud_raw
+    r.check(all(value in spirit_bow_locator_raw for value in
+                (b'Spirit Bow', b'AssistSettings', b'DungeonContext', b'RenderWorldLastEvent', b'WorldBox'))
+                and b'SpiritBowLocator' in client_raw,
+            'Spirit Bow Locator is packaged as an opt-in Forge world-render observer')
+    r.check(all(value in dungeon_run_readout_raw for value in
+                (b'Floor: ', b'Time: ', b'Cleared: ', b'Secrets: ', b'Deaths: '))
+                and all(value in dungeon_run_tracker_raw for value in
+                        (b'DungeonContext', b'DungeonRunReadout', b'ClientTickEvent', b'Scoreboard'))
+                and all(value in dungeon_run_hud_raw for value in
+                        (b'dungeonRun', b'DUNGEON RUN', b'DungeonRunTracker'))
+                and b'DungeonRunTracker' in client_raw,
+            'Dungeon Run HUD retains only bounded observed sidebar fields and its movable HUD owner')
+    r.check(all(value in selftest_command_raw for value in
+                (b'Dungeon Run HUD hook:', b'Spirit Bow Locator hook:')),
+            '/velor selftest reports both new local runtime hooks')
+    dungeon_readout_forbidden = (b'net/minecraft/network', b'sendPacket', b'sendQueue', b'sendChatMessage',
+                                 b'playerController', b'windowClick', b'clickMouse', b'KeyBinding', b'MouseEvent',
+                                 b'setPosition', b'setLocationAndAngles', b'java/lang/reflect')
+    r.check(all(value not in dungeon_readout_raw for value in dungeon_readout_forbidden),
+            'new dungeon readouts have no packet, chat, input, controller, position-write, or reflection path',
+            'forbidden: ' + ', '.join(value.decode('ascii') for value in dungeon_readout_forbidden
+                                       if value in dungeon_readout_raw))
 
     esp_settings_constants = constants_of('config/DungeonEspSettings')
     esp_controller_raw = raw_of('dungeonesp/DungeonEspController')

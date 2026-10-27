@@ -67,6 +67,7 @@ final class InlineSettingsBindings {
         if ("spirit-leap".equals(id)) return AppleSettings.leapMenu;
         if ("leap-key".equals(id)) return AppleSettings.leapKey;
         if ("dungeon-boss-hud".equals(id)) return HudManager.DUNGEON_BOSS_HP.enabled;
+        if ("spirit-bow-locator".equals(id)) return AssistSettings.spiritBowLocator;
         if ("m7-overlay".equals(id)) return M7Settings.isOverlayEnabled();
         if ("m7-relic-areas".equals(id)) return M7Settings.isStatueZonesEnabled();
         if ("m7-areas-persist".equals(id)) return M7Settings.isAreasPersistAfterDragonSpawn();
@@ -107,6 +108,7 @@ final class InlineSettingsBindings {
 
         if ("hud-player-doll".equals(id)) return HudManager.DOLL.enabled;
         if ("hud-inventory".equals(id)) return HudManager.INVENTORY.enabled;
+        if ("hud-dungeon-run".equals(id)) return HudManager.DUNGEON_RUN.enabled;
         if ("item-animation".equals(id)) return AppleSettings.itemAnimationEnabled;
 
         if ("appearance-corners-on".equals(id)) return AppleSettings.cornerRadiusOn;
@@ -169,6 +171,7 @@ final class InlineSettingsBindings {
         else if ("spirit-leap".equals(id)) AppleSettings.leapMenu = value;
         else if ("leap-key".equals(id)) AppleSettings.leapKey = value;
         else if ("dungeon-boss-hud".equals(id)) HudManager.DUNGEON_BOSS_HP.enabled = value;
+        else if ("spirit-bow-locator".equals(id)) AssistSettings.spiritBowLocator = value;
         else if ("m7-overlay".equals(id)) M7Settings.setOverlayEnabled(value);
         else if ("m7-relic-areas".equals(id)) M7Settings.setStatueZonesEnabled(value);
         else if ("m7-areas-persist".equals(id)) M7Settings.setAreasPersistAfterDragonSpawn(value);
@@ -207,6 +210,7 @@ final class InlineSettingsBindings {
 
         else if ("hud-player-doll".equals(id)) HudManager.DOLL.enabled = value;
         else if ("hud-inventory".equals(id)) HudManager.INVENTORY.enabled = value;
+        else if ("hud-dungeon-run".equals(id)) HudManager.DUNGEON_RUN.enabled = value;
         else if ("item-animation".equals(id)) AppleSettings.itemAnimationEnabled = value;
 
         else if ("appearance-corners-on".equals(id)) AppleSettings.cornerRadiusOn = value;

@@ -109,8 +109,14 @@ def main():
             'src/main/java/com/arena/pekaclient/assist/visual/AspectTeleportTransitionPolicy.java',
             'src/main/java/com/arena/pekaclient/assist/visual/AspectTeleportTransitionObservation.java',
             'src/main/java/com/arena/pekaclient/assist/visual/AspectTeleportTransitionRenderer.java',
+            'src/main/java/com/arena/pekaclient/assist/dungeon/SpiritBowLocator.java',
+            'src/main/java/com/arena/pekaclient/assist/dungeon/DungeonRunReadout.java',
+            'src/main/java/com/arena/pekaclient/assist/dungeon/DungeonRunTracker.java',
+            'src/main/java/com/arena/pekaclient/hud/DungeonRunHud.java',
             'tests/com/arena/pekaclient/assist/visual/AspectTeleportTransitionPolicyTests.java',
             'tests/com/arena/pekaclient/assist/visual/AspectTeleportTransitionObservationTests.java',
+            'tests/com/arena/pekaclient/assist/dungeon/SpiritBowLocatorTests.java',
+            'tests/com/arena/pekaclient/assist/dungeon/DungeonRunReadoutTests.java',
             'tests/run-tests.sh', 'tests/run-tests.bat', 'tools/verify_release_jar.py',
             'tools/verify_source_zip.py', 'docs/FEATURE-SETTINGS-EDITOR.md'
         )
@@ -129,6 +135,11 @@ def main():
         results.check(not forbidden,
                       'no build artifacts, Git state, IDE files, release archives or secret-looking files are present'
                       + ('' if not forbidden else ': ' + ', '.join(forbidden[:12])))
+
+        reference_archives = ('Sky-VeLor-1.0.0.zip', 'AppleGUI-1.8.9 (1).zip')
+        included_references = [name for name in relative_names if name.rsplit('/', 1)[-1] in reference_archives]
+        results.check(not included_references, 'root reference ZIPs are excluded from the curated source archive'
+                      + ('' if not included_references else ': ' + ', '.join(included_references)))
 
         jars = [name for name in relative_names if name.lower().endswith('.jar')]
         results.check(jars == ['gradle/wrapper/gradle-wrapper.jar'],
