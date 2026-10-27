@@ -497,6 +497,10 @@ def main():
         return b''.join(zf.read(name) for name in names
                         if name == prefix + '.class' or (name.startswith(prefix + '$') and name.endswith('.class')))
 
+    def missing_raw_values(raw, values):
+        """A compact verifier detail that stays readable in GitHub Actions annotations."""
+        return ', '.join(value.decode('ascii', 'replace') for value in values if value not in raw)
+
     r.check(all(MOD_PACKAGE + value + '.class' not in names for value in
                 ('gui/ChatEditorPreview', 'gui/DungeonEspPreviewRenderer')),
             'retired editor sample-panel classes are absent from the release jar')
@@ -635,32 +639,45 @@ def main():
                  b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
             'AssistSettings retains bounded Hurt Camera Shake, render-only Smooth Aspect Teleport, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
     # Raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
-    r.check(all(value in aspect_policy_raw for value in
-                (b'isAspectTeleportItem', b'isLargePositionJump', b'cameraProgress', b'aspect of the end',
-                 b'aspect of the void', b'CAMERA_INTERPOLATION_NANOS'))
-                and all(value in aspect_observation_raw for value in
-                        (b'arm', b'observe', b'transitionFromX', b'transitionToX', b'remainingArmedTicks',
-                         b'AspectTeleportTransitionPolicy'))
-                and all(value in aspect_path_raw for value in
-                        (b'begin', b'isActiveAt', b'xAt', b'yAt', b'zAt', b'cameraProgress'))
-                and all(value in aspect_renderer_raw for value in
-                        (b'tick', b'observeUse', b'AspectTeleportTransitionObservation',
-                         b'AspectTeleportCameraHooks', b'AssistSettings'))
+    aspect_policy_values = (b'isAspectTeleportItem', b'isLargePositionJump', b'cameraProgress', b'aspect of the end',
+                            b'aspect of the void', b'CAMERA_INTERPOLATION_NANOS')
+    aspect_observation_values = (b'arm', b'observe', b'transitionFromX', b'transitionToX', b'remainingArmedTicks',
+                                  b'AspectTeleportTransitionPolicy')
+    aspect_path_values = (b'begin', b'isActiveAt', b'xAt', b'yAt', b'zAt', b'cameraProgress')
+    aspect_renderer_values = (b'tick', b'observeUse', b'AspectTeleportTransitionObservation',
+                              b'AspectTeleportCameraHooks', b'AssistSettings')
+    aspect_hook_values = (b'orientCameraX', b'orientCameraY', b'orientCameraZ', b'renderCameraX', b'renderCameraY',
+                          b'renderCameraZ', b'dispatchRenderLast', b'ForgeHooksClient', b'AspectTeleportCameraPath')
+    # The verifier runs on reobfuscated bytecode, so require the stable SRG orient method rather than its MCP spelling.
+    aspect_transformer_values = (b'EntityRenderer', b'RenderGlobal', b'func_78467_g', b'(IFJ)V', b'orientCameraX',
+                                 b'(DF)D', b'renderCameraX', b'dispatchRenderLast', b'(Ljava/lang/Object;F)V')
+    aspect_status_values = (b'entityRendererInjected', b'renderGlobalInjected', b'isReady')
+    r.check(all(value in aspect_policy_raw for value in aspect_policy_values)
+                and all(value in aspect_observation_raw for value in aspect_observation_values)
+                and all(value in aspect_path_raw for value in aspect_path_values),
+            'Smooth Aspect policy, observation, and finite camera path are packaged',
+            'missing policy=%s observation=%s path=%s' % (missing_raw_values(aspect_policy_raw, aspect_policy_values),
+                    missing_raw_values(aspect_observation_raw, aspect_observation_values),
+                    missing_raw_values(aspect_path_raw, aspect_path_values)))
+    r.check(all(value in aspect_renderer_raw for value in aspect_renderer_values)
                 and b'UIRender' not in aspect_renderer_raw and b'veilAlpha' not in aspect_renderer_raw
-                and all(value in aspect_hooks_raw for value in
-                        (b'orientCameraX', b'orientCameraY', b'orientCameraZ', b'renderCameraX', b'renderCameraY',
-                         b'renderCameraZ', b'dispatchRenderLast', b'ForgeHooksClient', b'AspectTeleportCameraPath'))
-                and all(value in aspect_status_raw for value in
-                        (b'entityRendererInjected', b'renderGlobalInjected', b'isReady'))
-                and all(value in aspect_transformer_raw for value in
-                        (b'EntityRenderer', b'RenderGlobal', b'orientCamera', b'func_78467_g', b'(IFJ)V',
-                         b'orientCameraX', b'renderCameraX', b'dispatchRenderLast', b'(Ljava/lang/Object;F)V'))
-                # Minecraft member names are reobfuscated in a real release, so do not require MCP item/input
-                # spellings here. Network/controller/position-writing owner paths must remain absent in every mapping.
-                and all(value not in aspect_renderer_raw + aspect_hooks_raw + aspect_transformer_raw for value in
-                        (b'net/minecraft/network', b'NetworkManager', b'sendPacket', b'sendQueue', b'playerController',
-                         b'setPosition', b'setLocationAndAngles', b'NetHandler')),
-            'Smooth Aspect Teleport packages explicit-use observation and a fail-closed render-only camera/world glide, with no movement or packet path')
+                and all(value in aspect_hooks_raw for value in aspect_hook_values),
+            'Smooth Aspect runtime uses camera/world hooks rather than the retired HUD veil',
+            'missing renderer=%s hooks=%s' % (missing_raw_values(aspect_renderer_raw, aspect_renderer_values),
+                    missing_raw_values(aspect_hooks_raw, aspect_hook_values)))
+    r.check(all(value in aspect_status_raw for value in aspect_status_values)
+                and all(value in aspect_transformer_raw for value in aspect_transformer_values),
+            'Smooth Aspect transformer verifies orient, world-pass, RenderGlobal, and mapping-neutral overlay hooks',
+            'missing status=%s transformer=%s' % (missing_raw_values(aspect_status_raw, aspect_status_values),
+                    missing_raw_values(aspect_transformer_raw, aspect_transformer_values)))
+    # Minecraft member names are reobfuscated in a real release, so do not require MCP item/input spellings here.
+    # Network/controller/position-writing owner paths must remain absent in every mapping.
+    aspect_prohibited_values = (b'net/minecraft/network', b'NetworkManager', b'sendPacket', b'sendQueue',
+                                b'playerController', b'setPosition', b'setLocationAndAngles', b'NetHandler')
+    aspect_raw = aspect_renderer_raw + aspect_hooks_raw + aspect_transformer_raw
+    r.check(all(value not in aspect_raw for value in aspect_prohibited_values),
+            'Smooth Aspect camera glide has no movement, packet, controller, or position-write path',
+            'forbidden: ' + ', '.join(value.decode('ascii') for value in aspect_prohibited_values if value in aspect_raw))
     r.check(all(value in client_raw for value in
                 (b'AspectTeleportTransitionRenderer', b'aspectTeleportTransition', b'observeUse', b'MouseEvent')),
             'client tick and local use observation package the Aspect render transition without a HUD veil')
@@ -784,7 +801,7 @@ def main():
 
     loading_constants = constants_of('render/itemanimation/ItemAnimationLoadingPlugin')
     r.check('com.arena.pekaclient.render.itemanimation' in loading_constants
-                and 'AspectTeleportCameraTransformer' in loading_constants,
+                and 'com/arena/pekaclient/assist/visual/AspectTeleportCameraTransformer' in loading_constants,
             'loading plugin declares its coremod exclusion and registers the fail-closed Aspect render transformer')
     # Coremod setup classes must not link a Minecraft client/world class before LaunchClassLoader installs them.
     for cls in ('render/itemanimation/ItemAnimationLoadingPlugin',
