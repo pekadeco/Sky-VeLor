@@ -17,7 +17,7 @@ public final class AssistSettings {
     public static final int MIN_HURT_CAMERA_SHAKE = 0;
     public static final int MAX_HURT_CAMERA_SHAKE = 100;
     public static final int DEFAULT_HURT_CAMERA_SHAKE = 100;
-    /** A short render-only veil makes an already-completed AOTE/AOTV view change less abrupt. */
+    /** A short render-only camera/world glide softens an already-completed AOTE/AOTV view change. */
     public static final boolean DEFAULT_SMOOTH_ASPECT_TELEPORT = true;
     /** Fresh installs enable only these client-side inventory presentation helpers. */
     public static final boolean DEFAULT_ROMAN_NUMERALS = true;
@@ -35,7 +35,7 @@ public final class AssistSettings {
     public static boolean rarityHighlight;
     /** Whole-number percentage of vanilla's local hurt-camera tilt. Zero removes only that tilt. */
     public static int hurtCameraShake;
-    /** Render-only Aspect of the End/Void discontinuity veil. It never changes movement or packets. */
+    /** Render-only Aspect of the End/Void camera/world interpolation. It never changes movement or packets. */
     public static boolean smoothAspectTeleport;
 
     public static boolean autoSprint;

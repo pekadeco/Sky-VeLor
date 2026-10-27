@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.5v
+# Apple settings inventory — Beta-0.10.9.1.6v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -25,11 +25,12 @@ A visible settings row is one of four patterns:
 1. a fixed-column toggle row;
 2. one inline control (slider, choice, text, or action);
 3. a feature dropdown with two or more flat child options; or
-4. a visibly distinct **Edit** row.
+4. a visibly distinct named editor-route row.
 
 Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
-`38 × 20` pill. Editor rows use a distinct **[Edit]** button and never show a chevron. Card headings
-supply the visual hierarchy without becoming an interactive disclosure.
+`38 × 20` pill. Editor rows use a descriptive destination CTA—**Open HUD Editor** or
+**Open Item Animation Editor**—and never show a chevron. Card headings supply the visual hierarchy
+without becoming an interactive disclosure.
 
 Each tab is a one-open accordion. All native bitmap-font text snaps its origin and effective scale to the active
 physical GUI pixel grid once per frame, avoiding fractional-scale blur without a custom-font subsystem. Rounded
@@ -58,13 +59,15 @@ dropdown was added.
 - **Hurt Camera Shake** is one inline slider.
 - **Player → Comfort → Smooth Aspect Teleport** is a direct toggle backed by
   `assist.visual.smoothAspectTeleport`. It defaults on; an observed local Aspect use arms the next completed server
-  position jump and draws a bounded 340 ms HUD-space ease veil. It does not initiate a teleport, write player/camera
-  coordinates, alter input, or send packets.
+  position jump. After vanilla accepts that jump, an independent render-only origin eases the camera, terrain,
+  entities, and world overlays from the observed pre-jump point to the authoritative destination over 125 ms. It
+  does not initiate a teleport, write player/camera entity coordinates, alter input, invoke a controller, or send
+  packets.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
-- **Boss Health HUD** is a master toggle plus **Edit**.
-- **HUD Editor** is an **Edit** row.
-- **Item Animation** is a master toggle plus **Edit**.
+- **Boss Health HUD** is a master toggle plus **Open HUD Editor**.
+- **HUD Editor** uses **Open HUD Editor**.
+- **Item Animation** is a master toggle plus **Open Item Animation Editor**.
 - **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its four retained target styles
   are Starred Mob, Miniboss, Special Starred Mob, and Enderman. A star-tagged Skeletor resolves through normal
   Starred Mob styling; player-shaped/NPC bodies remain eligible when a nearby tag selects them, while the local
@@ -87,8 +90,8 @@ dropdown was added.
 
 ## Item Animation standalone panel
 
-**HUD & Visuals → Item Animation → Edit** and `/velor itemanimation` open `ItemAnimationEditorScreen`, not
-the HUD editor. It is an undimmed left-edge rounded panel at roughly 28% of GUI width, with Close X
+**HUD & Visuals → Item Animation → Open Item Animation Editor** and `/velor itemanimation` open
+`ItemAnimationEditorScreen`, not the HUD editor. It is an undimmed left-edge rounded panel at roughly 28% of GUI width, with Close X
 and **Reset to Defaults**. Its render plan contains only the Item Animation panel: no HUD canvas,
 HUD-editor bar, world overlay, or held-item sample surface is drawn behind it.
 
@@ -109,7 +112,7 @@ Animation values continue to load unchanged.
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.5v text |
+| Earlier player-facing text | Beta-0.10.9.1.6v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -120,7 +123,7 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 | `Filter type` | `Filter Type` |
 | `Message sound` | `Message Sound` |
 | `Open chat background` | `Open Chat Background` |
-| `Item Animation Editor` route | `Item Animation` with `[Edit]` |
+| `Item Animation Editor` route | `Item Animation` with `Open Item Animation Editor` |
 | `Mob ESP` | `Starred Mobs` |
 | `Hide Zero Health` under Starred Mobs | `Hide Dead Mobs` under Player → Comfort |
 | No Aspect visual easing | `Smooth Aspect Teleport` under Player → Comfort; render-only |
@@ -144,9 +147,10 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 ## Automated coverage and release boundary
 
 Headless coverage includes flat depth/count/choice invariants, fixed-column scale-1–4 geometry,
-Apple title-bar targets and 8 px margin behavior, editor-row/no-tree behavior, accordion persistence,
+Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree behavior, accordion persistence,
 search disclosure, player-copy validation, old-config loading, exact configurable-id preservation,
-direct binding audit, and Item Animation panel render-list/control exclusion.
+direct binding audit, Item Animation panel render-list/control exclusion, deterministic Aspect camera-path easing,
+and fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
 `tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
 Home, Dungeons, and GUI-scale-4 Home Java2D PNG review previews; CI uploads those previews as
 short-lived evidence. `tools/verify_release_jar.py` additionally checks the packaged class and
@@ -156,8 +160,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.5v.jar \
-  --version Beta-0.10.9.1.5v --mcmod-version 0.10.9.1.5
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar \
+  --version Beta-0.10.9.1.6v --mcmod-version 0.10.9.1.6
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

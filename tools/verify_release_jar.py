@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.5v] [--mcmod-version 0.10.9.1.5]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.6v] [--mcmod-version 0.10.9.1.6]
 """
 
 import argparse
@@ -169,6 +169,10 @@ REQUIRED_CLASSES = [
     'assist/visual/AspectTeleportTransitionPolicy',
     'assist/visual/AspectTeleportTransitionObservation',
     'assist/visual/AspectTeleportTransitionRenderer',
+    'assist/visual/AspectTeleportCameraPath',
+    'assist/visual/AspectTeleportCameraHooks',
+    'assist/visual/AspectTeleportCameraHookStatus',
+    'assist/visual/AspectTeleportCameraTransformer',
     'hud/MiningAssistantHud',
     'hud/DungeonBossHud',
 ]
@@ -352,8 +356,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.5v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.5')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.6v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.6')
     args = ap.parse_args()
 
     path = args.jar
@@ -567,10 +571,12 @@ def main():
                  b'Accent Color', b'Filter Type', b'Message Sound', b'Open Chat Background'))
                 and b'ChatEditorScreen' not in settings_screen_raw and b'openChatSettings' in command_actions_raw,
             'Chat settings and custom-tab editing live in one flat owning dropdown; commands route to that owner')
-    r.check(all(value in reference_catalog_raw for value in (b'HUD Editor', b'Item Animation'))
+    r.check(all(value in reference_catalog_raw for value in
+                (b'HUD Editor', b'Item Animation', b'Open HUD Editor', b'Open Item Animation Editor'))
                 and b'HudEditorScreen' in settings_screen_raw and b'ItemAnimationEditorScreen' in settings_screen_raw
-                and b'item-animation-open-editor' in settings_screen_raw,
-            'HUD Editor and the standalone Item Animation editor remain reachable')
+                and b'item-animation-open-editor' in settings_screen_raw and b'editorButtonWidth' in settings_screen_raw
+                and b'[Edit]' not in settings_screen_raw,
+            'HUD Editor and the standalone Item Animation editor remain reachable through clear named CTA controls')
     r.check(b'CHAT_PREVIEW_' not in theme_raw and b'ChatEditorPreview' not in settings_screen_raw
                 and b'DungeonEspPreviewRenderer' not in settings_screen_raw,
             'no retired live-preview color surface or focused-editor preview route remains')
@@ -619,29 +625,45 @@ def main():
     aspect_policy_raw = raw_of('assist/visual/AspectTeleportTransitionPolicy')
     aspect_observation_raw = raw_of('assist/visual/AspectTeleportTransitionObservation')
     aspect_renderer_raw = raw_of('assist/visual/AspectTeleportTransitionRenderer')
+    aspect_path_raw = raw_of('assist/visual/AspectTeleportCameraPath')
+    aspect_hooks_raw = raw_of('assist/visual/AspectTeleportCameraHooks')
+    aspect_status_raw = raw_of('assist/visual/AspectTeleportCameraHookStatus')
+    aspect_transformer_raw = raw_of('assist/visual/AspectTeleportCameraTransformer')
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.movement.autoSprint',
                  b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
                  b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
             'AssistSettings retains bounded Hurt Camera Shake, render-only Smooth Aspect Teleport, Comfort-owned Hide Dead Mobs, inventory, movement, terminal and sync owners')
-    # raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
+    # Raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
     r.check(all(value in aspect_policy_raw for value in
-                (b'isAspectTeleportItem', b'isLargePositionJump', b'veilAlpha', b'aspect of the end',
-                 b'aspect of the void', b'DURATION_NANOS'))
+                (b'isAspectTeleportItem', b'isLargePositionJump', b'cameraProgress', b'aspect of the end',
+                 b'aspect of the void', b'CAMERA_INTERPOLATION_NANOS'))
                 and all(value in aspect_observation_raw for value in
-                        (b'arm', b'observe', b'remainingArmedTicks', b'AspectTeleportTransitionPolicy'))
+                        (b'arm', b'observe', b'transitionFromX', b'transitionToX', b'remainingArmedTicks',
+                         b'AspectTeleportTransitionPolicy'))
+                and all(value in aspect_path_raw for value in
+                        (b'begin', b'isActiveAt', b'xAt', b'yAt', b'zAt', b'cameraProgress'))
                 and all(value in aspect_renderer_raw for value in
-                        (b'tick', b'observeUse', b'render', b'AspectTeleportTransitionObservation',
-                         b'AspectTeleportTransitionPolicy', b'AssistSettings', b'UIRender'))
+                        (b'tick', b'observeUse', b'AspectTeleportTransitionObservation',
+                         b'AspectTeleportCameraHooks', b'AssistSettings'))
+                and b'UIRender' not in aspect_renderer_raw and b'veilAlpha' not in aspect_renderer_raw
+                and all(value in aspect_hooks_raw for value in
+                        (b'orientCameraX', b'orientCameraY', b'orientCameraZ', b'renderCameraX', b'renderCameraY',
+                         b'renderCameraZ', b'dispatchRenderLast', b'ForgeHooksClient', b'AspectTeleportCameraPath'))
+                and all(value in aspect_status_raw for value in
+                        (b'entityRendererInjected', b'renderGlobalInjected', b'isReady'))
+                and all(value in aspect_transformer_raw for value in
+                        (b'EntityRenderer', b'RenderGlobal', b'orientCamera', b'func_78467_g', b'(IFJ)V',
+                         b'orientCameraX', b'renderCameraX', b'dispatchRenderLast', b'(Ljava/lang/Object;F)V'))
                 # Minecraft member names are reobfuscated in a real release, so do not require MCP item/input
                 # spellings here. Network/controller/position-writing owner paths must remain absent in every mapping.
-                and all(value not in aspect_renderer_raw for value in
+                and all(value not in aspect_renderer_raw + aspect_hooks_raw + aspect_transformer_raw for value in
                         (b'net/minecraft/network', b'NetworkManager', b'sendPacket', b'sendQueue', b'playerController',
-                         b'setPosition', b'setLocationAndAngles')),
-            'Smooth Aspect Teleport packages explicit-use/jump observation and a bounded HUD veil, with no movement or packet path')
+                         b'setPosition', b'setLocationAndAngles', b'NetHandler')),
+            'Smooth Aspect Teleport packages explicit-use observation and a fail-closed render-only camera/world glide, with no movement or packet path')
     r.check(all(value in client_raw for value in
                 (b'AspectTeleportTransitionRenderer', b'aspectTeleportTransition', b'observeUse', b'MouseEvent')),
-            'client tick, local use observation, and overlay bridge package the Aspect visual transition renderer')
+            'client tick and local use observation package the Aspect render transition without a HUD veil')
     r.check(all(value in sync_client_raw for value in (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
                 and b'DungeonSyncEnvironment' in sync_manager_raw and b'rememberSyncedPuzzle' in sync_manager_raw,
@@ -761,12 +783,15 @@ def main():
             'transformer carries balanced matrix, visual swing, and equip hook entry points')
 
     loading_constants = constants_of('render/itemanimation/ItemAnimationLoadingPlugin')
-    r.check('com.arena.pekaclient.render.itemanimation' in loading_constants,
-            'loading plugin declares a transformer exclusion for its own coremod package')
+    r.check('com.arena.pekaclient.render.itemanimation' in loading_constants
+                and 'AspectTeleportCameraTransformer' in loading_constants,
+            'loading plugin declares its coremod exclusion and registers the fail-closed Aspect render transformer')
     # Coremod setup classes must not link a Minecraft client/world class before LaunchClassLoader installs them.
     for cls in ('render/itemanimation/ItemAnimationLoadingPlugin',
                 'render/itemanimation/ItemAnimationTransformer',
                 'render/itemanimation/ItemAnimationHookStatus',
+                'assist/visual/AspectTeleportCameraTransformer',
+                'assist/visual/AspectTeleportCameraHookStatus',
                 'itemlockswap/ItemLockSwapTransformer',
                 'itemlockswap/ItemLockSwapHookStatus'):
         class_path = MOD_PACKAGE + cls + '.class'

@@ -64,6 +64,10 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float ROW_PAD_X = GuiStyle.SPACE_12;
     private static final float ROW_PAD_Y = GuiStyle.SPACE_8;
     private static final float CONTROL_GAP = GuiStyle.SPACE_8;
+    /** Editor routes are named calls to action, not generic bracket controls. */
+    private static final float EDITOR_BUTTON_TEXT_SCALE = .62f;
+    private static final float EDITOR_BUTTON_HORIZONTAL_PAD = 9f;
+    private static final float EDITOR_BUTTON_MIN_WIDTH = 86f;
     /** Every row reserves these fixed right-side columns, even when they are intentionally blank. */
     private static final float CHEVRON_COLUMN_W = SettingsControlLayout.CHEVRON_COLUMN_WIDTH;
     private static final float TOGGLE_COLUMN_W = SettingsControlLayout.TOGGLE_COLUMN_WIDTH;
@@ -763,11 +767,12 @@ public class AppleSettingsScreen extends AppleScreen {
                 || setting.control == ReferenceSettingsCatalog.Control.CHOICE
                 || setting.control == ReferenceSettingsCatalog.Control.TEXT
                 || setting.control == ReferenceSettingsCatalog.Control.ACTION;
-        float editW = setting.isEditor() ? 38f : 0f;
+        float editW = setting.isEditor() ? editorButtonWidth(setting) : 0f;
         float labelRight = inlineControl ? controlRight - valueW - CONTROL_GAP
                 : setting.isEditor() ? controlRight - editW - CONTROL_GAP : controlRight;
         float labelW = Math.max(42f, labelRight - leftX);
-        if (narrowRows) labelW = Math.max(42f, controlRight - leftX);
+        // Inline controls stack below the copy on narrow shells; a named editor CTA remains beside the copy.
+        if (narrowRows && !setting.isEditor()) labelW = Math.max(42f, controlRight - leftX);
         float labelY = y + ROW_PAD_Y;
         // Keep master-off children visibly muted, not unreadable. They remain intentionally editable so saved choices
         // can be prepared before the owner is enabled.
@@ -890,9 +895,9 @@ public class AppleSettingsScreen extends AppleScreen {
                 || setting.control == ReferenceSettingsCatalog.Control.ACTION) {
             labelW = Math.max(42f, labelW - controlWidth(setting) - CONTROL_GAP);
         } else if (setting.isEditor()) {
-            labelW = Math.max(42f, labelW - 38f - CONTROL_GAP);
+            labelW = Math.max(42f, labelW - editorButtonWidth(setting) - CONTROL_GAP);
         }
-        if (narrowRows) labelW = Math.max(42f, contentW - left - right);
+        if (narrowRows && !setting.isEditor()) labelW = Math.max(42f, contentW - left - right);
         int lines = cachedLines(setting.id, setting.description, labelW, Theme.TYPE_BODY, 2);
         float textH = 10f + lines * 8f;
         float base = Math.max(textH, controlHeight(setting)) + ROW_PAD_Y * 2f - 1f;
@@ -977,16 +982,30 @@ public class AppleSettingsScreen extends AppleScreen {
         registerHit("control:" + setting.id, HIT_CONTROL, x, y, w, widget.h, setting, "");
     }
 
-    /** Editor rows reserve the same columns but use an explicit button instead of a disclosure glyph. */
+    /** Editor rows reserve the same columns but use a descriptive destination CTA instead of a generic bracket label. */
     private void drawEditorButton(ReferenceSettingsCatalog.Setting setting, float x, float y, float w,
                                   int mouseX, int mouseY) {
         boolean hot = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + 20f;
-        int fill = hot ? Theme.buttonHover : Theme.buttonFill;
-        UIRender.roundRectBorder(x, y, w, 20f, 5f, fill, fill, Theme.border);
-        String label = "[Edit]";
-        UIRender.text(fr(), label, x + (w - fr().getStringWidth(label) * .68f) * .5f,
-                centeredTextY(y, 20f, .68f), hot ? Theme.textPrimary : Theme.textSecondary, .68f, false);
+        int fill = hot ? UIRender.mix(Theme.buttonHover, Theme.accent, .16f) : Theme.buttonFill;
+        int border = hot ? UIRender.withAlpha(Theme.accent, .76f) : Theme.border;
+        UIRender.roundRectBorder(x, y, w, 20f, 5f, fill, fill, border);
+        String label = fit(fr(), editorActionLabel(setting), Math.max(1f, w - EDITOR_BUTTON_HORIZONTAL_PAD * 2f)
+                / EDITOR_BUTTON_TEXT_SCALE);
+        UIRender.text(fr(), label, x + (w - fr().getStringWidth(label) * EDITOR_BUTTON_TEXT_SCALE) * .5f,
+                centeredTextY(y, 20f, EDITOR_BUTTON_TEXT_SCALE), hot ? Theme.textPrimary : Theme.textSecondary,
+                EDITOR_BUTTON_TEXT_SCALE, false);
         registerHit("editor:" + setting.id, HIT_ACTION, x, y, w, 20f, setting, setting.editorActionId);
+    }
+
+    private String editorActionLabel(ReferenceSettingsCatalog.Setting setting) {
+        return setting.actionLabel.length() == 0 ? "Open Editor" : setting.actionLabel;
+    }
+
+    /** Uses the native FontRenderer so the full named destination is visible at every normal shell size. */
+    private float editorButtonWidth(ReferenceSettingsCatalog.Setting setting) {
+        return Math.max(EDITOR_BUTTON_MIN_WIDTH,
+                fr().getStringWidth(editorActionLabel(setting)) * EDITOR_BUTTON_TEXT_SCALE
+                        + EDITOR_BUTTON_HORIZONTAL_PAD * 2f);
     }
 
     private String terminalStatusText() {

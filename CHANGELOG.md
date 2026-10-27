@@ -1,5 +1,26 @@
 # Changelog
 
+## Beta-0.10.9.1.6v — 2026-10-27
+
+### Changed
+
+- Replaced the rejected dark/blue **Smooth Aspect Teleport** HUD veil with a short `125 ms`, client-side rendered
+  camera/world glide for observed AOTE/AOTV jumps. Vanilla still applies the ordinary server-authoritative teleport;
+  a fail-closed render path temporarily eases the camera, terrain, entities, and world overlays from the pre-jump
+  position to the accepted destination.
+- Replaced every generic editor button with a clear route CTA: **Open HUD Editor** for HUD destinations and
+  **Open Item Animation Editor** for the existing held-item editor. No extra editor screen was added.
+
+### Safety and verification
+
+- The Aspect path remains visual-only: it neither initiates nor alters a teleport, sends/replays packets, changes
+  input, writes player/camera entity coordinates, or invokes a controller. It enables only when both verified
+  1.8.9 render-coordinate hook surfaces are available.
+- Added deterministic render-path tests plus bytecode fixtures that prove the EntityRenderer/RenderGlobal hook is
+  narrow and fail-closed. Existing Fel/Enderman ESP, configuration compatibility, and editor-route coverage remain.
+- Automated checks do not launch Minecraft; validate the final smooth camera feel in a real Minecraft 1.8.9 Forge
+  client before claiming in-game runtime validation.
+
 ## Beta-0.10.9.1.5v — 2026-10-27
 
 ### Fixed

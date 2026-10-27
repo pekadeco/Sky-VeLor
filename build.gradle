@@ -22,8 +22,8 @@ repositories {
 }
 
 // Version: read from PekaVersion.NAME so there is exactly one source of release version metadata.
-// Beta-0.10.9.1.5v is the release contract for this branch; fail early if the source and build surfaces drift.
-def releaseDisplayVersion = "Beta-0.10.9.1.5v"
+// Beta-0.10.9.1.6v is the release contract for this branch; fail early if the source and build surfaces drift.
+def releaseDisplayVersion = "Beta-0.10.9.1.6v"
 def pekaVersionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java').text
 def pekaVersionMatch = (pekaVersionSource =~ /NAME\s*=\s*"([^"]+)"/)
 if (!pekaVersionMatch.find()) {

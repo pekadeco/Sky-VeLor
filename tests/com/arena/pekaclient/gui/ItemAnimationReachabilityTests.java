@@ -19,8 +19,12 @@ public final class ItemAnimationReachabilityTests {
 
     private static void itemAnimationUsesOneDistinctEditorRow() {
         ReferenceSettingsCatalog.Setting row = ReferenceSettingsCatalog.find("item-animation");
-        check("Item Animation is a toggle plus Edit editor row", row != null && row.isEditor()
-                && row.hasMasterToggle() && "item-animation-open-editor".equals(row.editorActionId));
+        check("Item Animation is a toggle plus named editor route", row != null && row.isEditor()
+                && row.hasMasterToggle() && "item-animation-open-editor".equals(row.editorActionId)
+                && "Open Item Animation Editor".equals(row.actionLabel));
+        ReferenceSettingsCatalog.Setting hud = ReferenceSettingsCatalog.find("hud-editor");
+        check("HUD route uses a clear named editor action", hud != null && hud.isEditor()
+                && "open-hud-editor".equals(hud.editorActionId) && "Open HUD Editor".equals(hud.actionLabel));
         check("Item Animation no longer owns a dropdown or a separate action row", row != null && !row.isDropdown()
                 && ReferenceSettingsCatalog.find("item-animation-open-editor") == null);
         check("standalone panel stays near twenty-eight percent wide", ItemAnimationEditorScreen.PANEL_WIDTH_FRACTION >= .27f

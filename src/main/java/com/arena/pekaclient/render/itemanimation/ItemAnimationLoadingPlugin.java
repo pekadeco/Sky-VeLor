@@ -1,5 +1,6 @@
 package com.arena.pekaclient.render.itemanimation;
 
+import com.arena.pekaclient.assist.visual.AspectTeleportCameraTransformer;
 import com.arena.pekaclient.assist.visual.VisualAssistTransformer;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapHookStatus;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapTransformer;
@@ -10,8 +11,8 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 import java.util.Map;
 
 /**
- * Forge 1.8.9 coremod entry point for narrow Item Animation/particle visual hooks plus the fail-closed Item Lock /
- * Swap packet guards plus its one GuiContainer foreground draw callback. None replaces a vanilla renderer,
+ * Forge 1.8.9 coremod entry point for narrow Item Animation/particle/Aspect render hooks plus the fail-closed Item
+ * Lock / Swap packet guards and its one GuiContainer foreground draw callback. None replaces a vanilla renderer,
  * container, inventory, or network handler.
  */
 @IFMLLoadingPlugin.Name("Sky VeLor Visual Hooks")
@@ -30,7 +31,8 @@ public final class ItemAnimationLoadingPlugin implements IFMLLoadingPlugin {
         BlockParticleHookStatus.noteCoremodRegistered();
         ItemLockSwapHookStatus.noteCoremodRegistered();
         return new String[]{ItemAnimationTransformer.class.getName(), BlockParticleTransformer.class.getName(),
-                ItemLockSwapTransformer.class.getName(), VisualAssistTransformer.class.getName()};
+                ItemLockSwapTransformer.class.getName(), VisualAssistTransformer.class.getName(),
+                AspectTeleportCameraTransformer.class.getName()};
     }
 
     @Override

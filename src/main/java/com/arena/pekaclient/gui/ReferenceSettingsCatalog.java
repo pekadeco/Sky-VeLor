@@ -36,7 +36,7 @@ public final class ReferenceSettingsCatalog {
         }
     }
 
-    /** A caption is paint-only, not an interactive row. An editor row has a distinct Edit button. */
+    /** A caption is paint-only, not an interactive row. An editor row has one named destination CTA. */
     public enum Control {
         TOGGLE, SLIDER, ACTION, CHOICE, INFO, DROPDOWN, TEXT, CAPTION, EDITOR
     }
@@ -262,7 +262,8 @@ public final class ReferenceSettingsCatalog {
                     masterDropdown("spirit-leap", "Spirit Leap Picker", "Show class labels on Spirit Leap heads.",
                             "leap teammate", toggle("leap-key", "Spirit Leap Key", "Use the Spirit Leap key.", "leap key"),
                             reset("spirit-leap-reset")),
-                    editor("dungeon-boss-hud", "Boss Health HUD", "Show boss health on screen.", "boss hp hud", true, "open-hud-editor")),
+                    editor("dungeon-boss-hud", "Boss Health HUD", "Show boss health on screen.", "boss hp hud", true,
+                            "Open HUD Editor", "open-hud-editor")),
             card("floor-seven", "Floor VII", "Relics, dragons, and boss outlines.", false, "",
                     masterDropdown("m7-overlay", "Floor VII Overlay", "Track relics, devices, and dragons.", "m7 floor seven dragons",
                             toggle("m7-relic-areas", "Relic Kill Areas", "Show relic areas by statues.", "relic area"),
@@ -342,12 +343,12 @@ public final class ReferenceSettingsCatalog {
     private static final List<Card> VISUALS = cards(
             card("hud", "HUD", "Move and resize on-screen elements.", false, "",
                     editor("hud-editor", "HUD Editor", "Move and resize on-screen elements.", "hud editor", false,
-                            "open-hud-editor"),
+                            "Open HUD Editor", "open-hud-editor"),
                     toggle("hud-player-doll", "Player Doll", "Show your player model on screen.", "doll armour"),
                     toggle("hud-inventory", "Inventory HUD", "Show inventory slots on screen.", "inventory hud")),
             card("item-animation", "Item Animation", "Change how your held item looks.", false, "",
                     editor("item-animation", "Item Animation", "Change how your held item looks.", "hand first person",
-                            true, "item-animation-open-editor"))
+                            true, "Open Item Animation Editor", "item-animation-open-editor"))
     );
 
     private static final List<Card> SYSTEM = cards(
@@ -683,8 +684,8 @@ public final class ReferenceSettingsCatalog {
     }
 
     private static Setting editor(String id, String label, String description, String keywords,
-                                  boolean hasToggle, String actionId) {
-        return new Setting(id, label, description, keywords, Control.EDITOR, false, "Edit", 0, 1, 1, "", null,
+                                  boolean hasToggle, String actionLabel, String actionId) {
+        return new Setting(id, label, description, keywords, Control.EDITOR, false, actionLabel, 0, 1, 1, "", null,
                 hasToggle, actionId);
     }
 

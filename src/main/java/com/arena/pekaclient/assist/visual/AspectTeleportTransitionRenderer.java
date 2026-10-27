@@ -1,25 +1,23 @@
 package com.arena.pekaclient.assist.visual;
 
 import com.arena.pekaclient.config.AssistSettings;
-import com.arena.pekaclient.render.Theme;
-import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.item.ItemStack;
 
 /**
- * Short HUD-space visual ease for a completed Aspect of the End/Void position change.
+ * Observes a completed Aspect of the End/Void position change and starts a temporary render-only camera path.
  *
- * <p>A local right-click/use-key observation arms a small window before the server-authoritative position response
- * arrives. The renderer only observes that completed response and paints a visible, bounded blue veil. It never
- * writes player coordinates, rotation, key state, controller state, or camera state, and it never sends packets.</p>
+ * <p>A local right-click/use-key observation arms a short window before the ordinary server-authoritative position
+ * response arrives. The response remains vanilla; this class only passes its already-observed before/after positions
+ * to the fail-closed renderer bridge. It never writes player coordinates, rotation, key state, controller state, or
+ * camera state, and it never sends packets.</p>
  */
 public final class AspectTeleportTransitionRenderer {
 
     private final AspectTeleportTransitionObservation observation = new AspectTeleportTransitionObservation();
+    private Object lastWorld;
     private boolean useKeyWasDown;
-    private long transitionStartedNanos = Long.MIN_VALUE;
 
     /** Called from the ordinary END client tick after vanilla has applied any server-authoritative position update. */
     public void tick(Minecraft minecraft) {
@@ -27,9 +25,19 @@ public final class AspectTeleportTransitionRenderer {
             reset();
             return;
         }
-        if (!AssistSettings.smoothAspectTeleport) {
+        if (!AssistSettings.smoothAspectTeleport || minecraft.gameSettings == null
+                || minecraft.gameSettings.thirdPersonView != 0 || minecraft.getRenderViewEntity() != minecraft.thePlayer) {
+            // The render-coordinate path is intentionally first-person and player-view only; no third-person or
+            // alternate camera entity state is altered as a fallback.
             reset();
             return;
+        }
+
+        if (lastWorld != minecraft.theWorld) {
+            // A destination path from a prior world must never briefly render into a freshly joined world.
+            observation.reset();
+            AspectTeleportCameraHooks.clear();
+            lastWorld = minecraft.theWorld;
         }
 
         EntityPlayerSP player = minecraft.thePlayer;
@@ -37,7 +45,7 @@ public final class AspectTeleportTransitionRenderer {
         boolean holdingAspect = held != null && AspectTeleportTransitionPolicy.isAspectTeleportItem(held.getDisplayName());
         // Mouse observations below cover ordinary clicks immediately. This edge check also covers the bound use-item
         // key and launcher/input paths that do not emit a Forge MouseEvent.
-        boolean useKeyDown = minecraft.gameSettings != null && minecraft.gameSettings.keyBindUseItem != null
+        boolean useKeyDown = minecraft.gameSettings.keyBindUseItem != null
                 && minecraft.gameSettings.keyBindUseItem.isKeyDown();
         if (holdingAspect && useKeyDown && !useKeyWasDown) {
             observation.arm();
@@ -45,7 +53,9 @@ public final class AspectTeleportTransitionRenderer {
         useKeyWasDown = useKeyDown;
 
         if (observation.observe(minecraft.theWorld, player.posX, player.posY, player.posZ)) {
-            transitionStartedNanos = System.nanoTime();
+            AspectTeleportCameraHooks.begin(observation.transitionFromX(), observation.transitionFromY(),
+                    observation.transitionFromZ(), observation.transitionToX(), observation.transitionToY(),
+                    observation.transitionToZ());
         }
     }
 
@@ -54,37 +64,19 @@ public final class AspectTeleportTransitionRenderer {
      * reliable for a quick AOTE/AOTV click even when the key state has already been released by the next client tick.
      */
     public void observeUse(Minecraft minecraft) {
-        if (!AssistSettings.smoothAspectTeleport || minecraft == null || minecraft.thePlayer == null) return;
+        if (!AssistSettings.smoothAspectTeleport || minecraft == null || minecraft.thePlayer == null
+                || minecraft.gameSettings == null || minecraft.gameSettings.thirdPersonView != 0
+                || minecraft.getRenderViewEntity() != minecraft.thePlayer) return;
         ItemStack held = minecraft.thePlayer.getHeldItem();
         if (held != null && AspectTeleportTransitionPolicy.isAspectTeleportItem(held.getDisplayName())) {
             observation.arm();
         }
     }
 
-    /** Draws only the current short-lived HUD veil. No world render state or camera coordinates are changed. */
-    public void render(ScaledResolution resolution) {
-        if (!AssistSettings.smoothAspectTeleport || resolution == null || transitionStartedNanos == Long.MIN_VALUE) return;
-        float alpha = AspectTeleportTransitionPolicy.veilAlpha(System.nanoTime() - transitionStartedNanos);
-        if (alpha <= 0F) {
-            transitionStartedNanos = Long.MIN_VALUE;
-            return;
-        }
-        float width = resolution.getScaledWidth();
-        float height = resolution.getScaledHeight();
-        if (width <= 0F || height <= 0F) return;
-        UIRender.beginFrame();
-        try {
-            // The stronger base masks the abrupt snap; the restrained blue wash preserves the Aspect visual identity.
-            UIRender.rect(0F, 0F, width, height, UIRender.withAlpha(Theme.DIM, alpha));
-            UIRender.rect(0F, 0F, width, height, UIRender.withAlpha(Theme.ACCENT_BLUE, alpha * .24F));
-        } finally {
-            UIRender.endFrame();
-        }
-    }
-
     private void reset() {
         observation.reset();
+        lastWorld = null;
         useKeyWasDown = false;
-        transitionStartedNanos = Long.MIN_VALUE;
+        AspectTeleportCameraHooks.clear();
     }
 }

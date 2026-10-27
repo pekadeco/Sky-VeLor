@@ -122,12 +122,14 @@ public final class FlatDropdownContractTests {
                 && leap.hasMasterToggle() && contains(leap, "leap-key"));
         check("Terminal Helper is a no-master dropdown", terminal != null && terminal.isDropdown()
                 && !terminal.hasMasterToggle() && terminal.children.size() >= 5);
-        check("Boss Health HUD is a toggle plus Edit row", boss != null && boss.isEditor() && boss.hasMasterToggle()
-                && "open-hud-editor".equals(boss.editorActionId));
-        check("Item Animation is a toggle plus Edit row", hand != null && hand.isEditor() && hand.hasMasterToggle()
-                && "item-animation-open-editor".equals(hand.editorActionId));
-        check("HUD Editor is an Edit row with no chevron", hud != null && hud.isEditor() && !hud.hasMasterToggle()
-                && "open-hud-editor".equals(hud.editorActionId));
+        check("Boss Health HUD is a toggle plus named HUD editor route", boss != null && boss.isEditor()
+                && boss.hasMasterToggle() && "open-hud-editor".equals(boss.editorActionId)
+                && "Open HUD Editor".equals(boss.actionLabel));
+        check("Item Animation is a toggle plus named editor route", hand != null && hand.isEditor()
+                && hand.hasMasterToggle() && "item-animation-open-editor".equals(hand.editorActionId)
+                && "Open Item Animation Editor".equals(hand.actionLabel));
+        check("HUD Editor is a named route with no chevron", hud != null && hud.isEditor() && !hud.hasMasterToggle()
+                && "open-hud-editor".equals(hud.editorActionId) && "Open HUD Editor".equals(hud.actionLabel));
     }
 
     private static boolean contains(ReferenceSettingsCatalog.Setting setting, String id) {

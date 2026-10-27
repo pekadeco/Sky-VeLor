@@ -245,7 +245,8 @@ public class PekaClientMod {
             dragonKill.tick(System.currentTimeMillis());
             return;
         }
-        // This only observes the client's completed position and draws a brief HUD veil; it never changes movement.
+        // This observes the completed server-authoritative position and starts only a temporary render-coordinate
+        // interpolation; it never changes movement, packets, input, or player state.
         aspectTeleportTransition.tick(mc);
         ClientActions.run(mc);
         if (OPEN_KEY.isPressed() && mc.currentScreen == null) {
@@ -368,10 +369,9 @@ public class PekaClientMod {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
-        // The editor draws the elements itself, so skip the in-game copy while it is open.
+        // The editor draws the elements itself, so skip the in-game copy while it is open. Aspect smoothing is
+        // already applied inside the world render coordinate path; there is intentionally no HUD veil here.
         if (!(mc.currentScreen instanceof HudEditorScreen) && HudManager.visibleInGame()) {
-            // Draw first so retained HUD elements stay legible through the short visual teleport transition.
-            aspectTeleportTransition.render(event.resolution);
             HudManager.render(event.resolution);
         }
     }

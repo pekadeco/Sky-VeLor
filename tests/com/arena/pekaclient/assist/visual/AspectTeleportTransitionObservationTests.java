@@ -9,7 +9,7 @@ public final class AspectTeleportTransitionObservationTests {
         requiresAnObservedUseBeforePainting();
         oneUseCreatesOnlyOneTransition();
         armWindowSurvivesExpectedServerDelayButExpires();
-        worldChangesAndInvalidCoordinatesNeverCreateAFlash();
+        worldChangesAndInvalidCoordinatesNeverCreateARenderPath();
         done();
     }
 
@@ -20,6 +20,10 @@ public final class AspectTeleportTransitionObservationTests {
         check("unarmed position jump stays quiet", !state.observe(world, 3D, 64D, 0D));
         state.arm();
         check("armed short Aspect jump starts the visual transition", state.observe(world, 5D, 64D, 0D));
+        check("transition retains its exact pre-jump render origin", state.transitionFromX() == 3D
+                && state.transitionFromY() == 64D && state.transitionFromZ() == 0D);
+        check("transition retains its exact authoritative render destination", state.transitionToX() == 5D
+                && state.transitionToY() == 64D && state.transitionToZ() == 0D);
     }
 
     private static void oneUseCreatesOnlyOneTransition() {
@@ -51,7 +55,7 @@ public final class AspectTeleportTransitionObservationTests {
         check("expired use window cannot flash on a delayed unrelated jump", !state.observe(world, 4D, 64D, 0D));
     }
 
-    private static void worldChangesAndInvalidCoordinatesNeverCreateAFlash() {
+    private static void worldChangesAndInvalidCoordinatesNeverCreateARenderPath() {
         AspectTeleportTransitionObservation state = new AspectTeleportTransitionObservation();
         Object first = new Object();
         Object second = new Object();
@@ -59,7 +63,7 @@ public final class AspectTeleportTransitionObservationTests {
         state.arm();
         check("world replacement establishes a quiet new baseline", !state.observe(second, 10D, 70D, 10D));
         state.arm();
-        check("invalid observation clears rather than paints", !state.observe(second, Double.NaN, 64D, 0D)
+        check("invalid observation clears rather than starts a render path", !state.observe(second, Double.NaN, 64D, 0D)
                 && state.remainingArmedTicks() == 0);
     }
 

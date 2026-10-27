@@ -1,23 +1,23 @@
-# Sky VeLor — Beta-0.10.9.1.5v
+# Sky VeLor — Beta-0.10.9.1.6v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.5v — reliable Fel markers and Aspect visual easing
+## Beta-0.10.9.1.6v — Smooth Aspect camera glide and named editor actions
 
-- Keeps the local player excluded by identity during both the Dungeon ESP scan and live render pass, while retaining
-  valid player-shaped dungeon NPC targets.
-- Restores direct Enderman/Fel skull-marker outlines without a separate star-tag or player-height gate. The stable
-  fixed proxy is `0.76 × 1.85` blocks: compact enough to avoid the retired oversized floor outline while covering the
-  full Fel/Enderman marker representation.
-- Fixes **Player → Comfort → Smooth Aspect Teleport**, enabled by default. An observed local Aspect of the End/Void
-  use arms a brief server-response window, then a completed position jump paints a more visible `340 ms` blue visual
-  ease veil. It only observes local state: it does not initiate teleports, write movement/camera coordinates, alter
-  input, or send packets.
+- Keeps the accepted direct Enderman/Fel skull-marker behavior: local-player identity exclusion, player-shaped dungeon
+  NPC support, and the compact `0.76 × 1.85` marker proxy remain unchanged.
+- Replaces the rejected HUD veil in **Player → Comfort → Smooth Aspect Teleport**, enabled by default. An observed
+  local Aspect of the End/Void use arms a short response window; once vanilla applies the server-authoritative jump,
+  an independent render origin glides the camera, terrain, entities, and world overlays from the pre-jump position
+  to that destination over `125 ms`.
+- The Aspect feature is strictly client-side visual rendering. It does not initiate, cancel, replay, steer, or
+  packet-drive a teleport; it does not write player/camera entity coordinates, alter input, or invoke a controller.
+- Replaces generic editor buttons with **Open HUD Editor** and **Open Item Animation Editor**, retaining exactly the
+  existing HUD and Item Animation editor screens and their action routes.
 - Keeps Minecraft 1.8.9 Forge compatibility, safe old-config loading, existing unrelated settings/features, the
-  `SkyVeLor` wordmark, eight-route navigation, dropdown behavior, optional GUI transparency, fullscreen action,
-  and the HUD/Item Animation editors.
+  `SkyVeLor` wordmark, eight-route navigation, dropdown behavior, optional GUI transparency, and fullscreen action.
 
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
@@ -70,7 +70,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.5v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -81,8 +81,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.5v.jar \
-  --version Beta-0.10.9.1.5v --mcmod-version 0.10.9.1.5
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar \
+  --version Beta-0.10.9.1.6v --mcmod-version 0.10.9.1.6
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -90,8 +90,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1.5v-source.zip \
-  --version Beta-0.10.9.1.5v
+  SkyVeLor-1.8.9-Beta-0.10.9.1.6v-source.zip \
+  --version Beta-0.10.9.1.6v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -101,7 +101,7 @@ and unrelated archives do not belong in the source ZIP.
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.5v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
@@ -116,11 +116,11 @@ and unrelated archives do not belong in the source ZIP.
   eligible, while the local player is excluded in both scan and render paths. Recognized Enderman/Fel skull markers
   remain direct Enderman targets without a separate tag or height gate.
 - **Player → Comfort → Hide Dead Mobs** defaults on and removes a Dungeon ESP target during its death animation.
-- **Player → Comfort → Smooth Aspect Teleport** defaults on and arms only after a local Aspect use before painting a
-  bounded render-only ease for the completed server position jump. It never initiates movement, changes
-  camera/player coordinates, or sends packets.
-- **HUD & Visuals → HUD → HUD Editor** opens the allowed editor for HUD and map placement.
-- **HUD & Visuals → Item Animation → Edit** opens the standalone left-edge renderer panel. Its live
+- **Player → Comfort → Smooth Aspect Teleport** defaults on and arms only after a local Aspect use. After vanilla
+  accepts the completed server position jump, it eases only the rendered world/camera origin for `125 ms`; it never
+  initiates movement, changes player/camera entity coordinates, or sends packets.
+- **HUD & Visuals → HUD → Open HUD Editor** opens the allowed editor for HUD and map placement.
+- **HUD & Visuals → Item Animation → Open Item Animation Editor** opens the standalone left-edge renderer panel. Its live
   values affect only Minecraft's first-person hand path; it neither sends packets nor changes attack,
   mining, server timing, or movement.
 - **Misc → Appearance** owns the optional custom GUI-transparency toggle and opacity slider; disabling

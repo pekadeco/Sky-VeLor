@@ -1,29 +1,33 @@
 package com.arena.pekaclient.assist.visual;
 
 /**
- * Small, mapping-free observation state for a visual-only Aspect teleport transition.
+ * Small client-side state machine that correlates an observed local Aspect use with a later completed position jump.
  *
- * <p>It retains only the last observed local position and a short window armed by a local item-use observation.
- * It has no Minecraft, input, packet, controller, camera, or movement dependency, so it cannot initiate or steer a
- * teleport. The renderer supplies already-observed values and decides how to paint a successful observation.</p>
+ * <p>It never touches an entity, packet, input binding, controller, or camera. Its only output is a retained pair of
+ * already-observed coordinates for the render-only camera path.</p>
  */
 public final class AspectTeleportTransitionObservation {
-
     private Object observedWorld;
     private boolean hasLastPosition;
     private double lastX;
     private double lastY;
     private double lastZ;
+    private double transitionFromX;
+    private double transitionFromY;
+    private double transitionFromZ;
+    private double transitionToX;
+    private double transitionToY;
+    private double transitionToZ;
     private int armedTicks;
 
-    /** Opens a short window in which one completed position discontinuity may start a visual transition. */
+    /** Arms exactly one short server-response window after an ordinary local Aspect use observation. */
     public void arm() {
         armedTicks = AspectTeleportTransitionPolicy.ARM_TICKS;
     }
 
     /**
      * Records one completed client position. Returns true at most once per arm window when the position change is a
-     * plausible Aspect jump. A world switch always establishes a fresh baseline and never paints a transition.
+     * plausible Aspect jump. A world switch always establishes a fresh baseline and never starts a render path.
      */
     public boolean observe(Object world, double x, double y, double z) {
         if (world == null || !finite(x) || !finite(y) || !finite(z)) {
@@ -42,7 +46,14 @@ public final class AspectTeleportTransitionObservation {
         boolean transition = hasLastPosition && armedTicks > 0
                 && AspectTeleportTransitionPolicy.isLargePositionJump(lastX, lastY, lastZ, x, y, z);
         if (transition) {
-            // A single use may create only one veil, even if a server correction settles across later ticks.
+            // Preserve the pre-jump and authoritative destination positions before advancing the ordinary baseline.
+            transitionFromX = lastX;
+            transitionFromY = lastY;
+            transitionFromZ = lastZ;
+            transitionToX = x;
+            transitionToY = y;
+            transitionToZ = z;
+            // A single use may create only one render transition, even if a server correction settles later.
             armedTicks = 0;
         } else if (armedTicks > 0) {
             armedTicks--;
@@ -60,7 +71,18 @@ public final class AspectTeleportTransitionObservation {
         hasLastPosition = false;
         armedTicks = 0;
         lastX = lastY = lastZ = 0D;
+        transitionFromX = transitionFromY = transitionFromZ = 0D;
+        transitionToX = transitionToY = transitionToZ = 0D;
     }
+
+    /** Package-visible render origin retained only after {@link #observe(Object, double, double, double)} returns true. */
+    double transitionFromX() { return transitionFromX; }
+    double transitionFromY() { return transitionFromY; }
+    double transitionFromZ() { return transitionFromZ; }
+    /** Package-visible server-authoritative render destination retained only after a successful observation. */
+    double transitionToX() { return transitionToX; }
+    double transitionToY() { return transitionToY; }
+    double transitionToZ() { return transitionToZ; }
 
     /** Package-visible only for the headless behavior test; it has no gameplay use. */
     int remainingArmedTicks() {

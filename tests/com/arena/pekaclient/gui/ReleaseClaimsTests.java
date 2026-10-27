@@ -57,10 +57,13 @@ public final class ReleaseClaimsTests {
                 && screen.contains("normalizeAccordion") && screen.contains("revealDropdownHeader"));
         check("screen clips its rounded shell and one settings viewport", screen.contains("roundedClipBegin")
                 && screen.contains("scissorBegin") && screen.contains("GuiLayoutToolkit$Scroll"));
-        check("screen packages wordmark drag, fullscreen persistence and right-aligned control layout",
+        check("screen packages wordmark drag, fullscreen persistence and named editor control layout",
                 screen.contains("SkyVeLor") && screen.contains("smallWindowOffsetX") && screen.contains("settingsWindowFullscreen")
                         && screen.contains("SettingsControlLayout") && screen.contains("drawFullscreenGlyph")
-                        && screen.contains("[Edit]"));
+                        && screen.contains("editorButtonWidth") && !screen.contains("[Edit]"));
+        String catalog = classText("com.arena.pekaclient.gui.ReferenceSettingsCatalog");
+        check("editor routes expose clear destination labels", catalog.contains("Open HUD Editor")
+                && catalog.contains("Open Item Animation Editor"));
         check("Chat command route enters the inline owner", classText("com.arena.pekaclient.command.ClientActions")
                 .contains("openChatSettings") && !classText("com.arena.pekaclient.command.ClientActions").contains("ChatEditorScreen"));
     }

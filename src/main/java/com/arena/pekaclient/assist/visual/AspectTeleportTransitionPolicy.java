@@ -1,11 +1,11 @@
 package com.arena.pekaclient.assist.visual;
 
 /**
- * Mapping-free rules for the short render-only Aspect of the End/Void transition.
+ * Mapping-free rules for Sky VeLor's render-only Aspect of the End/Void camera transition.
  *
  * <p>This class intentionally has no player, world, packet, controller, or input dependency. It can only recognize
- * an already-observed local position discontinuity and calculate a HUD veil alpha; it cannot start or steer a
- * teleport.</p>
+ * an already-observed local position discontinuity and calculate the progress of a temporary render position; it
+ * cannot start or steer a teleport.</p>
  */
 public final class AspectTeleportTransitionPolicy {
 
@@ -13,10 +13,8 @@ public final class AspectTeleportTransitionPolicy {
     public static final int ARM_TICKS = 12;
     /** Exact use observation keeps this low enough to cover short AOTE/AOTV teleports without treating a walk as one. */
     public static final double MIN_TELEPORT_DISTANCE = 1.5D;
-    public static final long FADE_IN_NANOS = 45_000_000L;
-    public static final long DURATION_NANOS = 340_000_000L;
-    /** Intentionally visible, but still below an opaque screen flash. */
-    public static final float MAX_VEIL_ALPHA = .28F;
+    /** A short, tangible camera glide instead of a HUD fade. This is deliberately bounded to keep server position honest. */
+    public static final long CAMERA_INTERPOLATION_NANOS = 125_000_000L;
 
     private AspectTeleportTransitionPolicy() {
     }
@@ -40,16 +38,14 @@ public final class AspectTeleportTransitionPolicy {
     }
 
     /**
-     * Calculates a gentle fade-in/ease-out veil. It is zero outside the fixed short duration, so a delayed or lost
-     * render event cannot leave the screen dimmed.
+     * Returns the bounded smoothstep progress for the independent render position. The real player has already
+     * reached the server-authoritative destination; only world/camera render coordinates consume this value.
      */
-    public static float veilAlpha(long elapsedNanos) {
-        if (elapsedNanos < 0L || elapsedNanos >= DURATION_NANOS) return 0F;
-        if (elapsedNanos < FADE_IN_NANOS) {
-            return MAX_VEIL_ALPHA * smoothStep(elapsedNanos / (float) FADE_IN_NANOS);
-        }
-        float fadeOut = (elapsedNanos - FADE_IN_NANOS) / (float) (DURATION_NANOS - FADE_IN_NANOS);
-        return MAX_VEIL_ALPHA * (1F - smoothStep(fadeOut));
+    public static double cameraProgress(long elapsedNanos) {
+        if (elapsedNanos <= 0L) return 0D;
+        if (elapsedNanos >= CAMERA_INTERPOLATION_NANOS) return 1D;
+        double t = elapsedNanos / (double) CAMERA_INTERPOLATION_NANOS;
+        return t * t * (3D - 2D * t);
     }
 
     /** Case-insensitive text search that ignores Minecraft formatting pairs without allocating on a tick path. */
@@ -71,11 +67,6 @@ public final class AspectTeleportTransitionPolicy {
             }
         }
         return false;
-    }
-
-    private static float smoothStep(float value) {
-        float t = value < 0F ? 0F : (value > 1F ? 1F : value);
-        return t * t * (3F - 2F * t);
     }
 
     private static boolean equalsIgnoreAscii(char left, char right) {

@@ -1,6 +1,6 @@
 package com.arena.pekaclient.assist.visual;
 
-/** Headless proof that the Aspect transition can only recognize an observed jump and draw a bounded visual veil. */
+/** Headless proof that Aspect smoothing recognizes only observed jumps and exposes a bounded render path. */
 public final class AspectTeleportTransitionPolicyTests {
     private static int passed;
     private static int failed;
@@ -20,15 +20,19 @@ public final class AspectTeleportTransitionPolicyTests {
         check("server response window tolerates normal latency", AspectTeleportTransitionPolicy.ARM_TICKS >= 10);
         check("invalid observed coordinates cannot qualify", !AspectTeleportTransitionPolicy.isLargePositionJump(
                 Double.NaN, 64D, 0D, 8D, 64D, 0D));
-        check("veil starts at zero for a smooth fade in", AspectTeleportTransitionPolicy.veilAlpha(0L) == 0F);
-        check("veil reaches a bounded positive alpha after fade in",
-                AspectTeleportTransitionPolicy.veilAlpha(AspectTeleportTransitionPolicy.FADE_IN_NANOS) > 0F
-                        && AspectTeleportTransitionPolicy.veilAlpha(AspectTeleportTransitionPolicy.FADE_IN_NANOS)
-                        <= AspectTeleportTransitionPolicy.MAX_VEIL_ALPHA);
-        check("veil ends deterministically after fixed duration",
-                AspectTeleportTransitionPolicy.veilAlpha(AspectTeleportTransitionPolicy.DURATION_NANOS) == 0F
-                        && AspectTeleportTransitionPolicy.veilAlpha(AspectTeleportTransitionPolicy.DURATION_NANOS + 1L) == 0F);
-        check("negative elapsed time never draws", AspectTeleportTransitionPolicy.veilAlpha(-1L) == 0F);
+        check("camera path starts exactly at the pre-teleport origin",
+                AspectTeleportTransitionPolicy.cameraProgress(0L) == 0D);
+        check("camera path reaches a smooth midpoint", Math.abs(AspectTeleportTransitionPolicy.cameraProgress(
+                AspectTeleportTransitionPolicy.CAMERA_INTERPOLATION_NANOS / 2L) - .5D) < .000001D);
+        check("camera path ends deterministically at the authoritative target",
+                AspectTeleportTransitionPolicy.cameraProgress(AspectTeleportTransitionPolicy.CAMERA_INTERPOLATION_NANOS) == 1D
+                        && AspectTeleportTransitionPolicy.cameraProgress(
+                        AspectTeleportTransitionPolicy.CAMERA_INTERPOLATION_NANOS + 1L) == 1D);
+        check("negative elapsed time never backs up the visual camera",
+                AspectTeleportTransitionPolicy.cameraProgress(-1L) == 0D);
+        check("glide stays brief enough to preserve the ordinary server teleport",
+                AspectTeleportTransitionPolicy.CAMERA_INTERPOLATION_NANOS > 0L
+                        && AspectTeleportTransitionPolicy.CAMERA_INTERPOLATION_NANOS <= 200_000_000L);
         System.out.println("Aspect teleport transition policy: passed " + passed + ", failed " + failed);
         if (failed != 0) System.exit(1);
     }
