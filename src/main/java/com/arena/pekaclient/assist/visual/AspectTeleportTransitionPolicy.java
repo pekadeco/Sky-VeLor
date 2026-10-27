@@ -9,13 +9,14 @@ package com.arena.pekaclient.assist.visual;
  */
 public final class AspectTeleportTransitionPolicy {
 
-    /** Retain a held Aspect observation long enough for its server position update to arrive. */
-    public static final int ARM_TICKS = 8;
-    /** A normal client movement tick is well below this distance; Aspect teleports are normally several blocks. */
-    public static final double MIN_TELEPORT_DISTANCE = 4.0D;
-    public static final long FADE_IN_NANOS = 35_000_000L;
-    public static final long DURATION_NANOS = 220_000_000L;
-    public static final float MAX_VEIL_ALPHA = .16F;
+    /** Keep an observed local Aspect use armed through ordinary server response latency (about 600 ms at 20 TPS). */
+    public static final int ARM_TICKS = 12;
+    /** Exact use observation keeps this low enough to cover short AOTE/AOTV teleports without treating a walk as one. */
+    public static final double MIN_TELEPORT_DISTANCE = 1.5D;
+    public static final long FADE_IN_NANOS = 45_000_000L;
+    public static final long DURATION_NANOS = 340_000_000L;
+    /** Intentionally visible, but still below an opaque screen flash. */
+    public static final float MAX_VEIL_ALPHA = .28F;
 
     private AspectTeleportTransitionPolicy() {
     }
@@ -25,7 +26,7 @@ public final class AspectTeleportTransitionPolicy {
         return containsToken(displayName, "aspect of the end") || containsToken(displayName, "aspect of the void");
     }
 
-    /** A finite position jump at or beyond four blocks is eligible only after the renderer has armed from an Aspect. */
+    /** A finite completed position jump is eligible only after the renderer has armed from an observed Aspect use. */
     public static boolean isLargePositionJump(double fromX, double fromY, double fromZ,
                                               double toX, double toY, double toZ) {
         if (!finite(fromX) || !finite(fromY) || !finite(fromZ)

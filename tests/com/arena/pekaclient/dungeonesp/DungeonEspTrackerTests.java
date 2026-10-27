@@ -17,7 +17,7 @@ public final class DungeonEspTrackerTests {
         nearestUnmatchedBodiesAndDeathsAreHandled();
         dyingBodiesAreHiddenBeforeDespawn();
         realAndHeadEndermenAreHandled();
-        directHeadMarkersRequireStarEvidenceAndRespectPlayerCeiling();
+        directFelHeadMarkersRemainVisibleAcrossTagTimingAndHeight();
         localPlayerIsNeverSelectedWhileNpcBodiesStillWork();
         taggedNpcBodiesAreSelectedWhileUntaggedMobsStayExcluded();
         mockFiveHundredEntitySteadyStateReusesStorage();
@@ -146,19 +146,26 @@ public final class DungeonEspTrackerTests {
                 && marker.matchReason == DungeonEspMatchReason.ENDERMAN_HEAD);
     }
 
-    private static void directHeadMarkersRequireStarEvidenceAndRespectPlayerCeiling() {
-        DungeonEspTracker unstarredTracker = new DungeonEspTracker();
-        MockSource unstarredWorld = new MockSource(1);
-        unstarredWorld.setEndermanHead(0, 40, 5D, 65D, 5D, "Fel head marker", new Object());
-        unstarredTracker.scan(unstarredWorld, 0D, 64D, 0D, 60D, true);
-        check("unstarred Enderman skull never becomes a direct marker", unstarredTracker.trackedCount() == 0);
+    private static void directFelHeadMarkersRemainVisibleAcrossTagTimingAndHeight() {
+        DungeonEspTracker directTracker = new DungeonEspTracker();
+        MockSource directWorld = new MockSource(1);
+        Object directHead = new Object();
+        directWorld.setEndermanHead(0, 40, 5D, 65D, 5D, "Fel head marker", directHead);
+        directTracker.scan(directWorld, 0D, 64D, 0D, 60D, true);
+        DungeonEspTracker.TrackedMob direct = find(directTracker, 40);
+        check("direct Fel skull remains an Enderman outline without a separate star stand", direct != null
+                && direct.reference == directHead && direct.fixedArmorStandBox
+                && direct.category == DungeonEspCategory.ENDERMAN
+                && direct.matchReason == DungeonEspMatchReason.ENDERMAN_HEAD);
 
         DungeonEspTracker elevatedTracker = new DungeonEspTracker();
-        MockSource elevatedWorld = new MockSource(2);
-        elevatedWorld.setEndermanHead(0, 41, 5D, 66D, 5D, "Fel head marker", new Object());
-        elevatedWorld.setTag(1, 42, 5D, 66D, 5D, "\u272e [Lv100] Enderman");
+        MockSource elevatedWorld = new MockSource(1);
+        Object elevatedHead = new Object();
+        elevatedWorld.setEndermanHead(0, 41, 5D, 70D, 5D, "Enderman head marker", elevatedHead);
         elevatedTracker.scan(elevatedWorld, 0D, 64D, 0D, 60D, true);
-        check("marker two blocks above player is suppressed even with a star tag", elevatedTracker.trackedCount() == 0);
+        DungeonEspTracker.TrackedMob elevated = find(elevatedTracker, 41);
+        check("Fel/Enderman marker height never suppresses its direct outline", elevated != null
+                && elevated.reference == elevatedHead && elevated.fixedArmorStandBox);
     }
 
     private static void localPlayerIsNeverSelectedWhileNpcBodiesStillWork() {

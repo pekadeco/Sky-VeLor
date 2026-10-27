@@ -199,7 +199,7 @@ public final class DungeonEspController {
                     + " force=" + (hostile ? "hostile" : (bat ? "bat" : "non-hostile"))
                     + (invisible ? "/invisible" : "") + (npc ? "/npc" : "") + (pet ? "/pet" : "")
                     + " geometry=" + (reason == DungeonEspMatchReason.ENDERMAN_HEAD
-                            ? "fixed-0.68x1.60/" + boxText(box) : boxText(box))
+                            ? "fixed-0.76x1.85/" + boxText(box) : boxText(box))
                     + " espMatch=" + selected + "/" + reason.text());
         }
         if (nearby == 0) lines.add("No nearby entities inside the ESP range.");

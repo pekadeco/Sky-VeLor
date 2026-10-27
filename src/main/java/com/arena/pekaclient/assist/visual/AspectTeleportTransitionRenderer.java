@@ -9,20 +9,16 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.item.ItemStack;
 
 /**
- * Short HUD-space visual ease for an already-completed Aspect of the End/Void position change.
+ * Short HUD-space visual ease for a completed Aspect of the End/Void position change.
  *
- * <p>The renderer observes only the local client's finished positions. It never writes player coordinates, rotation,
- * key state, or controller state, and it never sends packets. A subtle dark-blue veil eases in and out over 220 ms to
- * make the camera discontinuity less abrupt while leaving the actual game camera and gameplay authoritative.</p>
+ * <p>A local right-click/use-key observation arms a small window before the server-authoritative position response
+ * arrives. The renderer only observes that completed response and paints a visible, bounded blue veil. It never
+ * writes player coordinates, rotation, key state, controller state, or camera state, and it never sends packets.</p>
  */
 public final class AspectTeleportTransitionRenderer {
 
-    private Object observedWorld;
-    private boolean hasLastPosition;
-    private double lastX;
-    private double lastY;
-    private double lastZ;
-    private int armedTicks;
+    private final AspectTeleportTransitionObservation observation = new AspectTeleportTransitionObservation();
+    private boolean useKeyWasDown;
     private long transitionStartedNanos = Long.MIN_VALUE;
 
     /** Called from the ordinary END client tick after vanilla has applied any server-authoritative position update. */
@@ -31,35 +27,38 @@ public final class AspectTeleportTransitionRenderer {
             reset();
             return;
         }
-        EntityPlayerSP player = minecraft.thePlayer;
         if (!AssistSettings.smoothAspectTeleport) {
-            observeWithoutTransition(minecraft.theWorld, player);
-            transitionStartedNanos = Long.MIN_VALUE;
-            armedTicks = 0;
-            return;
-        }
-        if (minecraft.theWorld != observedWorld) {
-            observeWithoutTransition(minecraft.theWorld, player);
-            transitionStartedNanos = Long.MIN_VALUE;
-            armedTicks = 0;
+            reset();
             return;
         }
 
+        EntityPlayerSP player = minecraft.thePlayer;
         ItemStack held = player.getHeldItem();
-        if (held != null && AspectTeleportTransitionPolicy.isAspectTeleportItem(held.getDisplayName())) {
-            armedTicks = AspectTeleportTransitionPolicy.ARM_TICKS;
+        boolean holdingAspect = held != null && AspectTeleportTransitionPolicy.isAspectTeleportItem(held.getDisplayName());
+        // Mouse observations below cover ordinary clicks immediately. This edge check also covers the bound use-item
+        // key and launcher/input paths that do not emit a Forge MouseEvent.
+        boolean useKeyDown = minecraft.gameSettings != null && minecraft.gameSettings.keyBindUseItem != null
+                && minecraft.gameSettings.keyBindUseItem.isKeyDown();
+        if (holdingAspect && useKeyDown && !useKeyWasDown) {
+            observation.arm();
         }
-        if (hasLastPosition && armedTicks > 0 && AspectTeleportTransitionPolicy.isLargePositionJump(
-                lastX, lastY, lastZ, player.posX, player.posY, player.posZ)) {
+        useKeyWasDown = useKeyDown;
+
+        if (observation.observe(minecraft.theWorld, player.posX, player.posY, player.posZ)) {
             transitionStartedNanos = System.nanoTime();
         }
-        if (held == null || !AspectTeleportTransitionPolicy.isAspectTeleportItem(held.getDisplayName())) {
-            if (armedTicks > 0) armedTicks--;
+    }
+
+    /**
+     * Records an ordinary local use click without consuming, cancelling, or replaying it. This makes the transition
+     * reliable for a quick AOTE/AOTV click even when the key state has already been released by the next client tick.
+     */
+    public void observeUse(Minecraft minecraft) {
+        if (!AssistSettings.smoothAspectTeleport || minecraft == null || minecraft.thePlayer == null) return;
+        ItemStack held = minecraft.thePlayer.getHeldItem();
+        if (held != null && AspectTeleportTransitionPolicy.isAspectTeleportItem(held.getDisplayName())) {
+            observation.arm();
         }
-        lastX = player.posX;
-        lastY = player.posY;
-        lastZ = player.posZ;
-        hasLastPosition = true;
     }
 
     /** Draws only the current short-lived HUD veil. No world render state or camera coordinates are changed. */
@@ -75,26 +74,17 @@ public final class AspectTeleportTransitionRenderer {
         if (width <= 0F || height <= 0F) return;
         UIRender.beginFrame();
         try {
-            // A dark base hides the single-frame snap; a very light blue wash retains the Aspect's visual identity.
+            // The stronger base masks the abrupt snap; the restrained blue wash preserves the Aspect visual identity.
             UIRender.rect(0F, 0F, width, height, UIRender.withAlpha(Theme.DIM, alpha));
-            UIRender.rect(0F, 0F, width, height, UIRender.withAlpha(Theme.ACCENT_BLUE, alpha * .16F));
+            UIRender.rect(0F, 0F, width, height, UIRender.withAlpha(Theme.ACCENT_BLUE, alpha * .24F));
         } finally {
             UIRender.endFrame();
         }
     }
 
-    private void observeWithoutTransition(Object world, EntityPlayerSP player) {
-        observedWorld = world;
-        hasLastPosition = true;
-        lastX = player.posX;
-        lastY = player.posY;
-        lastZ = player.posZ;
-    }
-
     private void reset() {
-        observedWorld = null;
-        hasLastPosition = false;
-        armedTicks = 0;
+        observation.reset();
+        useKeyWasDown = false;
         transitionStartedNanos = Long.MIN_VALUE;
     }
 }

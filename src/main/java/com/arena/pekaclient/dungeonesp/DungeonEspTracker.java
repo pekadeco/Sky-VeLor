@@ -125,7 +125,6 @@ public final class DungeonEspTracker {
         boolean dead;
         boolean enderman;
         boolean directEndermanMarker;
-        boolean markerHasStar;
         boolean pet;
         boolean matched;
         Object reference;
@@ -140,7 +139,6 @@ public final class DungeonEspTracker {
             dead = entity.dead;
             enderman = entity.enderman;
             directEndermanMarker = directMarker;
-            markerHasStar = directMarker && DungeonEspMatcher.hasStar(entity.name);
             pet = entity.pet;
             matched = false;
             reference = entity.reference;
@@ -216,10 +214,9 @@ public final class DungeonEspTracker {
                 if (scratch.dead) continue;
                 boolean headMarker = scratch.endermanHead || (scratch.headTexture != null
                         && DungeonEspMatcher.isEndermanMarkerName(scratch.name));
-                // At least two blocks above the local player is the unstarred-Enderman false-positive pattern.
-                if (headMarker && DungeonEspEndermanHeadPolicy.belowPlayerCeiling(scratch.y, playerY)) {
-                    addCandidate(scratch, true);
-                }
+                // Dungeon Fel/Enderman skull markers are their own visual target. Do not gate them on another
+                // armor-stand tag or a player-relative height: both vary during a live dungeon encounter.
+                if (headMarker) addCandidate(scratch, true);
                 if (DungeonEspMatcher.isTagCandidate(scratch.name)) addTag(scratch);
                 continue;
             }
@@ -245,11 +242,11 @@ public final class DungeonEspTracker {
                     : (tag.split ? DungeonEspMatchReason.SPLIT_TAG : DungeonEspMatchReason.STAR_TAG);
             upsert(best.id, category, reason, best);
         }
-        // A known head texture alone also appears on unstarred Endermen. Direct marker records therefore require
-        // either their own star or a nearby resolved star/special Enderman tag.
+        // A recognized Fel/Enderman skull marker represents its own target. Its outline must not depend on a second
+        // tag line: servers can send the skull, body and name stands in different ticks or at different heights.
         for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++) {
             Candidate candidate = candidates[candidateIndex];
-            if (candidate.directEndermanMarker && hasStarredEndermanAssociation(candidate)) {
+            if (candidate.directEndermanMarker) {
                 upsert(candidate.id, DungeonEspCategory.ENDERMAN, DungeonEspMatchReason.ENDERMAN_HEAD, candidate);
             }
         }
@@ -355,19 +352,6 @@ public final class DungeonEspTracker {
             }
             tag.split = split;
         }
-    }
-
-    /** Direct skull markers require explicit star evidence so a shared Fel/Enderman head texture is not enough. */
-    private boolean hasStarredEndermanAssociation(Candidate marker) {
-        if (marker.markerHasStar) return true;
-        for (int i = 0; i < tagCount; i++) {
-            Tag tag = tags[i];
-            if (!DungeonEspEndermanHeadPolicy.acceptsAssociatedCategory(tag.category)) continue;
-            if (DungeonEspEndermanHeadPolicy.isNearbyTag(marker.x, marker.y, marker.z, tag.x, tag.y, tag.z)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private Candidate bestBodyFor(Tag tag) {

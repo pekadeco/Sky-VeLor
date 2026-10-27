@@ -343,6 +343,10 @@ public class PekaClientMod {
             event.setCanceled(true);
             return;
         }
+        // Observation only: retain the real right-click unchanged while arming the render-only Aspect transition.
+        if (event != null && event.button == 1 && event.buttonstate && mc.currentScreen == null) {
+            aspectTeleportTransition.observeUse(mc);
+        }
         if (event == null || event.button != 0 || !event.buttonstate) {
             return;
         }

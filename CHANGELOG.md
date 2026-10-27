@@ -1,5 +1,24 @@
 # Changelog
 
+## Beta-0.10.9.1.5v — 2026-10-27
+
+### Fixed
+
+- Restored direct Enderman/Fel skull-marker outlines. Recognized markers no longer depend on a nearby star/name stand
+  or a player-relative height gate, so live dungeon timing and elevated marker placement cannot hide their outline.
+- Restored the proven compact Fel/Enderman marker proxy to `0.76 × 1.85` blocks, covering the complete marker while
+  remaining smaller than the retired oversized `1.1 × 2.7` outline.
+- Reworked **Smooth Aspect Teleport** around an observed local Aspect use plus a short server-response window. It now
+  catches short completed AOTE/AOTV jumps and renders a more visible, bounded `340 ms` blue ease veil.
+
+### Safety and verification
+
+- The Aspect path remains observation/render-only: it does not replay or cancel the click, initiate teleportation,
+  write movement or camera coordinates, alter key state, or send packets.
+- Added pure explicit-use/jump-window coverage and direct Fel-marker regressions. The exact local-player identity
+  exclusion and player-shaped dungeon NPC targeting remain in place.
+- Automated checks still do not launch Minecraft; validate Fel placement and Aspect feel in a real 1.8.9 Forge client.
+
 ## Beta-0.10.9.1.4v — 2026-10-27
 
 ### Fixed

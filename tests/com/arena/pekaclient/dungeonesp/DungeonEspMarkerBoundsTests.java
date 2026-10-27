@@ -1,6 +1,6 @@
 package com.arena.pekaclient.dungeonesp;
 
-/** Geometry proof that the sleeping Fel/Enderman marker proxy is visibly smaller than the retired oversized box. */
+/** Geometry proof that the Fel/Enderman marker proxy is compact but still covers the complete marker representation. */
 public final class DungeonEspMarkerBoundsTests {
     private static int passed;
     private static int failed;
@@ -12,10 +12,10 @@ public final class DungeonEspMarkerBoundsTests {
         double depth = DungeonEspMarkerBounds.maxZ(z) - DungeonEspMarkerBounds.minZ(z);
         check("marker remains centered horizontally", close(DungeonEspMarkerBounds.minX(x) + width * .5D, x)
                 && close(DungeonEspMarkerBounds.minZ(z) + depth * .5D, z));
-        check("head marker proxy is the refined 0.68 width", close(width, .68D) && close(depth, .68D));
-        check("head marker proxy is the refined 1.60 height", close(height, 1.60D));
-        check("head marker proxy begins just below its skull anchor", close(DungeonEspMarkerBounds.minY(y), y - .10D));
-        check("sleeping Fel marker proxy stays shorter than the old 2.7 outline", height < 2.7D && height >= 1.5D);
+        check("Fel head marker proxy is the reliable 0.76 width", close(width, .76D) && close(depth, .76D));
+        check("Fel head marker proxy is the reliable 1.85 height", close(height, 1.85D));
+        check("Fel head marker proxy begins at its marker anchor", close(DungeonEspMarkerBounds.minY(y), y));
+        check("Fel marker proxy stays smaller than the old 2.7 outline while covering its full marker", height < 2.7D && height >= 1.8D);
         System.out.println("Dungeon ESP marker bounds: passed " + passed + ", failed " + failed);
         if (failed != 0) System.exit(1);
     }

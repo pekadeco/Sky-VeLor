@@ -11,10 +11,13 @@ public final class AspectTeleportTransitionPolicyTests {
         check("case-insensitive AOTV name arms visual transition", AspectTeleportTransitionPolicy.isAspectTeleportItem(
                 "ASPECT OF THE VOID"));
         check("other held item cannot arm transition", !AspectTeleportTransitionPolicy.isAspectTeleportItem("Hyperion"));
-        check("four-block completed position jump qualifies", AspectTeleportTransitionPolicy.isLargePositionJump(
-                0D, 64D, 0D, 4D, 64D, 0D));
+        check("short completed Aspect position jump qualifies", AspectTeleportTransitionPolicy.isLargePositionJump(
+                0D, 64D, 0D, 2D, 64D, 0D));
         check("small normal movement cannot qualify", !AspectTeleportTransitionPolicy.isLargePositionJump(
                 0D, 64D, 0D, .7D, 64D, .2D));
+        check("sub-threshold drift cannot qualify", !AspectTeleportTransitionPolicy.isLargePositionJump(
+                0D, 64D, 0D, 1.49D, 64D, 0D));
+        check("server response window tolerates normal latency", AspectTeleportTransitionPolicy.ARM_TICKS >= 10);
         check("invalid observed coordinates cannot qualify", !AspectTeleportTransitionPolicy.isLargePositionJump(
                 Double.NaN, 64D, 0D, 8D, 64D, 0D));
         check("veil starts at zero for a smooth fade in", AspectTeleportTransitionPolicy.veilAlpha(0L) == 0F);
