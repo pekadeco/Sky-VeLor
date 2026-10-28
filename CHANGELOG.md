@@ -1,5 +1,43 @@
 # Changelog
 
+## Beta-0.10.9.1.7v — 2026-10-28
+
+### Fixed
+
+- Aligned **Open HUD Editor**, **Open Item Animation Editor**, and every other settings action to the same shared
+  trailing right edge, `132 × 20` control target, and toggle-row vertical center across all channels.
+- Made the standalone Item Animation editor panel solid, dark, and opaque so its controls remain readable without a
+  fullscreen dim layer, HUD canvas, or gameplay preview surface behind the panel controls.
+- Fixed **QoL → Comfort → Hide Dead Mobs** at the live render layer. Dead/dying normal living mobs and SkyBlock/
+  Fakepixel-style server NPC fake mobs now have both their normal body render and standard nameplate suppressed when
+  zero health, `deathTime`, or `isDead` indicates death. The local player and ordinary listed remote players remain
+  protected; no entity is removed and no server state is changed.
+- Reworked **QoL → Comfort → Smooth Aspect Teleport** so an observed local Aspect use is armed/expired on client ticks
+  but its accepted position discontinuity is sampled at `RenderTick START`. A plausible, bounded (up to 64-block)
+  server-authoritative jump now starts the existing `125 ms` client-render camera/world transition on the frame it is
+  rendered, avoiding the previous tick-timing snap path and rejecting respawn/correction-scale jumps.
+
+### Added
+
+- Added the visible **Slayer** sidebar channel immediately after **QoL** and moved the existing Slayer Tracker route
+  into it. Its feature/configuration owner and values are unchanged.
+- Added focused policy, observation, packaged-class, source-archive, and release-JAR checks for dead-mob rendering,
+  render-time Aspect sampling, the bounded displacement guard, opaque Item Animation panel, QoL/Slayer catalog,
+  shared action geometry, and the compact nine-destination rail.
+
+### Changed
+
+- Renamed the visible **Player** sidebar/header/search channel to **QoL** while retaining the historical `GAMEPLAY`
+  tab identity and all existing persistence/configuration keys for backward compatibility.
+- The compact rail now supports nine destinations across three reachable rows at GUI scale four; the established GUI,
+  HUD Editor, Dungeon ESP, Chat QoL, Item Lock / Swap, Party Sync default-off behavior, Home metrics, and old-config
+  loading contracts remain intact.
+
+### Verification boundary
+
+- The Java 8 Forge build, headless logic/layout suite, reobfuscated JAR verifier, and curated-source verifier are run
+  in CI. They do not launch Minecraft; this release is **NOT tested in-game**.
+
 ## Beta-0.10.9.1.6v — 2026-10-28
 
 ### Added

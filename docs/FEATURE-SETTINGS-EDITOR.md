@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.6v
+# Apple settings inventory — Beta-0.10.9.1.7v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -9,10 +9,12 @@ or reference-mod feature/config data.
 `AppleSettingsScreen` remains the feature-settings entry point for the keybind, `/sv`, and menu.
 Its sidebar order is fixed:
 
-**Home → Player → Dungeons → Farming → Mining → Fishing → HUD & Visuals → Misc**.
+**Home → QoL → Slayer → Dungeons → Farming → Mining → Fishing → HUD & Visuals → Misc**.
 
-These are visible presentation labels only: the eight existing `Tab` enum identities, routes, feature owners,
-configuration keys, search behavior, and persistence remain unchanged. The normal shell uses a compact graphite-glass
+These are visible presentation labels only: the established `GAMEPLAY` tab identity remains the persistence/routing
+identity for the visible **QoL** label, while **Slayer** is a new presentation destination for the existing Slayer
+tracker route. Existing feature owners, configuration keys, search behavior, and persistence remain unchanged. The
+normal shell uses a compact graphite-glass
 window (`72%` safe width / `78%` safe height; maximum `720 × 480` logical GUI pixels), translucent bordered cards,
 icon/title/subtitle hierarchy, soft shadow, and an 8 px world margin. Its upper-left header shows the literal
 **SkyVeLor** wordmark and contains exactly two 24 px icon targets: **Fullscreen** and **Close**. Dragging, Escape,
@@ -28,9 +30,9 @@ A visible settings row is one of four patterns:
 4. a visibly distinct named editor-route row.
 
 Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
-`38 × 20` pill. Editor rows use a descriptive destination CTA—**Open HUD Editor** or
-**Open Item Animation Editor**—and never show a chevron. Card headings supply the visual hierarchy
-without becoming an interactive disclosure.
+`38 × 20` pill. Every action—including **Open HUD Editor** and **Open Item Animation Editor**—uses the same trailing
+right edge, `132 × 20` control geometry, and toggle-row vertical center; editor master toggles sit immediately left
+of their CTA. Card headings supply the visual hierarchy without becoming an interactive disclosure.
 
 Each tab is a one-open accordion. All native bitmap-font text snaps its origin and effective scale to the active
 physical GUI pixel grid once per frame, avoiding fractional-scale blur without a custom-font subsystem. Rounded
@@ -60,12 +62,12 @@ last expanded option. Reset behavior continues to use the established owners; no
 dropdown was added.
 
 - **Hurt Camera Shake** is one inline slider.
-- **Player → Comfort → Smooth Aspect Teleport** is a direct toggle backed by
+- **QoL → Comfort → Smooth Aspect Teleport** is a direct toggle backed by
   `assist.visual.smoothAspectTeleport`. It defaults on; an observed local Aspect use arms the next completed server
-  position jump. After vanilla accepts that jump, an independent render-only origin eases the camera, terrain,
-  entities, and world overlays from the observed pre-jump point to the authoritative destination over 125 ms. It
-  does not initiate a teleport, write player/camera entity coordinates, alter input, invoke a controller, or send
-  packets.
+  position jump. RenderTick START observes an already-applied plausible jump (at most 64 blocks) while only client
+  ticks age the short arm window. An independent render-only origin then eases the camera, terrain, entities, and
+  world overlays from the observed pre-jump point to the authoritative destination over 125 ms. It does not initiate
+  a teleport, write player/camera entity coordinates, alter input, invoke a controller, or send packets.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
 - **Boss Health HUD** is a master toggle plus **Open HUD Editor**.
@@ -85,8 +87,10 @@ dropdown was added.
   are Starred Mob, Miniboss, Special Starred Mob, and Enderman. A star-tagged Skeletor resolves through normal
   Starred Mob styling; player-shaped/NPC bodies remain eligible when a nearby tag selects them, while the local
   player is excluded by identity in both scan and live render collection.
-- **Player → Comfort → Hide Dead Mobs** is on by default. It owns `assist.comfort.hideDeadMobs`, migrates the former
-  `dungeonEsp.hideZeroHealth` choice, and hides zero-health or `deathTime > 0` living targets before despawn.
+- **QoL → Comfort → Hide Dead Mobs** is on by default. It owns `assist.comfort.hideDeadMobs`, migrates the former
+  `dungeonEsp.hideZeroHealth` choice, and cancels only the client render of a dead/dying normal mob or server-NPC
+  fake mob—including its standard nameplate—when `isDead`, `deathTime > 0`, or zero health is observed. It keeps the
+  local player and ordinary listed remote players visible; it never removes entities or changes packets/server state.
 - The former Other Mobs/Force All Room Mobs fallback, dedicated Skeletor style, tracer path, Starred Mobs
   Default/Subtle profile actions, and session-only Copy/Apply style actions are absent. Historic
   `dungeonEsp.otherMobs.*`, `dungeonEsp.forceRenderAllMobs`, `dungeonEsp.includeBats`,
@@ -105,8 +109,9 @@ dropdown was added.
 
 **HUD & Visuals → Item Animation → Open Item Animation Editor** and `/velor itemanimation` open
 `ItemAnimationEditorScreen`, not the HUD editor. It is an undimmed left-edge rounded panel at roughly 28% of GUI width, with Close X
-and **Reset to Defaults**. Its render plan contains only the Item Animation panel: no HUD canvas,
-HUD-editor bar, world overlay, or held-item sample surface is drawn behind it.
+and **Reset to Defaults**. Its own panel fill and border are solid dark/opaque, so gameplay pixels cannot bleed through
+its controls. Its render plan contains only the Item Animation panel: no fullscreen dim veil, HUD canvas, HUD-editor
+bar, world overlay, or held-item sample surface is drawn behind the panel controls.
 
 The panel retains only:
 
@@ -125,7 +130,7 @@ Animation values continue to load unchanged.
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.6v text |
+| Earlier player-facing text | Beta-0.10.9.1.7v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -138,8 +143,10 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 | `Open chat background` | `Open Chat Background` |
 | `Item Animation Editor` route | `Item Animation` with `Open Item Animation Editor` |
 | `Mob ESP` | `Starred Mobs` |
-| `Hide Zero Health` under Starred Mobs | `Hide Dead Mobs` under Player → Comfort |
-| No Aspect visual easing | `Smooth Aspect Teleport` under Player → Comfort; render-only |
+| `Hide Zero Health` under Starred Mobs | `Hide Dead Mobs` under QoL → Comfort; render-only body/nameplate cleanup |
+| No Aspect visual easing | `Smooth Aspect Teleport` under QoL → Comfort; render-only |
+| Visible `Player` channel | Visible `QoL` label with the same `GAMEPLAY` persistence identity |
+| Slayer route under Player | Slayer Tracker under the visible Slayer channel; keys unchanged |
 | Dedicated Skeletor style | Normal `Starred Mob` style for star-tagged Skeletor |
 | Tracers; Starred Mobs Default/Subtle actions | Removed; legacy keys clean up on save |
 | `Other Mobs`, Force All Room Mobs, bat/invisible controls | Removed; legacy keys clean up on save |
@@ -155,17 +162,19 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
   Existing `AppleSettings`, `FishingStats`, and HUD owners remain unchanged.
 - **Farming** deliberately shows only **No Farming Features Yet**. No crop automation, macros,
   auto-clicking, auto-breaking, or movement behavior was introduced.
-- Slayer remains Player; Terminal/M7/ESP remain Dungeons; HUD and Item Animation remain HUD & Visuals.
+- **Slayer** owns the established Slayer Tracker route; Terminal/M7/ESP remain Dungeons; HUD and Item Animation
+  remain HUD & Visuals. QoL retains the former Player presentation routes while `GAMEPLAY` and every existing config
+  key remain backward-compatible.
 
 ## Automated coverage and release boundary
 
-Headless coverage includes flat depth/count/choice invariants, fixed-column scale-1–4 geometry,
-Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree behavior, fresh-open accordion reset
-with the intentional direct-route disclosure, search behavior, player-copy validation, old-config loading, exact
-configurable-id preservation,
-direct binding audit, Spirit Bow marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, Item Animation
-panel render-list/control exclusion, deterministic Aspect camera-path easing, and fail-closed
-EntityRenderer/RenderGlobal transformer-shape checks.
+Headless coverage includes flat depth/count/choice invariants, nine-destination fixed-column scale-1–4 geometry,
+shared action trailing-edge geometry, Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree
+behavior, fresh-open accordion reset with the intentional direct-route disclosure, search behavior, player-copy
+validation, old-config loading, exact configurable-id preservation, direct binding audit, Spirit Bow marker matching,
+bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation panel/control exclusion, dead-mob render
+policy protections, deterministic render-time Aspect camera-path easing, and fail-closed EntityRenderer/RenderGlobal
+transformer-shape checks.
 `tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
 Home, Dungeons, and GUI-scale-4 Home Java2D PNG review previews; CI uploads those previews as
 short-lived evidence. `tools/verify_release_jar.py` additionally checks the packaged class and
@@ -175,8 +184,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar \
-  --version Beta-0.10.9.1.6v --mcmod-version 0.10.9.1.6
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar \
+  --version Beta-0.10.9.1.7v --mcmod-version 0.10.9.1.7
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

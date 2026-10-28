@@ -1,30 +1,29 @@
-# Sky VeLor — Beta-0.10.9.1.6v
+# Sky VeLor — Beta-0.10.9.1.7v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.6v — Smooth Aspect camera glide, editor actions, and dungeon readouts
+## Beta-0.10.9.1.7v — QoL/Slayer navigation and visual cleanup
 
-- Keeps the accepted direct Enderman/Fel skull-marker behavior: local-player identity exclusion, player-shaped dungeon
-  NPC support, and the compact `0.76 × 1.85` marker proxy remain unchanged.
-- Replaces the rejected HUD veil in **Player → Comfort → Smooth Aspect Teleport**, enabled by default. An observed
-  local Aspect of the End/Void use arms a short response window; once vanilla applies the server-authoritative jump,
-  an independent render origin glides the camera, terrain, entities, and world overlays from the pre-jump position
-  to that destination over `125 ms`.
+- Aligns **Open HUD Editor**, **Open Item Animation Editor**, and every other action with the shared trailing edge,
+  `132 × 20` control geometry, and toggle-row vertical center across every settings channel.
+- Renames the visible **Player** channel to **QoL** without changing its persisted `GAMEPLAY` identity or existing
+  setting keys. Adds the visible **Slayer** channel and moves the existing Slayer tracker route there without changing
+  its configuration owner.
+- Makes the standalone Item Animation panel a solid dark, opaque control surface. The panel remains fully readable
+  without a fullscreen dim/veil, HUD canvas, or world/HUD preview layer behind the controls.
+- Fixes **QoL → Comfort → Hide Dead Mobs** by canceling only dead/dying living-mob and server-NPC render paths,
+  including their standard nameplates. It covers zero-health/death-animation SkyBlock/Fakepixel fake mobs while
+  protecting the local player and ordinary listed remote players; it never removes entities or changes server state.
+- Samples **QoL → Comfort → Smooth Aspect Teleport** at render time after an observed local Aspect of the End/Void
+  use. Its brief `125 ms` client-only camera/world glide follows an already-applied, plausible (up to 64-block)
+  server-authoritative jump instead of snapping, while the response window expires only on client ticks.
 - The Aspect feature is strictly client-side visual rendering. It does not initiate, cancel, replay, steer, or
   packet-drive a teleport; it does not write player/camera entity coordinates, alter input, or invoke a controller.
-- Replaces generic editor buttons with **Open HUD Editor** and **Open Item Animation Editor**, retaining exactly the
-  existing HUD and Item Animation editor screens and their action routes.
-- Adds two clean-room, default-off local dungeon displays: **Dungeons → Run Tools → Spirit Bow Locator** draws only a
-  client-side line/marker for a nearby named Spirit Bow armor stand, while **HUD & Visuals → HUD → Dungeon Run HUD** is
-  movable through the existing HUD Editor and shows only observed sidebar floor, time, clear, secrets, and deaths.
-  Neither feature has a keybind or gameplay command; `/velor selftest` only reports its registered hook status.
-- A normal close/reopen of the top-level settings GUI now starts with all feature disclosures collapsed; the explicit
-  Chat route still opens its requested Chat QoL owner, and returns from the existing child editors preserve their
-  already-open parent instance.
-- Keeps Minecraft 1.8.9 Forge compatibility, safe old-config loading, existing unrelated settings/features, the
-  `SkyVeLor` wordmark, eight-route navigation, dropdown behavior, optional GUI transparency, and fullscreen action.
+- Keeps Minecraft 1.8.9 Forge compatibility, safe old-config loading, existing HUD Editor, Dungeon ESP, Chat QoL,
+  Item Lock / Swap, Party Sync default-off behavior, Home metrics, dropdown behavior, optional GUI transparency, and
+  fullscreen action.
 
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
@@ -78,7 +77,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -89,8 +88,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar \
-  --version Beta-0.10.9.1.6v --mcmod-version 0.10.9.1.6
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar \
+  --version Beta-0.10.9.1.7v --mcmod-version 0.10.9.1.7
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -98,8 +97,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1.6v-source.zip \
-  --version Beta-0.10.9.1.6v
+  SkyVeLor-1.8.9-Beta-0.10.9.1.7v-source.zip \
+  --version Beta-0.10.9.1.7v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -110,12 +109,12 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.6v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
 
-- **Player → Inventory and Chat → Item Lock and Swap** contains the existing key-binding guidance,
+- **QoL → Inventory and Chat → Item Lock and Swap** contains the existing key-binding guidance,
   cooldown, badge, line, clear, and reset controls. Configure the key in Minecraft **Controls → Sky
   VeLor**; no controls screen is launched from the settings shell.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
@@ -127,10 +126,14 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
   Skeletor uses the normal Starred Mob style when a nearby star tag selects it; player-shaped dungeon NPCs remain
   eligible, while the local player is excluded in both scan and render paths. Recognized Enderman/Fel skull markers
   remain direct Enderman targets without a separate tag or height gate.
-- **Player → Comfort → Hide Dead Mobs** defaults on and removes a Dungeon ESP target during its death animation.
-- **Player → Comfort → Smooth Aspect Teleport** defaults on and arms only after a local Aspect use. After vanilla
-  accepts the completed server position jump, it eases only the rendered world/camera origin for `125 ms`; it never
-  initiates movement, changes player/camera entity coordinates, or sends packets.
+- **QoL → Comfort → Hide Dead Mobs** defaults on and client-side suppresses dead/dying normal mobs and server NPC
+  fake mobs—including their standard nameplates—when `isDead`, `deathTime > 0`, or zero health is observed. It keeps
+  the local player and ordinary listed remote players visible, and never removes an entity or changes server state.
+- **QoL → Comfort → Smooth Aspect Teleport** defaults on and arms only after a local Aspect use. At RenderTick START,
+  after vanilla accepts a plausible completed jump, it eases only the rendered world/camera origin for `125 ms`; it
+  never initiates movement, changes player/camera entity coordinates, or sends packets.
+- **Slayer → Slayer Tracker** owns the existing Slayer tracker route. The visible channel changed, not the tracker
+  configuration keys or values.
 - **HUD & Visuals → HUD → Dungeon Run HUD** defaults off and is movable through **Open HUD Editor**. It reads only the
   visible dungeon sidebar at a bounded interval and displays observed floor, elapsed time, cleared percentage, secrets,
   and deaths; it does not estimate score, inspect the tab list, react to chat, or close secret chests.
