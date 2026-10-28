@@ -542,6 +542,8 @@ def main():
     command_keybind_settings_raw = raw_of('assist/CommandKeybindSettings')
     command_keybind_policy_raw = raw_of('assist/CommandKeybindPolicy')
     command_keybind_controller_raw = raw_of('assist/CommandKeybindController')
+    wardrobe_shortcut_policy_raw = raw_of('assist/WardrobeShortcutPolicy')
+    wardrobe_shortcut_controller_raw = raw_of('assist/WardrobeShortcutController')
     item_animation_panel_raw = raw_of('gui/ItemAnimationPanelModel')
     hook_status_raw = raw_of('render/itemanimation/ItemAnimationHookStatus')
 
@@ -658,12 +660,13 @@ def main():
     # The ASM visitors that contain injected descriptors live in nested classes, so inspect the whole transformer family.
     aspect_transformer_raw = raw_family_of('assist/visual/AspectTeleportCameraTransformer')
     r.check(all(value in assist_settings_raw for value in
-                (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.keybindCut.autoSprint',
-                 b'assist.keybindCut.wardrobe', b'assist.keybindCut.pets', b'movement.autoSprint',
+                (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.shortcut.autoSprint',
+                 b'assist.shortcut.wardrobe', b'assist.shortcut.wardrobeKey', b'assist.shortcut.pets',
+                 b'assist.keybindCut.autoSprint', b'assist.keybindCut.wardrobe', b'movement.autoSprint',
                  b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
                  b'assist.dungeon.spiritBowLocator', b'spiritBowLocator', b'assist.dungeon.terminal.autoClick',
                  b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
-            'AssistSettings retains bounded visual, comfort, Keybind Cut migration, terminal, sync and opt-in Spirit Bow locator owners')
+            'AssistSettings retains bounded visual, comfort, Shortcut migration, terminal, sync and opt-in Spirit Bow locator owners')
     # Raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
     aspect_policy_values = (b'isAspectTeleportItem', b'isLargePositionJump', b'cameraProgress', b'aspect of the end',
                             b'aspect of the void', b'CAMERA_INTERPOLATION_NANOS')
@@ -823,11 +826,12 @@ def main():
                 and b'ItemAnimationHookStatus' not in hud_editor_raw,
             'HUD Editor contains no Item Animation target, sample-panel surface, or renderer controls')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Keybind Cut', b'keybind-cut', b'Command Keybind', b'Open Command Keybind Editor'))
-                and b'command-keybinds' in bindings_raw and b'open-command-keybind-editor' in settings_screen_raw,
-            'Keybind Cut replaces the old shortcuts row and exposes one aligned Command Keybind toggle/editor route')
+                (b'Shortcut', b'Wardrobe Shortcut', b'item-lock-key', b'Command Keybind', b'Open Command Keybind Editor'))
+                and b'command-keybinds' in bindings_raw and b'open-command-keybind-editor' in settings_screen_raw
+                and b'AppleKeybindButton' in settings_screen_raw and b'beginKeybindCapture' in settings_screen_raw,
+            'Shortcut is a standalone card with visible Item Lock/Wardrobe capture controls and Command Keybind route')
     r.check(all(value in command_keybind_settings_raw for value in
-                (b'assist.keybindCut.commandKeybinds', b'.entries', b'MAX_ENTRIES', b'normalizeCommand',
+                (b'assist.shortcut.commandKeybinds', b'assist.keybindCut.commandKeybinds', b'.entries', b'MAX_ENTRIES', b'normalizeCommand',
                  b'firstExecutableForKey'))
                 and all(value in command_keybind_policy_raw for value in (b'COOLDOWN_MILLIS', b'shouldSend'))
                 and all(value in command_keybind_controller_raw for value in
@@ -835,10 +839,18 @@ def main():
                 and b'CommandKeybindController' in client_raw,
             'Command Keybind persistence, physical-edge cooldown policy and registered direct-user runtime are packaged')
     r.check(all(value in command_keybind_editor_raw for value in
-                (b'Command Keybind', b'AppleKeybindButton', b'Key capture canceled', b'Key cleared',
-                 b'Warning: conflicts with Sky VeLor ', b'Warning: conflicts with Minecraft ', b'AppleSettings'))
+                (b'Command Keybind', b'AppleKeybindButton', b'Key capture canceled', b'Key cleared', b'MAX_VISIBLE_ROWS',
+                 b'Keyboard.KEY_SPACE', b'commitCommand', b'Warning: conflicts with Sky VeLor ',
+                 b'Warning: conflicts with Minecraft ', b'AppleSettings'))
                 and b'drawDefaultBackground' not in command_keybind_editor_raw,
-            'Command Keybind editor is an opaque no-dim add/edit/delete/capture/reset surface with visible collision warnings')
+            'Command Keybind editor is an opaque compact one-line add/delete/capture/reset surface with focused space entry and visible collision warnings')
+    r.check(all(value in wardrobe_shortcut_policy_raw for value in
+                (b'shouldOpenWardrobe', b'shouldSelectSlot', b'FIRST_WARDROBE_SLOT', b'LAST_WARDROBE_SLOT', b'isWardrobeTitle'))
+                and all(value in wardrobe_shortcut_controller_raw for value in
+                        (b'Keyboard', b'GuiChest', b'ContainerChest', b'windowClick', b'/wardrobe', b'WardrobeShortcutPolicy'))
+                and all(value not in wardrobe_shortcut_controller_raw for value in
+                        (b'sendPacket', b'setPosition', b'setLocationAndAngles', b'clickMouse', b'Thread.sleep')),
+            'Wardrobe Shortcut remains a physical-edge, recognized-GuiChest direct command/slot helper without movement, packet, or repeated-click automation')
 
     chat_settings_raw = raw_of('config/ChatQolSettings')
     tabs_raw = raw_of('feature/ChatChannelTabs')

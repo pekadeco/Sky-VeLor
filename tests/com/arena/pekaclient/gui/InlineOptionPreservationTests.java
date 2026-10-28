@@ -35,7 +35,7 @@ public final class InlineOptionPreservationTests {
                 "global-scroll", "hide-potions", "hud-inventory", "hud-player-doll", "hurt-camera-shake", "item-animation",
                 "item-lock-badge-color", "item-lock-badge-opacity", "item-lock-cooldown", "item-lock-hotbar", "item-lock-icons",
                 "item-lock-line-color", "item-lock-line-mode", "item-lock-line-opacity", "item-lock-line-width", "item-lock-message",
-                "item-lock-swap", "jawbus", "leap-key", "m7-areas-persist", "m7-boss-goldor", "m7-boss-maxor",
+                "item-lock-key", "item-lock-swap", "jawbus", "leap-key", "m7-areas-persist", "m7-boss-goldor", "m7-boss-maxor",
                 "m7-boss-necron", "m7-boss-storm", "m7-dragon-apex", "m7-dragon-flame", "m7-dragon-ice", "m7-dragon-power",
                 "m7-dragon-soul", "m7-overlay", "m7-relic-areas", "m7-terminal-solver", "mining-ability-alert",
                 "mining-assistant-hud", "mining-bps", "mining-puzzler", "mob-esp-enabled", "nearby-encounters",
@@ -59,7 +59,7 @@ public final class InlineOptionPreservationTests {
                 "m7-bosses", "m7-dragons", "esp-starred-caption", "door-wither-style-caption");
         assertPresent("item-lock-swap", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud",
                 "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker",
-                "hud-dungeon-run", "item-animation", "keybind-cut", "command-keybinds");
+                "hud-dungeon-run", "item-animation", "command-keybinds", "item-lock-key");
         check("Chat captions are not nested dropdowns", !ReferenceSettingsCatalog.find("chat-background-group").isDropdown()
                 && !ReferenceSettingsCatalog.find("chat-tabs-group").isDropdown());
     }

@@ -1,5 +1,6 @@
 package com.arena.pekaclient.gui;
 
+import com.arena.pekaclient.PekaClientMod;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
@@ -19,6 +20,7 @@ import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
+import com.arena.pekaclient.widget.AppleKeybindButton;
 import com.arena.pekaclient.widget.AppleSlider;
 import com.arena.pekaclient.widget.AppleToggle;
 import com.arena.pekaclient.widget.SearchField;
@@ -68,6 +70,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float EDITOR_BUTTON_TEXT_SCALE = .62f;
     private static final float ACTION_BUTTON_W = SettingsControlLayout.ACTION_BUTTON_WIDTH;
     private static final float ACTION_BUTTON_H = SettingsControlLayout.CONTROL_HEIGHT;
+    /** Key labels stay wide enough for NONE and common names such as RSHIFT without truncation. */
+    private static final float KEYBIND_BUTTON_W = 82f;
     /** Every row reserves these fixed right-side columns, even when they are intentionally blank. */
     private static final float CHEVRON_COLUMN_W = SettingsControlLayout.CHEVRON_COLUMN_WIDTH;
     private static final float TOGGLE_COLUMN_W = SettingsControlLayout.TOGGLE_COLUMN_WIDTH;
@@ -102,6 +106,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private final GuiLayoutToolkit.Scroll scroll = new GuiLayoutToolkit.Scroll();
     private final Gesture gesture = new Gesture();
     private final Map<String, Widget> controls = new HashMap<String, Widget>();
+    /** A keybind with an explicit master switch owns a second standard toggle, keyed separately from its key button. */
+    private final Map<String, AppleToggle> keybindToggles = new HashMap<String, AppleToggle>();
     private final Map<String, Hit> knownHits = new HashMap<String, Hit>();
     private final List<Hit> visibleHits = new ArrayList<Hit>();
     private final Map<String, TextMeasure> textMeasures = new HashMap<String, TextMeasure>();
@@ -138,6 +144,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private float contentH;
     private long lastFrameNs;
     private Widget activeWidget;
+    /** Owning catalog id while a visible key field has captured the next physical key. */
+    private String keybindCaptureId;
     private Hit pendingHit;
     private boolean gestureActive;
     private boolean sliderEngaged;
@@ -203,6 +211,7 @@ public class AppleSettingsScreen extends AppleScreen {
 
     @Override
     public void onGuiClosed() {
+        cancelKeybindCapture();
         super.onGuiClosed();
         draggingWindow = false;
         Keyboard.enableRepeatEvents(false);
@@ -771,19 +780,22 @@ public class AppleSettingsScreen extends AppleScreen {
                 || setting.control == ReferenceSettingsCatalog.Control.CHOICE
                 || setting.control == ReferenceSettingsCatalog.Control.TEXT
                 || setting.control == ReferenceSettingsCatalog.Control.ACTION;
-        float editW = setting.isEditor() ? editorButtonWidth(setting) : 0f;
-        float actionX = usesTrailingAction(setting) ? actionButtonX(x, rowW, setting.isEditor() ? editW : valueW) : 0f;
+        float trailingW = setting.isEditor() ? editorButtonWidth(setting)
+                : setting.isKeybind() ? keybindButtonWidth() : valueW;
+        float actionX = usesTrailingAction(setting) ? actionButtonX(x, rowW, trailingW) : 0f;
         float labelRight;
         if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
             labelRight = actionX - CONTROL_GAP;
-        } else if (setting.isEditor()) {
+        } else if (setting.isEditor() || setting.isKeybind()) {
             labelRight = setting.hasMasterToggle() ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP;
         } else {
             labelRight = inlineControl ? controlRight - valueW - CONTROL_GAP : controlRight;
         }
         float labelW = Math.max(42f, labelRight - leftX);
         // On compact shells, copy takes its own line while every action still holds the shared right edge below it.
-        if (narrowRows && (setting.isEditor() || inlineControl)) labelW = Math.max(42f, rowW - ROW_PAD_X * 2f);
+        if (narrowRows && (setting.isEditor() || setting.isKeybind() || inlineControl)) {
+            labelW = Math.max(42f, rowW - ROW_PAD_X * 2f);
+        }
         float labelY = y + ROW_PAD_Y;
         // Keep master-off children visibly muted, not unreadable. They remain intentionally editable so saved choices
         // can be prepared before the owner is enabled.
@@ -804,7 +816,15 @@ public class AppleSettingsScreen extends AppleScreen {
                 float actionY = trailingActionY(y, baseH);
                 if (setting.hasMasterToggle()) drawControl(setting, Math.max(leftX, editorToggleX(actionX)), actionY,
                         TOGGLE_COLUMN_W, mouseX, mouseY);
-                drawEditorButton(setting, actionX, actionY, editW, mouseX, mouseY);
+                drawEditorButton(setting, actionX, actionY, trailingW, mouseX, mouseY);
+            } else if (setting.isKeybind()) {
+                float actionY = trailingActionY(y, baseH);
+                // A distinct full-row key keeps its geometry from mutating the compact button hit in knownHits.
+                // Register it first so the key capsule and optional toggle retain click priority above it.
+                registerHit("keybind-row:" + setting.id, HIT_CONTROL, x + 1f, y + 1f, rowW - 2f, baseH - 1f, setting, "");
+                if (setting.hasMasterToggle()) drawKeybindToggle(setting, Math.max(leftX, editorToggleX(actionX)), actionY,
+                        mouseX, mouseY);
+                drawControl(setting, actionX, actionY, trailingW, mouseX, mouseY);
             } else if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
                 drawControl(setting, toggleX, centeredControlY(y, baseH, ACTION_BUTTON_H), TOGGLE_COLUMN_W, mouseX, mouseY);
             } else if (inlineControl) {
@@ -899,10 +919,11 @@ public class AppleSettingsScreen extends AppleScreen {
         float left = ROW_PAD_X;
         float right = ROW_PAD_X + RIGHT_COLUMNS_W + CONTROL_GAP;
         float labelW = Math.max(42f, contentW - left - right);
-        if (setting.control == ReferenceSettingsCatalog.Control.ACTION || setting.isEditor()) {
-            float actionW = setting.isEditor() ? editorButtonWidth(setting) : controlWidth(setting);
+        if (setting.control == ReferenceSettingsCatalog.Control.ACTION || setting.isEditor() || setting.isKeybind()) {
+            float actionW = setting.isEditor() ? editorButtonWidth(setting)
+                    : setting.isKeybind() ? keybindButtonWidth() : controlWidth(setting);
             float actionX = actionButtonX(0f, contentW, actionW);
-            float labelRight = setting.isEditor() && setting.hasMasterToggle()
+            float labelRight = (setting.isEditor() || setting.isKeybind()) && setting.hasMasterToggle()
                     ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP;
             labelW = Math.max(42f, labelRight - left);
         } else if (setting.control == ReferenceSettingsCatalog.Control.SLIDER
@@ -910,7 +931,8 @@ public class AppleSettingsScreen extends AppleScreen {
                 || setting.control == ReferenceSettingsCatalog.Control.TEXT) {
             labelW = Math.max(42f, labelW - controlWidth(setting) - CONTROL_GAP);
         }
-        boolean stackedAction = setting.isEditor() || setting.control == ReferenceSettingsCatalog.Control.SLIDER
+        boolean stackedAction = setting.isEditor() || setting.isKeybind()
+                || setting.control == ReferenceSettingsCatalog.Control.SLIDER
                 || setting.control == ReferenceSettingsCatalog.Control.CHOICE
                 || setting.control == ReferenceSettingsCatalog.Control.TEXT
                 || setting.control == ReferenceSettingsCatalog.Control.ACTION;
@@ -923,7 +945,12 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private boolean usesTrailingAction(ReferenceSettingsCatalog.Setting setting) {
-        return setting != null && (setting.isEditor() || setting.control == ReferenceSettingsCatalog.Control.ACTION);
+        return setting != null && (setting.isEditor() || setting.isKeybind()
+                || setting.control == ReferenceSettingsCatalog.Control.ACTION);
+    }
+
+    private float keybindButtonWidth() {
+        return Math.max(64f, Math.min(KEYBIND_BUTTON_W, contentW - ROW_PAD_X * 2f));
     }
 
     private float actionButtonWidth() {
@@ -985,6 +1012,7 @@ public class AppleSettingsScreen extends AppleScreen {
     private float controlWidth(ReferenceSettingsCatalog.Setting setting) {
         float available = Math.max(1f, contentW - ROW_PAD_X * 2f - RIGHT_COLUMNS_W);
         if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE || setting.isEditor()) return TOGGLE_COLUMN_W;
+        if (setting.isKeybind()) return keybindButtonWidth();
         if (setting.control == ReferenceSettingsCatalog.Control.DROPDOWN || setting.control == ReferenceSettingsCatalog.Control.INFO
                 || setting.control == ReferenceSettingsCatalog.Control.CAPTION) return 0f;
         if (setting.control == ReferenceSettingsCatalog.Control.SLIDER) {
@@ -1006,6 +1034,31 @@ public class AppleSettingsScreen extends AppleScreen {
         return ACTION_BUTTON_H;
     }
 
+    private void drawKeybindToggle(final ReferenceSettingsCatalog.Setting setting, float x, float y,
+                                   int mouseX, int mouseY) {
+        AppleToggle toggle = keybindToggleFor(setting);
+        toggle.x = x;
+        toggle.y = y;
+        toggle.w = TOGGLE_COLUMN_W;
+        toggle.h = ACTION_BUTTON_H;
+        toggle.draw(mouseX, mouseY);
+        recordViewportControl("Settings keybind toggle " + setting.id, toggle.x, toggle.y, toggle.w, toggle.h);
+        registerHit("keybind-toggle:" + setting.id, HIT_CONTROL, toggle.x, toggle.y, toggle.w, toggle.h,
+                setting, "keybind-toggle");
+    }
+
+    private AppleToggle keybindToggleFor(final ReferenceSettingsCatalog.Setting setting) {
+        AppleToggle existing = keybindToggles.get(setting.id);
+        if (existing != null) return existing;
+        AppleToggle created = new AppleToggle(new Supplier<Boolean>() {
+            @Override public Boolean get() { return booleanValue(setting.id); }
+        }, new Consumer<Boolean>() {
+            @Override public void accept(Boolean value) { setBoolean(setting.id, Boolean.TRUE.equals(value)); }
+        });
+        keybindToggles.put(setting.id, created);
+        return created;
+    }
+
     private void drawControl(ReferenceSettingsCatalog.Setting setting, float x, float y, float w,
                              int mouseX, int mouseY) {
         Widget widget = controlFor(setting);
@@ -1017,6 +1070,16 @@ public class AppleSettingsScreen extends AppleScreen {
             widget.h = ACTION_BUTTON_H;
             widget.draw(mouseX, mouseY);
             recordViewportControl("Settings toggle " + setting.id, widget.x, widget.y, widget.w, widget.h);
+            registerHit("control:" + setting.id, HIT_CONTROL, widget.x, widget.y, widget.w, widget.h, setting, "");
+            return;
+        }
+        if (setting.isKeybind()) {
+            widget.x = x;
+            widget.y = y;
+            widget.w = w;
+            widget.h = ACTION_BUTTON_H;
+            widget.draw(mouseX, mouseY);
+            recordViewportControl("Settings keybind " + setting.id, widget.x, widget.y, widget.w, widget.h);
             registerHit("control:" + setting.id, HIT_CONTROL, widget.x, widget.y, widget.w, widget.h, setting, "");
             return;
         }
@@ -1073,7 +1136,11 @@ public class AppleSettingsScreen extends AppleScreen {
         Widget existing = controls.get(setting.id);
         if (existing != null) return existing;
         Widget created;
-        if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE
+        if (setting.isKeybind()) {
+            created = new AppleKeybindButton(keybindButtonWidth(), ACTION_BUTTON_H, new IntSupplier() {
+                @Override public int getAsInt() { return keybindValue(setting.id); }
+            });
+        } else if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE
                 || (setting.isEditor() && setting.hasMasterToggle())) {
             created = new AppleToggle(new Supplier<Boolean>() {
                 @Override public Boolean get() { return booleanValue(setting.id); }
@@ -1497,8 +1564,14 @@ public class AppleSettingsScreen extends AppleScreen {
         search.setFocused(false);
         clearInlineTextFocus();
         if (!viewport.contains(mouseX, mouseY)) return;
+        if (hit != null && hit.type == HIT_CONTROL && hit.setting != null && hit.setting.isKeybind()
+                && !"keybind-toggle".equals(hit.data)) {
+            beginKeybindCapture(hit.setting.id);
+            return;
+        }
         pendingHit = hit;
-        activeWidget = hit != null && hit.type == HIT_CONTROL && hit.setting != null ? controlFor(hit.setting) : null;
+        activeWidget = hit != null && hit.type == HIT_CONTROL && hit.setting != null
+                ? ("keybind-toggle".equals(hit.data) ? keybindToggleFor(hit.setting) : controlFor(hit.setting)) : null;
         if (activeWidget instanceof SearchField) {
             ((SearchField) activeWidget).setFocused(true);
             activeWidget = null;
@@ -1615,8 +1688,70 @@ public class AppleSettingsScreen extends AppleScreen {
         }
     }
 
+    private int keybindValue(String id) {
+        if ("item-lock-key".equals(id)) return PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode();
+        if ("wardrobe-shortcut".equals(id)) return PekaClientMod.WARDROBE_SHORTCUT_KEY.getKeyCode();
+        return 0;
+    }
+
+    private void beginKeybindCapture(String id) {
+        if (id == null) return;
+        cancelKeybindCapture();
+        Widget widget = controls.get(id);
+        if (!(widget instanceof AppleKeybindButton)) widget = controlFor(ReferenceSettingsCatalog.find(id));
+        if (!(widget instanceof AppleKeybindButton)) return;
+        keybindCaptureId = id;
+        ((AppleKeybindButton) widget).beginCapture();
+        showToast("Press a key. Esc cancels; Backspace clears.");
+    }
+
+    private void cancelKeybindCapture() {
+        if (keybindCaptureId != null) {
+            Widget widget = controls.get(keybindCaptureId);
+            if (widget instanceof AppleKeybindButton) ((AppleKeybindButton) widget).cancelCapture();
+        }
+        keybindCaptureId = null;
+    }
+
+    private void handleKeybindCapture(int keyCode) {
+        String id = keybindCaptureId;
+        if (keyCode == Keyboard.KEY_ESCAPE) {
+            cancelKeybindCapture();
+            showToast("Key capture canceled");
+            return;
+        }
+        if (keyCode == Keyboard.KEY_BACK) {
+            applyKeybindCapture(id, 0);
+            return;
+        }
+        if (keyCode <= 0 || keyCode > 255) return;
+        applyKeybindCapture(id, keyCode);
+    }
+
+    private void applyKeybindCapture(String id, int keyCode) {
+        String conflict = null;
+        if ("item-lock-key".equals(id)) conflict = PekaClientMod.rebindItemLockSwapKey(keyCode);
+        else if ("wardrobe-shortcut".equals(id)) conflict = PekaClientMod.rebindWardrobeShortcutKey(keyCode);
+        else return;
+        Widget widget = controls.get(id);
+        if (widget instanceof AppleKeybindButton) ((AppleKeybindButton) widget).finishCapture();
+        keybindCaptureId = null;
+        AppleSettings.save();
+        if (keyCode == 0) {
+            showToast("Key cleared");
+        } else if (conflict != null) {
+            showToast("Key set; also bound to " + conflict);
+        } else {
+            showToast("Key set");
+        }
+    }
+
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (keybindCaptureId != null) {
+            handleKeybindCapture(keyCode);
+            return;
+        }
         SearchField inlineFocused = focusedInlineText();
         if (inlineFocused != null) {
             if (keyCode == Keyboard.KEY_ESCAPE) {

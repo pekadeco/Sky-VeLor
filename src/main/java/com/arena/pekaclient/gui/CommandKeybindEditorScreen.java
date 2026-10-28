@@ -25,19 +25,24 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 /**
- * Solid, undimmed Keybind Cut editor. It intentionally follows the Item Animation editor's compact opaque-panel
- * pattern rather than opening a vanilla text dialog over a shaded world.
+ * Solid, undimmed Shortcut command editor. It follows the Item Animation editor's opaque surface while deliberately
+ * sizing itself to its short, one-line key/command/toggle/delete entries instead of occupying the whole screen.
  */
 public final class CommandKeybindEditorScreen extends AppleScreen {
 
     private static final float PANEL_MARGIN = 8f;
-    private static final float PANEL_WIDTH_FRACTION = .42f;
-    private static final float PANEL_MIN_WIDTH = 330f;
-    private static final float PANEL_MAX_WIDTH = 510f;
+    private static final float PANEL_WIDTH_FRACTION = .34f;
+    private static final float PANEL_MIN_WIDTH = 360f;
+    private static final float PANEL_MAX_WIDTH = 520f;
     private static final float HEADER_H = 29f;
+    private static final float INTRO_H = 22f;
     private static final float FOOTER_H = 35f;
-    private static final float ROW_H = 68f;
+    private static final float ROW_H = 30f;
     private static final float BUTTON_H = 20f;
+    /** Seven direct entries remain compact; only an unusually long list earns a scroll surface. */
+    private static final int MAX_VISIBLE_ROWS = 7;
+    private static final float KEY_W = 72f;
+    private static final float DELETE_W = 56f;
 
     private final GuiScreen parent;
     private final List<BindingRow> rows = new ArrayList<BindingRow>();
@@ -111,8 +116,12 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         float usableWidth = Math.max(1f, width - PANEL_MARGIN * 2f);
         panelW = Math.min(usableWidth, Math.max(PANEL_MIN_WIDTH,
                 Math.min(PANEL_MAX_WIDTH, width * PANEL_WIDTH_FRACTION)));
-        panelH = Math.max(1f, height - PANEL_MARGIN * 2f);
-        contentTop = panelY + HEADER_H + 27f;
+        int visibleRows = Math.min(MAX_VISIBLE_ROWS, Math.max(1, rows.size()));
+        float rowArea = rows.isEmpty() ? 31f : visibleRows * ROW_H;
+        float desiredH = HEADER_H + INTRO_H + rowArea + FOOTER_H;
+        float availableH = Math.max(1f, height - PANEL_MARGIN * 2f);
+        panelH = Math.min(availableH, Math.max(HEADER_H + INTRO_H + FOOTER_H + 28f, desiredH));
+        contentTop = panelY + HEADER_H + INTRO_H;
         contentBottom = panelY + panelH - FOOTER_H;
         scroll.setMax(Math.max(0f, rows.size() * ROW_H - Math.max(1f, contentBottom - contentTop)));
     }
@@ -135,8 +144,8 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         UIRender.text(fr(), "×", closeX + 4.5f, panelY + 8f,
                 closeHover ? Theme.textPrimary : Theme.textSecondary, .86f, false);
         UIRender.line(panelX + 7f, panelY + HEADER_H, panelX + panelW - 7f, panelY + HEADER_H, 1f, Theme.divider);
-        UIRender.text(fr(), fit(fr(), "Commands only run from a physical key press while no screen is open.", panelW - 20f),
-                panelX + 10f, panelY + HEADER_H + 7f, Theme.textTertiary, .58f, false);
+        UIRender.text(fr(), fit(fr(), "Commands run only from a physical key while no screen is open.", panelW - 20f),
+                panelX + 10f, panelY + HEADER_H + 6f, Theme.textTertiary, .58f, false);
 
         UIRender.scissorBegin(panelX + 1f, contentTop, panelW - 2f, contentBottom - contentTop, sf);
         try {
@@ -144,10 +153,8 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
                 drawRow(rows.get(i), contentTop + i * ROW_H - scroll.value(), mouseX, mouseY);
             }
             if (rows.isEmpty()) {
-                UIRender.text(fr(), "No command keybinds yet.", panelX + 10f, contentTop + 9f,
-                        Theme.textSecondary, .7f, false);
-                UIRender.text(fr(), "Use Add to create one.", panelX + 10f, contentTop + 23f,
-                        Theme.textTertiary, .6f, false);
+                UIRender.text(fr(), "No command keybinds yet. Use Add to create one.", panelX + 10f, contentTop + 9f,
+                        Theme.textSecondary, .62f, false);
             }
         } finally {
             UIRender.scissorEnd();
@@ -156,24 +163,24 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         drawFooter(mouseX, mouseY);
     }
 
+    /** One entry stays on one readable line: key, editable command, on/off toggle, then a fully sized Delete button. */
     private void drawRow(BindingRow row, float y, int mouseX, int mouseY) {
         CommandKeybindSettings.Entry entry = CommandKeybindSettings.entryAt(row.index);
         if (entry == null) return;
         float x = panelX + 6f;
         float rowW = panelW - 12f;
-        UIRender.roundRectBorder(x, y + 2f, rowW, ROW_H - 5f, 4f,
+        UIRender.roundRectBorder(x, y + 2f, rowW, ROW_H - 4f, 4f,
                 Theme.buttonFill, Theme.buttonFill, Theme.border);
-        UIRender.text(fr(), "Key", x + 7f, y + 9f, Theme.textSecondary, .58f, false);
 
-        row.keyButton.x = x + 26f;
+        row.keyButton.x = x + 6f;
         row.keyButton.y = y + 5f;
-        row.keyButton.w = 72f;
+        row.keyButton.w = KEY_W;
         row.keyButton.h = BUTTON_H;
         row.keyButton.draw(mouseX, mouseY);
 
-        row.deleteButton.x = x + rowW - 50f;
+        row.deleteButton.x = x + rowW - DELETE_W - 6f;
         row.deleteButton.y = y + 5f;
-        row.deleteButton.w = 43f;
+        row.deleteButton.w = DELETE_W;
         row.deleteButton.h = BUTTON_H;
         row.deleteButton.draw(mouseX, mouseY);
 
@@ -185,30 +192,15 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         UIRender.text(fr(), entry.enabled() ? "On" : "Off", row.enabledToggle.x - 15f, y + 10f,
                 entry.enabled() ? Theme.STATUS_SUCCESS : Theme.textTertiary, .52f, false);
 
-        float editW = 42f;
-        row.editButton.x = x + rowW - editW - 7f;
-        row.editButton.y = y + 29f;
-        row.editButton.w = editW;
-        row.editButton.h = BUTTON_H;
-        row.editButton.draw(mouseX, mouseY);
-
-        row.commandField.x = x + 7f;
-        row.commandField.y = y + 29f;
-        row.commandField.w = Math.max(40f, row.editButton.x - row.commandField.x - 5f);
+        row.commandField.x = row.keyButton.x + row.keyButton.w + 6f;
+        row.commandField.y = y + 5f;
+        // Never let a minimum field width cross into the On/toggle/delete controls on a small scaled display.
+        row.commandField.w = Math.max(1f, row.enabledToggle.x - 19f - row.commandField.x);
         row.commandField.h = BUTTON_H;
         if (focusedCommandIndex != row.index && !row.commandField.text().equals(entry.command())) {
             row.commandField.setText(entry.command());
         }
         row.commandField.draw(mouseX, mouseY);
-
-        String warning = collisionWarning(row.index, entry);
-        if (warning.length() == 0 && !CommandKeybindSettings.isExecutable(entry)) {
-            warning = "Set a key and a slash command to enable this entry.";
-        }
-        if (warning.length() > 0) {
-            int color = warning.startsWith("Warning") ? Theme.STATUS_WARNING : Theme.textTertiary;
-            UIRender.text(fr(), fit(fr(), warning, rowW - 14f), x + 7f, y + 53f, color, .52f, false);
-        }
     }
 
     private void drawFooter(int mouseX, int mouseY) {
@@ -223,8 +215,19 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         resetButton.w = 62f;
         resetButton.h = BUTTON_H;
         resetButton.draw(mouseX, mouseY);
-        UIRender.text(fr(), fit(fr(), notice, Math.max(30f, panelW - 155f)), resetButton.x + resetButton.w + 8f,
+        String footer = footerNotice();
+        UIRender.text(fr(), fit(fr(), footer, Math.max(30f, panelW - 155f)), resetButton.x + resetButton.w + 8f,
                 contentBottom + 13f, Theme.textTertiary, .54f, false);
+    }
+
+    /** A collision remains visible without making every entry a tall, two-line card. */
+    private String footerNotice() {
+        for (int i = 0; i < rows.size(); i++) {
+            CommandKeybindSettings.Entry entry = CommandKeybindSettings.entryAt(rows.get(i).index);
+            String warning = collisionWarning(rows.get(i).index, entry);
+            if (warning.length() > 0) return warning;
+        }
+        return notice;
     }
 
     private void drawScrollBar() {
@@ -265,9 +268,10 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         if (row != null && widget == row.commandField) {
             cancelCapture();
             focusCommand(row.index);
-        } else if (row != null && widget == row.keyButton) {
+        } else {
+            // Leaving a field commits its outer-trimmed value, preserving every inner space the player just typed.
             focusCommand(-1);
-            cancelCapture();
+            if (row != null && widget == row.keyButton) cancelCapture();
         }
         activeWidget = widget;
         activeWidget.onPress(mouseX, mouseY);
@@ -303,17 +307,22 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
                 notice = "Command edit canceled";
                 return;
             }
+            if (keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER) {
+                focusCommand(-1);
+                notice = "Command saved";
+                return;
+            }
             BindingRow row = rowAt(focusedCommandIndex);
             if (row == null) {
                 focusCommand(-1);
                 return;
             }
+            // Minecraft can report a zero event character for KEY_SPACE on some 1.8.9 GUI paths. Supply the ordinary
+            // printable character ourselves and always consume it while this command field owns focus.
+            char acceptedChar = keyCode == Keyboard.KEY_SPACE && typedChar == 0 ? ' ' : typedChar;
             String before = row.commandField.text();
-            boolean consumed = row.commandField.keyTyped(typedChar, keyCode);
-            if (consumed || !before.equals(row.commandField.text())) {
-                CommandKeybindSettings.setCommand(row.index, row.commandField.text());
-                CommandKeybindSettings.Entry entry = CommandKeybindSettings.entryAt(row.index);
-                if (entry != null) row.commandField.setText(entry.command());
+            boolean consumed = row.commandField.keyTyped(acceptedChar, keyCode);
+            if (keyCode == Keyboard.KEY_SPACE || consumed || !before.equals(row.commandField.text())) {
                 return;
             }
         }
@@ -358,10 +367,9 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         for (int i = 0; i < rows.size(); i++) {
             BindingRow row = rows.get(i);
             if (row.keyButton.contains(mouseX, mouseY)) return row.keyButton;
+            if (row.commandField.contains(mouseX, mouseY)) return row.commandField;
             if (row.enabledToggle.contains(mouseX, mouseY)) return row.enabledToggle;
             if (row.deleteButton.contains(mouseX, mouseY)) return row.deleteButton;
-            if (row.editButton.contains(mouseX, mouseY)) return row.editButton;
-            if (row.commandField.contains(mouseX, mouseY)) return row.commandField;
         }
         return null;
     }
@@ -377,8 +385,18 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
     }
 
     private void focusCommand(int index) {
+        if (focusedCommandIndex >= 0 && focusedCommandIndex != index) commitCommand(focusedCommandIndex);
         focusedCommandIndex = index;
         for (int i = 0; i < rows.size(); i++) rows.get(i).commandField.setFocused(rows.get(i).index == index);
+    }
+
+    /** Commits only when editing ends, so a typed trailing space is not stripped before its next normal character. */
+    private void commitCommand(int index) {
+        BindingRow row = rowAt(index);
+        if (row == null) return;
+        CommandKeybindSettings.setCommand(row.index, row.commandField.text());
+        CommandKeybindSettings.Entry entry = CommandKeybindSettings.entryAt(row.index);
+        if (entry != null) row.commandField.setText(entry.command());
     }
 
     private void cancelCapture() {
@@ -394,9 +412,11 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         for (int i = 0; i < CommandKeybindSettings.count(); i++) rows.add(new BindingRow(i));
         focusedCommandIndex = -1;
         captureIndex = -1;
+        scroll.reset();
     }
 
     private void deleteRow(int index) {
+        focusCommand(-1);
         if (CommandKeybindSettings.delete(index)) {
             rebuildRows();
             notice = "Command keybind deleted";
@@ -447,6 +467,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
     @Override
     public void onGuiClosed() {
         cancelCapture();
+        focusCommand(-1);
         Keyboard.enableRepeatEvents(false);
         AppleSettings.save();
         UIRender.restoreVanillaGuiState();
@@ -463,12 +484,11 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         final AppleKeybindButton keyButton;
         final AppleToggle enabledToggle;
         final SearchField commandField;
-        final AppleButton editButton;
         final AppleButton deleteButton;
 
         BindingRow(final int index) {
             this.index = index;
-            keyButton = new AppleKeybindButton(72f, BUTTON_H, new IntSupplier() {
+            keyButton = new AppleKeybindButton(KEY_W, BUTTON_H, new IntSupplier() {
                 public int getAsInt() {
                     CommandKeybindSettings.Entry entry = CommandKeybindSettings.entryAt(index);
                     return entry == null ? 0 : entry.keyCode();
@@ -487,14 +507,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
             commandField = new SearchField("/command");
             CommandKeybindSettings.Entry entry = CommandKeybindSettings.entryAt(index);
             commandField.setText(entry == null ? "/" : entry.command());
-            editButton = new AppleButton("Edit", 42f, BUTTON_H, false, new Runnable() {
-                public void run() {
-                    cancelCapture();
-                    focusCommand(index);
-                    notice = "Editing command keybind " + (index + 1);
-                }
-            });
-            deleteButton = new AppleButton("Delete", 43f, BUTTON_H, false, new Runnable() {
+            deleteButton = new AppleButton("Delete", DELETE_W, BUTTON_H, false, new Runnable() {
                 public void run() {
                     deleteRow(index);
                 }
@@ -505,13 +518,11 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
             keyButton.update(dt);
             enabledToggle.update(dt);
             commandField.update(dt);
-            editButton.update(dt);
             deleteButton.update(dt);
         }
 
         boolean owns(Widget widget) {
-            return widget == keyButton || widget == enabledToggle || widget == commandField
-                    || widget == editButton || widget == deleteButton;
+            return widget == keyButton || widget == enabledToggle || widget == commandField || widget == deleteButton;
         }
     }
 }

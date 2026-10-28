@@ -40,7 +40,7 @@ public final class ReferenceSettingsCatalog {
 
     /** A caption is paint-only, not an interactive row. An editor row has one named destination CTA. */
     public enum Control {
-        TOGGLE, SLIDER, ACTION, CHOICE, INFO, DROPDOWN, TEXT, CAPTION, EDITOR
+        TOGGLE, SLIDER, ACTION, CHOICE, INFO, DROPDOWN, TEXT, CAPTION, EDITOR, KEYBIND
     }
 
     public static final class Setting {
@@ -83,8 +83,10 @@ public final class ReferenceSettingsCatalog {
 
         public boolean hasChildren() { return !children.isEmpty(); }
         public boolean isDropdown() { return control == Control.DROPDOWN || (control == Control.TOGGLE && hasChildren()); }
-        public boolean hasMasterToggle() { return control == Control.TOGGLE || (control == Control.EDITOR && editorHasMasterToggle); }
+        public boolean hasMasterToggle() { return control == Control.TOGGLE
+                || ((control == Control.EDITOR || control == Control.KEYBIND) && editorHasMasterToggle); }
         public boolean isEditor() { return control == Control.EDITOR; }
+        public boolean isKeybind() { return control == Control.KEYBIND; }
         public boolean isCaption() { return control == Control.CAPTION; }
         public boolean isResetAction() { return control == Control.ACTION && "Reset to defaults".equals(actionLabel); }
         public int visibleChildCount() { return children.size(); }
@@ -133,7 +135,7 @@ public final class ReferenceSettingsCatalog {
     /** Direct feature owners; ids are presentation ids, never replacement configuration keys. */
     public static final String[] REQUIRED_ROUTE_IDS = {
             "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
-            "item-lock-swap", "inventory-assist", "chat-qol", "keybind-cut", "command-keybinds", "slayer-tracker",
+            "item-lock-swap", "inventory-assist", "chat-qol", "wardrobe-shortcut", "command-keybinds", "slayer-tracker",
             "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay",
             "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
             "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation",
@@ -159,7 +161,8 @@ public final class ReferenceSettingsCatalog {
             card("inventory-chat", "Inventory And Chat", "Inventory, messages, and keybinds.", false, "",
                     masterDropdown("item-lock-swap", "Item Lock And Swap",
                             "Lock slots and swap saved pairs.", "lock pairing badges",
-                            info("item-lock-key", "Item Lock And Swap Key", "Set the key in Minecraft Controls.", "key controls"),
+                            keybind("item-lock-key", "Item Lock And Swap Key",
+                                    "Click the key to bind it. Esc cancels; Backspace clears.", "key controls bind capture", false),
                             slider("item-lock-cooldown", "Swap Cooldown", "Time between pair swaps.", "swap cooldown", 5, 50, 1, ""),
                             toggle("item-lock-icons", "Show Lock Icons", "Show lock and pair badges in inventory.", "lock icons"),
                             toggle("item-lock-hotbar", "Show Hotbar Icons", "Show badges in the hotbar.", "hotbar icons"),
@@ -224,16 +227,17 @@ public final class ReferenceSettingsCatalog {
                             slider("chat-hover-opacity", "Highlight Opacity", "Set highlight opacity.", "hover opacity", 0, 100, 5, "%"),
                             choice("chat-menu-mode", "Open Menu With", "Choose the click for the message menu.", "chat menu",
                                     new String[]{"Right Click", "Left Click", "Both"}),
-                            reset("chat-reset-all")),
-                    dropdown("keybind-cut", "Keybind Cut", "Physical key shortcuts and commands.",
-                            "keybind cut command wardrobe pets movement shortcuts",
-                            toggle("wardrobe-shortcut", "Wardrobe Shortcut", "Use the Wardrobe key shortcut.", "wardrobe key"),
-                            toggle("pets-shortcut", "Pets Shortcut", "Use the Pets key shortcut.", "pets key"),
-                            editor("command-keybinds", "Command Keybind",
-                                    "Send a slash command from a physical key press.",
-                                    "command keybind slash key collision", true,
-                                    "Open Command Keybind Editor", "open-command-keybind-editor"),
-                            reset("keybind-cut-reset")))
+                            reset("chat-reset-all"))),
+            card("shortcut", "Shortcut", "Direct player-triggered keys and commands.", false, "",
+                    keybind("wardrobe-shortcut", "Wardrobe Shortcut",
+                            "Enable, then click the key. Esc cancels; Backspace clears.",
+                            "wardrobe key bind capture", true),
+                    toggle("pets-shortcut", "Pets Shortcut", "Use the Pets key shortcut.", "pets key"),
+                    editor("command-keybinds", "Command Keybind",
+                            "Send a slash command from a physical key press.",
+                            "command keybind slash key collision", true,
+                            "Open Command Keybind Editor", "open-command-keybind-editor"),
+                    reset("shortcut-reset"))
     );
 
     /** Slayer owns the existing tracker route only; its config ids and saved values remain unchanged. */
@@ -538,7 +542,7 @@ public final class ReferenceSettingsCatalog {
     private static void collectConfigurableIds(List<Setting> settings, List<String> values) {
         for (Setting setting : settings) {
             if (setting.control == Control.TOGGLE || setting.control == Control.SLIDER
-                    || setting.control == Control.CHOICE || setting.control == Control.TEXT
+                    || setting.control == Control.CHOICE || setting.control == Control.TEXT || setting.control == Control.KEYBIND
                     || (setting.control == Control.EDITOR && setting.editorHasMasterToggle)) values.add(setting.id);
             collectConfigurableIds(setting.children, values);
         }
@@ -705,6 +709,12 @@ public final class ReferenceSettingsCatalog {
                                   boolean hasToggle, String actionLabel, String actionId) {
         return new Setting(id, label, description, keywords, Control.EDITOR, false, actionLabel, 0, 1, 1, "", null,
                 hasToggle, actionId);
+    }
+
+    /** A visible key value with capture semantics; optional master toggle shares the standard right-side row layout. */
+    private static Setting keybind(String id, String label, String description, String keywords, boolean hasToggle) {
+        return new Setting(id, label, description, keywords, Control.KEYBIND, false, "", 0, 1, 1, "", null,
+                hasToggle, "");
     }
 
     /** A flat Starred Mobs group: category toggle followed by all of its style controls. */

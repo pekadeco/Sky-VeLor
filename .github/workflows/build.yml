@@ -177,7 +177,7 @@ jobs:
           # This explicit allow-list is intentional: git archive never receives dist/, build/, .git/,
           # IDE state, generated artifacts, or any untracked local file. The wrapper JAR is retained
           # because it is required to build the released source tree.
-          git archive --format=zip --prefix="$SOURCE_ROOT" HEAD -- .github .gitignore CHANGELOG.md LICENSE README.md build.gradle docs gradle gradlew gradlew.bat settings.gradle src tests tools > "$SOURCE_ZIP"
+          git archive --format=zip --prefix="$SOURCE_ROOT" HEAD -- .github .gitignore CHANGELOG.md LICENSE README.md THIRD-PARTY-NOTICES.md build.gradle docs gradle gradlew gradlew.bat settings.gradle src tests tools > "$SOURCE_ZIP"
           if ! python3 tools/verify_source_zip.py "$SOURCE_ZIP" --version "$VERSION" > "$RUNNER_TEMP/source-verify.txt" 2>&1; then
             cat "$RUNNER_TEMP/source-verify.txt"
             exit 1

@@ -4,14 +4,16 @@ import java.util.ArrayList;
 import java.util.Properties;
 
 /**
- * Persistent direct-user command bindings for the Keybind Cut editor. This model deliberately has no Minecraft
+ * Persistent direct-user command bindings for the Shortcut editor. This model deliberately has no Minecraft
  * dependency, so malformed data, entry order, and execution eligibility can be covered by standalone tests.
  */
 public final class CommandKeybindSettings {
 
-    /** The new Keybind Cut namespace is intentionally separate from the migrated wardrobe/pets aliases. */
-    public static final String PREFIX = "assist.keybindCut.commandKeybinds";
+    /** The Shortcut namespace supersedes Keybind Cut while remaining load-compatible with that one-release predecessor. */
+    public static final String PREFIX = "assist.shortcut.commandKeybinds";
     public static final String ENTRIES_KEY = PREFIX + ".entries";
+    private static final String LEGACY_PREFIX = "assist.keybindCut.commandKeybinds";
+    private static final String LEGACY_ENTRIES_KEY = LEGACY_PREFIX + ".entries";
     public static final int MAX_ENTRIES = 16;
     public static final int MAX_KEY_CODE = 255;
     public static final int MAX_COMMAND_LENGTH = 240;
@@ -117,7 +119,7 @@ public final class CommandKeybindSettings {
                 && entry.command.charAt(0) == '/';
     }
 
-    /** A command is always normalized to one slash-led, single-line message and never stores control characters. */
+    /** A command is slash-led and single-line; only its outer whitespace is trimmed so inner command arguments survive. */
     public static String normalizeCommand(String raw) {
         String source = raw == null ? "" : raw.trim();
         StringBuilder clean = new StringBuilder(Math.min(MAX_COMMAND_LENGTH, source.length() + 1));
@@ -140,8 +142,11 @@ public final class CommandKeybindSettings {
     public static void load(Properties source) {
         Properties p = source == null ? new Properties() : source;
         reset();
-        enabled = Boolean.parseBoolean(p.getProperty(PREFIX, "false").trim());
-        String rawEntries = p.getProperty(ENTRIES_KEY, "");
+        // A complete new owner wins. Otherwise retain every .1.8v Keybind Cut command without a manual migration.
+        String activePrefix = p.containsKey(PREFIX) || p.containsKey(ENTRIES_KEY) ? PREFIX : LEGACY_PREFIX;
+        String activeEntries = activePrefix.equals(PREFIX) ? ENTRIES_KEY : LEGACY_ENTRIES_KEY;
+        enabled = Boolean.parseBoolean(p.getProperty(activePrefix, "false").trim());
+        String rawEntries = p.getProperty(activeEntries, "");
         if (rawEntries.length() == 0) return;
         String[] pieces = rawEntries.split(";");
         for (int i = 0; i < pieces.length && ENTRIES.size() < MAX_ENTRIES; i++) {
@@ -152,6 +157,8 @@ public final class CommandKeybindSettings {
 
     public static void save(Properties p) {
         if (p == null) return;
+        p.remove(LEGACY_PREFIX);
+        p.remove(LEGACY_ENTRIES_KEY);
         p.setProperty(PREFIX, Boolean.toString(enabled));
         p.setProperty(ENTRIES_KEY, serialize());
     }

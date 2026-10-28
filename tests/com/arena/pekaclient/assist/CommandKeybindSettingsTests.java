@@ -2,7 +2,7 @@ package com.arena.pekaclient.assist;
 
 import java.util.Properties;
 
-/** Pure persistence, collision and direct-edge policy coverage for Keybind Cut Command Keybinds. */
+/** Pure persistence, collision and direct-edge policy coverage for Shortcut Command Keybinds. */
 public final class CommandKeybindSettingsTests {
 
     private static int passed;
@@ -24,11 +24,11 @@ public final class CommandKeybindSettingsTests {
         check("fresh row has a clearable key, slash placeholder and on state", fresh.keyCode() == 0
                 && "/".equals(fresh.command()) && fresh.enabled());
         CommandKeybindSettings.setKeyCode(0, 21);
-        CommandKeybindSettings.setCommand(0, "warp home");
+        CommandKeybindSettings.setCommand(0, "  warp  hub  ");
         CommandKeybindSettings.setEntryEnabled(0, false);
         CommandKeybindSettings.Entry edited = CommandKeybindSettings.entryAt(0);
-        check("edit normalizes slash commands and state", edited.keyCode() == 21 && "/warp home".equals(edited.command())
-                && !edited.enabled());
+        check("edit outer-trims slash commands while preserving inner spaces and state", edited.keyCode() == 21
+                && "/warp  hub".equals(edited.command()) && !edited.enabled());
         CommandKeybindSettings.setKeyCode(0, 999);
         check("invalid key clears rather than remaining executable", CommandKeybindSettings.entryAt(0).keyCode() == 0
                 && !CommandKeybindSettings.isExecutable(CommandKeybindSettings.entryAt(0)));
@@ -50,8 +50,15 @@ public final class CommandKeybindSettingsTests {
         CommandKeybindSettings.setEntryEnabled(1, false);
         Properties saved = new Properties();
         CommandKeybindSettings.save(saved);
-        check("new Keybind Cut config keys are written", "true".equals(saved.getProperty(CommandKeybindSettings.PREFIX))
-                && saved.containsKey(CommandKeybindSettings.ENTRIES_KEY));
+        check("new Shortcut config keys are written", "true".equals(saved.getProperty(CommandKeybindSettings.PREFIX))
+                && saved.containsKey(CommandKeybindSettings.ENTRIES_KEY)
+                && !saved.containsKey("assist.keybindCut.commandKeybinds"));
+        Properties priorRelease = new Properties();
+        priorRelease.setProperty("assist.keybindCut.commandKeybinds", "true");
+        priorRelease.setProperty("assist.keybindCut.commandKeybinds.entries", saved.getProperty(CommandKeybindSettings.ENTRIES_KEY));
+        CommandKeybindSettings.load(priorRelease);
+        check("previous Keybind Cut command records migrate into Shortcut", CommandKeybindSettings.enabled
+                && CommandKeybindSettings.count() == 2 && "/warp alpha;beta, gamma".equals(CommandKeybindSettings.entryAt(0).command()));
         CommandKeybindSettings.load(saved);
         check("commands with separators round trip", CommandKeybindSettings.enabled && CommandKeybindSettings.count() == 2
                 && "/warp alpha;beta, gamma".equals(CommandKeybindSettings.entryAt(0).command())

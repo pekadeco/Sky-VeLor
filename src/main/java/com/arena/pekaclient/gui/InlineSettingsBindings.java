@@ -390,7 +390,7 @@ final class InlineSettingsBindings {
             AssistSettings.rarityHighlight = false;
             return true;
         }
-        if ("keybind-cut-reset".equals(id)) {
+        if ("shortcut-reset".equals(id)) {
             AssistSettings.wardrobeShortcut = false;
             AssistSettings.petsShortcut = false;
             CommandKeybindSettings.reset();

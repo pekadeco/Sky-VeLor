@@ -22,6 +22,12 @@ public final class AppleKeybindButton extends Widget {
         return listening;
     }
 
+    /** Starts capture from either the compact key button itself or its owning settings row. */
+    public void beginCapture() {
+        listening = true;
+        pressed = false;
+    }
+
     public void cancelCapture() {
         listening = false;
     }

@@ -9,8 +9,13 @@ public final class ItemLockSwapKeybind {
     private ItemLockSwapKeybind() {
     }
 
+    /** A persisted binding may be clear (zero); only a fresh capture must be a non-Escape physical key. */
+    public static boolean validStoredKeyCode(int keyCode) {
+        return keyCode >= 0 && keyCode <= 255;
+    }
+
     public static boolean canBind(int keyCode) {
-        return keyCode > 0 && keyCode != ESCAPE;
+        return validStoredKeyCode(keyCode) && keyCode > 0 && keyCode != ESCAPE;
     }
 
     /** True when another registered binding owns the candidate key, excluding the key currently being replaced. */
@@ -27,5 +32,10 @@ public final class ItemLockSwapKeybind {
         if (!canBind(candidate)) return false;
         ItemLockSwapSettings.keyCode = candidate;
         return true;
+    }
+
+    /** Backspace is an explicit, persisted clear rather than an accidental fallback to the default L key. */
+    public static void clear() {
+        ItemLockSwapSettings.keyCode = 0;
     }
 }

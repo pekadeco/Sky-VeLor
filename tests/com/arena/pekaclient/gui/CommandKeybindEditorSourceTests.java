@@ -15,10 +15,12 @@ public final class CommandKeybindEditorSourceTests {
         check("Command Keybind editor source exists", source.isFile());
         check("editor is solid and undimmed like Item Animation", text.contains("Theme.ITEM_ANIMATION_PANEL")
                 && text.contains("roundRectBorder") && !text.contains("drawDefaultBackground"));
-        check("editor exposes add edit delete capture clear and reset paths", text.contains("new AppleButton(\"Add\"")
-                && text.contains("new AppleButton(\"Edit\"") && text.contains("new AppleButton(\"Delete\"")
-                && text.contains("new AppleButton(\"Reset\"") && text.contains("AppleKeybindButton")
-                && text.contains("Keyboard.KEY_BACK") && text.contains("Keyboard.KEY_ESCAPE"));
+        check("editor exposes compact one-line add delete capture clear and reset paths", text.contains("new AppleButton(\"Add\"")
+                && text.contains("new AppleButton(\"Delete\"") && text.contains("new AppleButton(\"Reset\"")
+                && text.contains("MAX_VISIBLE_ROWS") && text.contains("ROW_H") && text.contains("DELETE_W")
+                && text.contains("AppleKeybindButton") && text.contains("Keyboard.KEY_BACK") && text.contains("Keyboard.KEY_ESCAPE"));
+        check("focused command entry owns space and defers outer-trim persistence until focus leaves", text.contains("Keyboard.KEY_SPACE")
+                && text.contains("commitCommand") && text.contains("focusCommand") && text.contains("inner space"));
         check("editor visibly warns command, Sky VeLor and Minecraft collisions", text.contains("hasOtherEntryWithKey")
                 && text.contains("Sky VeLor") && text.contains("Minecraft ") && text.contains("collisionWarning"));
         check("editor persists through established settings save", text.contains("AppleSettings.save()")

@@ -165,12 +165,16 @@ public final class ItemLockSwapSettingsTests {
 
     private static void keybindPolicy() {
         check("Escape never binds", !ItemLockSwapKeybind.canBind(ItemLockSwapKeybind.ESCAPE));
-        check("zero never binds", !ItemLockSwapKeybind.canBind(0));
+        check("zero never binds as a fresh capture", !ItemLockSwapKeybind.canBind(0));
+        check("zero is valid persisted clear state", ItemLockSwapKeybind.validStoredKeyCode(0)
+                && !ItemLockSwapKeybind.validStoredKeyCode(256));
         check("L can bind", ItemLockSwapKeybind.canBind(ItemLockSwapSettings.DEFAULT_KEY_CODE));
         check("collision sees another binding", ItemLockSwapKeybind.conflicts(38, 21, new int[]{21, 38, 44}));
         check("own binding does not self-conflict", !ItemLockSwapKeybind.conflicts(38, 38, new int[]{38}));
         ItemLockSwapSettings.keyCode = 38;
         check("rebind writes config state", ItemLockSwapKeybind.rebind(21) && ItemLockSwapSettings.keyCode == 21);
+        ItemLockSwapKeybind.clear();
+        check("Backspace clear persists disabled physical key", ItemLockSwapSettings.keyCode == 0);
     }
 
     private static void check(String name, boolean ok) {

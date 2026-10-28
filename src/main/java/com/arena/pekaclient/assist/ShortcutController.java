@@ -14,7 +14,8 @@ public final class ShortcutController {
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
         if (event == null || event.phase != TickEvent.Phase.END) return;
-        handle(PekaClientMod.WARDROBE_SHORTCUT_KEY, AssistSettings.wardrobeShortcut, "/wardrobe");
+        // Wardrobe is deliberately owned by WardrobeShortcutController: it requires raw physical edges and strict
+        // normal-gameplay/Wardrobe-GuiChest gating. Pets keeps its established direct command shortcut unchanged.
         handle(PekaClientMod.PETS_SHORTCUT_KEY, AssistSettings.petsShortcut, "/pets");
     }
 
@@ -26,7 +27,8 @@ public final class ShortcutController {
         }
     }
 
-    private static boolean isFakepixel(Minecraft mc) {
+    /** Shared host guard for the user-triggered server commands; never used as an automation signal. */
+    static boolean isFakepixel(Minecraft mc) {
         ServerData data = mc.getCurrentServerData();
         return data != null && data.serverIP != null && data.serverIP.toLowerCase(Locale.ROOT).indexOf("fakepixel") >= 0;
     }

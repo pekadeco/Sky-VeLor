@@ -45,7 +45,8 @@ public final class InlineSettingsCatalogTests {
                             setting.control == ReferenceSettingsCatalog.Control.TOGGLE
                                     || setting.control == ReferenceSettingsCatalog.Control.SLIDER
                                     || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN
-                                    || setting.control == ReferenceSettingsCatalog.Control.EDITOR);
+                                    || setting.control == ReferenceSettingsCatalog.Control.EDITOR
+                                    || setting.control == ReferenceSettingsCatalog.Control.KEYBIND);
                     for (ReferenceSettingsCatalog.Setting child : setting.children) {
                         check("expanded option is never a nested disclosure: " + child.id, !child.isDropdown());
                     }
@@ -61,7 +62,7 @@ public final class InlineSettingsCatalogTests {
         check("required feature ownership remains complete", ReferenceSettingsCatalog.routesAreComplete());
         String[] preserved = {
                 "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
-                "item-lock-swap", "chat-qol", "keybind-cut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
+                "item-lock-swap", "item-lock-key", "chat-qol", "wardrobe-shortcut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
                 "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
                 "dungeon-sync-enabled", "mining-bps", "mining-assistant-settings", "catch-counter",
                 "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation", "system-appearance", "system-performance"
@@ -98,9 +99,14 @@ public final class InlineSettingsCatalogTests {
         check("search carries only the M7 owner", m7 != null && parentIds(m7).equals(
                 Arrays.asList("m7-overlay")));
         ReferenceSettingsCatalog.Match command = matchFor("command-keybinds");
-        check("search exposes Command Keybind under Keybind Cut", command != null
-                && parentIds(command).equals(Arrays.asList("keybind-cut"))
-                && "Keybind Cut".equals(ReferenceSettingsCatalog.find("keybind-cut").label));
+        ReferenceSettingsCatalog.Card shortcutCard = cardContainingDirectSetting("command-keybinds");
+        check("search exposes Command Keybind directly in the standalone Shortcut card", command != null
+                && parentIds(command).isEmpty() && shortcutCard != null && "shortcut".equals(shortcutCard.id)
+                && "Shortcut".equals(shortcutCard.label));
+        ReferenceSettingsCatalog.Setting itemLockKey = ReferenceSettingsCatalog.find("item-lock-key");
+        check("Item Lock has an explicit click-to-capture key field", itemLockKey != null
+                && itemLockKey.control == ReferenceSettingsCatalog.Control.KEYBIND
+                && itemLockKey.description.contains("Backspace clears"));
         Properties p = new Properties();
         FeatureUiPreferences.load(p);
         openParents(chat);
@@ -167,6 +173,17 @@ public final class InlineSettingsCatalogTests {
                 "com.arena.pekaclient.gui.ModSettingsScreen"
         };
         for (String name : retired) check("retired focused screen is absent: " + name, !classExists(name));
+    }
+
+    private static ReferenceSettingsCatalog.Card cardContainingDirectSetting(String id) {
+        for (ReferenceSettingsCatalog.Tab tab : ReferenceSettingsCatalog.TABS) {
+            for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(tab)) {
+                for (ReferenceSettingsCatalog.Setting setting : card.settings) {
+                    if (id.equals(setting.id)) return card;
+                }
+            }
+        }
+        return null;
     }
 
     private static List<String> dedicatedEditorActionIds() {

@@ -2,6 +2,7 @@ package com.arena.pekaclient;
 
 import com.arena.pekaclient.assist.ShortcutController;
 import com.arena.pekaclient.assist.CommandKeybindController;
+import com.arena.pekaclient.assist.WardrobeShortcutController;
 import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonBossTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonRunTracker;
@@ -18,6 +19,7 @@ import com.arena.pekaclient.command.PriceSetCommand;
 import com.arena.pekaclient.command.QuickNoteCommand;
 import com.arena.pekaclient.command.SvCommand;
 import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.dungeon.DragonKillAlert;
 import com.arena.pekaclient.dungeon.DungeonMapOverlay;
 import com.arena.pekaclient.dungeon.PuzzleRoomDatabase;
@@ -150,6 +152,7 @@ public class PekaClientMod {
     private final SpiritBowLocator spiritBowLocator = new SpiritBowLocator();
     private final AutoSprintController autoSprintController = new AutoSprintController();
     private final ShortcutController shortcutController = new ShortcutController();
+    private final WardrobeShortcutController wardrobeShortcutController = new WardrobeShortcutController();
     private final CommandKeybindController commandKeybindController = new CommandKeybindController();
     private final InventoryAssistController inventoryAssistController = new InventoryAssistController();
 
@@ -167,9 +170,17 @@ public class PekaClientMod {
         ClientRegistry.registerKeyBinding(WARDROBE_SHORTCUT_KEY);
         ClientRegistry.registerKeyBinding(PETS_SHORTCUT_KEY);
         // The Controls screen owns vanilla's options.txt copy; the feature config is authoritative on first load.
-        if (ItemLockSwapKeybind.canBind(ItemLockSwapSettings.keyCode)) {
+        // A saved zero is intentional: it means the player cleared the feature binding in the settings shell.
+        if (ItemLockSwapKeybind.validStoredKeyCode(ItemLockSwapSettings.keyCode)) {
             ITEM_LOCK_SWAP_KEY.setKeyCode(ItemLockSwapSettings.keyCode);
             KeyBinding.resetKeyBindingArrayAndHash();
+        }
+        // No saved Shortcut override means existing Minecraft Controls data remains authoritative on this first .1.9 load.
+        if (AssistSettings.validShortcutKeyCode(AssistSettings.wardrobeShortcutKeyCode)) {
+            WARDROBE_SHORTCUT_KEY.setKeyCode(AssistSettings.wardrobeShortcutKeyCode);
+            KeyBinding.resetKeyBindingArrayAndHash();
+        } else {
+            AssistSettings.wardrobeShortcutKeyCode = WARDROBE_SHORTCUT_KEY.getKeyCode();
         }
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
@@ -204,6 +215,7 @@ public class PekaClientMod {
         SpiritBowLocator.markRegistered();
         MinecraftForge.EVENT_BUS.register(autoSprintController);
         MinecraftForge.EVENT_BUS.register(shortcutController);
+        MinecraftForge.EVENT_BUS.register(wardrobeShortcutController);
         MinecraftForge.EVENT_BUS.register(commandKeybindController);
         MinecraftForge.EVENT_BUS.register(inventoryAssistController);
     }
@@ -213,12 +225,13 @@ public class PekaClientMod {
      * A collision is permitted (as Minecraft normally permits it) but is always made explicit in the hub/chat.
      */
     public static String rebindItemLockSwapKey(int keyCode) {
-        if (!ItemLockSwapKeybind.canBind(keyCode)) {
+        // Escape is always handled by the capture owner as cancel. Zero is the deliberate Backspace-cleared state.
+        if (!ItemLockSwapKeybind.validStoredKeyCode(keyCode) || keyCode == ItemLockSwapKeybind.ESCAPE) {
             return null;
         }
         String conflict = null;
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc != null && mc.gameSettings != null && mc.gameSettings.keyBindings != null) {
+        if (keyCode > 0 && mc != null && mc.gameSettings != null && mc.gameSettings.keyBindings != null) {
             KeyBinding[] bindings = mc.gameSettings.keyBindings;
             for (int i = 0; i < bindings.length; i++) {
                 KeyBinding binding = bindings[i];
@@ -234,6 +247,27 @@ public class PekaClientMod {
         return conflict;
     }
 
+    /** Same explicit capture contract as Item Lock: Escape is owned by the UI, and zero is an intentional clear. */
+    public static String rebindWardrobeShortcutKey(int keyCode) {
+        if (!AssistSettings.validShortcutKeyCode(keyCode) || keyCode == Keyboard.KEY_ESCAPE) return null;
+        String conflict = null;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (keyCode > 0 && mc != null && mc.gameSettings != null && mc.gameSettings.keyBindings != null) {
+            KeyBinding[] bindings = mc.gameSettings.keyBindings;
+            for (int i = 0; i < bindings.length; i++) {
+                KeyBinding binding = bindings[i];
+                if (binding != null && binding != WARDROBE_SHORTCUT_KEY && binding.getKeyCode() == keyCode) {
+                    conflict = binding.getKeyDescription();
+                    break;
+                }
+            }
+        }
+        WARDROBE_SHORTCUT_KEY.setKeyCode(keyCode);
+        AssistSettings.wardrobeShortcutKeyCode = keyCode;
+        KeyBinding.resetKeyBindingArrayAndHash();
+        return conflict;
+    }
+
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
@@ -241,6 +275,9 @@ public class PekaClientMod {
             // Controls can rebind this vanilla KeyBinding outside our hub; mirror it into feature config for next launch.
             if (ItemLockSwapSettings.keyCode != ITEM_LOCK_SWAP_KEY.getKeyCode()) {
                 ItemLockSwapSettings.keyCode = ITEM_LOCK_SWAP_KEY.getKeyCode();
+            }
+            if (AssistSettings.wardrobeShortcutKeyCode != WARDROBE_SHORTCUT_KEY.getKeyCode()) {
+                AssistSettings.wardrobeShortcutKeyCode = WARDROBE_SHORTCUT_KEY.getKeyCode();
             }
             reportItemAnimationWorldJoin(mc);
             if (!loadingShown && StartupTasks.hasWork()) {

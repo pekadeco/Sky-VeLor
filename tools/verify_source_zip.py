@@ -102,7 +102,7 @@ def main():
         results.check(len(relative_names) == len(set(relative_names)), 'archive contains no duplicate paths')
 
         required = (
-            '.github/workflows/build.yml', '.gitignore', 'CHANGELOG.md', 'LICENSE', 'README.md',
+            '.github/workflows/build.yml', '.gitignore', 'CHANGELOG.md', 'LICENSE', 'README.md', 'THIRD-PARTY-NOTICES.md',
             'build.gradle', 'settings.gradle', 'gradlew', 'gradlew.bat',
             'gradle/wrapper/gradle-wrapper.jar', 'gradle/wrapper/gradle-wrapper.properties',
             'src/main/java/com/arena/pekaclient/PekaVersion.java', 'src/main/resources/mcmod.info',
@@ -117,6 +117,8 @@ def main():
             'src/main/java/com/arena/pekaclient/assist/CommandKeybindSettings.java',
             'src/main/java/com/arena/pekaclient/assist/CommandKeybindPolicy.java',
             'src/main/java/com/arena/pekaclient/assist/CommandKeybindController.java',
+            'src/main/java/com/arena/pekaclient/assist/WardrobeShortcutPolicy.java',
+            'src/main/java/com/arena/pekaclient/assist/WardrobeShortcutController.java',
             'src/main/java/com/arena/pekaclient/gui/CommandKeybindEditorScreen.java',
             'src/main/java/com/arena/pekaclient/hud/DungeonRunHud.java',
             'tests/com/arena/pekaclient/assist/visual/AspectTeleportTransitionPolicyTests.java',
@@ -125,6 +127,8 @@ def main():
             'tests/com/arena/pekaclient/assist/dungeon/SpiritBowLocatorTests.java',
             'tests/com/arena/pekaclient/assist/dungeon/DungeonRunReadoutTests.java',
             'tests/com/arena/pekaclient/assist/CommandKeybindSettingsTests.java',
+            'tests/com/arena/pekaclient/assist/WardrobeShortcutPolicyTests.java',
+            'tests/com/arena/pekaclient/assist/WardrobeShortcutControllerSourceTests.java',
             'tests/com/arena/pekaclient/gui/CommandKeybindEditorSourceTests.java',
             'tests/run-tests.sh', 'tests/run-tests.bat', 'tools/verify_release_jar.py',
             'tools/verify_source_zip.py', 'docs/FEATURE-SETTINGS-EDITOR.md'

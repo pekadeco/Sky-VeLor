@@ -58,14 +58,14 @@ public final class AssistSettingsTests {
         Properties rewritten = new Properties();
         rewritten.putAll(old);
         AssistSettings.save(rewritten);
-        check("retired keys are dropped and Keybind Cut migration is written", !rewritten.containsKey("inventorySearchEnabled")
+        check("retired keys are dropped and Shortcut migration is written", !rewritten.containsKey("inventorySearchEnabled")
                 && !rewritten.containsKey("assist.inventory.search")
                 && !rewritten.containsKey("assist.visual.noHurtCamera") && !rewritten.containsKey("noHurtCamEnabled")
                 && !rewritten.containsKey("dungeonEsp.hideZeroHealth") && !rewritten.containsKey("assist.shortcuts.wardrobe")
-                && !rewritten.containsKey("assist.shortcuts.pets")
-                && "true".equals(rewritten.getProperty("assist.keybindCut.autoSprint"))
-                && "true".equals(rewritten.getProperty("assist.keybindCut.wardrobe"))
-                && "true".equals(rewritten.getProperty("assist.keybindCut.pets"))
+                && !rewritten.containsKey("assist.shortcuts.pets") && !rewritten.containsKey("assist.keybindCut.wardrobe")
+                && "true".equals(rewritten.getProperty("assist.shortcut.autoSprint"))
+                && "true".equals(rewritten.getProperty("assist.shortcut.wardrobe"))
+                && "true".equals(rewritten.getProperty("assist.shortcut.pets"))
                 && "false".equals(rewritten.getProperty("assist.comfort.hideDeadMobs")));
         check("removed Item Protection keys are harmlessly ignored", old.containsKey("itemProtectionEnabled")
                 && old.containsKey("assist.itemGuard.enabled"));
@@ -75,11 +75,21 @@ public final class AssistSettingsTests {
         AssistSettings.load(newOwnerWins);
         check("new Comfort key wins over the retired ESP key", AssistSettings.hideDeadMobs);
 
-        Properties keybindNewWins = new Properties();
-        keybindNewWins.setProperty("assist.keybindCut.wardrobe", "false");
-        keybindNewWins.setProperty("assist.shortcuts.wardrobe", "true");
-        AssistSettings.load(keybindNewWins);
-        check("new Keybind Cut key wins over the old shortcut path", !AssistSettings.wardrobeShortcut);
+        Properties shortcutNewWins = new Properties();
+        shortcutNewWins.setProperty("assist.shortcut.wardrobe", "false");
+        shortcutNewWins.setProperty("assist.keybindCut.wardrobe", "true");
+        shortcutNewWins.setProperty("assist.shortcuts.wardrobe", "true");
+        AssistSettings.load(shortcutNewWins);
+        check("new Shortcut key wins over Keybind Cut and old shortcut paths", !AssistSettings.wardrobeShortcut);
+        Properties keybindCutWinsOld = new Properties();
+        keybindCutWinsOld.setProperty("assist.keybindCut.wardrobe", "false");
+        keybindCutWinsOld.setProperty("assist.shortcuts.wardrobe", "true");
+        AssistSettings.load(keybindCutWinsOld);
+        check("previous Keybind Cut key wins over the older shortcut path", !AssistSettings.wardrobeShortcut);
+        Properties previousKeyCapture = new Properties();
+        previousKeyCapture.setProperty("assist.keybindCut.wardrobeKey", "20");
+        AssistSettings.load(previousKeyCapture);
+        check("previous namespace wardrobe key capture migrates without resetting", AssistSettings.wardrobeShortcutKeyCode == 20);
     }
 
     private static void hurtCameraShakePersistsAtZeroIntermediateAndVanilla() {
@@ -134,6 +144,7 @@ public final class AssistSettingsTests {
         AssistSettings.hurtCameraShake = 44;
         AssistSettings.smoothAspectTeleport = false;
         AssistSettings.autoSprint = true;
+        AssistSettings.wardrobeShortcutKeyCode = 19;
         AssistSettings.hideDeadMobs = false;
         AssistSettings.dungeonSync = true;
         AssistSettings.dungeonSyncEndpoint = "wss://sync.example.org/ws";
@@ -149,14 +160,15 @@ public final class AssistSettingsTests {
         AssistSettings.save(saved);
         check("retained keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
                 && saved.containsKey("assist.visual.hurtCameraShake")
-                && saved.containsKey("assist.visual.smoothAspectTeleport") && saved.containsKey("assist.keybindCut.autoSprint")
-                && saved.containsKey("assist.keybindCut.commandKeybinds")
+                && saved.containsKey("assist.visual.smoothAspectTeleport") && saved.containsKey("assist.shortcut.autoSprint")
+                && saved.containsKey("assist.shortcut.commandKeybinds") && "19".equals(saved.getProperty("assist.shortcut.wardrobeKey"))
                 && saved.containsKey("assist.comfort.hideDeadMobs") && saved.containsKey("assist.dungeon.sync.enabled")
                 && saved.containsKey("assist.dungeon.spiritBowLocator") && saved.containsKey("assist.dungeon.terminal.autoClick")
                 && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.hurtCameraShake == 44
-                && !AssistSettings.smoothAspectTeleport && AssistSettings.autoSprint && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
+                && !AssistSettings.smoothAspectTeleport && AssistSettings.autoSprint
+                && AssistSettings.wardrobeShortcutKeyCode == 19 && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
                 && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint) && AssistSettings.spiritBowLocator
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222
                 && CommandKeybindSettings.enabled && CommandKeybindSettings.count() == 1

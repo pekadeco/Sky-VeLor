@@ -42,6 +42,8 @@ public final class AssistSettings {
 
     public static boolean autoSprint;
     public static boolean wardrobeShortcut;
+    /** -1 means preserve the established Minecraft Controls binding until this feature is explicitly captured. */
+    public static int wardrobeShortcutKeyCode;
     public static boolean petsShortcut;
     /** QoL visual owner for render-only dead mob/server-NPC body and nameplate cleanup. */
     public static boolean hideDeadMobs;
@@ -83,6 +85,7 @@ public final class AssistSettings {
         smoothAspectTeleport = DEFAULT_SMOOTH_ASPECT_TELEPORT;
         autoSprint = false;
         wardrobeShortcut = false;
+        wardrobeShortcutKeyCode = -1;
         petsShortcut = false;
         CommandKeybindSettings.reset();
         // This is a visual cleanup, not combat automation: it is deliberately useful on new and established configs.
@@ -114,11 +117,12 @@ public final class AssistSettings {
         hurtCameraShake = hurtCameraShake(p);
         smoothAspectTeleport = bool(p, "visual.smoothAspectTeleport", null, smoothAspectTeleport);
         // Retired Item Protection keys (assist.itemGuard.* and old itemProtection*) are deliberately unread.
-        // Keybind Cut supersedes the former visible shortcut section. New keys win, then the two historical
-        // aliases preserve established controls on their first load before save rewrites them under keybindCut.*.
-        autoSprint = keybindCutBool(p, "keybindCut.autoSprint", "movement.autoSprint", "autoSprintEnabled", false);
-        wardrobeShortcut = keybindCutBool(p, "keybindCut.wardrobe", "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
-        petsShortcut = keybindCutBool(p, "keybindCut.pets", "shortcuts.pets", "petsShortcutEnabled", false);
+        // Shortcut replaces the former visible Keybind Cut group. New keys win, then the predecessor namespace and
+        // original aliases preserve established choices on their first load before save rewrites them under shortcut.*.
+        autoSprint = shortcutBool(p, "shortcut.autoSprint", "keybindCut.autoSprint", "movement.autoSprint", "autoSprintEnabled", false);
+        wardrobeShortcut = shortcutBool(p, "shortcut.wardrobe", "keybindCut.wardrobe", "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
+        wardrobeShortcutKeyCode = shortcutKeyCode(p);
+        petsShortcut = shortcutBool(p, "shortcut.pets", "keybindCut.pets", "shortcuts.pets", "petsShortcutEnabled", false);
         CommandKeybindSettings.load(p);
         // The Comfort key wins. The former ESP-local zero-health flag migrates once so an explicit OFF choice is
         // preserved, while absent keys use the new default and include deathTime animation frames.
@@ -145,7 +149,11 @@ public final class AssistSettings {
         p.remove("inventorySearchEnabled");
         p.remove(PREFIX + "visual.noHurtCamera");
         p.remove("noHurtCamEnabled");
-        // Keybind Cut writes one modern namespace after loading either predecessor; never keep stale duplicate keys.
+        // Shortcut writes one modern namespace after loading either predecessor; never keep stale duplicate keys.
+        p.remove(PREFIX + "keybindCut.autoSprint");
+        p.remove(PREFIX + "keybindCut.wardrobe");
+        p.remove(PREFIX + "keybindCut.wardrobeKey");
+        p.remove(PREFIX + "keybindCut.pets");
         p.remove(PREFIX + "movement.autoSprint");
         p.remove(PREFIX + "shortcuts.wardrobe");
         p.remove(PREFIX + "shortcuts.pets");
@@ -162,9 +170,14 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "inventory.rarityHighlight", Boolean.toString(rarityHighlight));
         p.setProperty(PREFIX + "visual.hurtCameraShake", Integer.toString(hurtCameraShake));
         p.setProperty(PREFIX + "visual.smoothAspectTeleport", Boolean.toString(smoothAspectTeleport));
-        p.setProperty(PREFIX + "keybindCut.autoSprint", Boolean.toString(autoSprint));
-        p.setProperty(PREFIX + "keybindCut.wardrobe", Boolean.toString(wardrobeShortcut));
-        p.setProperty(PREFIX + "keybindCut.pets", Boolean.toString(petsShortcut));
+        p.setProperty(PREFIX + "shortcut.autoSprint", Boolean.toString(autoSprint));
+        p.setProperty(PREFIX + "shortcut.wardrobe", Boolean.toString(wardrobeShortcut));
+        if (validShortcutKeyCode(wardrobeShortcutKeyCode)) {
+            p.setProperty(PREFIX + "shortcut.wardrobeKey", Integer.toString(wardrobeShortcutKeyCode));
+        } else {
+            p.remove(PREFIX + "shortcut.wardrobeKey");
+        }
+        p.setProperty(PREFIX + "shortcut.pets", Boolean.toString(petsShortcut));
         CommandKeybindSettings.save(p);
         p.setProperty(PREFIX + "comfort.hideDeadMobs", Boolean.toString(hideDeadMobs));
         p.setProperty(PREFIX + "dungeon.sync.enabled", Boolean.toString(dungeonSync));
@@ -204,6 +217,7 @@ public final class AssistSettings {
         dungeonSyncEndpoint = endpoint(dungeonSyncEndpoint);
         terminalScale = clamp(terminalScale, MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE);
         hurtCameraShake = clamp(hurtCameraShake, MIN_HURT_CAMERA_SHAKE, MAX_HURT_CAMERA_SHAKE);
+        if (!validShortcutKeyCode(wardrobeShortcutKeyCode)) wardrobeShortcutKeyCode = -1;
     }
 
     /**
@@ -241,11 +255,30 @@ public final class AssistSettings {
         return validSecureEndpoint(candidate) ? candidate.trim() : DEFAULT_SYNC_ENDPOINT;
     }
 
-    /** New Keybind Cut keys take precedence over the old section paths and then their original flat aliases. */
-    private static boolean keybindCutBool(Properties p, String current, String legacyPath, String legacyFlat,
-                                          boolean fallback) {
+    /** A captured keyboard code includes zero for an intentional Backspace-cleared binding. */
+    public static boolean validShortcutKeyCode(int keyCode) {
+        return keyCode >= 0 && keyCode <= 255;
+    }
+
+    private static int shortcutKeyCode(Properties p) {
+        String value = p.getProperty(PREFIX + "shortcut.wardrobeKey");
+        if (value == null) value = p.getProperty(PREFIX + "keybindCut.wardrobeKey");
+        if (value == null) return -1;
+        try {
+            int code = Integer.parseInt(value.trim());
+            return validShortcutKeyCode(code) ? code : -1;
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
+    }
+
+    /** New Shortcut keys take precedence over Keybind Cut, older section paths, and then flat aliases. */
+    private static boolean shortcutBool(Properties p, String current, String keybindCutPath, String legacyPath,
+                                        String legacyFlat, boolean fallback) {
         String currentValue = p.getProperty(PREFIX + current);
         if (currentValue != null) return Boolean.parseBoolean(currentValue.trim());
+        String priorValue = p.getProperty(PREFIX + keybindCutPath);
+        if (priorValue != null) return Boolean.parseBoolean(priorValue.trim());
         String oldPath = p.getProperty(PREFIX + legacyPath);
         if (oldPath != null) return Boolean.parseBoolean(oldPath.trim());
         String oldFlat = legacyFlat == null ? null : p.getProperty(legacyFlat);
