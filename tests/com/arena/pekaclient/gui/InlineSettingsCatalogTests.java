@@ -102,7 +102,7 @@ public final class InlineSettingsCatalogTests {
         ReferenceSettingsCatalog.Card shortcutCard = cardContainingDirectSetting("command-keybinds");
         check("search exposes Command Keybind directly in the standalone Shortcut card", command != null
                 && parentIds(command).isEmpty() && shortcutCard != null && "shortcut".equals(shortcutCard.id)
-                && "Shortcut".equals(shortcutCard.label));
+                && "Shortcut".equals(shortcutCard.title));
         ReferenceSettingsCatalog.Setting itemLockKey = ReferenceSettingsCatalog.find("item-lock-key");
         check("Item Lock has an explicit click-to-capture key field", itemLockKey != null
                 && itemLockKey.control == ReferenceSettingsCatalog.Control.KEYBIND
