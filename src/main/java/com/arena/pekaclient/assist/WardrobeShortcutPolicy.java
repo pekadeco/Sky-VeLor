@@ -13,9 +13,9 @@ public final class WardrobeShortcutPolicy {
     private WardrobeShortcutPolicy() {
     }
 
-    public static boolean shouldOpenWardrobe(boolean enabled, boolean hasPlayer, boolean trustedServer,
-                                              boolean noScreenOpen, boolean keyDown, boolean wasDown) {
-        return enabled && hasPlayer && trustedServer && noScreenOpen && keyDown && !wasDown;
+    public static boolean shouldOpenWardrobe(boolean enabled, boolean hasPlayer, boolean noScreenOpen,
+                                              boolean keyDown, boolean wasDown) {
+        return enabled && hasPlayer && noScreenOpen && keyDown && !wasDown;
     }
 
     public static boolean shouldSelectSlot(boolean enabled, boolean hasPlayer, boolean recognizedWardrobe,

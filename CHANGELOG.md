@@ -1,5 +1,42 @@
 # Changelog
 
+## Beta-0.10.9.1.9v — 2026-10-29
+
+### Fixed
+
+- **Item Lock And Swap Key** now displays its current binding and supports full-row click capture. Pressing a key
+  assigns it, Escape cancels, and Backspace saves `NONE`; zero is a deliberate persisted clear state rather than a
+  fallback to the default L key.
+- **Command Keybind** no longer strips a typed trailing space while its field has focus. It accepts normal characters
+  and internal spaces such as `/warp hub`, then trims only leading/trailing whitespace when the field commits.
+- Compact Command Keybind rows no longer need a separate edit surface or leave a large blank panel: each row contains
+  key, command, On/Off, and a fully visible Delete button, while scrolling begins only after the capped visible rows.
+
+### Added
+
+- Added the standalone **QoL → Shortcut** card, styled as a peer of **Inventory And Chat**. It contains Wardrobe
+  Shortcut, Pets Shortcut, Command Keybind, and reset.
+- Added **Wardrobe Shortcut** enable/key capture. Its physical key can send `/wardrobe` only from normal gameplay;
+  in a recognized Wardrobe `GuiChest`, direct non-repeat number keys `1`–`9` make at most one ordinary selection of
+  slots `36`–`44`. Chat and unrelated screens fail closed.
+- Added focused migration, capture, compact-editor, `/warp hub`, Wardrobe title/slot-policy, source-boundary, and
+  reobfuscated-JAR verifier coverage.
+- Added `THIRD-PARTY-NOTICES.md` acknowledging NotEnoughFakepixel's LGPL-3.0-or-later Wardrobe behavior reference.
+  Sky VeLor uses an independent implementation and includes no source, dependency, asset, or binary from it.
+
+### Changed
+
+- Replaced the visible **Keybind Cut** dropdown with **Shortcut**. New values save under `assist.shortcut.*`; prior
+  `assist.keybindCut.*`, older movement/shortcut aliases, and `.1.8v` Command Keybind records load without reset.
+- Preserved the existing Item Lock / Swap legality and multi-pair cycle behavior, HUD Editor, Item Animation, Chat
+  QoL, Dungeon/Door ESP, Party Sync default-off behavior, Home metrics, reflection fail-closed behavior, and old
+  configuration loading.
+
+### Verification boundary
+
+- GitHub Actions Java 8 Forge compilation, standalone logic/layout tests, reobfuscated JAR verification, and curated
+  source-archive verification cover this release. They do not launch Minecraft; this release is **NOT tested in-game**.
+
 ## Beta-0.10.9.1.8v — 2026-10-28
 
 ### Fixed

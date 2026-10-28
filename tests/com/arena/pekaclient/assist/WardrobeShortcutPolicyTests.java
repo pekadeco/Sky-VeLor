@@ -14,15 +14,15 @@ public final class WardrobeShortcutPolicyTests {
 
     private static void commandEdgeIsGameplayOnly() {
         check("enabled physical down edge opens from normal gameplay", WardrobeShortcutPolicy.shouldOpenWardrobe(
-                true, true, true, true, true, false));
-        check("held key never repeats", !WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, true, true, true, true));
+                true, true, true, true, false));
+        check("held key never repeats", !WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, true, true, true));
         check("chat and unrelated screens cannot trigger command", !WardrobeShortcutPolicy.shouldOpenWardrobe(
-                true, true, true, false, true, false));
-        check("disabled, missing player, unsupported server, or key-up fail closed", !WardrobeShortcutPolicy.shouldOpenWardrobe(
-                false, true, true, true, true, false)
-                && !WardrobeShortcutPolicy.shouldOpenWardrobe(true, false, true, true, true, false)
-                && !WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, false, true, true, false)
-                && !WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, true, true, false, false));
+                true, true, false, true, false));
+        check("disabled, missing player, or key-up fail closed", !WardrobeShortcutPolicy.shouldOpenWardrobe(
+                false, true, true, true, false)
+                && !WardrobeShortcutPolicy.shouldOpenWardrobe(true, false, true, true, false)
+                && !WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, false, true, false)
+                && !WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, true, false, false));
     }
 
     private static void recognizedChestAndDigitsAreBounded() {

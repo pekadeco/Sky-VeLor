@@ -35,8 +35,7 @@ public final class WardrobeShortcutController {
         boolean shortcutWasDownBeforeTick = shortcutWasDown;
         shortcutWasDown = shortcutDown;
         if (!AssistSettings.wardrobeShortcut || mc.thePlayer == null || mc.currentScreen != null) return;
-        if (WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, ShortcutController.isFakepixel(mc), true,
-                shortcutDown, shortcutWasDownBeforeTick)) {
+        if (WardrobeShortcutPolicy.shouldOpenWardrobe(true, true, true, shortcutDown, shortcutWasDownBeforeTick)) {
             mc.thePlayer.sendChatMessage("/wardrobe");
         }
     }

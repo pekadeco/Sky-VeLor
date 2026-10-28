@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.8v
+# Apple settings inventory — Beta-0.10.9.1.9v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -22,18 +22,20 @@ hover/press acknowledgement, tooltips, and fullscreen persistence are preserved.
 opens a legacy saved fullscreen shell compact; a later explicit Fullscreen choice still persists. There are no traffic
 lights, profiles, READY badges, detail buttons, or option-count expanders.
 
-A visible settings row is one of four patterns:
+A visible settings row is one of five patterns:
 
 1. a fixed-column toggle row;
 2. one inline control (slider, choice, text, or action);
-3. a feature dropdown with two or more flat child options; or
-4. a visibly distinct named editor-route row.
+3. a feature dropdown with two or more flat child options;
+4. a visibly distinct named editor-route row; or
+5. a key-capture row that shows its current key and may carry a standard enable toggle.
 
 Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
 `38 × 20` pill. Every action—including **Open HUD Editor**, **Open Item Animation Editor**, and
 **Open Command Keybind Editor**—uses the same trailing right edge, `132 × 20` control geometry, and toggle-row
-vertical center; editor master toggles sit immediately left of their CTA. Card headings supply the visual hierarchy
-without becoming an interactive disclosure.
+vertical center; editor master toggles sit immediately left of their CTA. Key-capture rows use a visible key capsule
+and register a separate full-row hit so the capsule/toggle geometry is never overwritten. Card headings supply the
+visual hierarchy without becoming an interactive disclosure.
 
 Each tab is a one-open accordion. All native bitmap-font text snaps its origin and effective scale to the active
 physical GUI pixel grid once per frame, avoiding fractional-scale blur without a custom-font subsystem. Rounded
@@ -59,8 +61,8 @@ than a routing or binding change. Captions group flat content without becoming a
 ## Reset and ownership
 
 Every expanded feature has at most one compact **Reset to defaults** text link and that link is the
-last expanded option. Reset behavior continues to use the established owners; no reset row or reset
-dropdown was added.
+last expanded option. The standalone **Shortcut** card also ends with that same compact reset link. Reset behavior
+continues to use the established owners; no reset dropdown was added.
 
 - **Hurt Camera Shake** is one inline slider.
 - **QoL → Comfort → Smooth Aspect Teleport** is a direct toggle backed by
@@ -84,19 +86,29 @@ dropdown was added.
   chests, or send data; `/velor selftest` reports its sidebar-reader hook.
 - **HUD Editor** uses **Open HUD Editor**.
 - **Item Animation** is a master toggle plus **Open Item Animation Editor**.
-- **QoL → Inventory And Chat → Keybind Cut** replaces the visible Movement And Shortcuts route. The former
-  `assist.movement.autoSprint`, `assist.shortcuts.wardrobe`, and `assist.shortcuts.pets` values load once and save
-  under `assist.keybindCut.autoSprint`, `assist.keybindCut.wardrobe`, and `assist.keybindCut.pets`; new keys win when
-  both exist. Its **Command Keybind** row is one master toggle plus **Open Command Keybind Editor**.
+- **QoL → Shortcut** is a standalone card styled like **Inventory And Chat**. It owns **Wardrobe Shortcut**,
+  **Pets Shortcut**, **Command Keybind**, and its compact reset link. New settings save below `assist.shortcut.*`;
+  `.1.8v` `assist.keybindCut.*`, older `assist.movement.*` / `assist.shortcuts.*`, and flat aliases still load, with
+  new Shortcut keys taking precedence.
+- **Wardrobe Shortcut** is an enabled key-capture row: click the whole row or key capsule to capture a key, Escape to
+  cancel, and Backspace to persist `NONE`. A physical down edge sends `/wardrobe` only while enabled, a player exists,
+  and no GUI is open. Number keys `1`–`9` are intercepted only for a recognized title-bearing Wardrobe `GuiChest` with
+  a real `ContainerChest`; each non-repeat input makes at most one ordinary `windowClick` on slots `36`–`44`. Chat and
+  unrelated GUIs fail closed. This is direct user input, not movement, packet, farming, automatic click, or repeat
+  automation.
 - **Command Keybind** entries store a physical key, slash command, and per-entry on/off state. The solid no-dim editor
-  supports add/edit/delete, click capture, Escape cancel, Backspace key clear, reset, persistence, and visible
-  collision warnings for another Sky VeLor keybind or a Minecraft control. The runtime samples physical key-down
-  edges only; it sends the first enabled creation-order command for a duplicated key only when no chat, GUI, or editor
-  is open, and uses a short cooldown. It never schedules repetition or acts without that direct player input.
-- **Item Lock And Swap** accepts a new pair only when at least one endpoint is in the hotbar. Inventory↔hotbar and
-  armor↔hotbar routes remain legal; inventory-only and armor-only legacy records are safely discarded on load. A slot
-  may keep several legal pairs, each has its own line, L-tapping a paired slot removes one saved pair, and successful
-  manual swaps cycle that source endpoint through its targets in creation order while retaining the existing cooldown.
+  has one compact line per entry: key, command field, On/Off pill, and full **Delete** button; it scrolls only after
+  its capped visible rows and retains **Add** / **Reset** in the footer. Click capture, Escape cancel, Backspace key
+  clear, persistence, and collision warnings remain. The field owns Space and ordinary characters while focused,
+  committing only on focus loss/close so `/warp hub` and inner spaces survive while outer whitespace is trimmed. The
+  runtime samples physical key-down edges only; it sends the first enabled creation-order command for a duplicated
+  key only when no chat, GUI, or editor is open, and uses a short cooldown.
+- **Item Lock And Swap** accepts a new pair only when at least one endpoint is in the hotbar. Its current L (or custom)
+  binding is visible in a full-row key capture control: Escape cancels and Backspace persists `NONE`, which disables
+  the physical gesture. Inventory↔hotbar and armor↔hotbar routes remain legal; inventory-only and armor-only legacy
+  records are safely discarded on load. A slot may keep several legal pairs, each has its own line, L-tapping a paired
+  slot removes one saved pair, and successful manual swaps cycle that source endpoint through its targets in creation
+  order while retaining the existing cooldown.
 - **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its four retained target styles
   are Starred Mob, Miniboss, Special Starred Mob, and Enderman. A star-tagged Skeletor resolves through normal
   Starred Mob styling; player-shaped/NPC bodies remain eligible when a nearby tag selects them, while the local
@@ -114,8 +126,8 @@ dropdown was added.
   player-relative height gate. Their centered `0.76 × 1.85` fixed proxy covers the complete marker representation
   while remaining smaller than the retired `1.1 × 2.7` outline.
 - Map, Item Lock / Swap, inventory, Slayer, M7, Starred Mobs/Door ESP, mining, fishing, and Misc owners retain
-  their active option ids and configuration owners. Keybind Cut intentionally migrates only its former movement/
-  shortcut keys to the new `assist.keybindCut.*` namespace.
+  their active option ids and configuration owners. Shortcut writes `assist.shortcut.*` after accepting its Keybind
+  Cut and older movement/shortcut predecessor namespaces.
 - **Misc → Appearance** exposes **Custom GUI Transparency** plus **GUI Transparency**. These controls retain
   the established `glassOpacityOn` and `glassOpacity` keys: disabling the custom toggle uses the default glass
   opacity without discarding the saved value, and the 45%–100% slider range makes lower opacity visibly useful.
@@ -142,26 +154,35 @@ Animation values continue to load unchanged.
 
 ## Command Keybind editor
 
-**QoL → Inventory And Chat → Keybind Cut → Open Command Keybind Editor** opens
-`CommandKeybindEditorScreen`. It uses the same compact opaque/no-dim panel treatment as Item Animation, rather than
-a vanilla dialog or a fullscreen veil. Each row exposes a click-to-capture key, slash-command text field, per-entry
-On/Off pill, **Edit**, and **Delete**; the footer provides **Add** and **Reset**. Escape cancels a pending key capture,
-and Backspace clears that captured key. The editor warns before the player leaves if a key collides with another
-Command Keybind, a Sky VeLor binding, or a Minecraft control.
+**QoL → Shortcut → Open Command Keybind Editor** opens `CommandKeybindEditorScreen`. It uses the same compact
+opaque/no-dim panel treatment as Item Animation, rather than a vanilla dialog or a fullscreen veil. Each row is one
+line with a click-to-capture key, direct slash-command text field, per-entry On/Off pill, and fully visible **Delete**
+button; the footer provides **Add** and **Reset**. The panel is content-height-sized up to seven visible rows, then
+scrolls. Escape cancels a pending key capture, and Backspace clears that captured key. The editor warns before the
+player leaves if a key collides with another Command Keybind, a Sky VeLor binding, or a Minecraft control.
 
-Entries persist under `assist.keybindCut.commandKeybinds` and
-`assist.keybindCut.commandKeybinds.entries`. The master switch is default off. A command must have a slash, a valid
-key, and an enabled entry. The client sends it only from a new physical key-down edge while `currentScreen` is absent,
-which excludes chat, all GUIs, and the editor itself. A 300 ms cooldown and held-key edge tracking prevent automatic
-repetition. Duplicate command-entry keys dispatch only their first creation-order entry; the collision warning remains
-visible so this is never silent.
+Entries now persist under `assist.shortcut.commandKeybinds` and
+`assist.shortcut.commandKeybinds.entries`; the previous `.1.8v` `assist.keybindCut.commandKeybinds` namespace loads
+once and is removed on the next save. The master switch is default off. A command must have a slash, a valid key, and
+an enabled entry. Raw field text stays intact while focused—normal characters and spaces are not consumed by outer GUI
+handlers—and normalization trims only its ends on commit. The client sends it only from a new physical key-down edge
+while `currentScreen` is absent, which excludes chat, all GUIs, and the editor itself. A 300 ms cooldown and held-key
+edge tracking prevent automatic repetition. Duplicate command-entry keys dispatch only their first creation-order
+entry; the collision warning remains visible so this is never silent.
+
+## Wardrobe behavioral attribution
+
+The Wardrobe interaction was independently implemented after reviewing the behavior of
+[im2pb/NotEnoughFakepixel](https://github.com/im2pb/NotEnoughFakepixel), which is LGPL-3.0-or-later. No source,
+assets, binaries, or dependency code were copied. The complete attribution and clean-room boundary are in
+[`THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md).
 
 ## Player-facing text migration
 
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.8v text |
+| Earlier player-facing text | Beta-0.10.9.1.9v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -177,7 +198,7 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 | `Hide Zero Health` under Starred Mobs | `Hide Dead Mobs` under QoL → Comfort; render-only body/nameplate cleanup |
 | No Aspect visual easing | `Smooth Aspect Teleport` under QoL → Comfort; render-only |
 | Visible `Player` channel | Visible `QoL` label with the same `GAMEPLAY` persistence identity |
-| `Movement And Shortcuts` | `Keybind Cut`, with migrated `assist.keybindCut.*` keys and Command Keybind editor |
+| `Movement And Shortcuts` / `Keybind Cut` | standalone `Shortcut`, with migrated `assist.shortcut.*` keys, Wardrobe capture, and Command Keybind editor |
 | Slayer route under Player | Slayer Tracker under the visible Slayer channel; keys unchanged |
 | Dedicated Skeletor style | Normal `Starred Mob` style for star-tagged Skeletor |
 | Tracers; Starred Mobs Default/Subtle actions | Removed; legacy keys clean up on save |
@@ -203,11 +224,12 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 Headless coverage includes flat depth/count/choice invariants, nine-destination fixed-column scale-1–4 geometry,
 shared action trailing-edge geometry, Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree
 behavior, fresh-open accordion reset with the intentional direct-route disclosure, search behavior, player-copy
-validation, old-config loading, Keybind Cut migration, Command Keybind serialization/collision/direct-edge cooldown
-policy, exact configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair
-cycling, Spirit Bow marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation and
-Command Keybind panel exclusion, dead-mob render policy protections, deterministic render-time Aspect camera-path
-easing, and fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
+validation, old-config loading, Shortcut/Keybind Cut migration, Item Lock and Wardrobe capture behavior, Wardrobe
+slot-map/screen-gating policy, Command Keybind serialization/collision/direct-edge cooldown and focused-space entry,
+exact configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair cycling,
+Spirit Bow marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation and Command
+Keybind panel exclusion, dead-mob render policy protections, deterministic render-time Aspect camera-path easing, and
+fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
 `tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
 Home, Dungeons, and GUI-scale-4 Home Java2D PNG review previews; CI uploads those previews as
 short-lived evidence. `tools/verify_release_jar.py` additionally checks the packaged class and
@@ -217,8 +239,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.8v.jar \
-  --version Beta-0.10.9.1.8v --mcmod-version 0.10.9.1.8
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.9v.jar \
+  --version Beta-0.10.9.1.9v --mcmod-version 0.10.9.1.9
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are
