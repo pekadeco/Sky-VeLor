@@ -1,5 +1,7 @@
 package com.arena.pekaclient.config;
 
+import com.arena.pekaclient.assist.CommandKeybindSettings;
+
 import java.util.Locale;
 import java.util.Properties;
 
@@ -82,6 +84,7 @@ public final class AssistSettings {
         autoSprint = false;
         wardrobeShortcut = false;
         petsShortcut = false;
+        CommandKeybindSettings.reset();
         // This is a visual cleanup, not combat automation: it is deliberately useful on new and established configs.
         hideDeadMobs = DEFAULT_HIDE_DEAD_MOBS;
         dungeonSync = false;
@@ -111,9 +114,12 @@ public final class AssistSettings {
         hurtCameraShake = hurtCameraShake(p);
         smoothAspectTeleport = bool(p, "visual.smoothAspectTeleport", null, smoothAspectTeleport);
         // Retired Item Protection keys (assist.itemGuard.* and old itemProtection*) are deliberately unread.
-        autoSprint = bool(p, "movement.autoSprint", "autoSprintEnabled", false);
-        wardrobeShortcut = bool(p, "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
-        petsShortcut = bool(p, "shortcuts.pets", "petsShortcutEnabled", false);
+        // Keybind Cut supersedes the visible Movement And Shortcuts section. New keys win, then the two historical
+        // aliases preserve established controls on their first load before save rewrites them under keybindCut.*.
+        autoSprint = keybindCutBool(p, "keybindCut.autoSprint", "movement.autoSprint", "autoSprintEnabled", false);
+        wardrobeShortcut = keybindCutBool(p, "keybindCut.wardrobe", "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
+        petsShortcut = keybindCutBool(p, "keybindCut.pets", "shortcuts.pets", "petsShortcutEnabled", false);
+        CommandKeybindSettings.load(p);
         // The Comfort key wins. The former ESP-local zero-health flag migrates once so an explicit OFF choice is
         // preserved, while absent keys use the new default and include deathTime animation frames.
         hideDeadMobs = hideDeadMobs(p);
@@ -139,6 +145,13 @@ public final class AssistSettings {
         p.remove("inventorySearchEnabled");
         p.remove(PREFIX + "visual.noHurtCamera");
         p.remove("noHurtCamEnabled");
+        // Keybind Cut writes one modern namespace after loading either predecessor; never keep stale duplicate keys.
+        p.remove(PREFIX + "movement.autoSprint");
+        p.remove(PREFIX + "shortcuts.wardrobe");
+        p.remove(PREFIX + "shortcuts.pets");
+        p.remove("autoSprintEnabled");
+        p.remove("wardrobeShortcutEnabled");
+        p.remove("petsShortcutEnabled");
         // The old Dungeon ESP owner is retired. Do not allow an in-place Properties save to revive it.
         p.remove("dungeonEsp.hideZeroHealth");
         p.setProperty(PREFIX + "mining.abilityAlert", Boolean.toString(miningAbilityAlert));
@@ -149,9 +162,10 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "inventory.rarityHighlight", Boolean.toString(rarityHighlight));
         p.setProperty(PREFIX + "visual.hurtCameraShake", Integer.toString(hurtCameraShake));
         p.setProperty(PREFIX + "visual.smoothAspectTeleport", Boolean.toString(smoothAspectTeleport));
-        p.setProperty(PREFIX + "movement.autoSprint", Boolean.toString(autoSprint));
-        p.setProperty(PREFIX + "shortcuts.wardrobe", Boolean.toString(wardrobeShortcut));
-        p.setProperty(PREFIX + "shortcuts.pets", Boolean.toString(petsShortcut));
+        p.setProperty(PREFIX + "keybindCut.autoSprint", Boolean.toString(autoSprint));
+        p.setProperty(PREFIX + "keybindCut.wardrobe", Boolean.toString(wardrobeShortcut));
+        p.setProperty(PREFIX + "keybindCut.pets", Boolean.toString(petsShortcut));
+        CommandKeybindSettings.save(p);
         p.setProperty(PREFIX + "comfort.hideDeadMobs", Boolean.toString(hideDeadMobs));
         p.setProperty(PREFIX + "dungeon.sync.enabled", Boolean.toString(dungeonSync));
         p.setProperty(PREFIX + "dungeon.sync.debug", Boolean.toString(dungeonSyncDebug));
@@ -225,6 +239,17 @@ public final class AssistSettings {
 
     private static String endpoint(String candidate) {
         return validSecureEndpoint(candidate) ? candidate.trim() : DEFAULT_SYNC_ENDPOINT;
+    }
+
+    /** New Keybind Cut keys take precedence over the old section paths and then their original flat aliases. */
+    private static boolean keybindCutBool(Properties p, String current, String legacyPath, String legacyFlat,
+                                          boolean fallback) {
+        String currentValue = p.getProperty(PREFIX + current);
+        if (currentValue != null) return Boolean.parseBoolean(currentValue.trim());
+        String oldPath = p.getProperty(PREFIX + legacyPath);
+        if (oldPath != null) return Boolean.parseBoolean(oldPath.trim());
+        String oldFlat = legacyFlat == null ? null : p.getProperty(legacyFlat);
+        return oldFlat == null ? fallback : Boolean.parseBoolean(oldFlat.trim());
     }
 
     private static boolean bool(Properties p, String key, String legacy, boolean fallback) {

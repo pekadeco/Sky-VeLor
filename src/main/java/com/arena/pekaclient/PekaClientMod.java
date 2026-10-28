@@ -1,6 +1,7 @@
 package com.arena.pekaclient;
 
 import com.arena.pekaclient.assist.ShortcutController;
+import com.arena.pekaclient.assist.CommandKeybindController;
 import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonBossTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonRunTracker;
@@ -149,6 +150,7 @@ public class PekaClientMod {
     private final SpiritBowLocator spiritBowLocator = new SpiritBowLocator();
     private final AutoSprintController autoSprintController = new AutoSprintController();
     private final ShortcutController shortcutController = new ShortcutController();
+    private final CommandKeybindController commandKeybindController = new CommandKeybindController();
     private final InventoryAssistController inventoryAssistController = new InventoryAssistController();
 
     @EventHandler
@@ -202,6 +204,7 @@ public class PekaClientMod {
         SpiritBowLocator.markRegistered();
         MinecraftForge.EVENT_BUS.register(autoSprintController);
         MinecraftForge.EVENT_BUS.register(shortcutController);
+        MinecraftForge.EVENT_BUS.register(commandKeybindController);
         MinecraftForge.EVENT_BUS.register(inventoryAssistController);
     }
 

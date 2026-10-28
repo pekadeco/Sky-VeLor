@@ -1,5 +1,7 @@
 package com.arena.pekaclient.config;
 
+import com.arena.pekaclient.assist.CommandKeybindSettings;
+
 import java.util.Properties;
 
 /** Safe defaults, retired-key compatibility, integer hurt-camera persistence and bounds coverage. */
@@ -35,6 +37,8 @@ public final class AssistSettingsTests {
         old.setProperty("assist.inventory.search", "true");
         old.setProperty("assist.visual.noHurtCamera", "true");
         old.setProperty("autoSprintEnabled", "true");
+        old.setProperty("assist.shortcuts.wardrobe", "true");
+        old.setProperty("assist.shortcuts.pets", "true");
         old.setProperty("itemProtectionEnabled", "true");
         old.setProperty("assist.itemGuard.enabled", "true");
         old.setProperty("terminalGuiScale", "1.5");
@@ -43,7 +47,7 @@ public final class AssistSettingsTests {
         old.setProperty("dungeonSpiritBowTracer", "true");
         AssistSettings.load(old);
         check("retained aliases load", AssistSettings.miningAbilityAlert && AssistSettings.autoSprint
-                && AssistSettings.terminalScale == 150);
+                && AssistSettings.wardrobeShortcut && AssistSettings.petsShortcut && AssistSettings.terminalScale == 150);
         check("old no-hurt toggle maps to zero percent", AssistSettings.hurtCameraShake == 0);
         check("old zero-health ESP choice migrates to Comfort", !AssistSettings.hideDeadMobs);
         check("established config does not acquire newly defaulted inventory visuals", !AssistSettings.romanNumerals
@@ -54,10 +58,14 @@ public final class AssistSettingsTests {
         Properties rewritten = new Properties();
         rewritten.putAll(old);
         AssistSettings.save(rewritten);
-        check("retired Search, binary camera, and ESP-local dead keys are dropped on save", !rewritten.containsKey("inventorySearchEnabled")
+        check("retired keys are dropped and Keybind Cut migration is written", !rewritten.containsKey("inventorySearchEnabled")
                 && !rewritten.containsKey("assist.inventory.search")
                 && !rewritten.containsKey("assist.visual.noHurtCamera") && !rewritten.containsKey("noHurtCamEnabled")
-                && !rewritten.containsKey("dungeonEsp.hideZeroHealth")
+                && !rewritten.containsKey("dungeonEsp.hideZeroHealth") && !rewritten.containsKey("assist.shortcuts.wardrobe")
+                && !rewritten.containsKey("assist.shortcuts.pets")
+                && "true".equals(rewritten.getProperty("assist.keybindCut.autoSprint"))
+                && "true".equals(rewritten.getProperty("assist.keybindCut.wardrobe"))
+                && "true".equals(rewritten.getProperty("assist.keybindCut.pets"))
                 && "false".equals(rewritten.getProperty("assist.comfort.hideDeadMobs")));
         check("removed Item Protection keys are harmlessly ignored", old.containsKey("itemProtectionEnabled")
                 && old.containsKey("assist.itemGuard.enabled"));
@@ -66,6 +74,12 @@ public final class AssistSettingsTests {
         newOwnerWins.setProperty("dungeonEsp.hideZeroHealth", "false");
         AssistSettings.load(newOwnerWins);
         check("new Comfort key wins over the retired ESP key", AssistSettings.hideDeadMobs);
+
+        Properties keybindNewWins = new Properties();
+        keybindNewWins.setProperty("assist.keybindCut.wardrobe", "false");
+        keybindNewWins.setProperty("assist.shortcuts.wardrobe", "true");
+        AssistSettings.load(keybindNewWins);
+        check("new Keybind Cut key wins over the old shortcut path", !AssistSettings.wardrobeShortcut);
     }
 
     private static void hurtCameraShakePersistsAtZeroIntermediateAndVanilla() {
@@ -127,11 +141,16 @@ public final class AssistSettingsTests {
         AssistSettings.terminalHints = true;
         AssistSettings.terminalAutoClick = true;
         AssistSettings.terminalScale = 222;
+        CommandKeybindSettings.enabled = true;
+        CommandKeybindSettings.add();
+        CommandKeybindSettings.setKeyCode(0, 21);
+        CommandKeybindSettings.setCommand(0, "/wardrobe");
         Properties saved = new Properties();
         AssistSettings.save(saved);
         check("retained keys are namespaced", saved.containsKey("assist.inventory.tooltipScroll")
                 && saved.containsKey("assist.visual.hurtCameraShake")
-                && saved.containsKey("assist.visual.smoothAspectTeleport") && saved.containsKey("assist.movement.autoSprint")
+                && saved.containsKey("assist.visual.smoothAspectTeleport") && saved.containsKey("assist.keybindCut.autoSprint")
+                && saved.containsKey("assist.keybindCut.commandKeybinds")
                 && saved.containsKey("assist.comfort.hideDeadMobs") && saved.containsKey("assist.dungeon.sync.enabled")
                 && saved.containsKey("assist.dungeon.spiritBowLocator") && saved.containsKey("assist.dungeon.terminal.autoClick")
                 && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
@@ -139,7 +158,9 @@ public final class AssistSettingsTests {
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.hurtCameraShake == 44
                 && !AssistSettings.smoothAspectTeleport && AssistSettings.autoSprint && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
                 && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint) && AssistSettings.spiritBowLocator
-                && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222);
+                && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222
+                && CommandKeybindSettings.enabled && CommandKeybindSettings.count() == 1
+                && "/wardrobe".equals(CommandKeybindSettings.entryAt(0).command()));
         saved.setProperty("assist.visual.smoothAspectTeleport", "true");
         AssistSettings.load(saved);
         check("explicit Aspect transition preference loads", AssistSettings.smoothAspectTeleport);

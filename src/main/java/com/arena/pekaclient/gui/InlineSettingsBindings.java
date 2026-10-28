@@ -1,6 +1,7 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.chat.ChatMenuPolicy;
+import com.arena.pekaclient.assist.CommandKeybindSettings;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
@@ -52,6 +53,7 @@ final class InlineSettingsBindings {
 
         if ("wardrobe-shortcut".equals(id)) return AssistSettings.wardrobeShortcut;
         if ("pets-shortcut".equals(id)) return AssistSettings.petsShortcut;
+        if ("command-keybinds".equals(id)) return CommandKeybindSettings.enabled;
 
         if ("dungeon-map".equals(id)) return AppleSettings.dungeonMap;
         if ("dungeon-map-rotate".equals(id)) return AppleSettings.dungeonMapRotate;
@@ -156,6 +158,7 @@ final class InlineSettingsBindings {
 
         else if ("wardrobe-shortcut".equals(id)) AssistSettings.wardrobeShortcut = value;
         else if ("pets-shortcut".equals(id)) AssistSettings.petsShortcut = value;
+        else if ("command-keybinds".equals(id)) CommandKeybindSettings.enabled = value;
 
         else if ("dungeon-map".equals(id)) AppleSettings.dungeonMap = value;
         else if ("dungeon-map-rotate".equals(id)) AppleSettings.dungeonMapRotate = value;
@@ -387,9 +390,10 @@ final class InlineSettingsBindings {
             AssistSettings.rarityHighlight = false;
             return true;
         }
-        if ("movement-shortcuts-reset".equals(id)) {
+        if ("keybind-cut-reset".equals(id)) {
             AssistSettings.wardrobeShortcut = false;
             AssistSettings.petsShortcut = false;
+            CommandKeybindSettings.reset();
             return true;
         }
         if ("item-lock-reset".equals(id)) {

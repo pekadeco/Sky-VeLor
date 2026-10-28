@@ -1872,7 +1872,7 @@ public class AppleSettingsScreen extends AppleScreen {
         refreshReferenceTheme();
     }
 
-    /** Executes a retained value action; only the two explicitly permitted editor destinations open a new screen. */
+    /** Executes a retained value action; named editor destinations are the only actions that open a child screen. */
     private void performInlineAction(String id) {
         if ("open-hud-editor".equals(id)) {
             Minecraft.getMinecraft().displayGuiScreen(new HudEditorScreen(this));
@@ -1880,6 +1880,10 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         if ("item-animation-open-editor".equals(id)) {
             Minecraft.getMinecraft().displayGuiScreen(new ItemAnimationEditorScreen(this));
+            return;
+        }
+        if ("open-command-keybind-editor".equals(id)) {
+            Minecraft.getMinecraft().displayGuiScreen(new CommandKeybindEditorScreen(this));
             return;
         }
         if (handleChatAction(id)) return;

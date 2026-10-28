@@ -25,7 +25,7 @@ public final class InlineOptionPreservationTests {
                 "chat-message-animation", "chat-qol", "chat-smooth", "chat-tab-accent-color", "chat-tab-active-opacity",
                 "chat-tab-filter-text", "chat-tab-filter-type", "chat-tab-inactive-color", "chat-tab-name", "chat-tab-opacity",
                 "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
-                "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
+                "command-keybinds", "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
                 "dungeon-map", "dungeon-map-player-names", "hud-dungeon-run", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
                 "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
@@ -59,7 +59,7 @@ public final class InlineOptionPreservationTests {
                 "m7-bosses", "m7-dragons", "esp-starred-caption", "door-wither-style-caption");
         assertPresent("item-lock-swap", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud",
                 "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker",
-                "hud-dungeon-run", "item-animation");
+                "hud-dungeon-run", "item-animation", "keybind-cut", "command-keybinds");
         check("Chat captions are not nested dropdowns", !ReferenceSettingsCatalog.find("chat-background-group").isDropdown()
                 && !ReferenceSettingsCatalog.find("chat-tabs-group").isDropdown());
     }

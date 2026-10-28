@@ -112,6 +112,7 @@ public final class FlatDropdownContractTests {
         ReferenceSettingsCatalog.Setting terminal = ReferenceSettingsCatalog.find("terminal-assist");
         ReferenceSettingsCatalog.Setting boss = ReferenceSettingsCatalog.find("dungeon-boss-hud");
         ReferenceSettingsCatalog.Setting hand = ReferenceSettingsCatalog.find("item-animation");
+        ReferenceSettingsCatalog.Setting command = ReferenceSettingsCatalog.find("command-keybinds");
         ReferenceSettingsCatalog.Setting hud = ReferenceSettingsCatalog.find("hud-editor");
         check("Hurt Camera Shake is one inline slider", hurt != null && hurt.control == ReferenceSettingsCatalog.Control.SLIDER
                 && ReferenceSettingsCatalog.find("hurt-camera") == null);
@@ -128,6 +129,10 @@ public final class FlatDropdownContractTests {
         check("Item Animation is a toggle plus named editor route", hand != null && hand.isEditor()
                 && hand.hasMasterToggle() && "item-animation-open-editor".equals(hand.editorActionId)
                 && "Open Item Animation Editor".equals(hand.actionLabel));
+        check("Command Keybind is one aligned toggle plus named editor route", command != null && command.isEditor()
+                && command.hasMasterToggle() && "open-command-keybind-editor".equals(command.editorActionId)
+                && "Open Command Keybind Editor".equals(command.actionLabel)
+                && ReferenceSettingsCatalog.ownerOf("command-keybinds") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
         check("HUD Editor is a named route with no chevron", hud != null && hud.isEditor() && !hud.hasMasterToggle()
                 && "open-hud-editor".equals(hud.editorActionId) && "Open HUD Editor".equals(hud.actionLabel));
     }

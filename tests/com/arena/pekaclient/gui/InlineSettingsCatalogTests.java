@@ -19,7 +19,7 @@ public final class InlineSettingsCatalogTests {
         requiredOwnersAndMovesArePresent();
         searchOpensOneOwningDropdown();
         dropdownStateIsCollapsedByDefaultAndResetsForFreshGui();
-        catalogIdsAreUniqueAndOnlyTwoEditorDestinationsRemain();
+        catalogIdsAreUniqueAndEditorDestinationsRemainIntentional();
         optionalGuiTransparencyKeepsItsExistingOwnerAndKeys();
         done();
     }
@@ -52,8 +52,8 @@ public final class InlineSettingsCatalogTests {
                 }
             }
         }
-        check("only HUD and Item Animation editor buttons remain", dedicatedEditorActionIds().equals(Arrays.asList(
-                "open-hud-editor", "item-animation-open-editor")));
+        check("HUD, Item Animation, and Command Keybind editor routes are explicit", dedicatedEditorActionIds().equals(Arrays.asList(
+                "open-command-keybind-editor", "open-hud-editor", "item-animation-open-editor")));
         check("maintenance actions never reopen a feature screen", noRetiredOpenActionLabels());
     }
 
@@ -61,7 +61,7 @@ public final class InlineSettingsCatalogTests {
         check("required feature ownership remains complete", ReferenceSettingsCatalog.routesAreComplete());
         String[] preserved = {
                 "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
-                "item-lock-swap", "chat-qol", "slayer-tracker", "dungeon-map", "terminal-assist",
+                "item-lock-swap", "chat-qol", "keybind-cut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
                 "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
                 "dungeon-sync-enabled", "mining-bps", "mining-assistant-settings", "catch-counter",
                 "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation", "system-appearance", "system-performance"
@@ -97,6 +97,10 @@ public final class InlineSettingsCatalogTests {
         ReferenceSettingsCatalog.Match m7 = matchFor("m7-dragon-flame");
         check("search carries only the M7 owner", m7 != null && parentIds(m7).equals(
                 Arrays.asList("m7-overlay")));
+        ReferenceSettingsCatalog.Match command = matchFor("command-keybinds");
+        check("search exposes Command Keybind under Keybind Cut", command != null
+                && parentIds(command).equals(Arrays.asList("keybind-cut"))
+                && "Keybind Cut".equals(ReferenceSettingsCatalog.find("keybind-cut").label));
         Properties p = new Properties();
         FeatureUiPreferences.load(p);
         openParents(chat);
@@ -152,7 +156,7 @@ public final class InlineSettingsCatalogTests {
                 && slider.min == 45 && slider.max == 100 && "% opacity".equals(slider.suffix));
     }
 
-    private static void catalogIdsAreUniqueAndOnlyTwoEditorDestinationsRemain() {
+    private static void catalogIdsAreUniqueAndEditorDestinationsRemainIntentional() {
         List<String> ids = ReferenceSettingsCatalog.allIds();
         check("catalog option ids are unique", ids.size() == new HashSet<String>(ids).size());
         String[] retired = {

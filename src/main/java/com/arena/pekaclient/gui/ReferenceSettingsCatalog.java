@@ -133,7 +133,7 @@ public final class ReferenceSettingsCatalog {
     /** Direct feature owners; ids are presentation ids, never replacement configuration keys. */
     public static final String[] REQUIRED_ROUTE_IDS = {
             "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
-            "item-lock-swap", "inventory-assist", "chat-qol", "movement-shortcuts", "slayer-tracker",
+            "item-lock-swap", "inventory-assist", "chat-qol", "keybind-cut", "command-keybinds", "slayer-tracker",
             "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay",
             "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
             "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation",
@@ -225,10 +225,15 @@ public final class ReferenceSettingsCatalog {
                             choice("chat-menu-mode", "Open Menu With", "Choose the click for the message menu.", "chat menu",
                                     new String[]{"Right Click", "Left Click", "Both"}),
                             reset("chat-reset-all")),
-                    dropdown("movement-shortcuts", "Movement And Shortcuts", "Key shortcuts for commands.", "wardrobe pets",
+                    dropdown("keybind-cut", "Keybind Cut", "Physical key shortcuts and commands.",
+                            "keybind cut command wardrobe pets movement shortcuts",
                             toggle("wardrobe-shortcut", "Wardrobe Shortcut", "Use the Wardrobe key shortcut.", "wardrobe key"),
                             toggle("pets-shortcut", "Pets Shortcut", "Use the Pets key shortcut.", "pets key"),
-                            reset("movement-shortcuts-reset")))
+                            editor("command-keybinds", "Command Keybind",
+                                    "Send a slash command from a physical key press.",
+                                    "command keybind slash key collision", true,
+                                    "Open Command Keybind Editor", "open-command-keybind-editor"),
+                            reset("keybind-cut-reset")))
     );
 
     /** Slayer owns the existing tracker route only; its config ids and saved values remain unchanged. */
