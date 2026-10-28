@@ -2,7 +2,7 @@ package com.arena.pekaclient.itemlockswap;
 
 import java.util.Properties;
 
-/** Standalone regression tests for persisted position state, pair constraints and fresh defaults. */
+/** Standalone regression tests for persisted position state, hotbar-only pair safety, and multi-pair cycling. */
 public final class ItemLockSwapSettingsTests {
 
     private static int passed;
@@ -10,7 +10,8 @@ public final class ItemLockSwapSettingsTests {
 
     public static void main(String[] args) {
         freshInstallDefaults();
-        lockAndPairRules();
+        lockAndHotbarPairRules();
+        multiplePairsCycleInCreationOrder();
         persistenceAndMalformedInput();
         keybindPolicy();
         System.out.println("item lock/swap settings: passed " + passed + ", failed " + failed);
@@ -29,13 +30,14 @@ public final class ItemLockSwapSettingsTests {
                 && ItemLockSwapSettings.swapLineOpacity == 100
                 && ItemLockSwapSettings.swapLineWidth == ItemLockSwapSettings.DEFAULT_LINE_WIDTH);
         check("empty positions start unlocked", !ItemLockSwapSettings.isLocked(0) && !ItemLockSwapSettings.isLocked(39));
+        check("legal graph has room for every hotbar edge", ItemLockSwapSettings.MAX_PAIRS == 315);
     }
 
-    private static void lockAndPairRules() {
+    private static void lockAndHotbarPairRules() {
         ItemLockSwapSettings.load(new Properties());
         check("empty position locks", ItemLockSwapSettings.toggleLock(0) == ItemLockSwapSettings.LockResult.LOCKED
                 && ItemLockSwapSettings.isLocked(0));
-        check("locked position cannot pair", ItemLockSwapSettings.addPair(0, 1)
+        check("locked position cannot pair", ItemLockSwapSettings.addPair(0, 39)
                 == ItemLockSwapSettings.PairResult.LOCKED);
         check("unlock works", ItemLockSwapSettings.toggleLock(0) == ItemLockSwapSettings.LockResult.UNLOCKED);
         check("hotbar to armor pair is allowed", ItemLockSwapSettings.addPair(0, 39)
@@ -44,17 +46,51 @@ public final class ItemLockSwapSettingsTests {
                 && ItemLockSwapSettings.isProtected(39) && ItemLockSwapSettings.partnerOf(0) == 39);
         check("paired position cannot become lock", ItemLockSwapSettings.toggleLock(0)
                 == ItemLockSwapSettings.LockResult.PAIRED);
-        check("pair number is stable", ItemLockSwapSettings.pairNumber(0) == 1
+        check("pair number is stable before mutation", ItemLockSwapSettings.pairNumber(0) == 1
                 && ItemLockSwapSettings.pairNumber(39) == 1);
         check("remove existing pair", ItemLockSwapSettings.removePairContaining(39)
                 && !ItemLockSwapSettings.isPaired(0));
         check("self pair is invalid", ItemLockSwapSettings.addPair(2, 2) == ItemLockSwapSettings.PairResult.INVALID);
+        check("hotbar to inventory is legal", ItemLockSwapSettings.addPair(0, 9)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        check("hotbar to armor is legal", ItemLockSwapSettings.addPair(1, 36)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        check("hotbar to hotbar remains legal", ItemLockSwapSettings.addPair(2, 3)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        check("inventory to inventory is illegal", ItemLockSwapSettings.addPair(9, 10)
+                == ItemLockSwapSettings.PairResult.ILLEGAL);
+        check("armor to inventory is illegal", ItemLockSwapSettings.addPair(36, 10)
+                == ItemLockSwapSettings.PairResult.ILLEGAL);
+        check("inventory to armor is illegal", ItemLockSwapSettings.addPair(11, 36)
+                == ItemLockSwapSettings.PairResult.ILLEGAL);
+        check("armor to armor is illegal", ItemLockSwapSettings.addPair(36, 37)
+                == ItemLockSwapSettings.PairResult.ILLEGAL);
+        check("illegal inputs never create a pair", ItemLockSwapSettings.pairCount() == 3);
+    }
 
-        for (int i = 0; i < ItemLockSwapSettings.MAX_PAIRS; i++) {
-            check("pair " + i + " can be made", ItemLockSwapSettings.addPair(i * 2, i * 2 + 1)
-                    == ItemLockSwapSettings.PairResult.ADDED);
-        }
-        check("ninth pair is rejected", ItemLockSwapSettings.addPair(20, 21) == ItemLockSwapSettings.PairResult.FULL);
+    private static void multiplePairsCycleInCreationOrder() {
+        ItemLockSwapSettings.load(new Properties());
+        check("first shared endpoint pair saves", ItemLockSwapSettings.addPair(0, 9)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        check("second shared endpoint pair saves", ItemLockSwapSettings.addPair(0, 10)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        check("third shared endpoint pair saves", ItemLockSwapSettings.addPair(0, 39)
+                == ItemLockSwapSettings.PairResult.ADDED);
+        check("a duplicate exact pair is not recreated", ItemLockSwapSettings.addPair(10, 0)
+                == ItemLockSwapSettings.PairResult.ALREADY_PAIRED);
+        check("shared endpoint reports every saved target", ItemLockSwapSettings.pairCountForSlot(0) == 3
+                && ItemLockSwapSettings.isPaired(0));
+        check("first manual target follows creation order", ItemLockSwapSettings.partnerForSwap(0) == 9);
+        ItemLockSwapSettings.advanceSwapPartner(0, 9);
+        check("second manual target follows creation order", ItemLockSwapSettings.partnerForSwap(0) == 10);
+        ItemLockSwapSettings.advanceSwapPartner(0, 10);
+        check("third manual target follows creation order", ItemLockSwapSettings.partnerForSwap(0) == 39);
+        ItemLockSwapSettings.advanceSwapPartner(0, 39);
+        check("manual target loops back after last pair", ItemLockSwapSettings.partnerForSwap(0) == 9);
+        check("tap removal removes one pair and keeps the others", ItemLockSwapSettings.removePairContaining(0)
+                && ItemLockSwapSettings.pairCountForSlot(0) == 2 && ItemLockSwapSettings.partnerOf(0) == 10);
+        check("exact removal preserves unrelated shared pair", ItemLockSwapSettings.removePair(0, 39)
+                && ItemLockSwapSettings.pairCountForSlot(0) == 1 && ItemLockSwapSettings.partnerOf(0) == 10);
         ItemLockSwapSettings.clearPairs();
         check("clear pairs removes all pairs", ItemLockSwapSettings.pairCount() == 0);
     }
@@ -72,7 +108,8 @@ public final class ItemLockSwapSettingsTests {
         ItemLockSwapSettings.swapLineWidth = 3;
         ItemLockSwapSettings.toggleLock(8);
         ItemLockSwapSettings.toggleLock(36);
-        ItemLockSwapSettings.addPair(9, 39);
+        ItemLockSwapSettings.addPair(0, 9);
+        ItemLockSwapSettings.addPair(0, 39);
         Properties p = new Properties();
         ItemLockSwapSettings.save(p);
         ItemLockSwapSettings.load(p);
@@ -82,22 +119,27 @@ public final class ItemLockSwapSettingsTests {
                 == ItemLockSwapSettings.SWAP_LINES_ON_HOVER && ItemLockSwapSettings.swapLineColor == 2
                 && ItemLockSwapSettings.swapLineOpacity == 55 && ItemLockSwapSettings.swapLineWidth == 3);
         check("locks round trip", ItemLockSwapSettings.isLocked(8) && ItemLockSwapSettings.isLocked(36));
-        check("pair round trip", ItemLockSwapSettings.partnerOf(9) == 39 && ItemLockSwapSettings.pairCount() == 1);
+        check("multiple legal pairs round trip in order", ItemLockSwapSettings.pairCount() == 2
+                && ItemLockSwapSettings.partnerForSwap(0) == 9);
+        ItemLockSwapSettings.advanceSwapPartner(0, 9);
+        check("loaded pair order cycles", ItemLockSwapSettings.partnerForSwap(0) == 39);
 
         Properties malformed = new Properties();
         malformed.setProperty(ItemLockSwapSettings.PREFIX + "locks", "-1,0,nope,40,35");
-        malformed.setProperty(ItemLockSwapSettings.PREFIX + "pairs", "0-1;bad;2-2;37-x;8-39");
+        // Legacy legal 8-39 survives; every pair without a hotbar endpoint is safely discarded.
+        malformed.setProperty(ItemLockSwapSettings.PREFIX + "pairs", "7-1;bad;2-2;37-x;9-10;36-9;8-39;36-37");
         malformed.setProperty(ItemLockSwapSettings.PREFIX + "cooldownTenths", "999");
         ItemLockSwapSettings.load(malformed);
         check("bad slot data fails closed", ItemLockSwapSettings.isLocked(0) && ItemLockSwapSettings.isLocked(35)
                 && !ItemLockSwapSettings.isLocked(39));
-        check("legacy pairs survive without new line keys", ItemLockSwapSettings.pairCount() == 1
-                && ItemLockSwapSettings.partnerOf(8) == 39 && ItemLockSwapSettings.swapLineMode
+        check("legacy illegal pairs are dropped safely", ItemLockSwapSettings.pairCount() == 2
+                && ItemLockSwapSettings.partnerOf(7) == 1 && ItemLockSwapSettings.partnerOf(8) == 39);
+        check("legacy pairs keep new line defaults", ItemLockSwapSettings.swapLineMode
                 == ItemLockSwapSettings.SWAP_LINES_ALWAYS && ItemLockSwapSettings.swapLineWidth == 2);
         check("ranges clamp", ItemLockSwapSettings.cooldownMillis() == 5000);
         ItemLockSwapSettings.swapLineMode = ItemLockSwapSettings.SWAP_LINES_ON_HOVER;
         check("line visibility modes honor hover and off", ItemLockSwapSettings.showPersistentSwapLines(8)
-                && !ItemLockSwapSettings.showPersistentSwapLines(0));
+                && !ItemLockSwapSettings.showPersistentSwapLines(4));
         ItemLockSwapSettings.swapLineMode = ItemLockSwapSettings.SWAP_LINES_OFF;
         check("off mode suppresses every persistent line", !ItemLockSwapSettings.showPersistentSwapLines(8));
     }

@@ -17,7 +17,7 @@ public final class ItemLockSwapInputStateTests {
         cancellationAndRepeatedKeyDownAreSafe();
         pairedAndLockedReleaseRules();
         validatesLiveTargetHighlightRules();
-        supportsHotbarArmorAndPairLimit();
+        supportsHotbarArmorAndMultiplePairs();
         closeFocusAndClickSwallowRules();
         System.out.println("item lock/swap input state: passed " + passed + ", failed " + failed);
         if (failed > 0) throw new AssertionError("item lock/swap input failures: " + failed);
@@ -92,13 +92,13 @@ public final class ItemLockSwapInputStateTests {
         check("paired start dragged onto partner still removes pair", handler.frame(false, 24, 4, 60L)
                 == ItemLockSwapGesturePolicy.Decision.PAIR_REMOVED && !ItemLockSwapSettings.isPaired(0));
 
-        check("fixture pair re-creates for refusal", ItemLockSwapSettings.addPair(0, 1)
+        check("fixture pair re-creates for a second target", ItemLockSwapSettings.addPair(0, 1)
                 == ItemLockSwapSettings.PairResult.ADDED);
         handler = new MockGuiDrawHandler();
         handler.frame(true, 4, 4, 70L);
-        check("paired start dropped on another slot refuses", handler.frame(false, 44, 4, 80L)
-                == ItemLockSwapGesturePolicy.Decision.REFUSED_ALREADY_PAIRED
-                && ItemLockSwapSettings.partnerOf(0) == 1);
+        check("paired start can create another legal pair", handler.frame(false, 44, 4, 80L)
+                == ItemLockSwapGesturePolicy.Decision.PAIR_CREATED
+                && ItemLockSwapSettings.pairCountForSlot(0) == 2);
 
         reset();
         ItemLockSwapSettings.toggleLock(1);
@@ -111,8 +111,8 @@ public final class ItemLockSwapInputStateTests {
         ItemLockSwapSettings.addPair(1, 2);
         handler = new MockGuiDrawHandler();
         handler.frame(true, 4, 4, 110L);
-        check("already paired target refuses", handler.frame(false, 24, 4, 120L)
-                == ItemLockSwapGesturePolicy.Decision.REFUSED_ALREADY_PAIRED && !ItemLockSwapSettings.isPaired(0));
+        check("an already paired target can share a legal hotbar pair", handler.frame(false, 24, 4, 120L)
+                == ItemLockSwapGesturePolicy.Decision.PAIR_CREATED && ItemLockSwapSettings.isPaired(0));
     }
 
     private static void validatesLiveTargetHighlightRules() {
@@ -123,13 +123,14 @@ public final class ItemLockSwapInputStateTests {
         check("locked target is red-invalid", !ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
         ItemLockSwapSettings.toggleLock(1);
         ItemLockSwapSettings.addPair(1, 2);
-        check("already paired target is red-invalid", !ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
+        check("already paired target is a valid shared hotbar target", ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
+        check("main-to-main target is red-invalid", !ItemLockSwapGesturePolicy.isValidPairTarget(9, 10));
         ItemLockSwapSettings.clearPairs();
         ItemLockSwapSettings.addPair(0, 1);
         check("paired partner is a valid green removal target", ItemLockSwapGesturePolicy.isValidPairTarget(0, 1));
     }
 
-    private static void supportsHotbarArmorAndPairLimit() {
+    private static void supportsHotbarArmorAndMultiplePairs() {
         reset();
         MockGuiDrawHandler handler = new MockGuiDrawHandler();
         handler.frame(true, 4, 4, 100L);
@@ -137,14 +138,19 @@ public final class ItemLockSwapInputStateTests {
                 == ItemLockSwapGesturePolicy.Decision.PAIR_CREATED && ItemLockSwapSettings.partnerOf(0) == 39);
 
         reset();
-        for (int i = 0; i < ItemLockSwapSettings.MAX_PAIRS; i++) {
-            check("fixture pair " + i, ItemLockSwapSettings.addPair(i * 2, i * 2 + 1)
-                    == ItemLockSwapSettings.PairResult.ADDED);
-        }
+        ItemLockSwapSettings.addPair(0, 9);
+        ItemLockSwapSettings.addPair(0, 10);
         handler = new MockGuiDrawHandler();
-        handler.frame(true, MockSlotGrid.slotX(20), 4, 120L);
-        check("ninth drag pair refuses", handler.frame(false, MockSlotGrid.slotX(21), 4, 130L)
-                == ItemLockSwapGesturePolicy.Decision.REFUSED_FULL && ItemLockSwapSettings.pairCount() == 8);
+        handler.frame(true, 4, 4, 120L);
+        check("L tap on a shared endpoint still removes one pair", handler.frame(false, 4, 4, 130L)
+                == ItemLockSwapGesturePolicy.Decision.PAIR_REMOVED && ItemLockSwapSettings.pairCountForSlot(0) == 1
+                && ItemLockSwapSettings.partnerOf(0) == 10);
+
+        reset();
+        handler = new MockGuiDrawHandler();
+        handler.frame(true, MockSlotGrid.slotX(9), 4, 140L);
+        check("inventory to inventory L-drag is refused", handler.frame(false, MockSlotGrid.slotX(10), 4, 150L)
+                == ItemLockSwapGesturePolicy.Decision.REFUSED_ILLEGAL && ItemLockSwapSettings.pairCount() == 0);
     }
 
     private static void closeFocusAndClickSwallowRules() {

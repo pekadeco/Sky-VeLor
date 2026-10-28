@@ -17,7 +17,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
  */
 public final class ItemLockSwapOverlay {
 
-    private static final String[] PAIR_TEXT = {"1", "2", "3", "4", "5", "6", "7", "8"};
+    /** One small badge can show a pair number or a plus when this endpoint has several saved targets. */
+    private static final String[] PAIR_TEXT = {"1", "2", "3", "4", "5", "6", "7", "8", "+"};
     private static final String DRAG_HINT = "Release L on another slot to create Item Swap";
     private static final int VALID_TARGET = 0xFF30D158;
     private static final int INVALID_TARGET = 0xFFFF453A;
@@ -76,7 +77,7 @@ public final class ItemLockSwapOverlay {
     private static void drawPersistentPairLines(Container container, EntityPlayerSP player, int hovered) {
         int color = UIRender.withAlpha(ItemLockSwapSettings.effectiveSwapLineColor(), ItemLockSwapSettings.swapLineAlpha());
         float width = ItemLockSwapSettings.swapLineWidth();
-        // Eight is a fixed hard limit, so this remains bounded without any per-frame collection/allocation.
+        // The legal 40-slot graph is still bounded (315 edges), so this remains allocation-free per frame.
         for (int i = 0; i < ItemLockSwapSettings.MAX_PAIRS; i++) {
             int firstIndex = ItemLockSwapSettings.pairFirstAt(i);
             int secondIndex = ItemLockSwapSettings.pairSecondAt(i);
@@ -162,10 +163,11 @@ public final class ItemLockSwapOverlay {
 
     /** Draws no badge at all for normal positions; live inventory and hotbar rendering share this primitive. */
     private static void drawBadge(float slotX, float slotY, int index) {
-        drawBadge(slotX, slotY, ItemLockSwapSettings.isLocked(index), ItemLockSwapSettings.pairNumber(index), mcFont());
+        drawBadge(slotX, slotY, ItemLockSwapSettings.isLocked(index), ItemLockSwapSettings.pairNumber(index),
+                ItemLockSwapSettings.pairCountForSlot(index), mcFont());
     }
 
-    private static void drawBadge(float slotX, float slotY, boolean locked, int pair,
+    private static void drawBadge(float slotX, float slotY, boolean locked, int pair, int pairCount,
                                   net.minecraft.client.gui.FontRenderer font) {
         if (!locked && pair < 1) return;
         int color = UIRender.withAlpha(ItemLockSwapSettings.effectiveIconColor(), ItemLockSwapSettings.iconAlpha());
@@ -178,7 +180,7 @@ public final class ItemLockSwapOverlay {
             UIRender.rect(x + 2.6f, y + 8f, .8f, 2.1f, 0xE6000000);
         } else if (font != null) {
             UIRender.circle(x + 3f, y + 4f, 4.6f, color);
-            int safePair = Math.max(1, Math.min(PAIR_TEXT.length, pair));
+            int safePair = pairCount > 1 ? PAIR_TEXT.length : Math.max(1, Math.min(PAIR_TEXT.length - 1, pair));
             UIRender.text(font, PAIR_TEXT[safePair - 1], x + 1.1f, y + .1f, 0xFFFFFFFF, .72f, true);
         }
     }

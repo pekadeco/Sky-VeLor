@@ -16,8 +16,9 @@ public final class ItemLockSwapGesturePolicy {
         PAIR_REMOVED("released on paired endpoint: pair removed"),
         CANCELED("released over empty space: canceled"),
         REFUSED_LOCKED("released on locked position: refused"),
-        REFUSED_ALREADY_PAIRED("Slot is already paired"),
-        REFUSED_FULL("maximum of 8 pairs reached"),
+        REFUSED_ALREADY_PAIRED("pair already exists"),
+        REFUSED_ILLEGAL("one endpoint must be a hotbar slot"),
+        REFUSED_FULL("all legal pairs are already saved"),
         REFUSED_INVALID("invalid player-inventory slot: refused");
 
         private final String reason;
@@ -32,24 +33,19 @@ public final class ItemLockSwapGesturePolicy {
     }
 
     /**
-     * Applies one completed L-key drag release. Pair membership takes priority for an existing pair: a tap back onto
-     * either endpoint, or a drag onto its partner, removes that pair. Other targets remain unchanged and refuse.
+     * Applies one completed L-key drag release. A paired start can create another unique legal pair. Tapping L back
+     * on that start removes its oldest remaining pair, while dragging to a known partner removes that exact pair.
      */
     public static Decision release(int startSlot, int releaseSlot) {
         if (!ItemLockSwapSettings.validSlot(startSlot)) return Decision.REFUSED_INVALID;
         if (!ItemLockSwapSettings.validSlot(releaseSlot)) return Decision.CANCELED;
 
-        int partner = ItemLockSwapSettings.partnerOf(startSlot);
-        if (partner >= 0) {
-            if ((releaseSlot == startSlot || releaseSlot == partner)
-                    && ItemLockSwapSettings.removePairContaining(startSlot)) {
-                return Decision.PAIR_REMOVED;
-            }
-            return Decision.REFUSED_ALREADY_PAIRED;
-        }
-
-        // A same-slot release is a lock toggle at every hold duration; there is deliberately no tap timer.
         if (releaseSlot == startSlot) {
+            if (ItemLockSwapSettings.isPaired(startSlot)) {
+                return ItemLockSwapSettings.removePairContaining(startSlot)
+                        ? Decision.PAIR_REMOVED : Decision.REFUSED_INVALID;
+            }
+            // A same-slot release is a lock toggle at every hold duration; there is deliberately no tap timer.
             ItemLockSwapSettings.LockResult lock = ItemLockSwapSettings.toggleLock(startSlot);
             if (lock == ItemLockSwapSettings.LockResult.LOCKED) return Decision.LOCKED;
             if (lock == ItemLockSwapSettings.LockResult.UNLOCKED) return Decision.UNLOCKED;
@@ -60,7 +56,9 @@ public final class ItemLockSwapGesturePolicy {
         if (ItemLockSwapSettings.isLocked(startSlot) || ItemLockSwapSettings.isLocked(releaseSlot)) {
             return Decision.REFUSED_LOCKED;
         }
-        if (ItemLockSwapSettings.isPaired(releaseSlot)) return Decision.REFUSED_ALREADY_PAIRED;
+
+        // Dragging an existing endpoint to its existing partner remains the precise removal gesture.
+        if (ItemLockSwapSettings.removePair(startSlot, releaseSlot)) return Decision.PAIR_REMOVED;
 
         ItemLockSwapSettings.PairResult result = ItemLockSwapSettings.addPair(startSlot, releaseSlot);
         switch (result) {
@@ -70,6 +68,8 @@ public final class ItemLockSwapGesturePolicy {
                 return Decision.REFUSED_LOCKED;
             case ALREADY_PAIRED:
                 return Decision.REFUSED_ALREADY_PAIRED;
+            case ILLEGAL:
+                return Decision.REFUSED_ILLEGAL;
             case FULL:
                 return Decision.REFUSED_FULL;
             default:
@@ -83,9 +83,10 @@ public final class ItemLockSwapGesturePolicy {
                 || startSlot == hoveredSlot) {
             return false;
         }
-        int partner = ItemLockSwapSettings.partnerOf(startSlot);
-        if (partner >= 0) return partner == hoveredSlot;
-        return !ItemLockSwapSettings.isLocked(startSlot) && !ItemLockSwapSettings.isLocked(hoveredSlot)
-                && !ItemLockSwapSettings.isPaired(hoveredSlot);
+        if (ItemLockSwapSettings.isLocked(startSlot) || ItemLockSwapSettings.isLocked(hoveredSlot)) return false;
+        // An existing endpoint is a valid removal target. A new target must pass the hotbar legality rule.
+        return ItemLockSwapSettings.partnerOf(startSlot) == hoveredSlot
+                || (ItemLockSwapSettings.isLegalPair(startSlot, hoveredSlot)
+                && ItemLockSwapSettings.partnerOf(startSlot) != hoveredSlot);
     }
 }

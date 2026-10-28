@@ -144,7 +144,7 @@ public final class ItemLockSwapController {
                 message("Item position unlocked");
                 break;
             case PAIR_CREATED:
-                message("Item Swap pair " + ItemLockSwapSettings.pairNumber(releaseSlot) + " created");
+                message("Item Swap pair created");
                 break;
             case PAIR_REMOVED:
                 message("Swap removed");
@@ -153,11 +153,13 @@ public final class ItemLockSwapController {
                 message("Cannot pair: item position is locked");
                 break;
             case REFUSED_ALREADY_PAIRED:
-                // This exact concise reason is also displayed for a paired start dropped onto a non-partner.
-                message("Slot is already paired");
+                message("That swap pair already exists");
+                break;
+            case REFUSED_ILLEGAL:
+                message("Cannot pair: one slot must be in the hotbar");
                 break;
             case REFUSED_FULL:
-                message("Cannot pair: maximum of 8 pairs reached");
+                message("Cannot pair: all legal pairs are saved");
                 break;
             case REFUSED_INVALID:
                 message("Cannot pair: select two different player inventory slots");
@@ -174,7 +176,8 @@ public final class ItemLockSwapController {
             message("Cannot swap: window-click hook is inactive");
             return;
         }
-        int secondIndex = ItemLockSwapSettings.partnerOf(firstIndex);
+        // A reused hotbar endpoint advances through its partners only after a completed transaction.
+        int secondIndex = ItemLockSwapSettings.partnerForSwap(firstIndex);
         if (secondIndex < 0 || gui == null || player == null || gui.inventorySlots == null) return;
         Container container = gui.inventorySlots;
         Slot first = ItemLockSwapGuiAccess.findPlayerSlot(container, player, firstIndex);
@@ -205,6 +208,7 @@ public final class ItemLockSwapController {
             Minecraft.getMinecraft().playerController.windowClick(container.windowId, second.slotNumber, 0, 0, player);
             Minecraft.getMinecraft().playerController.windowClick(container.windowId, first.slotNumber, 0, 0, player);
             lastSwapAt = System.currentTimeMillis();
+            ItemLockSwapSettings.advanceSwapPartner(firstIndex, secondIndex);
             message("Item Swap completed");
         } catch (RuntimeException error) {
             message("Cannot swap: transaction failed");
