@@ -3,7 +3,7 @@ package com.arena.pekaclient.gui;
 import java.util.List;
 import java.util.Properties;
 
-/** Contract for the four player-visible settings row types and one-level disclosure policy. */
+/** Contract for the supported player-visible settings row types and one-level disclosure policy. */
 public final class FlatDropdownContractTests {
     private static int passed;
     private static int failed;
@@ -26,7 +26,9 @@ public final class FlatDropdownContractTests {
                             row.control == ReferenceSettingsCatalog.Control.TOGGLE
                                     || row.control == ReferenceSettingsCatalog.Control.SLIDER
                                     || row.control == ReferenceSettingsCatalog.Control.DROPDOWN
-                                    || row.control == ReferenceSettingsCatalog.Control.EDITOR);
+                                    || row.control == ReferenceSettingsCatalog.Control.EDITOR
+                                    || row.control == ReferenceSettingsCatalog.Control.KEYBIND
+                                    || row.isResetAction());
                     for (ReferenceSettingsCatalog.Setting child : row.children) {
                         check("expanded option is not a nested dropdown: " + child.id,
                                 !child.isDropdown());
@@ -113,6 +115,7 @@ public final class FlatDropdownContractTests {
         ReferenceSettingsCatalog.Setting boss = ReferenceSettingsCatalog.find("dungeon-boss-hud");
         ReferenceSettingsCatalog.Setting hand = ReferenceSettingsCatalog.find("item-animation");
         ReferenceSettingsCatalog.Setting command = ReferenceSettingsCatalog.find("command-keybinds");
+        ReferenceSettingsCatalog.Setting wardrobe = ReferenceSettingsCatalog.find("wardrobe-shortcut");
         ReferenceSettingsCatalog.Setting hud = ReferenceSettingsCatalog.find("hud-editor");
         check("Hurt Camera Shake is one inline slider", hurt != null && hurt.control == ReferenceSettingsCatalog.Control.SLIDER
                 && ReferenceSettingsCatalog.find("hurt-camera") == null);
@@ -129,6 +132,8 @@ public final class FlatDropdownContractTests {
         check("Item Animation is a toggle plus named editor route", hand != null && hand.isEditor()
                 && hand.hasMasterToggle() && "item-animation-open-editor".equals(hand.editorActionId)
                 && "Open Item Animation Editor".equals(hand.actionLabel));
+        check("Wardrobe Shortcut is one aligned enabled toggle plus visible key capture", wardrobe != null && wardrobe.isKeybind()
+                && wardrobe.hasMasterToggle() && wardrobe.description.contains("Backspace clears"));
         check("Command Keybind is one aligned toggle plus named editor route", command != null && command.isEditor()
                 && command.hasMasterToggle() && "open-command-keybind-editor".equals(command.editorActionId)
                 && "Open Command Keybind Editor".equals(command.actionLabel)
