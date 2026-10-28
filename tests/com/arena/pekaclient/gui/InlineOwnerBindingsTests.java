@@ -42,7 +42,7 @@ public final class InlineOwnerBindingsTests {
                     && InlineSettingsBindings.booleanValue("auto-sprint") == !oldSprint);
             check("Smooth Aspect Teleport writes its AssistSettings visual owner", AssistSettings.smoothAspectTeleport == !oldAspectTeleport
                     && InlineSettingsBindings.booleanValue("smooth-aspect-teleport") == !oldAspectTeleport);
-            check("Hide Dead Mobs writes the Player Comfort AssistSettings owner", AssistSettings.hideDeadMobs == !oldHideDead
+            check("Hide Dead Mobs writes the QoL Comfort AssistSettings owner", AssistSettings.hideDeadMobs == !oldHideDead
                     && InlineSettingsBindings.booleanValue("hide-dead-mobs") == !oldHideDead);
             check("map row writes original dungeon-map owner", AppleSettings.dungeonMap == !oldMap
                     && InlineSettingsBindings.booleanValue("dungeon-map") == !oldMap);

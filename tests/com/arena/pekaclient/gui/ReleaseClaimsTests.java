@@ -62,7 +62,8 @@ public final class ReleaseClaimsTests {
         check("screen packages wordmark drag, fullscreen persistence and named editor control layout",
                 screen.contains("SkyVeLor") && screen.contains("smallWindowOffsetX") && screen.contains("settingsWindowFullscreen")
                         && screen.contains("SettingsControlLayout") && screen.contains("drawFullscreenGlyph")
-                        && screen.contains("editorButtonWidth") && !screen.contains("[Edit]"));
+                        && screen.contains("editorButtonWidth") && screen.contains("all QoL ->")
+                        && !screen.contains("all player ->") && !screen.contains("[Edit]"));
         String catalog = classText("com.arena.pekaclient.gui.ReferenceSettingsCatalog");
         check("editor routes expose clear destination labels", catalog.contains("Open HUD Editor")
                 && catalog.contains("Open Item Animation Editor"));

@@ -1269,11 +1269,11 @@ public class AppleSettingsScreen extends AppleScreen {
         y += GAP;
 
         UIRender.text(fr(), "QUICK CONTROLS", contentX, centeredTextY(y, 12f, .61f), Theme.textTertiary, .61f, false);
-        String allPlayer = "all player ->";
-        float allX = contentX + contentW - fr().getStringWidth(allPlayer) * .61f;
-        UIRender.text(fr(), allPlayer, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
+        String allQol = "all QoL ->";
+        float allX = contentX + contentW - fr().getStringWidth(allQol) * .61f;
+        UIRender.text(fr(), allQol, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
         registerHit("home-gameplay", HIT_HOME_GAMEPLAY, allX - 2f, y - 1f,
-                fr().getStringWidth(allPlayer) * .61f + 4f, 14f, null, "");
+                fr().getStringWidth(allQol) * .61f + 4f, 14f, null, "");
         y += 13f;
 
         float gap = GuiStyle.SPACE_8;

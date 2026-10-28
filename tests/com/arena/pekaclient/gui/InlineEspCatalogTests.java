@@ -29,9 +29,10 @@ public final class InlineEspCatalogTests {
         check("masters remain compact dropdown owners", ReferenceSettingsCatalog.find("mob-esp-enabled").isDropdown()
                 && ReferenceSettingsCatalog.find("door-esp-enabled").isDropdown());
         check("visible master name is Starred Mobs", "Starred Mobs".equals(ReferenceSettingsCatalog.find("mob-esp-enabled").label));
-        check("Hide Dead Mobs moved to QoL Comfort", ReferenceSettingsCatalog.find("hide-dead-mobs").label.equals("Hide Dead Mobs")
-                && ReferenceSettingsCatalog.find("hide-dead-mobs").description.contains("death animation")
-                && ReferenceSettingsCatalog.ownerOf("hide-dead-mobs") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
+        check("Hide Dead Mobs moved to QoL Comfort with body/nameplate wording",
+                ReferenceSettingsCatalog.find("hide-dead-mobs").label.equals("Hide Dead Mobs")
+                        && ReferenceSettingsCatalog.find("hide-dead-mobs").description.contains("name tags")
+                        && ReferenceSettingsCatalog.ownerOf("hide-dead-mobs") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
     }
 
     private static void everyRetainedStarredMobStyleHasDirectControlsOnly() {
