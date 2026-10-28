@@ -20,7 +20,7 @@ public final class ReferenceSettingsCatalog {
     public enum Tab {
         HOME("Home", "Status, quick controls, and performance."),
         // Keep GAMEPLAY as the stable route identity: only the player-facing label becomes QoL.
-        GAMEPLAY("QoL", "Comfort, inventory, chat, and shortcuts."),
+        GAMEPLAY("QoL", "Comfort, inventory, chat, and keybinds."),
         SLAYER("Slayer", "Drops, prices, and quest timing."),
         DUNGEON("Dungeons", "Maps, terminals, party, and ESP."),
         FARMING("Farming", "No Farming Features Yet."),
@@ -156,7 +156,7 @@ public final class ReferenceSettingsCatalog {
                     toggle("hide-dead-mobs", "Hide Dead Mobs", "Hide dead mobs and their name tags.",
                             "dead mobs name tags skyblock fakepixel dying defeated"),
                     toggle("auto-sprint", "Auto Sprint", "Sprint while moving forward when possible.", "sprint movement")),
-            card("inventory-chat", "Inventory And Chat", "Inventory, messages, and shortcuts.", false, "",
+            card("inventory-chat", "Inventory And Chat", "Inventory, messages, and keybinds.", false, "",
                     masterDropdown("item-lock-swap", "Item Lock And Swap",
                             "Lock slots and swap saved pairs.", "lock pairing badges",
                             info("item-lock-key", "Item Lock And Swap Key", "Set the key in Minecraft Controls.", "key controls"),

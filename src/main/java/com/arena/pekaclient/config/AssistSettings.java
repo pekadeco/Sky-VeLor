@@ -114,7 +114,7 @@ public final class AssistSettings {
         hurtCameraShake = hurtCameraShake(p);
         smoothAspectTeleport = bool(p, "visual.smoothAspectTeleport", null, smoothAspectTeleport);
         // Retired Item Protection keys (assist.itemGuard.* and old itemProtection*) are deliberately unread.
-        // Keybind Cut supersedes the visible Movement And Shortcuts section. New keys win, then the two historical
+        // Keybind Cut supersedes the former visible shortcut section. New keys win, then the two historical
         // aliases preserve established controls on their first load before save rewrites them under keybindCut.*.
         autoSprint = keybindCutBool(p, "keybindCut.autoSprint", "movement.autoSprint", "autoSprintEnabled", false);
         wardrobeShortcut = keybindCutBool(p, "keybindCut.wardrobe", "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);

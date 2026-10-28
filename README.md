@@ -1,29 +1,26 @@
-# Sky VeLor — Beta-0.10.9.1.7v
+# Sky VeLor — Beta-0.10.9.1.8v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
-Item Lock / Swap, and Item Animation for Minecraft's first-person hand renderer.
+Item Lock / Swap, Keybind Cut, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.7v — QoL/Slayer navigation and visual cleanup
+## Beta-0.10.9.1.8v — Item Lock & Swap and Keybind Cut
 
-- Aligns **Open HUD Editor**, **Open Item Animation Editor**, and every other action with the shared trailing edge,
-  `132 × 20` control geometry, and toggle-row vertical center across every settings channel.
-- Renames the visible **Player** channel to **QoL** without changing its persisted `GAMEPLAY` identity or existing
-  setting keys. Adds the visible **Slayer** channel and moves the existing Slayer tracker route there without changing
-  its configuration owner.
-- Makes the standalone Item Animation panel a solid dark, opaque control surface. The panel remains fully readable
-  without a fullscreen dim/veil, HUD canvas, or world/HUD preview layer behind the controls.
-- Fixes **QoL → Comfort → Hide Dead Mobs** by canceling only dead/dying living-mob and server-NPC render paths,
-  including their standard nameplates. It covers zero-health/death-animation SkyBlock/Fakepixel fake mobs while
-  protecting the local player and ordinary listed remote players; it never removes entities or changes server state.
-- Samples **QoL → Comfort → Smooth Aspect Teleport** at render time after an observed local Aspect of the End/Void
-  use. Its brief `125 ms` client-only camera/world glide follows an already-applied, plausible (up to 64-block)
-  server-authoritative jump instead of snapping, while the response window expires only on client ticks.
-- The Aspect feature is strictly client-side visual rendering. It does not initiate, cancel, replay, steer, or
-  packet-drive a teleport; it does not write player/camera entity coordinates, alter input, or invoke a controller.
-- Keeps Minecraft 1.8.9 Forge compatibility, safe old-config loading, existing HUD Editor, Dungeon ESP, Chat QoL,
-  Item Lock / Swap, Party Sync default-off behavior, Home metrics, dropdown behavior, optional GUI transparency, and
-  fullscreen action.
+- Item Lock and Item Swap now permits only pairs with a hotbar endpoint: inventory↔hotbar and
+  armor↔hotbar work, while inventory-only and armor-only combinations are blocked. Legacy illegal saved pairs are
+  ignored safely when loading.
+- A slot can now keep several legal pairs. Every saved pair persists and draws its own line; L-tapping a paired slot
+  removes one saved pair, and repeated completed manual swaps cycle a shared endpoint's targets in creation order
+  without bypassing the existing swap cooldown.
+- Renames **Movement And Shortcuts** to **Keybind Cut** in the visible catalog and search. Legacy
+  `assist.movement.*` / `assist.shortcuts.*` values migrate to `assist.keybindCut.*` when settings are saved.
+- Adds **Command Keybind** as one aligned master-toggle/editor row. Its solid, no-dim editor supports add, edit,
+  delete, entry on/off state, click-to-capture, Escape cancel, Backspace clear, reset, persistence, and collision
+  warnings for Sky VeLor and Minecraft controls.
+- A saved command can be sent only by one direct physical-key down edge while no chat, GUI, or editor is open. It has
+  a short cooldown and never repeats while held; it is an explicit player action, not automation.
+- Keeps Minecraft 1.8.9 Forge compatibility, old-config loading, the existing GUI/HUD Editor, Item Animation,
+  Hide Dead Mobs, Smooth Aspect Teleport, Dungeon ESP, Chat QoL, Party Sync default-off behavior, and Home metrics.
 
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
@@ -77,7 +74,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.8v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -88,8 +85,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar \
-  --version Beta-0.10.9.1.7v --mcmod-version 0.10.9.1.7
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.8v.jar \
+  --version Beta-0.10.9.1.8v --mcmod-version 0.10.9.1.8
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -97,8 +94,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1.7v-source.zip \
-  --version Beta-0.10.9.1.7v
+  SkyVeLor-1.8.9-Beta-0.10.9.1.8v-source.zip \
+  --version Beta-0.10.9.1.8v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -109,14 +106,20 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.8v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
 
-- **QoL → Inventory and Chat → Item Lock and Swap** contains the existing key-binding guidance,
-  cooldown, badge, line, clear, and reset controls. Configure the key in Minecraft **Controls → Sky
-  VeLor**; no controls screen is launched from the settings shell.
+- **QoL → Inventory and Chat → Item Lock and Swap** contains key-binding guidance, cooldown, badge,
+  line, clear, and reset controls. A new pair must include a hotbar slot; illegal legacy saved pairs are dropped
+  safely. Shared endpoints retain every legal pair and completed manual swaps cycle those targets in creation order.
+  Configure the L gesture key in Minecraft **Controls → Sky VeLor**; no controls screen is launched from the shell.
+- **QoL → Inventory and Chat → Keybind Cut** replaces the former Movement And Shortcuts route. Its saved
+  wardrobe/pets/movement values migrate from the former keys to `assist.keybindCut.*` without losing choices.
+  **Command Keybind** has one master toggle and **Open Command Keybind Editor** button. Each slash command is sent
+  only from a direct physical key press while no chat, GUI, or editor is open, has a short anti-spam cooldown, and
+  visibly warns about colliding Sky VeLor/Minecraft controls.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
 - **Dungeons → Run Tools → Spirit Bow Locator** defaults off and uses

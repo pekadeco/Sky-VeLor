@@ -16,6 +16,7 @@ public final class ReleaseClaimsTests {
     public static void main(String[] args) throws Exception {
         vanillaFontSurfaceHasNoCustomFontSubsystem();
         onlyAllowedEditorScreensRemain();
+        commandKeybindContractsArePackaged();
         inlineShellHasRequiredBehavior();
         sharedRoundedRendererIsPackaged();
         headerAndToggleContractsArePackaged();
@@ -38,6 +39,8 @@ public final class ReleaseClaimsTests {
         check("Item Animation owns a separate editor surface", classExists("com.arena.pekaclient.gui.ItemAnimationEditorScreen")
                 && classText("com.arena.pekaclient.command.ClientActions").contains("ItemAnimationEditorScreen")
                 && !classExists("com.arena.pekaclient.gui.ItemAnimationUiModel"));
+        check("Command Keybind owns its distinct opaque editor surface", classExists(
+                "com.arena.pekaclient.gui.CommandKeybindEditorScreen"));
         String[] retired = {
                 "com.arena.pekaclient.gui.FeatureSettingsEditorScreen",
                 "com.arena.pekaclient.gui.FeatureSettingsEditors",
@@ -46,6 +49,28 @@ public final class ReleaseClaimsTests {
                 "com.arena.pekaclient.gui.ModSettingsScreen"
         };
         for (String name : retired) check("focused surface removed: " + name, !classExists(name));
+    }
+
+    private static void commandKeybindContractsArePackaged() {
+        String settings = classText("com.arena.pekaclient.assist.CommandKeybindSettings");
+        String policy = classText("com.arena.pekaclient.assist.CommandKeybindPolicy");
+        String controller = classText("com.arena.pekaclient.assist.CommandKeybindController");
+        String editor = classText("com.arena.pekaclient.gui.CommandKeybindEditorScreen");
+        String theme = classText("com.arena.pekaclient.render.Theme");
+        String client = classText("com.arena.pekaclient.PekaClientMod");
+        check("Keybind Cut stores a bounded slash-command list under its new namespace",
+                settings.contains("assist.keybindCut.commandKeybinds") && settings.contains("MAX_ENTRIES")
+                        && settings.contains("normalizeCommand") && settings.contains("firstExecutableForKey"));
+        check("Command Keybind uses a direct edge and short cooldown policy", policy.contains("COOLDOWN_MILLIS")
+                && policy.contains("shouldSend") && controller.contains("Keyboard")
+                && controller.contains("CommandKeybindPolicy") && client.contains("CommandKeybindController"));
+        check("Command Keybind editor is opaque, no-dim, capture/reset capable and collision-aware",
+                editor.contains("roundRectBorder") && theme.contains("ITEM_ANIMATION_PANEL")
+                        && theme.contains("ITEM_ANIMATION_PANEL_BORDER") && !editor.contains("drawDefaultBackground")
+                        && editor.contains("AppleKeybindButton") && editor.contains("Keyboard")
+                        && editor.contains("Key capture canceled") && editor.contains("Key cleared")
+                        && editor.contains("Warning: conflicts with Sky VeLor")
+                        && editor.contains("Warning: conflicts with Minecraft"));
     }
 
     private static void inlineShellHasRequiredBehavior() {
@@ -66,7 +91,8 @@ public final class ReleaseClaimsTests {
                         && !screen.contains("all player ->") && !screen.contains("[Edit]"));
         String catalog = classText("com.arena.pekaclient.gui.ReferenceSettingsCatalog");
         check("editor routes expose clear destination labels", catalog.contains("Open HUD Editor")
-                && catalog.contains("Open Item Animation Editor"));
+                && catalog.contains("Open Item Animation Editor") && catalog.contains("Open Command Keybind Editor")
+                && catalog.contains("Keybind Cut"));
         check("Chat command route enters its requested inline owner after the ordinary reset",
                 classText("com.arena.pekaclient.command.ClientActions").contains("openChatSettings")
                         && !classText("com.arena.pekaclient.command.ClientActions").contains("ChatEditorScreen")

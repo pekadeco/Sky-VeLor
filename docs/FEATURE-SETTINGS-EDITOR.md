@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.7v
+# Apple settings inventory — Beta-0.10.9.1.8v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -30,9 +30,10 @@ A visible settings row is one of four patterns:
 4. a visibly distinct named editor-route row.
 
 Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
-`38 × 20` pill. Every action—including **Open HUD Editor** and **Open Item Animation Editor**—uses the same trailing
-right edge, `132 × 20` control geometry, and toggle-row vertical center; editor master toggles sit immediately left
-of their CTA. Card headings supply the visual hierarchy without becoming an interactive disclosure.
+`38 × 20` pill. Every action—including **Open HUD Editor**, **Open Item Animation Editor**, and
+**Open Command Keybind Editor**—uses the same trailing right edge, `132 × 20` control geometry, and toggle-row
+vertical center; editor master toggles sit immediately left of their CTA. Card headings supply the visual hierarchy
+without becoming an interactive disclosure.
 
 Each tab is a one-open accordion. All native bitmap-font text snaps its origin and effective scale to the active
 physical GUI pixel grid once per frame, avoiding fractional-scale blur without a custom-font subsystem. Rounded
@@ -41,7 +42,7 @@ Presentation-only disclosure state is stored under `ui.feature.dropdown.<catalog
 `FeatureUiState` / `FeatureUiPreferences`; it does not replace,
 rename, or migrate a feature configuration key. A newly created top-level settings shell closes every remembered
 disclosure, and writes those legacy `true` values back as `false` on the next save, so a normal close/reopen always
-starts collapsed. Returning from either existing child editor reuses its parent screen instance, while the explicit
+starts collapsed. Returning from a child editor reuses its parent screen instance, while the explicit
 Chat route intentionally opens Chat QoL after this normal fresh-screen reset. Search indexes labels, ids, descriptions,
 and keywords, changes to the result tab, and opens the direct owning dropdown. Expanded panels use a dark bordered
 inset surface with an open-header accent, child hover feedback, and inset dividers; they animate their height for
@@ -83,6 +84,19 @@ dropdown was added.
   chests, or send data; `/velor selftest` reports its sidebar-reader hook.
 - **HUD Editor** uses **Open HUD Editor**.
 - **Item Animation** is a master toggle plus **Open Item Animation Editor**.
+- **QoL → Inventory And Chat → Keybind Cut** replaces the visible Movement And Shortcuts route. The former
+  `assist.movement.autoSprint`, `assist.shortcuts.wardrobe`, and `assist.shortcuts.pets` values load once and save
+  under `assist.keybindCut.autoSprint`, `assist.keybindCut.wardrobe`, and `assist.keybindCut.pets`; new keys win when
+  both exist. Its **Command Keybind** row is one master toggle plus **Open Command Keybind Editor**.
+- **Command Keybind** entries store a physical key, slash command, and per-entry on/off state. The solid no-dim editor
+  supports add/edit/delete, click capture, Escape cancel, Backspace key clear, reset, persistence, and visible
+  collision warnings for another Sky VeLor keybind or a Minecraft control. The runtime samples physical key-down
+  edges only; it sends the first enabled creation-order command for a duplicated key only when no chat, GUI, or editor
+  is open, and uses a short cooldown. It never schedules repetition or acts without that direct player input.
+- **Item Lock And Swap** accepts a new pair only when at least one endpoint is in the hotbar. Inventory↔hotbar and
+  armor↔hotbar routes remain legal; inventory-only and armor-only legacy records are safely discarded on load. A slot
+  may keep several legal pairs, each has its own line, L-tapping a paired slot removes one saved pair, and successful
+  manual swaps cycle that source endpoint through its targets in creation order while retaining the existing cooldown.
 - **Dungeons → Starred Mobs** owns only tagged starred targets and named minibosses. Its four retained target styles
   are Starred Mob, Miniboss, Special Starred Mob, and Enderman. A star-tagged Skeletor resolves through normal
   Starred Mob styling; player-shaped/NPC bodies remain eligible when a nearby tag selects them, while the local
@@ -99,8 +113,9 @@ dropdown was added.
 - Recognized Enderman/Fel armor-stand head markers remain direct targets without a separate star-tag or
   player-relative height gate. Their centered `0.76 × 1.85` fixed proxy covers the complete marker representation
   while remaining smaller than the retired `1.1 × 2.7` outline.
-- Map, Item Lock / Swap, inventory, movement, Slayer, M7, Starred Mobs/Door ESP, mining, fishing, and Misc
-  owners retain their active option ids and configuration owners.
+- Map, Item Lock / Swap, inventory, Slayer, M7, Starred Mobs/Door ESP, mining, fishing, and Misc owners retain
+  their active option ids and configuration owners. Keybind Cut intentionally migrates only its former movement/
+  shortcut keys to the new `assist.keybindCut.*` namespace.
 - **Misc → Appearance** exposes **Custom GUI Transparency** plus **GUI Transparency**. These controls retain
   the established `glassOpacityOn` and `glassOpacity` keys: disabling the custom toggle uses the default glass
   opacity without discarding the saved value, and the 45%–100% slider range makes lower opacity visibly useful.
@@ -125,12 +140,28 @@ panel and join line. Item Animation background/transparency/opacity controls are
 background/opacity keys are ignored on load and removed on the next normal save; other old Item
 Animation values continue to load unchanged.
 
+## Command Keybind editor
+
+**QoL → Inventory And Chat → Keybind Cut → Open Command Keybind Editor** opens
+`CommandKeybindEditorScreen`. It uses the same compact opaque/no-dim panel treatment as Item Animation, rather than
+a vanilla dialog or a fullscreen veil. Each row exposes a click-to-capture key, slash-command text field, per-entry
+On/Off pill, **Edit**, and **Delete**; the footer provides **Add** and **Reset**. Escape cancels a pending key capture,
+and Backspace clears that captured key. The editor warns before the player leaves if a key collides with another
+Command Keybind, a Sky VeLor binding, or a Minecraft control.
+
+Entries persist under `assist.keybindCut.commandKeybinds` and
+`assist.keybindCut.commandKeybinds.entries`. The master switch is default off. A command must have a slash, a valid
+key, and an enabled entry. The client sends it only from a new physical key-down edge while `currentScreen` is absent,
+which excludes chat, all GUIs, and the editor itself. A 300 ms cooldown and held-key edge tracking prevent automatic
+repetition. Duplicate command-entry keys dispatch only their first creation-order entry; the collision warning remains
+visible so this is never silent.
+
 ## Player-facing text migration
 
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.7v text |
+| Earlier player-facing text | Beta-0.10.9.1.8v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -146,6 +177,7 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 | `Hide Zero Health` under Starred Mobs | `Hide Dead Mobs` under QoL → Comfort; render-only body/nameplate cleanup |
 | No Aspect visual easing | `Smooth Aspect Teleport` under QoL → Comfort; render-only |
 | Visible `Player` channel | Visible `QoL` label with the same `GAMEPLAY` persistence identity |
+| `Movement And Shortcuts` | `Keybind Cut`, with migrated `assist.keybindCut.*` keys and Command Keybind editor |
 | Slayer route under Player | Slayer Tracker under the visible Slayer channel; keys unchanged |
 | Dedicated Skeletor style | Normal `Starred Mob` style for star-tagged Skeletor |
 | Tracers; Starred Mobs Default/Subtle actions | Removed; legacy keys clean up on save |
@@ -171,10 +203,11 @@ sentence-case descriptions. Implementation-facing wording is excluded by the cat
 Headless coverage includes flat depth/count/choice invariants, nine-destination fixed-column scale-1–4 geometry,
 shared action trailing-edge geometry, Apple title-bar targets and 8 px margin behavior, named editor-route/no-tree
 behavior, fresh-open accordion reset with the intentional direct-route disclosure, search behavior, player-copy
-validation, old-config loading, exact configurable-id preservation, direct binding audit, Spirit Bow marker matching,
-bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation panel/control exclusion, dead-mob render
-policy protections, deterministic render-time Aspect camera-path easing, and fail-closed EntityRenderer/RenderGlobal
-transformer-shape checks.
+validation, old-config loading, Keybind Cut migration, Command Keybind serialization/collision/direct-edge cooldown
+policy, exact configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair
+cycling, Spirit Bow marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation and
+Command Keybind panel exclusion, dead-mob render policy protections, deterministic render-time Aspect camera-path
+easing, and fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
 `tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
 Home, Dungeons, and GUI-scale-4 Home Java2D PNG review previews; CI uploads those previews as
 short-lived evidence. `tools/verify_release_jar.py` additionally checks the packaged class and
@@ -184,8 +217,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.7v.jar \
-  --version Beta-0.10.9.1.7v --mcmod-version 0.10.9.1.7
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.8v.jar \
+  --version Beta-0.10.9.1.8v --mcmod-version 0.10.9.1.8
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.7v] [--mcmod-version 0.10.9.1.7]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.8v] [--mcmod-version 0.10.9.1.8]
 """
 
 import argparse
@@ -103,6 +103,7 @@ REQUIRED_CLASSES = [
     'gui/HudEditorLayout',
     'gui/HudEditorSelectionPolicy',
     'gui/ItemAnimationEditorScreen',
+    'gui/CommandKeybindEditorScreen',
     'gui/ItemAnimationPanelModel',
     'dungeon/TerminalSolver',
     'dungeon/DungeonMapOverlay',
@@ -145,6 +146,9 @@ REQUIRED_CLASSES = [
     # the feature catalogue while accidentally packaging only its settings/UI surface.
     'config/AssistSettings',
     'assist/ShortcutController',
+    'assist/CommandKeybindSettings',
+    'assist/CommandKeybindPolicy',
+    'assist/CommandKeybindController',
     'assist/inventory/InventoryAssistController',
     'assist/inventory/RomanNumeralPolicy',
     'assist/inventory/TooltipWindow',
@@ -362,8 +366,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.7v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.7')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.8v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.8')
     args = ap.parse_args()
 
     path = args.jar
@@ -534,6 +538,10 @@ def main():
     hud_element_raw = raw_of('hud/HudElement')
     item_slots_raw = raw_of('hud/ItemSlots')
     item_animation_editor_raw = raw_family_of('gui/ItemAnimationEditorScreen')
+    command_keybind_editor_raw = raw_family_of('gui/CommandKeybindEditorScreen')
+    command_keybind_settings_raw = raw_of('assist/CommandKeybindSettings')
+    command_keybind_policy_raw = raw_of('assist/CommandKeybindPolicy')
+    command_keybind_controller_raw = raw_of('assist/CommandKeybindController')
     item_animation_panel_raw = raw_of('gui/ItemAnimationPanelModel')
     hook_status_raw = raw_of('render/itemanimation/ItemAnimationHookStatus')
 
@@ -557,7 +565,7 @@ def main():
     r.check(all(value in settings_screen_raw for value in
                 (b'HIT_DISCLOSURE', b'FeatureUiPreferences', b'childBlockHeight', b'reserveValueDropdown',
                  b'expandSearchResult', b'drawFullscreenGlyph', b'open-hud-editor', b'item-animation-open-editor',
-                 b'drawGroupCaption', b'drawResetFooter', b'EXPANDED_BOTTOM_PADDING', b'GuiMotion',
+                 b'open-command-keybind-editor', b'drawGroupCaption', b'drawResetFooter', b'EXPANDED_BOTTOM_PADDING', b'GuiMotion',
                  b'expandedPanel', b'expandedBorder', b'expandedHeader', b'expandedRowHover', b'expandedDivider',
                  b'dependentTextPrimary', b'dependentTextSecondary', b'actionButtonX', b'actionButtonWidth',
                  b'editorToggleX', b'ACTION_BUTTON_H'))
@@ -650,11 +658,12 @@ def main():
     # The ASM visitors that contain injected descriptors live in nested classes, so inspect the whole transformer family.
     aspect_transformer_raw = raw_family_of('assist/visual/AspectTeleportCameraTransformer')
     r.check(all(value in assist_settings_raw for value in
-                (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.movement.autoSprint',
+                (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.keybindCut.autoSprint',
+                 b'assist.keybindCut.wardrobe', b'assist.keybindCut.pets', b'movement.autoSprint',
                  b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
                  b'assist.dungeon.spiritBowLocator', b'spiritBowLocator', b'assist.dungeon.terminal.autoClick',
                  b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
-            'AssistSettings retains bounded visual, comfort, movement, terminal, sync and opt-in Spirit Bow locator owners')
+            'AssistSettings retains bounded visual, comfort, Keybind Cut migration, terminal, sync and opt-in Spirit Bow locator owners')
     # Raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
     aspect_policy_values = (b'isAspectTeleportItem', b'isLargePositionJump', b'cameraProgress', b'aspect of the end',
                             b'aspect of the void', b'CAMERA_INTERPOLATION_NANOS')
@@ -813,6 +822,23 @@ def main():
                 and b'ItemAnimationUiModel' not in hud_editor_raw and b'ITEM_ANIMATION' not in hud_editor_raw
                 and b'ItemAnimationHookStatus' not in hud_editor_raw,
             'HUD Editor contains no Item Animation target, sample-panel surface, or renderer controls')
+    r.check(all(value in reference_catalog_raw for value in
+                (b'Keybind Cut', b'keybind-cut', b'Command Keybind', b'Open Command Keybind Editor'))
+                and b'command-keybinds' in bindings_raw and b'open-command-keybind-editor' in settings_screen_raw,
+            'Keybind Cut replaces the old shortcuts row and exposes one aligned Command Keybind toggle/editor route')
+    r.check(all(value in command_keybind_settings_raw for value in
+                (b'assist.keybindCut.commandKeybinds', b'.entries', b'MAX_ENTRIES', b'normalizeCommand',
+                 b'firstExecutableForKey'))
+                and all(value in command_keybind_policy_raw for value in (b'COOLDOWN_MILLIS', b'shouldSend'))
+                and all(value in command_keybind_controller_raw for value in
+                        (b'Keyboard', b'CommandKeybindSettings', b'CommandKeybindPolicy'))
+                and b'CommandKeybindController' in client_raw,
+            'Command Keybind persistence, physical-edge cooldown policy and registered direct-user runtime are packaged')
+    r.check(all(value in command_keybind_editor_raw for value in
+                (b'Command Keybind', b'AppleKeybindButton', b'Key capture canceled', b'Key cleared',
+                 b'Warning: conflicts with Sky VeLor ', b'Warning: conflicts with Minecraft ', b'AppleSettings'))
+                and b'drawDefaultBackground' not in command_keybind_editor_raw,
+            'Command Keybind editor is an opaque no-dim add/edit/delete/capture/reset surface with visible collision warnings')
 
     chat_settings_raw = raw_of('config/ChatQolSettings')
     tabs_raw = raw_of('feature/ChatChannelTabs')
@@ -834,6 +860,12 @@ def main():
                 and all(value in lock_overlay_raw for value in (b'drawContainerForeground', b'drawBadge', b'drawRoundLine'))
                 and b'beginInternalSwap' in lock_controller_raw,
             'Item Lock/Swap runtime rendering and safe pair logic remain while its focused settings screen is removed')
+    r.check(all(value in raw_of('itemlockswap/ItemLockSwapSettings') for value in
+                (b'isLegalPair', b'ILLEGAL', b'pairCountForSlot', b'partnerForSwap', b'advanceSwapPartner', b'removePair'))
+                and all(value in lock_overlay_raw for value in (b'drawPersistentPairLines', b'pairCountForSlot'))
+                and all(value in lock_controller_raw for value in
+                        (b'partnerForSwap', b'advanceSwapPartner', b'Cannot pair: one slot must be in the hotbar')),
+            'Item Lock/Swap accepts only hotbar-ended pairs, preserves every legal line and cycles shared endpoints after successful swaps')
     fishing_constants = constants_of('fishing/FishingStats')
     fishing_hud_raw = raw_of('fishing/FishingHud')
     sea_constants = constants_of('fishing/SeaCreatureHud')

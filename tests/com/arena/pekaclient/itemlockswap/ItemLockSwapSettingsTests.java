@@ -12,6 +12,7 @@ public final class ItemLockSwapSettingsTests {
         freshInstallDefaults();
         lockAndHotbarPairRules();
         multiplePairsCycleInCreationOrder();
+        everyLegalPairFitsAndPersists();
         persistenceAndMalformedInput();
         keybindPolicy();
         System.out.println("item lock/swap settings: passed " + passed + ", failed " + failed);
@@ -93,6 +94,24 @@ public final class ItemLockSwapSettingsTests {
                 && ItemLockSwapSettings.pairCountForSlot(0) == 1 && ItemLockSwapSettings.partnerOf(0) == 10);
         ItemLockSwapSettings.clearPairs();
         check("clear pairs removes all pairs", ItemLockSwapSettings.pairCount() == 0);
+    }
+
+    private static void everyLegalPairFitsAndPersists() {
+        ItemLockSwapSettings.load(new Properties());
+        boolean allAdded = true;
+        // Every legal edge has a hotbar endpoint; visiting first hotbar 0..8 and later slots visits each once.
+        for (int first = 0; first <= 8; first++) {
+            for (int second = first + 1; second < ItemLockSwapSettings.SLOT_COUNT; second++) {
+                if (ItemLockSwapSettings.addPair(first, second) != ItemLockSwapSettings.PairResult.ADDED) allAdded = false;
+            }
+        }
+        check("every distinct legal hotbar pair fits", allAdded && ItemLockSwapSettings.pairCount()
+                == ItemLockSwapSettings.MAX_PAIRS);
+        Properties saved = new Properties();
+        ItemLockSwapSettings.save(saved);
+        ItemLockSwapSettings.load(saved);
+        check("every saved legal pair survives a full load", ItemLockSwapSettings.pairCount()
+                == ItemLockSwapSettings.MAX_PAIRS && ItemLockSwapSettings.pairCountForSlot(0) == 39);
     }
 
     private static void persistenceAndMalformedInput() {

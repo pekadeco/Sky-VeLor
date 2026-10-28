@@ -1,5 +1,40 @@
 # Changelog
 
+## Beta-0.10.9.1.8v — 2026-10-28
+
+### Fixed
+
+- Item Lock And Swap now rejects every new pair that has no hotbar endpoint. Inventory↔inventory,
+  armor↔inventory, inventory↔armor, and armor↔armor paths are blocked through the existing blocked-message gate;
+  malformed and legacy illegal saved pairs are discarded safely during load.
+- A paired position can now retain multiple legal targets. Lines render to every saved target, an L tap on a paired
+  position removes one saved pair, and completed manual swaps cycle shared-endpoint targets in creation order without
+  skipping the existing cooldown or failed fit/cursor checks.
+
+### Added
+
+- Added **Command Keybind** inside **QoL → Inventory And Chat → Keybind Cut**. The aligned row has an opt-in master
+  toggle plus **Open Command Keybind Editor**. Its opaque/no-dim editor supports add, edit, delete, entry On/Off,
+  click-to-capture, Escape cancel, Backspace clear, reset, persistent slash commands, and collision warnings.
+- Added direct physical-edge runtime handling with a 300 ms anti-spam cooldown. Commands cannot fire while chat, a GUI,
+  or the editor is open; a held key never repeats and duplicate command keys dispatch only their first creation-order
+  entry.
+- Added focused Item Lock pair legality/multi-pair/cycling migration tests, Command Keybind persistence/collision/
+  direct-edge policy tests, editor-source coverage, and release/source archive verifier checks.
+
+### Changed
+
+- Renamed the visible **Movement And Shortcuts** route to **Keybind Cut** in headers and search. The former
+  `assist.movement.*` and `assist.shortcuts.*` values load compatibly and save under the new
+  `assist.keybindCut.*` namespace; new keys take precedence when both exist.
+- Rechecked the established GUI/HUD Editor, Item Animation, Hide Dead Mobs, Smooth Aspect Teleport, Dungeon ESP, and
+  Chat QoL contracts with the Java 8 Forge build, standalone tests, headless layout evidence, and release verifiers.
+
+### Verification boundary
+
+- Automated verification does not launch Minecraft. Item Lock And Swap interaction, Command Keybind input feel,
+  rendering, and gameplay compatibility are **NOT tested in-game**.
+
 ## Beta-0.10.9.1.7v — 2026-10-28
 
 ### Fixed
