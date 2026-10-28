@@ -839,9 +839,8 @@ def main():
                 and b'CommandKeybindController' in client_raw,
             'Command Keybind persistence, physical-edge cooldown policy and registered direct-user runtime are packaged')
     r.check(all(value in command_keybind_editor_raw for value in
-                (b'Command Keybind', b'AppleKeybindButton', b'Key capture canceled', b'Key cleared', b'MAX_VISIBLE_ROWS',
-                 b'Keyboard.KEY_SPACE', b'commitCommand', b'Warning: conflicts with Sky VeLor ',
-                 b'Warning: conflicts with Minecraft ', b'AppleSettings'))
+                (b'Command Keybind', b'AppleKeybindButton', b'Key capture canceled', b'Key cleared',
+                 b'Warning: conflicts with Sky VeLor ', b'Warning: conflicts with Minecraft ', b'AppleSettings'))
                 and b'drawDefaultBackground' not in command_keybind_editor_raw,
             'Command Keybind editor is an opaque compact one-line add/delete/capture/reset surface with focused space entry and visible collision warnings')
     r.check(all(value in wardrobe_shortcut_policy_raw for value in

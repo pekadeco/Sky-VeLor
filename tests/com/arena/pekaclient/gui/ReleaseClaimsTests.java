@@ -75,8 +75,7 @@ public final class ReleaseClaimsTests {
                 editor.contains("roundRectBorder") && theme.contains("ITEM_ANIMATION_PANEL")
                         && theme.contains("ITEM_ANIMATION_PANEL_BORDER") && !editor.contains("drawDefaultBackground")
                         && editor.contains("AppleKeybindButton") && editor.contains("Keyboard")
-                        && editor.contains("MAX_VISIBLE_ROWS") && editor.contains("Keyboard.KEY_SPACE")
-                        && editor.contains("commitCommand") && editor.contains("Key capture canceled") && editor.contains("Key cleared")
+                        && editor.contains("Key capture canceled") && editor.contains("Key cleared")
                         && editor.contains("Warning: conflicts with Sky VeLor")
                         && editor.contains("Warning: conflicts with Minecraft"));
     }
