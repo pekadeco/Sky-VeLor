@@ -24,8 +24,8 @@ public final class AppleLayoutRendererSourceTests {
                 text.contains("ReferenceSettingsWindowLayout.layout") && text.contains("SettingsShellLayout.layoutHeader")
                         && text.contains("SettingsRailLayout.layout") && text.contains("SettingsControlLayout.toggleX")
                         && text.contains("ReferenceSettingsCatalog.cards"));
-        check("renderer checks the 24 px header actions and current eight destinations",
-                text.contains("isHeaderTargetValid") && text.contains("ReferenceSettingsCatalog.TABS.length == 8"));
+        check("renderer checks the 24 px header actions and current nine destinations",
+                text.contains("isHeaderTargetValid") && text.contains("ReferenceSettingsCatalog.TABS.length == 9"));
         check("renderer produces Home, Dungeon, and scale-four evidence", text.contains("home-scale1.png")
                 && text.contains("dungeon-scale1.png") && text.contains("home-scale4.png"));
         check("renderer excludes retired traffic-light actions", !text.contains("window-red") && !text.contains("window-yellow")

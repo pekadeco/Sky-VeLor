@@ -14,7 +14,7 @@ public final class InlineSettingsCatalogTests {
     private static int failed;
 
     public static void main(String[] args) {
-        exactEightDestinationOrder();
+        exactNineDestinationOrder();
         everyFeatureUsesAFlatInlineOwner();
         requiredOwnersAndMovesArePresent();
         searchOpensOneOwningDropdown();
@@ -24,13 +24,15 @@ public final class InlineSettingsCatalogTests {
         done();
     }
 
-    private static void exactEightDestinationOrder() {
-        String[] expected = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
-        check("sidebar order is Home Player Dungeons Farming Mining Fishing HUD & Visuals Misc",
+    private static void exactNineDestinationOrder() {
+        String[] expected = {"Home", "QoL", "Slayer", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
+        check("sidebar order is Home QoL Slayer Dungeons Farming Mining Fishing HUD & Visuals Misc",
                 Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
-        check("catalog tabs use the same eight-tab order", ReferenceSettingsCatalog.TABS.length == expected.length
+        check("catalog tabs use the same nine-tab order", ReferenceSettingsCatalog.TABS.length == expected.length
                 && ReferenceSettingsCatalog.TABS[0] == ReferenceSettingsCatalog.Tab.HOME
-                && ReferenceSettingsCatalog.TABS[7] == ReferenceSettingsCatalog.Tab.SYSTEM);
+                && ReferenceSettingsCatalog.TABS[1] == ReferenceSettingsCatalog.Tab.GAMEPLAY
+                && ReferenceSettingsCatalog.TABS[2] == ReferenceSettingsCatalog.Tab.SLAYER
+                && ReferenceSettingsCatalog.TABS[8] == ReferenceSettingsCatalog.Tab.SYSTEM);
         check("Farming remains an explicit empty channel", ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.FARMING).isEmpty()
                 && ReferenceSettingsCatalog.search("sprout").size() == 1);
     }
@@ -70,8 +72,8 @@ public final class InlineSettingsCatalogTests {
         check("genuine Fishing options moved without a new owner", ReferenceSettingsCatalog.ownerOf("fishing-tracker") == ReferenceSettingsCatalog.Tab.FISHING
                 && ReferenceSettingsCatalog.ownerOf("catch-counter") == ReferenceSettingsCatalog.Tab.FISHING
                 && ReferenceSettingsCatalog.ownerOf("sea-hp-hud-route") == ReferenceSettingsCatalog.Tab.FISHING);
-        check("Slayer stays in Player and HUD/item animation remain in HUD & Visuals",
-                ReferenceSettingsCatalog.ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.GAMEPLAY
+        check("Slayer owns its existing tracker and HUD/item animation remain in HUD & Visuals",
+                ReferenceSettingsCatalog.ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.SLAYER
                         && ReferenceSettingsCatalog.ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
                         && ReferenceSettingsCatalog.ownerOf("hud-dungeon-run") == ReferenceSettingsCatalog.Tab.VISUALS
                         && ReferenceSettingsCatalog.ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
@@ -110,6 +112,7 @@ public final class InlineSettingsCatalogTests {
         check("unknown inline dropdown starts collapsed", !state.dropdownOpen("item-lock-swap"));
         Properties original = new Properties();
         original.setProperty("dungeonMap", "false");
+        original.setProperty("slayer.tracker", "false");
         original.setProperty("ui.feature.tree.retired", "ignored");
         original.setProperty("ui.feature.dropdown.item-lock-swap", "true");
         state.load(original);
@@ -118,7 +121,9 @@ public final class InlineSettingsCatalogTests {
         state.openAccordion("chat-qol", ReferenceSettingsCatalog.dropdownIds(ReferenceSettingsCatalog.Tab.GAMEPLAY));
         state.setDropdownOpen("dungeon-map", true);
         state.save(original);
-        check("existing gameplay key survives UI-state save", "false".equals(original.getProperty("dungeonMap")));
+        check("existing gameplay and Slayer keys survive presentation-only UI state save",
+                "false".equals(original.getProperty("dungeonMap"))
+                        && "false".equals(original.getProperty("slayer.tracker")));
         check("accordion save closes peers and writes additive presentation keys",
                 "false".equals(original.getProperty("ui.feature.dropdown.item-lock-swap"))
                         && "true".equals(original.getProperty("ui.feature.dropdown.chat-qol")));

@@ -7,6 +7,7 @@ public final class SettingsControlLayoutTests {
 
     public static void main(String[] args) {
         rightEdgesStayEquivalentAtAllGuiScales();
+        actionButtonsShareTheToggleTrailingEdgeAndHeight();
         verticalPoliciesStayInsideTheirRows();
         System.out.println("settings control layout: passed " + passed + ", failed " + failed);
         if (failed > 0) System.exit(1);
@@ -32,6 +33,28 @@ public final class SettingsControlLayoutTests {
                 check("control remains inside row at scale " + scale + " control " + i,
                         controlX >= rowX - .01f && controlX + controlWidth <= rowX + rowWidth + .01f);
             }
+        }
+    }
+
+    private static void actionButtonsShareTheToggleTrailingEdgeAndHeight() {
+        for (int scale = 1; scale <= 4; scale++) {
+            float rowX = 12f;
+            float rowWidth = Math.max(176f, 460f / scale);
+            float padding = 12f;
+            float actionWidth = Math.min(SettingsControlLayout.ACTION_BUTTON_WIDTH, rowWidth - padding * 2f);
+            float toggleX = SettingsControlLayout.toggleX(rowX, rowWidth, padding);
+            float actionX = SettingsControlLayout.actionButtonX(rowX, rowWidth, padding, actionWidth);
+            check("action right edge equals toggle right edge at scale " + scale,
+                    close(actionX + actionWidth, toggleX + SettingsControlLayout.TOGGLE_COLUMN_WIDTH));
+            check("action keeps the shared fixed width at scale " + scale,
+                    close(actionWidth, SettingsControlLayout.ACTION_BUTTON_WIDTH));
+            check("action uses the same 20 px control height as a toggle at scale " + scale,
+                    close(SettingsControlLayout.CONTROL_HEIGHT, 20f));
+            float rowY = 14f;
+            float rowH = 46f;
+            float actionY = SettingsControlLayout.centeredY(rowY, rowH, SettingsControlLayout.CONTROL_HEIGHT);
+            check("action and toggle share vertical center at scale " + scale,
+                    close(actionY + SettingsControlLayout.CONTROL_HEIGHT * .5f, rowY + rowH * .5f));
         }
     }
 

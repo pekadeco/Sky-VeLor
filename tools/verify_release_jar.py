@@ -557,7 +557,8 @@ def main():
                  b'expandSearchResult', b'drawFullscreenGlyph', b'open-hud-editor', b'item-animation-open-editor',
                  b'drawGroupCaption', b'drawResetFooter', b'EXPANDED_BOTTOM_PADDING', b'GuiMotion',
                  b'expandedPanel', b'expandedBorder', b'expandedHeader', b'expandedRowHover', b'expandedDivider',
-                 b'dependentTextPrimary', b'dependentTextSecondary'))
+                 b'dependentTextPrimary', b'dependentTextSecondary', b'actionButtonX', b'actionButtonWidth',
+                 b'editorToggleX', b'ACTION_BUTTON_H'))
                 and b'AppleToggle' in settings_screen_raw and b'AppleDropdown' in settings_screen_raw
                 and b'AppleSegmented' not in settings_screen_raw,
             'AppleSettingsScreen uses one-level persisted dropdowns, readable inset accordions, search-driven opening, fixed controls and reset-link footers')
@@ -566,9 +567,9 @@ def main():
                  b'everyChoiceHasAtLeastTwoOptions', b'dropdownIds', b'playerTextViolations')),
             'catalog packages flat captions, editor rows, depth/count guards and player-copy validation')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Home', b'Player', b'Dungeons', b'Farming', b'Mining', b'Fishing', b'HUD & Visuals', b'Misc',
-                 b'No Farming Features Yet', b'Mining Assistant', b'Fishing Tracker', b'Slayer Tracker')),
-            'catalog packages the requested feature-oriented eight-tab sidebar, empty Farming message, and genuine Mining/Fishing moves')
+                (b'Home', b'QoL', b'Slayer', b'Dungeons', b'Farming', b'Mining', b'Fishing', b'HUD & Visuals', b'Misc',
+                 b'SLAYER', b'No Farming Features Yet', b'Mining Assistant', b'Fishing Tracker', b'Slayer Tracker')),
+            'catalog packages the requested feature-oriented nine-tab sidebar, QoL relabel, Slayer move, empty Farming message, and genuine Mining/Fishing moves')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Dungeon Map', b'Terminal Helper', b'Spirit Leap Picker', b'Boss Health HUD', b'Spirit Bow Locator',
                  b'spirit-bow-locator', b'Floor VII Overlay', b'Starred Mobs', b'Door ESP', b'Maxor', b'Storm',
@@ -779,12 +780,13 @@ def main():
                 and b'previewSwing' in item_animation_editor_raw and b'ItemAnimation' in item_animation_editor_raw,
             'standalone Item Animation panel retains only the requested real hand-renderer controls and Preview Swing')
     r.check(all(value not in item_panel_constants for value in ('Transparency', 'Opacity', 'Background'))
+                and b'ITEM_ANIMATION_PANEL' in item_animation_editor_raw and b'ITEM_ANIMATION_PANEL' in theme_raw
                 and b'drawDefaultBackground' not in item_animation_editor_raw
                 and b'HudManager' not in item_animation_editor_raw
                 and b'Hook: active' in hook_status_raw and b'Hook: failed (' in hook_status_raw
                 and b'ItemAnimationHookStatus' in item_animation_editor_raw
                 and b'isActive' in item_animation_editor_raw and b'isFailed' in item_animation_editor_raw,
-            'Item Animation is an undimmed standalone panel with no HUD/world surface or retired background controls')
+            'Item Animation is an undimmed, opaque standalone panel with no HUD/world surface or retired background controls')
     r.check(b'LIVE HELD-ITEM PREVIEW' not in hud_editor_raw and b'drawItemAnimationEditorPreview' not in hud_editor_raw
                 and b'ItemAnimationUiModel' not in hud_editor_raw and b'ITEM_ANIMATION' not in hud_editor_raw
                 and b'ItemAnimationHookStatus' not in hud_editor_raw,

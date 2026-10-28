@@ -16,7 +16,7 @@ public final class ItemAnimationPanelModel {
     private ItemAnimationPanelModel() {
     }
 
-    /** The panel deliberately paints no HUD canvas, toolbar, veil, or item sample surface. */
+    /** The panel deliberately paints no HUD canvas, toolbar, veil, or item sample surface; its one panel is opaque. */
     public static List<String> renderLayers() {
         return RENDER_LAYERS;
     }

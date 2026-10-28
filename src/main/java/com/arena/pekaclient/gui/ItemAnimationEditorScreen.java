@@ -22,7 +22,8 @@ import java.util.List;
 
 /**
  * A deliberately small standalone Item Animation panel.  Unlike the HUD editor it never paints a placement canvas,
- * HUD elements, toolbar, world overlay, or full-screen dim layer behind the panel.
+ * HUD elements, toolbar, world overlay, or full-screen dim layer behind the panel. Its own panel surface is
+ * explicitly opaque, so no world or HUD pixels can bleed through the editor controls.
  */
 public final class ItemAnimationEditorScreen extends AppleScreen {
     static final float PANEL_WIDTH_FRACTION = .28f;
@@ -177,8 +178,10 @@ public final class ItemAnimationEditorScreen extends AppleScreen {
     }
 
     private void drawPanel(int mouseX, int mouseY) {
+        // Do not veil the game behind this focused editor. The panel itself is solid so text and controls remain
+        // readable even when the parent shell uses optional transparent glass.
         UIRender.roundRectBorder(panelX, panelY, panelW, panelH, 7f,
-                Theme.card, Theme.card, Theme.border);
+                Theme.ITEM_ANIMATION_PANEL, Theme.ITEM_ANIMATION_PANEL, Theme.ITEM_ANIMATION_PANEL_BORDER);
         UIRender.text(fr(), "Item Animation", panelX + 10f, panelY + 10f, Theme.textPrimary, .88f, false);
         float closeX = panelX + panelW - 20f;
         boolean closeHover = inside(mouseX, mouseY, closeX, panelY + 5f, 15f, 16f);

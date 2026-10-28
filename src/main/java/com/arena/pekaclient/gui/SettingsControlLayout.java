@@ -11,6 +11,10 @@ public final class SettingsControlLayout {
     /** Reserved by every settings row so toggles and disclosure arrows never drift between row types. */
     public static final float CHEVRON_COLUMN_WIDTH = 18f;
     public static final float TOGGLE_COLUMN_WIDTH = 38f;
+    /** Route/maintenance actions share one readable fixed-width trailing control column. */
+    public static final float ACTION_BUTTON_WIDTH = 132f;
+    /** Toggles and action buttons share the same 20 px visual target height. */
+    public static final float CONTROL_HEIGHT = 20f;
     public static final float COLUMN_GAP = 5f;
 
     private SettingsControlLayout() {
@@ -29,6 +33,12 @@ public final class SettingsControlLayout {
     /** Last usable x coordinate before the shared chevron/toggle columns. */
     public static float contentRight(float rowX, float rowWidth, float trailingPadding, float gap) {
         return chevronCenterX(rowX, rowWidth, trailingPadding) - CHEVRON_COLUMN_WIDTH * .5f - Math.max(0f, gap);
+    }
+
+    /** Places a fixed-width action in the same trailing lane used by a standalone toggle. */
+    public static float actionButtonX(float rowX, float rowWidth, float trailingPadding, float availableWidth) {
+        float width = Math.max(0f, Math.min(ACTION_BUTTON_WIDTH, Math.max(0f, availableWidth)));
+        return rightX(rowX, rowWidth, trailingPadding, width);
     }
 
     /** Right edge for a control inside a row with the declared trailing padding. */

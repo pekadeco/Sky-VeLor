@@ -3,20 +3,21 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.render.GuiStyle;
 
 /**
- * Pure, reusable geometry for the eight-channel settings rail.
+ * Pure, reusable geometry for the settings-channel rail.
  *
  * <p>The normal rail uses 30 px entries separated by the shared 4 px rhythm. On small GUI surfaces it changes to a
- * two-row, four-column compact rail rather than shrinking, overlapping, or hiding a destination. There is no profile
+ * four-column compact rail rather than shrinking, overlapping, or hiding a destination. There is no profile
  * footer or preset card: every rectangle represents one of the current settings pages, and rendering/hit testing share
  * one {@link Rail} instance.</p>
  */
 public final class SettingsRailLayout {
     public static final float ENTRY_HEIGHT = 30f;
-    public static final float COMPACT_ENTRY_HEIGHT = 28f;
+    /** Nine destinations retain a 26 px compact target rather than becoming clipped at GUI scale four. */
+    public static final float COMPACT_ENTRY_HEIGHT = 26f;
     public static final float ENTRY_GAP = GuiStyle.SPACE_4;
     public static final float RAIL_PADDING = GuiStyle.SPACE_8;
     public static final float COMPACT_PADDING = GuiStyle.SPACE_4;
-    /** Eight destinations fit in two rows at all supported GUI scales. */
+    /** A four-column compact rail grows to the required number of rows without shrinking destinations. */
     public static final int COMPACT_COLUMNS = 4;
 
     private SettingsRailLayout() {

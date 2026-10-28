@@ -14,6 +14,7 @@ public final class ThemeTests {
         dropdownContrastAndStateTokensAreCentral();
         expandedDisclosureRemainsLegibleOverTransparentGlass();
         semanticStatusColorsRemainPurposeBound();
+        itemAnimationPanelIsOpaqueWithoutAScreenVeil();
         System.out.println();
         System.out.println("theme: passed " + passed + ", failed " + failed);
         if (failed > 0) {
@@ -105,6 +106,13 @@ public final class ThemeTests {
                         && Theme.dependentTextSecondary == Theme.DEPENDENT_TEXT_SECONDARY
                         && alpha(Theme.dependentTextPrimary) == 0xFF && alpha(Theme.dependentTextSecondary) == 0xFF
                         && Theme.DEPENDENT_CONTROL_ALPHA > .70f && Theme.DEPENDENT_CONTROL_ALPHA < 1f);
+    }
+
+
+    private static void itemAnimationPanelIsOpaqueWithoutAScreenVeil() {
+        check("Item Animation owns an opaque dark panel token instead of relying on translucent shell glass",
+                alpha(Theme.ITEM_ANIMATION_PANEL) == 0xFF && alpha(Theme.ITEM_ANIMATION_PANEL_BORDER) == 0xFF
+                        && Theme.ITEM_ANIMATION_PANEL != Theme.card);
     }
 
     private static void semanticStatusColorsRemainPurposeBound() {

@@ -16,7 +16,7 @@ public final class FarmingNavigationTests {
     }
 
     private static void exactRailOrderIncludesTheTwoNewChannels() {
-        String[] expected = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
+        String[] expected = {"Home", "QoL", "Slayer", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
         check("Farming precedes Mining and Fishing in the exact requested order",
                 Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
     }
@@ -39,7 +39,7 @@ public final class FarmingNavigationTests {
         String[] fishing = {"fishing-tracker", "catch-counter", "fishing-festival", "sea-hp-hud-route", "jawbus", "nearby-encounters"};
         for (String id : fishing) check("Fishing owner moved in presentation only: " + id,
                 ReferenceSettingsCatalog.find(id) != null && ownerOf(id) == ReferenceSettingsCatalog.Tab.FISHING);
-        check("uncertain features stay in their genuine channels", ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.GAMEPLAY
+        check("uncertain features stay in their genuine channels", ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.SLAYER
                 && ownerOf("terminal-assist") == ReferenceSettingsCatalog.Tab.DUNGEON
                 && ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
     }

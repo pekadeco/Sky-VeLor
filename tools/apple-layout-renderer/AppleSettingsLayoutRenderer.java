@@ -114,7 +114,7 @@ public final class AppleSettingsLayoutRenderer {
         require(SettingsShellLayout.isHeaderTargetValid(panel, header, header.close),
                 "close target is not a 24 px header target");
         require(!header.fullscreen.intersects(header.close), "header actions overlap");
-        require(selectedTab != null && ReferenceSettingsCatalog.TABS.length == 8, "eight current tabs are required");
+        require(selectedTab != null && ReferenceSettingsCatalog.TABS.length == 9, "nine current tabs are required");
         require(logicalW > 0f && logicalH > 0f, "logical surface is invalid");
     }
 
@@ -410,6 +410,10 @@ public final class AppleSettingsLayoutRenderer {
             g.drawLine(round(x), round(y + 6f), round(x + 6f), round(y + 1f));
             g.drawLine(round(x + 6f), round(y + 1f), round(x + 12f), round(y + 6f));
             g.fillRect(round(x + 2f), round(y + 6f), 8, 6);
+        } else if (tab == ReferenceSettingsCatalog.Tab.SLAYER) {
+            line(g, x + 2f, y + 10f, x + 10f, y + 2f, color, 1.4f);
+            line(g, x + 6f, y + 3f, x + 10f, y + 7f, color, 1.1f);
+            line(g, x + 1f, y + 11f, x + 4f, y + 8f, color, 1.2f);
         } else if (tab == ReferenceSettingsCatalog.Tab.DUNGEON) {
             strokeRound(g, x + 1f, y + 2f, 10f, 8f, 1f, color, 1f);
             line(g, x + 3f, y + 11f, x + 9f, y + 11f, color, 1f);

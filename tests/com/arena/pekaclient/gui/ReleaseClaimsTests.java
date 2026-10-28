@@ -48,7 +48,7 @@ public final class ReleaseClaimsTests {
     }
 
     private static void inlineShellHasRequiredBehavior() {
-        String[] destinations = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
+        String[] destinations = {"Home", "QoL", "Slayer", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
         check("feature-oriented shell destination order is exact", Arrays.equals(destinations, AppleSettingsScreen.destinationNames()));
         String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
         check("screen has search, accordion disclosure, fresh-open reset, and header reveal", screen.contains("Search settings")
@@ -88,6 +88,11 @@ public final class ReleaseClaimsTests {
                 && screen.contains("HIT_WINDOW_FULLSCREEN") && screen.contains("HIT_WINDOW_CLOSE"));
         check("fullscreen icon has a dedicated corner-bracket renderer", screen.contains("drawFullscreenGlyph"));
         check("all inline toggles retain the standard 38 by 20 pill", toggle.preferredWidth() == 38f && toggle.h == 20f);
+        check("all named and maintenance actions use the shared trailing action geometry",
+                screen.contains("actionButtonX") && screen.contains("actionButtonWidth")
+                        && screen.contains("ACTION_BUTTON_H") && screen.contains("editorToggleX")
+                        && SettingsControlLayout.ACTION_BUTTON_WIDTH == 132f
+                        && SettingsControlLayout.CONTROL_HEIGHT == 20f);
         check("safe notice is compact one line", screen.contains("Safe by default"));
         check("settings shell has no launcher-owned MOUSE/GUI labels", !screen.contains("MOUSE")
                 && !screen.contains("MOUSE/GUI") && !screen.contains("GUI AREA"));
@@ -113,9 +118,10 @@ public final class ReleaseClaimsTests {
         String itemPanel = classText("com.arena.pekaclient.gui.ItemAnimationEditorScreen");
         check("Item Animation control model retains Preview Swing",
                 ItemAnimationPanelModel.controlLabels().contains("Preview Swing"));
-        check("Item Animation panel has reset without a HUD or world preview surface",
-                itemPanel.contains("Reset to Defaults") && !itemPanel.contains("drawDefaultBackground")
-                        && !itemPanel.contains("HudManager") && !itemPanel.contains("drawItemAnimationEditorPreview"));
+        check("Item Animation panel has reset, an opaque dark surface, and no HUD/world preview layer",
+                itemPanel.contains("Reset to Defaults") && itemPanel.contains("ITEM_ANIMATION_PANEL")
+                        && !itemPanel.contains("drawDefaultBackground") && !itemPanel.contains("HudManager")
+                        && !itemPanel.contains("drawItemAnimationEditorPreview"));
         String hudEditor = classText("com.arena.pekaclient.gui.HudEditorScreen");
         check("HUD Editor retains only the compatibility route, not an Item Animation target",
                 hudEditor.contains("ItemAnimationEditorScreen") && !hudEditor.contains("ITEM_ANIMATION")

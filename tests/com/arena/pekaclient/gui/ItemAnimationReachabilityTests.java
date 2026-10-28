@@ -46,6 +46,9 @@ public final class ItemAnimationReachabilityTests {
         check("failed Hook state has a distinct critical semantic color",
                 com.arena.pekaclient.render.Theme.STATUS_CRITICAL
                         != com.arena.pekaclient.render.Theme.STATUS_SUCCESS);
+        check("the standalone editor panel is fully opaque over the game",
+                (com.arena.pekaclient.render.Theme.ITEM_ANIMATION_PANEL >>> 24) == 0xFF
+                        && (com.arena.pekaclient.render.Theme.ITEM_ANIMATION_PANEL_BORDER >>> 24) == 0xFF);
     }
 
     private static void realPreviewSwingRemainsRendererOnly() {

@@ -115,7 +115,7 @@ public final class FlatDropdownContractTests {
         ReferenceSettingsCatalog.Setting hud = ReferenceSettingsCatalog.find("hud-editor");
         check("Hurt Camera Shake is one inline slider", hurt != null && hurt.control == ReferenceSettingsCatalog.Control.SLIDER
                 && ReferenceSettingsCatalog.find("hurt-camera") == null);
-        check("Smooth Aspect Teleport is a direct Player visual toggle", aspect != null
+        check("Smooth Aspect Teleport is a direct QoL visual toggle", aspect != null
                 && aspect.control == ReferenceSettingsCatalog.Control.TOGGLE
                 && ReferenceSettingsCatalog.ownerOf("smooth-aspect-teleport") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
         check("Spirit Leap is a master dropdown with its key inside", leap != null && leap.isDropdown()

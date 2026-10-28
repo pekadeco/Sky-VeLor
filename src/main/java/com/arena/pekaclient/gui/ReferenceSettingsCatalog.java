@@ -19,7 +19,9 @@ public final class ReferenceSettingsCatalog {
 
     public enum Tab {
         HOME("Home", "Status, quick controls, and performance."),
-        GAMEPLAY("Player", "Movement, inventory, chat, and Slayer."),
+        // Keep GAMEPLAY as the stable route identity: only the player-facing label becomes QoL.
+        GAMEPLAY("QoL", "Comfort, inventory, chat, and shortcuts."),
+        SLAYER("Slayer", "Drops, prices, and quest timing."),
         DUNGEON("Dungeons", "Maps, terminals, party, and ESP."),
         FARMING("Farming", "No Farming Features Yet."),
         MINING("Mining", "Mining tools, readouts, and helpers."),
@@ -151,8 +153,8 @@ public final class ReferenceSettingsCatalog {
                             "damage camera tilt", 0, 100, 1, "%"),
                     toggle("smooth-aspect-teleport", "Smooth Aspect Teleport",
                             "Ease Aspect of the End or Void view changes.", "aote aotv visual transition"),
-                    toggle("hide-dead-mobs", "Hide Dead Mobs", "Hide dungeon ESP during the death animation.",
-                            "dungeon esp dying defeated"),
+                    toggle("hide-dead-mobs", "Hide Dead Mobs", "Hide dead mobs and their name tags.",
+                            "dead mobs name tags skyblock fakepixel dying defeated"),
                     toggle("auto-sprint", "Auto Sprint", "Sprint while moving forward when possible.", "sprint movement")),
             card("inventory-chat", "Inventory And Chat", "Inventory, messages, and shortcuts.", false, "",
                     masterDropdown("item-lock-swap", "Item Lock And Swap",
@@ -226,7 +228,12 @@ public final class ReferenceSettingsCatalog {
                     dropdown("movement-shortcuts", "Movement And Shortcuts", "Key shortcuts for commands.", "wardrobe pets",
                             toggle("wardrobe-shortcut", "Wardrobe Shortcut", "Use the Wardrobe key shortcut.", "wardrobe key"),
                             toggle("pets-shortcut", "Pets Shortcut", "Use the Pets key shortcut.", "pets key"),
-                            reset("movement-shortcuts-reset")),
+                            reset("movement-shortcuts-reset")))
+    );
+
+    /** Slayer owns the existing tracker route only; its config ids and saved values remain unchanged. */
+    private static final List<Card> SLAYER = cards(
+            card("slayer", "Slayer", "Drops, prices, and quest timing.", false, "",
                     masterDropdown("slayer-tracker", "Slayer Tracker", "Drops, prices, and quest timing.", "slayer drops price timer",
                             toggle("slayer-boss-timer", "Boss Timer", "Time each Slayer boss.", "slayer timer"),
                             toggle("slayer-pricing", "Price Drops", "Show priced drops.", "slayer price"),
@@ -402,6 +409,7 @@ public final class ReferenceSettingsCatalog {
         if (tab == null) return HOME;
         switch (tab) {
             case GAMEPLAY: return GAMEPLAY;
+            case SLAYER: return SLAYER;
             case DUNGEON: return DUNGEON;
             case FARMING: return FARMING;
             case MINING: return MINING;

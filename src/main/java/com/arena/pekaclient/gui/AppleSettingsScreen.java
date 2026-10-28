@@ -51,7 +51,7 @@ import java.util.function.Supplier;
 public class AppleSettingsScreen extends AppleScreen {
 
     /** Visible labels only; routes and catalog enum identities remain intentionally stable. */
-    static final String[] DESTINATION_NAMES = {"Home", "Player", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
+    static final String[] DESTINATION_NAMES = {"Home", "QoL", "Slayer", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
     private static final float CHROME_H = SettingsShellLayout.HEADER_HEIGHT;
     /** The title lives in the header; the compact second strip contains only global search. */
     private static final float TOOLBAR_H = 34f;
@@ -64,10 +64,10 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float ROW_PAD_X = GuiStyle.SPACE_12;
     private static final float ROW_PAD_Y = GuiStyle.SPACE_8;
     private static final float CONTROL_GAP = GuiStyle.SPACE_8;
-    /** Editor routes are named calls to action, not generic bracket controls. */
+    /** Named editor routes and inline actions share one trailing action column. */
     private static final float EDITOR_BUTTON_TEXT_SCALE = .62f;
-    private static final float EDITOR_BUTTON_HORIZONTAL_PAD = 9f;
-    private static final float EDITOR_BUTTON_MIN_WIDTH = 86f;
+    private static final float ACTION_BUTTON_W = SettingsControlLayout.ACTION_BUTTON_WIDTH;
+    private static final float ACTION_BUTTON_H = SettingsControlLayout.CONTROL_HEIGHT;
     /** Every row reserves these fixed right-side columns, even when they are intentionally blank. */
     private static final float CHEVRON_COLUMN_W = SettingsControlLayout.CHEVRON_COLUMN_WIDTH;
     private static final float TOGGLE_COLUMN_W = SettingsControlLayout.TOGGLE_COLUMN_WIDTH;
@@ -170,7 +170,7 @@ public class AppleSettingsScreen extends AppleScreen {
         refreshReferenceTheme();
     }
 
-    /** Opens the visible Player category through its stable GAMEPLAY route with Chat QoL disclosed. */
+    /** Opens the visible QoL category through its stable GAMEPLAY route with Chat QoL disclosed. */
     public static AppleSettingsScreen openChatSettings(GuiScreen parent) {
         AppleSettingsScreen screen = new AppleSettingsScreen(parent, ReferenceSettingsCatalog.Tab.GAMEPLAY);
         // This is an intentional route target, so it opens after the ordinary fresh-screen reset.
@@ -772,11 +772,18 @@ public class AppleSettingsScreen extends AppleScreen {
                 || setting.control == ReferenceSettingsCatalog.Control.TEXT
                 || setting.control == ReferenceSettingsCatalog.Control.ACTION;
         float editW = setting.isEditor() ? editorButtonWidth(setting) : 0f;
-        float labelRight = inlineControl ? controlRight - valueW - CONTROL_GAP
-                : setting.isEditor() ? controlRight - editW - CONTROL_GAP : controlRight;
+        float actionX = usesTrailingAction(setting) ? actionButtonX(x, rowW, setting.isEditor() ? editW : valueW) : 0f;
+        float labelRight;
+        if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
+            labelRight = actionX - CONTROL_GAP;
+        } else if (setting.isEditor()) {
+            labelRight = setting.hasMasterToggle() ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP;
+        } else {
+            labelRight = inlineControl ? controlRight - valueW - CONTROL_GAP : controlRight;
+        }
         float labelW = Math.max(42f, labelRight - leftX);
-        // Inline controls stack below the copy on narrow shells; a named editor CTA remains beside the copy.
-        if (narrowRows && !setting.isEditor()) labelW = Math.max(42f, controlRight - leftX);
+        // On compact shells, copy takes its own line while every action still holds the shared right edge below it.
+        if (narrowRows && (setting.isEditor() || inlineControl)) labelW = Math.max(42f, rowW - ROW_PAD_X * 2f);
         float labelY = y + ROW_PAD_Y;
         // Keep master-off children visibly muted, not unreadable. They remain intentionally editable so saved choices
         // can be prepared before the owner is enabled.
@@ -794,15 +801,15 @@ public class AppleSettingsScreen extends AppleScreen {
         if (dimmed) UIRender.alphaMul = alpha * Theme.DEPENDENT_CONTROL_ALPHA;
         try {
             if (setting.isEditor()) {
-                if (setting.hasMasterToggle()) drawControl(setting, toggleX, centeredControlY(y, baseH, 20f),
+                float actionY = trailingActionY(y, baseH);
+                if (setting.hasMasterToggle()) drawControl(setting, Math.max(leftX, editorToggleX(actionX)), actionY,
                         TOGGLE_COLUMN_W, mouseX, mouseY);
-                drawEditorButton(setting, controlRight - editW, centeredControlY(y, baseH, 20f), editW, mouseX, mouseY);
+                drawEditorButton(setting, actionX, actionY, editW, mouseX, mouseY);
             } else if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
-                drawControl(setting, toggleX, centeredControlY(y, baseH, 20f), TOGGLE_COLUMN_W, mouseX, mouseY);
+                drawControl(setting, toggleX, centeredControlY(y, baseH, ACTION_BUTTON_H), TOGGLE_COLUMN_W, mouseX, mouseY);
             } else if (inlineControl) {
-                float controlX = narrowRows ? leftX : controlRight - valueW;
-                float controlY = narrowRows ? SettingsControlLayout.stackedY(y, baseH, controlHeight(setting), 7f)
-                        : centeredControlY(y, baseH, controlHeight(setting));
+                float controlX = inlineControlX(setting, x, rowW, leftX, controlRight, valueW);
+                float controlY = inlineControlY(setting, y, baseH);
                 drawControl(setting, controlX, controlY, valueW, mouseX, mouseY);
             } else if ("terminal-assist".equals(setting.id)) {
                 String status = terminalStatusText();
@@ -819,9 +826,8 @@ public class AppleSettingsScreen extends AppleScreen {
         if (inlineControl) {
             Widget widget = controls.get(setting.id);
             if (widget == openDropdown && widget instanceof AppleDropdown) {
-                float controlX = narrowRows ? leftX : controlRight - valueW;
-                float controlY = narrowRows ? SettingsControlLayout.stackedY(y, baseH, controlHeight(setting), 7f)
-                        : centeredControlY(y, baseH, controlHeight(setting));
+                float controlX = inlineControlX(setting, x, rowW, leftX, controlRight, valueW);
+                float controlY = inlineControlY(setting, y, baseH);
                 cursor += reserveValueDropdown(setting, controlX, controlY, valueW, cursor);
             }
         }
@@ -893,23 +899,60 @@ public class AppleSettingsScreen extends AppleScreen {
         float left = ROW_PAD_X;
         float right = ROW_PAD_X + RIGHT_COLUMNS_W + CONTROL_GAP;
         float labelW = Math.max(42f, contentW - left - right);
-        if (setting.control == ReferenceSettingsCatalog.Control.SLIDER
+        if (setting.control == ReferenceSettingsCatalog.Control.ACTION || setting.isEditor()) {
+            float actionW = setting.isEditor() ? editorButtonWidth(setting) : controlWidth(setting);
+            float actionX = actionButtonX(0f, contentW, actionW);
+            float labelRight = setting.isEditor() && setting.hasMasterToggle()
+                    ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP;
+            labelW = Math.max(42f, labelRight - left);
+        } else if (setting.control == ReferenceSettingsCatalog.Control.SLIDER
+                || setting.control == ReferenceSettingsCatalog.Control.CHOICE
+                || setting.control == ReferenceSettingsCatalog.Control.TEXT) {
+            labelW = Math.max(42f, labelW - controlWidth(setting) - CONTROL_GAP);
+        }
+        boolean stackedAction = setting.isEditor() || setting.control == ReferenceSettingsCatalog.Control.SLIDER
                 || setting.control == ReferenceSettingsCatalog.Control.CHOICE
                 || setting.control == ReferenceSettingsCatalog.Control.TEXT
-                || setting.control == ReferenceSettingsCatalog.Control.ACTION) {
-            labelW = Math.max(42f, labelW - controlWidth(setting) - CONTROL_GAP);
-        } else if (setting.isEditor()) {
-            labelW = Math.max(42f, labelW - editorButtonWidth(setting) - CONTROL_GAP);
-        }
-        if (narrowRows && !setting.isEditor()) labelW = Math.max(42f, contentW - left - right);
+                || setting.control == ReferenceSettingsCatalog.Control.ACTION;
+        if (narrowRows && stackedAction) labelW = Math.max(42f, contentW - left * 2f);
         int lines = cachedLines(setting.id, setting.description, labelW, Theme.TYPE_BODY, 2);
         float textH = 10f + lines * 8f;
         float base = Math.max(textH, controlHeight(setting)) + ROW_PAD_Y * 2f - 1f;
-        if (narrowRows && (setting.control == ReferenceSettingsCatalog.Control.SLIDER
-                || setting.control == ReferenceSettingsCatalog.Control.CHOICE
-                || setting.control == ReferenceSettingsCatalog.Control.TEXT
-                || setting.control == ReferenceSettingsCatalog.Control.ACTION)) base += controlHeight(setting) + 5f;
+        if (narrowRows && stackedAction) base += controlHeight(setting) + 5f;
         return Math.max(31f, base);
+    }
+
+    private boolean usesTrailingAction(ReferenceSettingsCatalog.Setting setting) {
+        return setting != null && (setting.isEditor() || setting.control == ReferenceSettingsCatalog.Control.ACTION);
+    }
+
+    private float actionButtonWidth() {
+        return Math.max(1f, Math.min(ACTION_BUTTON_W, contentW - ROW_PAD_X * 2f));
+    }
+
+    private float actionButtonX(float x, float rowW, float actionW) {
+        return SettingsControlLayout.actionButtonX(x, rowW, ROW_PAD_X, actionW);
+    }
+
+    private float editorToggleX(float actionX) {
+        return actionX - CONTROL_GAP - TOGGLE_COLUMN_W;
+    }
+
+    private float trailingActionY(float y, float baseH) {
+        return narrowRows ? SettingsControlLayout.stackedY(y, baseH, ACTION_BUTTON_H, 7f)
+                : centeredControlY(y, baseH, ACTION_BUTTON_H);
+    }
+
+    private float inlineControlX(ReferenceSettingsCatalog.Setting setting, float x, float rowW, float leftX,
+                                 float controlRight, float valueW) {
+        if (setting.control == ReferenceSettingsCatalog.Control.ACTION) return actionButtonX(x, rowW, valueW);
+        return narrowRows ? leftX : controlRight - valueW;
+    }
+
+    private float inlineControlY(ReferenceSettingsCatalog.Setting setting, float y, float baseH) {
+        if (setting.control == ReferenceSettingsCatalog.Control.ACTION) return trailingActionY(y, baseH);
+        return narrowRows ? SettingsControlLayout.stackedY(y, baseH, controlHeight(setting), 7f)
+                : centeredControlY(y, baseH, controlHeight(setting));
     }
 
     private float centeredControlY(float y, float h, float controlH) {
@@ -951,7 +994,7 @@ public class AppleSettingsScreen extends AppleScreen {
             return Math.min(available, narrowRows ? available : Math.min(170f, Math.max(104f, contentW * .36f)));
         }
         if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
-            return Math.min(available, Math.max(42f, Math.min(132f, fr().getStringWidth(setting.actionLabel) + 19f)));
+            return actionButtonWidth();
         }
         return 0f;
     }
@@ -960,7 +1003,7 @@ public class AppleSettingsScreen extends AppleScreen {
         if (setting.control == ReferenceSettingsCatalog.Control.SLIDER) return 24f;
         if (setting.control == ReferenceSettingsCatalog.Control.INFO || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN
                 || setting.control == ReferenceSettingsCatalog.Control.CAPTION) return 20f;
-        return 21f;
+        return ACTION_BUTTON_H;
     }
 
     private void drawControl(ReferenceSettingsCatalog.Setting setting, float x, float y, float w,
@@ -971,7 +1014,7 @@ public class AppleSettingsScreen extends AppleScreen {
             widget.x = x;
             widget.y = y;
             widget.w = TOGGLE_COLUMN_W;
-            widget.h = 20f;
+            widget.h = ACTION_BUTTON_H;
             widget.draw(mouseX, mouseY);
             recordViewportControl("Settings toggle " + setting.id, widget.x, widget.y, widget.w, widget.h);
             registerHit("control:" + setting.id, HIT_CONTROL, widget.x, widget.y, widget.w, widget.h, setting, "");
@@ -986,30 +1029,27 @@ public class AppleSettingsScreen extends AppleScreen {
         registerHit("control:" + setting.id, HIT_CONTROL, x, y, w, widget.h, setting, "");
     }
 
-    /** Editor rows reserve the same columns but use a descriptive destination CTA instead of a generic bracket label. */
+    /** Editor rows use the same fixed trailing action size, edge, and 20 px height as every inline action. */
     private void drawEditorButton(ReferenceSettingsCatalog.Setting setting, float x, float y, float w,
                                   int mouseX, int mouseY) {
-        boolean hot = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + 20f;
+        boolean hot = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + ACTION_BUTTON_H;
         int fill = hot ? UIRender.mix(Theme.buttonHover, Theme.accent, .16f) : Theme.buttonFill;
         int border = hot ? UIRender.withAlpha(Theme.accent, .76f) : Theme.border;
-        UIRender.roundRectBorder(x, y, w, 20f, 5f, fill, fill, border);
-        String label = fit(fr(), editorActionLabel(setting), Math.max(1f, w - EDITOR_BUTTON_HORIZONTAL_PAD * 2f)
-                / EDITOR_BUTTON_TEXT_SCALE);
+        UIRender.roundRectBorder(x, y, w, ACTION_BUTTON_H, 5f, fill, fill, border);
+        String label = fit(fr(), editorActionLabel(setting), Math.max(1f, w - 18f) / EDITOR_BUTTON_TEXT_SCALE);
         UIRender.text(fr(), label, x + (w - fr().getStringWidth(label) * EDITOR_BUTTON_TEXT_SCALE) * .5f,
-                centeredTextY(y, 20f, EDITOR_BUTTON_TEXT_SCALE), hot ? Theme.textPrimary : Theme.textSecondary,
+                centeredTextY(y, ACTION_BUTTON_H, EDITOR_BUTTON_TEXT_SCALE), hot ? Theme.textPrimary : Theme.textSecondary,
                 EDITOR_BUTTON_TEXT_SCALE, false);
-        registerHit("editor:" + setting.id, HIT_ACTION, x, y, w, 20f, setting, setting.editorActionId);
+        registerHit("editor:" + setting.id, HIT_ACTION, x, y, w, ACTION_BUTTON_H, setting, setting.editorActionId);
     }
 
     private String editorActionLabel(ReferenceSettingsCatalog.Setting setting) {
         return setting.actionLabel.length() == 0 ? "Open Editor" : setting.actionLabel;
     }
 
-    /** Uses the native FontRenderer so the full named destination is visible at every normal shell size. */
+    /** A fixed action width makes named editor routes line up with every other action across tabs. */
     private float editorButtonWidth(ReferenceSettingsCatalog.Setting setting) {
-        return Math.max(EDITOR_BUTTON_MIN_WIDTH,
-                fr().getStringWidth(editorActionLabel(setting)) * EDITOR_BUTTON_TEXT_SCALE
-                        + EDITOR_BUTTON_HORIZONTAL_PAD * 2f);
+        return actionButtonWidth();
     }
 
     private String terminalStatusText() {
@@ -1058,8 +1098,7 @@ public class AppleSettingsScreen extends AppleScreen {
             created = textControl(setting.id, setting.label);
         } else if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
             created = new AppleButton(setting.actionLabel.length() == 0 ? "Apply" : setting.actionLabel,
-                    Math.max(42f, Math.min(132f, fr().getStringWidth(setting.actionLabel) + 19f)), 21f, false,
-                    new Runnable() {
+                    ACTION_BUTTON_W, ACTION_BUTTON_H, false, new Runnable() {
                         @Override public void run() { performInlineAction(setting.id); }
                     });
         } else {
@@ -2068,6 +2107,11 @@ public class AppleSettingsScreen extends AppleScreen {
         } else if (tab == ReferenceSettingsCatalog.Tab.GAMEPLAY) {
             UIRender.ring(x + 6f, y + 6f, 5f, 3.6f, color);
             UIRender.line(x + 6f, y + 6f, x + 10f, y + 3f, 1.2f, color);
+        } else if (tab == ReferenceSettingsCatalog.Tab.SLAYER) {
+            // Compact sword silhouette: a distinct channel glyph without a texture allocation.
+            UIRender.line(x + 2f, y + 10f, x + 10f, y + 2f, 1.4f, color);
+            UIRender.line(x + 6f, y + 3f, x + 10f, y + 7f, 1.1f, color);
+            UIRender.line(x + 1f, y + 11f, x + 4f, y + 8f, 1.2f, color);
         } else if (tab == ReferenceSettingsCatalog.Tab.DUNGEON) {
             UIRender.rect(x + 1f, y + 2f, 10f, 8f, UIRender.withAlpha(color, .38f));
             UIRender.roundRectRing(x + 1f, y + 2f, 10f, 8f, 1f, GuiStyle.OUTLINE, color);

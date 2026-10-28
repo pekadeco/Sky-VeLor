@@ -113,6 +113,9 @@ public final class Theme {
     public static final int NOTE_ROW = NOTE_HINT;
     public static final int NOTE_ROW_SELECTED = ACCENT_BLUE;
     public static final int NOTE_ROW_COUNT = 0xFF7F8998;
+    /** Standalone Item Animation is intentionally opaque: game/HUD pixels never bleed through its controls. */
+    public static final int ITEM_ANIMATION_PANEL = 0xFF17191F;
+    public static final int ITEM_ANIMATION_PANEL_BORDER = 0xFF454953;
 
     // ------------------------------------------------------------------ typography, geometry and motion tokens
 
