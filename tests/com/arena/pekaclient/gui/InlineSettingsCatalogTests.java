@@ -46,7 +46,8 @@ public final class InlineSettingsCatalogTests {
                                     || setting.control == ReferenceSettingsCatalog.Control.SLIDER
                                     || setting.control == ReferenceSettingsCatalog.Control.DROPDOWN
                                     || setting.control == ReferenceSettingsCatalog.Control.EDITOR
-                                    || setting.control == ReferenceSettingsCatalog.Control.KEYBIND);
+                                    || setting.control == ReferenceSettingsCatalog.Control.KEYBIND
+                                    || setting.isResetAction());
                     for (ReferenceSettingsCatalog.Setting child : setting.children) {
                         check("expanded option is never a nested disclosure: " + child.id, !child.isDropdown());
                     }
