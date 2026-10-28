@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.6v] [--mcmod-version 0.10.9.1.6]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.7v] [--mcmod-version 0.10.9.1.7]
 """
 
 import argparse
@@ -362,8 +362,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.6v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.6')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.7v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.7')
     args = ap.parse_args()
 
     path = args.jar
@@ -799,9 +799,11 @@ def main():
                  'Remove Haste Effect', 'Loop Preview Swing', 'Preview Swing', 'Reset to Defaults'))
                 and b'previewSwing' in item_animation_editor_raw and b'ItemAnimation' in item_animation_editor_raw,
             'standalone Item Animation panel retains only the requested real hand-renderer controls and Preview Swing')
+    # Theme int constants are inlined into the editor by javac, so prove the named opaque palette in Theme and its
+    # roundRectBorder consumer separately rather than requiring a field reference to survive reobfuscation.
     r.check(all(value not in item_panel_constants for value in ('Transparency', 'Opacity', 'Background'))
-                and b'ITEM_ANIMATION_PANEL' in item_animation_editor_raw and b'ITEM_ANIMATION_PANEL' in theme_raw
-                and b'drawDefaultBackground' not in item_animation_editor_raw
+                and b'roundRectBorder' in item_animation_editor_raw and b'ITEM_ANIMATION_PANEL' in theme_raw
+                and b'ITEM_ANIMATION_PANEL_BORDER' in theme_raw and b'drawDefaultBackground' not in item_animation_editor_raw
                 and b'HudManager' not in item_animation_editor_raw
                 and b'Hook: active' in hook_status_raw and b'Hook: failed (' in hook_status_raw
                 and b'ItemAnimationHookStatus' in item_animation_editor_raw
