@@ -25,6 +25,11 @@ public final class AspectTeleportTransitionObservation {
         armedTicks = AspectTeleportTransitionPolicy.ARM_TICKS;
     }
 
+    /** Advances the finite response window once per client tick, never once per render sample. */
+    public void advanceTick() {
+        if (armedTicks > 0) armedTicks--;
+    }
+
     /**
      * Records one completed client position. Returns true at most once per arm window when the position change is a
      * plausible Aspect jump. A world switch always establishes a fresh baseline and never starts a render path.
@@ -35,12 +40,15 @@ public final class AspectTeleportTransitionObservation {
             return false;
         }
         if (world != observedWorld) {
+            // A first render baseline may happen just after a valid click; preserve that freshly armed window. A true
+            // world replacement always has an existing identity and clears the old arm before establishing its baseline.
+            boolean firstWorldBaseline = observedWorld == null;
             observedWorld = world;
             hasLastPosition = true;
             lastX = x;
             lastY = y;
             lastZ = z;
-            armedTicks = 0;
+            if (!firstWorldBaseline) armedTicks = 0;
             return false;
         }
         boolean transition = hasLastPosition && armedTicks > 0
@@ -55,8 +63,6 @@ public final class AspectTeleportTransitionObservation {
             transitionToZ = z;
             // A single use may create only one render transition, even if a server correction settles later.
             armedTicks = 0;
-        } else if (armedTicks > 0) {
-            armedTicks--;
         }
         lastX = x;
         lastY = y;

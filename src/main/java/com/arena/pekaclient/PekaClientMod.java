@@ -10,6 +10,7 @@ import com.arena.pekaclient.assist.dungeon.SpiritBowLocator;
 import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.movement.AutoSprintController;
 import com.arena.pekaclient.assist.visual.AspectTeleportTransitionRenderer;
+import com.arena.pekaclient.assist.visual.DeadMobRenderFilter;
 import com.arena.pekaclient.command.ClientActions;
 import com.arena.pekaclient.command.ItemDebugCommand;
 import com.arena.pekaclient.command.PriceSetCommand;
@@ -135,6 +136,7 @@ public class PekaClientMod {
     private final DungeonSyncManager dungeonSyncManager = new DungeonSyncManager(dungeonMapOverlay);
     private final DungeonEspController dungeonEspController = new DungeonEspController();
     private final AspectTeleportTransitionRenderer aspectTeleportTransition = new AspectTeleportTransitionRenderer();
+    private final DeadMobRenderFilter deadMobRenderFilter = new DeadMobRenderFilter();
     private final DragonKillAlert dragonKill = new DragonKillAlert(m7Overlay);
     private final TerminalSolver terminalSolver = new TerminalSolver();
     private final FishingStats fishingStats = new FishingStats();
@@ -184,6 +186,7 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(dungeonMapOverlay);
         MinecraftForge.EVENT_BUS.register(dungeonSyncManager);
         MinecraftForge.EVENT_BUS.register(dungeonEspController);
+        MinecraftForge.EVENT_BUS.register(deadMobRenderFilter);
         MinecraftForge.EVENT_BUS.register(terminalSolver);
         MinecraftForge.EVENT_BUS.register(fishingStats);
         MinecraftForge.EVENT_BUS.register(slayerTracker);
@@ -252,8 +255,7 @@ public class PekaClientMod {
             dragonKill.tick(System.currentTimeMillis());
             return;
         }
-        // This observes the completed server-authoritative position and starts only a temporary render-coordinate
-        // interpolation; it never changes movement, packets, input, or player state.
+        // Advances the finite right-click arm on the client tick only. Render sampling never shortens this window.
         aspectTeleportTransition.tick(mc);
         ClientActions.run(mc);
         if (OPEN_KEY.isPressed() && mc.currentScreen == null) {
@@ -278,6 +280,18 @@ public class PekaClientMod {
             if (mc.currentScreen == null) {
                 ClientActions.requestChatEditor();
             }
+        }
+    }
+
+    /**
+     * Samples an already-applied local position discontinuity immediately before vanilla's world render. The renderer
+     * changes only the temporary camera translation used for this frame; it does not touch player position, input, or
+     * packets.
+     */
+    @SubscribeEvent
+    public void onRenderTick(TickEvent.RenderTickEvent event) {
+        if (event.phase == TickEvent.Phase.START) {
+            aspectTeleportTransition.renderTick(Minecraft.getMinecraft());
         }
     }
 

@@ -262,7 +262,7 @@ public class AppleSettingsScreen extends AppleScreen {
         SettingsShellLayout.layoutHeader(shellHeader, panel);
 
         // Product identity is merged into the header. The second strip stays one compact search row at every width,
-        // preserving room for the eight destinations and avoiding a duplicate title/version hierarchy.
+        // preserving room for the nine destinations and avoiding a duplicate title/version hierarchy.
         toolbarH = TOOLBAR_H;
         float bodyY = panel.y + CHROME_H + toolbarH;
         float bodyH = Math.max(1f, panel.h - CHROME_H - toolbarH);

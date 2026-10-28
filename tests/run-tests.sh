@@ -83,6 +83,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.render.blockparticles.BlockParticleTran
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.VisualAssistTransformerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.AspectTeleportTransitionPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.AspectTeleportTransitionObservationTests
+java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.DeadMobRenderPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.AspectTeleportCameraPathTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.visual.AspectTeleportCameraTransformerTests
 java -cp "$OUT:$CP" com.arena.pekaclient.feature.ItemAnimationTests

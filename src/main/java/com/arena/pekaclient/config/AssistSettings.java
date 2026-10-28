@@ -23,7 +23,7 @@ public final class AssistSettings {
     public static final boolean DEFAULT_ROMAN_NUMERALS = true;
     public static final boolean DEFAULT_TOOLTIP_SCROLL = true;
     public static final boolean DEFAULT_RARITY_HIGHLIGHT = true;
-    /** Remove stale dungeon ESP immediately once a living target has begun its death animation. */
+    /** Client-side visual cleanup for dead/dying mob and server-NPC body/nameplate renders. */
     public static final boolean DEFAULT_HIDE_DEAD_MOBS = true;
 
     public static boolean miningAbilityAlert;
@@ -41,7 +41,7 @@ public final class AssistSettings {
     public static boolean autoSprint;
     public static boolean wardrobeShortcut;
     public static boolean petsShortcut;
-    /** Player Comfort owner for the live Dungeon ESP death-animation filter. */
+    /** QoL visual owner for render-only dead mob/server-NPC body and nameplate cleanup. */
     public static boolean hideDeadMobs;
 
     public static boolean dungeonSync;

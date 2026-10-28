@@ -172,6 +172,8 @@ REQUIRED_CLASSES = [
     'assist/visual/AspectTeleportTransitionPolicy',
     'assist/visual/AspectTeleportTransitionObservation',
     'assist/visual/AspectTeleportTransitionRenderer',
+    'assist/visual/DeadMobRenderPolicy',
+    'assist/visual/DeadMobRenderFilter',
     'assist/visual/AspectTeleportCameraPath',
     'assist/visual/AspectTeleportCameraHooks',
     'assist/visual/AspectTeleportCameraHookStatus',
@@ -640,6 +642,8 @@ def main():
     aspect_policy_raw = raw_of('assist/visual/AspectTeleportTransitionPolicy')
     aspect_observation_raw = raw_of('assist/visual/AspectTeleportTransitionObservation')
     aspect_renderer_raw = raw_of('assist/visual/AspectTeleportTransitionRenderer')
+    dead_filter_raw = raw_of('assist/visual/DeadMobRenderFilter')
+    dead_policy_raw = raw_of('assist/visual/DeadMobRenderPolicy')
     aspect_path_raw = raw_of('assist/visual/AspectTeleportCameraPath')
     aspect_hooks_raw = raw_of('assist/visual/AspectTeleportCameraHooks')
     aspect_status_raw = raw_of('assist/visual/AspectTeleportCameraHookStatus')
@@ -657,8 +661,12 @@ def main():
     aspect_observation_values = (b'arm', b'observe', b'transitionFromX', b'transitionToX', b'remainingArmedTicks',
                                   b'AspectTeleportTransitionPolicy')
     aspect_path_values = (b'begin', b'isActiveAt', b'xAt', b'yAt', b'zAt', b'cameraProgress')
-    aspect_renderer_values = (b'tick', b'observeUse', b'AspectTeleportTransitionObservation',
-                              b'AspectTeleportCameraHooks', b'AssistSettings')
+    aspect_renderer_values = (b'tick', b'renderTick', b'observeUse', b'AspectTeleportTransitionObservation',
+                              b'AspectTeleportCameraHooks', b'advanceTick', b'AssistSettings')
+    dead_policy_values = (b'isDeadOrDying', b'shouldSuppress', b'hasNpcMarker', b'Locale')
+    # getPlayerInfo(UUID) is reobfuscated to its stable 1.8.9 SRG member in the shipped jar.
+    dead_filter_values = (b'RenderLivingEvent$Pre', b'setCanceled', b'AssistSettings', b'NetworkPlayerInfo',
+                          b'func_175102_a', b'DeadMobRenderPolicy')
     aspect_hook_values = (b'orientCameraX', b'orientCameraY', b'orientCameraZ', b'renderCameraX', b'renderCameraY',
                           b'renderCameraZ', b'dispatchRenderLast', b'ForgeHooksClient', b'AspectTeleportCameraPath')
     # The verifier runs on reobfuscated bytecode, so require the stable SRG orient method rather than its MCP spelling.
@@ -678,6 +686,17 @@ def main():
             'Smooth Aspect runtime uses camera/world hooks rather than the retired HUD veil',
             'missing renderer=%s hooks=%s' % (missing_raw_values(aspect_renderer_raw, aspect_renderer_values),
                     missing_raw_values(aspect_hooks_raw, aspect_hook_values)))
+    r.check(all(value in dead_policy_raw for value in dead_policy_values)
+                and all(value in dead_filter_raw for value in dead_filter_values),
+            'Hide Dead Mobs packages dedicated dead-state policy plus cancellable body/nameplate render filtering',
+            'missing policy=%s filter=%s' % (missing_raw_values(dead_policy_raw, dead_policy_values),
+                    missing_raw_values(dead_filter_raw, dead_filter_values)))
+    dead_filter_prohibited = (b'sendPacket', b'sendQueue', b'setPosition', b'setLocationAndAngles', b'setHealth',
+                              b'setDead', b'removeEntity', b'playerController')
+    r.check(all(value not in dead_filter_raw for value in dead_filter_prohibited),
+            'Hide Dead Mobs filter changes no entity, packet, movement, controller, or server state',
+            'forbidden: ' + ', '.join(value.decode('ascii') for value in dead_filter_prohibited
+                                       if value in dead_filter_raw))
     r.check(all(value in aspect_status_raw for value in aspect_status_values)
                 and all(value in aspect_transformer_raw for value in aspect_transformer_values),
             'Smooth Aspect transformer verifies orient, world-pass, RenderGlobal, and mapping-neutral overlay hooks',
@@ -692,8 +711,9 @@ def main():
             'Smooth Aspect camera glide has no movement, packet, controller, or position-write path',
             'forbidden: ' + ', '.join(value.decode('ascii') for value in aspect_prohibited_values if value in aspect_raw))
     r.check(all(value in client_raw for value in
-                (b'AspectTeleportTransitionRenderer', b'aspectTeleportTransition', b'observeUse', b'MouseEvent')),
-            'client tick and local use observation package the Aspect render transition without a HUD veil')
+                (b'AspectTeleportTransitionRenderer', b'aspectTeleportTransition', b'observeUse', b'RenderTickEvent',
+                 b'renderTick', b'DeadMobRenderFilter', b'deadMobRenderFilter', b'MouseEvent')),
+            'client packages render-time Aspect observation and cancellable dead-mob body/nameplate filtering')
     r.check(all(value in sync_client_raw for value in (b'wss', b'Sec-WebSocket-Key', b'sec-websocket-accept', b'SHA-1'))
                 and all(value in sync_messages_raw for value in (b'welcome', b'puzzle_discovered'))
                 and b'DungeonSyncEnvironment' in sync_manager_raw and b'rememberSyncedPuzzle' in sync_manager_raw,

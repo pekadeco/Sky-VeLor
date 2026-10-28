@@ -17,6 +17,10 @@ public final class AspectTeleportTransitionPolicyTests {
                 0D, 64D, 0D, .7D, 64D, .2D));
         check("sub-threshold drift cannot qualify", !AspectTeleportTransitionPolicy.isLargePositionJump(
                 0D, 64D, 0D, 1.49D, 64D, 0D));
+        check("ordinary Aspect-range jump remains eligible", AspectTeleportTransitionPolicy.isLargePositionJump(
+                0D, 64D, 0D, AspectTeleportTransitionPolicy.MAX_TELEPORT_DISTANCE, 64D, 0D));
+        check("respawn-scale discontinuity cannot drag the camera", !AspectTeleportTransitionPolicy.isLargePositionJump(
+                0D, 64D, 0D, AspectTeleportTransitionPolicy.MAX_TELEPORT_DISTANCE + .01D, 64D, 0D));
         check("server response window tolerates normal latency", AspectTeleportTransitionPolicy.ARM_TICKS >= 10);
         check("invalid observed coordinates cannot qualify", !AspectTeleportTransitionPolicy.isLargePositionJump(
                 Double.NaN, 64D, 0D, 8D, 64D, 0D));

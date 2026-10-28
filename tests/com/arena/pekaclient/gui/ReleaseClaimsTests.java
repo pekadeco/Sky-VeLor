@@ -20,6 +20,7 @@ public final class ReleaseClaimsTests {
         sharedRoundedRendererIsPackaged();
         headerAndToggleContractsArePackaged();
         removedFocusedSurfacesStayAbsent();
+        visualRuntimeContractsArePackaged();
         done();
     }
 
@@ -119,9 +120,9 @@ public final class ReleaseClaimsTests {
         check("Item Animation control model retains Preview Swing",
                 ItemAnimationPanelModel.controlLabels().contains("Preview Swing"));
         check("Item Animation panel has reset, an opaque dark surface, and no HUD/world preview layer",
-                itemPanel.contains("Reset to Defaults") && itemPanel.contains("ITEM_ANIMATION_PANEL")
-                        && !itemPanel.contains("drawDefaultBackground") && !itemPanel.contains("HudManager")
-                        && !itemPanel.contains("drawItemAnimationEditorPreview"));
+                ItemAnimationPanelModel.controlLabels().contains("Reset to Defaults")
+                        && itemPanel.contains("ITEM_ANIMATION_PANEL") && !itemPanel.contains("drawDefaultBackground")
+                        && !itemPanel.contains("HudManager") && !itemPanel.contains("drawItemAnimationEditorPreview"));
         String hudEditor = classText("com.arena.pekaclient.gui.HudEditorScreen");
         check("HUD Editor retains only the compatibility route, not an Item Animation target",
                 hudEditor.contains("ItemAnimationEditorScreen") && !hudEditor.contains("ITEM_ANIMATION")
@@ -129,6 +130,29 @@ public final class ReleaseClaimsTests {
         check("retired feature routes are not reintroduced", ReferenceSettingsCatalog.find("hud-stats") == null
                 && ReferenceSettingsCatalog.find("item-protection") == null
                 && ReferenceSettingsCatalog.find("no-hurt-cam") == null);
+    }
+
+    private static void visualRuntimeContractsArePackaged() {
+        String client = classText("com.arena.pekaclient.PekaClientMod");
+        String deadFilter = classText("com.arena.pekaclient.assist.visual.DeadMobRenderFilter");
+        String deadPolicy = classText("com.arena.pekaclient.assist.visual.DeadMobRenderPolicy");
+        String aspectRenderer = classText("com.arena.pekaclient.assist.visual.AspectTeleportTransitionRenderer");
+        String aspectObservation = classText("com.arena.pekaclient.assist.visual.AspectTeleportTransitionObservation");
+        String aspectPolicy = classText("com.arena.pekaclient.assist.visual.AspectTeleportTransitionPolicy");
+        check("dead-mob cleanup has a dedicated cancellable living render filter",
+                classExists("com.arena.pekaclient.assist.visual.DeadMobRenderFilter")
+                        && deadFilter.contains("RenderLivingEvent$Pre") && deadFilter.contains("setCanceled")
+                        && deadFilter.contains("NetworkPlayerInfo") && deadFilter.contains("getPlayerInfo")
+                        && deadPolicy.contains("shouldSuppress") && deadPolicy.contains("hasNpcMarker"));
+        check("dead-mob cleanup remains client render-only", !deadFilter.contains("sendPacket")
+                && !deadFilter.contains("setPosition") && !deadFilter.contains("setHealth")
+                && !deadFilter.contains("removeEntity") && !deadFilter.contains("setDead"));
+        check("client registers dead-body/nameplate filtering and render-time Aspect observation",
+                client.contains("deadMobRenderFilter") && client.contains("DeadMobRenderFilter")
+                        && client.contains("RenderTickEvent") && client.contains("renderTick"));
+        check("Smooth Aspect arms on ticks but samples the visual discontinuity at render time",
+                aspectRenderer.contains("advanceTick") && aspectRenderer.contains("renderTick")
+                        && aspectObservation.contains("advanceTick") && aspectPolicy.contains("MAX_TELEPORT_DISTANCE"));
     }
 
     private static boolean classExists(String binaryName) {

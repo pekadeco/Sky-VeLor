@@ -9,6 +9,7 @@ public final class AspectTeleportTransitionObservationTests {
         requiresAnObservedUseBeforePainting();
         oneUseCreatesOnlyOneTransition();
         armWindowSurvivesExpectedServerDelayButExpires();
+        renderSamplingNeverConsumesTheClientTickArmWindow();
         worldChangesAndInvalidCoordinatesNeverCreateARenderPath();
         done();
     }
@@ -43,6 +44,7 @@ public final class AspectTeleportTransitionObservationTests {
         state.arm();
         for (int i = 0; i < AspectTeleportTransitionPolicy.ARM_TICKS - 2; i++) {
             check("ordinary armed movement remains quiet " + i, !state.observe(world, .20D * i, 64D, 0D));
+            state.advanceTick();
         }
         check("late server response inside arm window still transitions", state.observe(world, 4D, 64D, 0D));
 
@@ -51,8 +53,22 @@ public final class AspectTeleportTransitionObservationTests {
         state.arm();
         for (int i = 0; i < AspectTeleportTransitionPolicy.ARM_TICKS; i++) {
             state.observe(world, .05D * i, 64D, 0D);
+            state.advanceTick();
         }
         check("expired use window cannot flash on a delayed unrelated jump", !state.observe(world, 4D, 64D, 0D));
+    }
+
+    private static void renderSamplingNeverConsumesTheClientTickArmWindow() {
+        AspectTeleportTransitionObservation state = new AspectTeleportTransitionObservation();
+        Object world = new Object();
+        state.observe(world, 0D, 64D, 0D);
+        state.arm();
+        for (int frame = 0; frame < 40; frame++) {
+            check("render baseline is quiet " + frame, !state.observe(world, .01D * frame, 64D, 0D));
+        }
+        check("render frames do not shorten the arm", state.remainingArmedTicks() == AspectTeleportTransitionPolicy.ARM_TICKS);
+        state.advanceTick();
+        check("only a client tick ages the arm", state.remainingArmedTicks() == AspectTeleportTransitionPolicy.ARM_TICKS - 1);
     }
 
     private static void worldChangesAndInvalidCoordinatesNeverCreateARenderPath() {

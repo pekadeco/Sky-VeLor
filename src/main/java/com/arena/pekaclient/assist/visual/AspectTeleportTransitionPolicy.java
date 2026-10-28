@@ -13,6 +13,8 @@ public final class AspectTeleportTransitionPolicy {
     public static final int ARM_TICKS = 12;
     /** Exact use observation keeps this low enough to cover short AOTE/AOTV teleports without treating a walk as one. */
     public static final double MIN_TELEPORT_DISTANCE = 1.5D;
+    /** Rejects respawns, world corrections, and other implausibly large snaps instead of dragging the camera across them. */
+    public static final double MAX_TELEPORT_DISTANCE = 64D;
     /** A short, tangible camera glide instead of a HUD fade. This is deliberately bounded to keep server position honest. */
     public static final long CAMERA_INTERPOLATION_NANOS = 125_000_000L;
 
@@ -34,7 +36,9 @@ public final class AspectTeleportTransitionPolicy {
         double dx = toX - fromX;
         double dy = toY - fromY;
         double dz = toZ - fromZ;
-        return dx * dx + dy * dy + dz * dz >= MIN_TELEPORT_DISTANCE * MIN_TELEPORT_DISTANCE;
+        double distanceSquared = dx * dx + dy * dy + dz * dz;
+        return distanceSquared >= MIN_TELEPORT_DISTANCE * MIN_TELEPORT_DISTANCE
+                && distanceSquared <= MAX_TELEPORT_DISTANCE * MAX_TELEPORT_DISTANCE;
     }
 
     /**

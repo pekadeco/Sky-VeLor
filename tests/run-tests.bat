@@ -89,6 +89,7 @@ call :run com.arena.pekaclient.render.blockparticles.BlockParticleTransformerTes
 call :run com.arena.pekaclient.assist.visual.VisualAssistTransformerTests || goto fail
 call :run com.arena.pekaclient.assist.visual.AspectTeleportTransitionPolicyTests || goto fail
 call :run com.arena.pekaclient.assist.visual.AspectTeleportTransitionObservationTests || goto fail
+call :run com.arena.pekaclient.assist.visual.DeadMobRenderPolicyTests || goto fail
 call :run com.arena.pekaclient.feature.ItemAnimationTests || goto fail
 call :run com.arena.pekaclient.feature.VisualSwingStateMachineTests || goto fail
 call :run com.arena.pekaclient.feature.SwingEasingTests || goto fail
