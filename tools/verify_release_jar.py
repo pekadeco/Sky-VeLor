@@ -843,13 +843,22 @@ def main():
                  b'Warning: conflicts with Sky VeLor ', b'Warning: conflicts with Minecraft ', b'AppleSettings'))
                 and b'drawDefaultBackground' not in command_keybind_editor_raw,
             'Command Keybind editor is an opaque compact one-line add/delete/capture/reset surface with focused space entry and visible collision warnings')
-    r.check(all(value in wardrobe_shortcut_policy_raw for value in
-                (b'shouldOpenWardrobe', b'shouldSelectSlot', b'FIRST_WARDROBE_SLOT', b'LAST_WARDROBE_SLOT', b'isWardrobeTitle'))
-                and all(value in wardrobe_shortcut_controller_raw for value in
-                        (b'Keyboard', b'GuiChest', b'ContainerChest', b'windowClick', b'/wardrobe', b'WardrobeShortcutPolicy'))
-                and all(value not in wardrobe_shortcut_controller_raw for value in
-                        (b'sendPacket', b'setPosition', b'setLocationAndAngles', b'clickMouse', b'Thread.sleep')),
-            'Wardrobe Shortcut remains a physical-edge, recognized-GuiChest direct command/slot helper without movement, packet, or repeated-click automation')
+    wardrobe_policy_values = (b'shouldOpenWardrobe', b'shouldSelectSlot', b'FIRST_WARDROBE_SLOT',
+                              b'LAST_WARDROBE_SLOT', b'isWardrobeTitle')
+    # Minecraft GUI/container type names and PlayerControllerMP.windowClick are reobfuscated in the shipped jar.
+    # Require the stable Forge input event, LWJGL key source, local guard policy, command literal, and the 1.8.9
+    # SRG window-click member here; source tests separately audit the readable GuiChest/ContainerChest gates.
+    wardrobe_controller_values = (b'Keyboard', b'KeyboardInputEvent$Pre', b'WardrobeShortcutPolicy', b'/wardrobe',
+                                  b'func_78753_a')
+    wardrobe_forbidden_values = (b'sendPacket', b'setPosition', b'setLocationAndAngles', b'clickMouse', b'Thread.sleep')
+    r.check(all(value in wardrobe_shortcut_policy_raw for value in wardrobe_policy_values)
+                and all(value in wardrobe_shortcut_controller_raw for value in wardrobe_controller_values)
+                and all(value not in wardrobe_shortcut_controller_raw for value in wardrobe_forbidden_values),
+            'Wardrobe Shortcut remains a physical-edge, recognized-GuiChest direct command/slot helper without movement, packet, or repeated-click automation',
+            'missing policy=%s controller=%s forbidden=%s' % (
+                missing_raw_values(wardrobe_shortcut_policy_raw, wardrobe_policy_values),
+                missing_raw_values(wardrobe_shortcut_controller_raw, wardrobe_controller_values),
+                [value.decode('ascii') for value in wardrobe_forbidden_values if value in wardrobe_shortcut_controller_raw]))
 
     chat_settings_raw = raw_of('config/ChatQolSettings')
     tabs_raw = raw_of('feature/ChatChannelTabs')
