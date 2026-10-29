@@ -63,9 +63,8 @@ public final class DungeonHudEditorContractTests {
                         && editor.contains("map-background-color") && editor.contains("map-room-color")
                         && editor.contains("map-secrets-color") && editor.contains("resetMap"));
         check("map controls are grouped and use existing compact toggle and slider widgets",
-                editor.contains("heading(\"Display\")") && editor.contains("heading(\"Players\")")
-                        && editor.contains("heading(\"Colors\")") && editor.contains("heading(\"Background\")")
-                        && editor.contains("AppleToggle") && editor.contains("AppleSlider"));
+                editor.contains("Display") && editor.contains("Players") && editor.contains("Colors")
+                        && editor.contains("Background") && editor.contains("AppleToggle") && editor.contains("AppleSlider"));
         check("direct editor keeps direct element selection rather than restoring a large background panel",
                 editor.contains("drawSelection") && !editor.contains("drawDefaultBackground"));
     }

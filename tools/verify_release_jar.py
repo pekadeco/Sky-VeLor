@@ -675,7 +675,8 @@ def main():
                 and all(value in dungeon_hud_editor_raw for value in
                         (b'map-scale', b'map-zoom', b'map-heads', b'map-head-size', b'map-room-names',
                          b'map-secrets', b'map-background', b'map-background-opacity', b'map-background-color',
-                         b'map-room-color', b'map-secrets-color', b'map-announce', b'reset-map-position',
+                         b'map-room-color', b'map-secrets-color', b'map-announce', b'AppleToggle', b'AppleSlider',
+                         b'Display', b'Players', b'Colors', b'Background', b'resetSelected', b'resetMap',
                          b'AppleSettings', b'HudManager', b'persist'))
                 and b'dungeon-map-player-heads' not in bindings_raw
                 and b'dungeonMap' not in hud_editor_raw
@@ -688,7 +689,7 @@ def main():
                         (b'advanceTick', b'clampCenter'))
                 and all(value in dungeon_map_projection_raw for value in (b'fitZoom', b'project'))
                 and all(value in skin_head_raw for value in (b'quad', b'UIRender')),
-            'Dungeon Map packages all presentation controls in its dedicated editor, with retained bounded interpolated skin heads, no frame, and 500 percent zoom',
+            'Dungeon Map packages grouped presentation controls in its direct canvas editor, with retained bounded interpolated skin heads, no frame, and 500 percent zoom',
             'settings=%s catalog=%s editor=%s legacyBindings=%s genericHud=%s overlay=%s headMotion=%s projection=%s skin=%s' % (
                     missing_raw_values(apple_settings_raw, (b'dungeonMapPlayerHeads', b'dungeonMapPlayerHeadSize',
                             b'dungeonMapShowPuzzleName', b'dungeonMapShowSecrets', b'dungeonMapBackground',
@@ -699,8 +700,9 @@ def main():
                     missing_raw_values(dungeon_hud_editor_raw, (b'map-scale', b'map-zoom', b'map-heads',
                             b'map-head-size', b'map-room-names', b'map-secrets', b'map-background',
                             b'map-background-opacity', b'map-background-color', b'map-room-color',
-                            b'map-secrets-color', b'map-announce', b'reset-map-position', b'AppleSettings',
-                            b'HudManager', b'persist')),
+                            b'map-secrets-color', b'map-announce', b'AppleToggle', b'AppleSlider', b'Display',
+                            b'Players', b'Colors', b'Background', b'resetSelected', b'resetMap',
+                            b'AppleSettings', b'HudManager', b'persist')),
                     b'dungeon-map-player-heads' in bindings_raw, b'dungeonMap' in hud_editor_raw,
                     missing_raw_values(dungeon_map_overlay_raw, (b'PlayerHead', b'DungeonMapPlayerHeadMotion',
                             b'SkinHead', b'loadedSkin', b'withoutPlayerHeadMarkers',
@@ -726,8 +728,9 @@ def main():
                         (b'Score / Stats', b'Room Alert', b'Dungeon Map', b'drawDungeonMapPreview', b'moveTarget',
                          b'resizeTarget', b'Reset all', b'Reset selected', b'AppleSettings', b'HudManager', b'persist'))
                 and all(value in dungeon_hud_editor_layout_raw for value in
-                        (b'header', b'picker', b'inspector', b'canvas', b'compact', b'validFor', b'intersects')),
-            'Dungeons packages a responsive dedicated HUD Editor with selectable Score/Stats, Room Alert, and map samples, drag/resize/reset controls, save-on-close, and non-overlapping compact layout',
+                        (b'topBar', b'inspector', b'canvas', b'compact', b'dockInspector', b'inspectorAvoids',
+                         b'validFor', b'intersects')),
+            'Dungeons packages a transparent direct-canvas HUD Editor with selectable Score/Stats, Room Alert, and map samples, drag/resize/reset controls, save-on-close, and a dock that avoids the selected element',
             'catalog=%s bindings=%s screen=%s manager=%s editor=%s layout=%s' % (
                     missing_raw_values(reference_catalog_raw, (b'Dungeon HUD Editor', b'Open Dungeon HUD Editor',
                             b'Dungeon Score/Stats HUD', b'Crypts', b'Deaths', b'Run Time', b'Room Clear Alert',
@@ -741,15 +744,15 @@ def main():
                     missing_raw_values(dungeon_hud_editor_raw, (b'Score / Stats', b'Room Alert', b'Dungeon Map',
                             b'drawDungeonMapPreview', b'moveTarget', b'resizeTarget', b'Reset all', b'Reset selected',
                             b'AppleSettings', b'HudManager', b'persist')),
-                    missing_raw_values(dungeon_hud_editor_layout_raw, (b'header', b'picker', b'inspector', b'canvas',
-                            b'compact', b'validFor', b'intersects'))))
+                    missing_raw_values(dungeon_hud_editor_layout_raw, (b'topBar', b'inspector', b'canvas',
+                            b'compact', b'dockInspector', b'inspectorAvoids', b'validFor', b'intersects'))))
     r.check(all(value in apple_settings_raw for value in
                 (b'dungeonHud.score', b'dungeonHud.crypts', b'dungeonHud.deaths', b'dungeonHud.runTime',
                  b'dungeonHud.roomClearSound', b'dungeonHud.roomClearDurationMillis', b'dungeonHud.autoChestClose',
                  b'DEFAULT_DUNGEON_AUTO_CHEST_CLOSE'))
                 and all(value in dungeon_score_calculator_raw for value in
-                        (b'failedPuzzles', b'spiritDeathPenaltyReductions', b'mimicKilled', b'paulActive',
-                         b'projectedRank', b'rankForScore', b'S+'))
+                        (b'failedPuzzles', b'spiritDeathPenaltyReductions', b'mimicKilled', b'bloodDoorOpened',
+                         b'BLOOD_DOOR_CLEAR_PERCENT', b'paulActive', b'projectedRank', b'rankForScore', b'S+'))
                 and all(value in dungeon_score_telemetry_raw for value in
                         (b'extra stats', b'score breakdown', b'puzzle fail!', b'mimic', b'paul', b'scoreRecapLines'))
                 and all(value in dungeon_score_readout_raw for value in
@@ -766,7 +769,8 @@ def main():
                             b'dungeonHud.runTime', b'dungeonHud.roomClearSound', b'dungeonHud.roomClearDurationMillis',
                             b'dungeonHud.autoChestClose', b'DEFAULT_DUNGEON_AUTO_CHEST_CLOSE')),
                     missing_raw_values(dungeon_score_calculator_raw, (b'failedPuzzles', b'spiritDeathPenaltyReductions',
-                            b'mimicKilled', b'paulActive', b'projectedRank', b'rankForScore', b'S+')),
+                            b'mimicKilled', b'bloodDoorOpened', b'BLOOD_DOOR_CLEAR_PERCENT', b'paulActive',
+                            b'projectedRank', b'rankForScore', b'S+')),
                     missing_raw_values(dungeon_score_telemetry_raw, (b'extra stats', b'score breakdown', b'puzzle fail!',
                             b'mimic', b'paul', b'scoreRecapLines')),
                     missing_raw_values(dungeon_score_readout_raw, (b'hasOfficialScore', b'projectedRank',
@@ -778,10 +782,12 @@ def main():
                             b'dungeonScoreShowRunTime', b'visibleDefaultV2', b'forceBorderless'))))
     r.check(all(value in sv_dungeon_command_raw for value in
                 (b'/svdungeon debug', b'Dungeon debug begin', b'detected dungeon=', b'raw sidebar', b'raw tab',
-                 b'parsed rooms/cleared=', b'crypts=', b'time=', b'score=', b'rank='))
+                 b'parsed sidebar/tab floor=', b'cleared raw=', b'Blood Door=', b'calculated skill=',
+                 b'official recap total=', b'crypts=', b'time=', b'score=', b'rank='))
                 and all(value in dungeon_context_raw for value in
-                        (b'Catacombs', b'matched corroborated Dungeon sidebar evidence', b'floor', b'evaluateNow')),
-            '/svdungeon debug packages live detector, raw sidebar/tab, and parsed dungeon-score diagnostics without a server command')
+                        (b'Catacombs', b'matched corroborated Dungeon sidebar evidence',
+                         b'matched Fakepixel public tab Dungeon row', b'evaluateVisible', b'floor', b'evaluateNow')),
+            '/svdungeon debug packages live detector, raw sidebar/tab, source-aware parsed values, and final-score diagnostics without a server command')
     r.check(all(value in room_alert_policy_raw for value in
                 (b'clearedRooms', b'clearedProgress', b'shouldAlertClearedProgress', b'MAX_PROGRESS_JUMP',
                  b'blood', b'fairy', b'entrance', b'already', b'CLEAR_MESSAGE'))

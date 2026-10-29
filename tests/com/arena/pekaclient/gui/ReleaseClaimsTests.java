@@ -102,7 +102,7 @@ public final class ReleaseClaimsTests {
         String chestPolicy = classText("com.arena.pekaclient.assist.dungeon.DungeonChestClosePolicy");
         String chestCloser = classText("com.arena.pekaclient.assist.dungeon.DungeonChestCloser");
         String client = classText("com.arena.pekaclient.PekaClientMod");
-        check("Dungeon HUD editor is a dedicated centered solid picker with persistent score, room-alert and map placement",
+        check("Dungeon HUD editor is a direct transparent canvas with persistent score, room-alert and map placement",
                 classExists("com.arena.pekaclient.gui.DungeonHudEditorScreen")
                         && ReferenceSettingsCatalog.find("dungeon-map") != null
                         && ReferenceSettingsCatalog.find("dungeon-score-hud") != null
