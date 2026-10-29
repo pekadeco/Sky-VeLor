@@ -24,6 +24,8 @@ public final class HudManager {
     public static final MiningAssistantHud MINING_ASSIST = new MiningAssistantHud();
     public static final DungeonBossHud DUNGEON_BOSS_HP = new DungeonBossHud();
     public static final DungeonRunHud DUNGEON_RUN = new DungeonRunHud();
+    public static final DungeonScoreHud DUNGEON_SCORE = new DungeonScoreHud();
+    public static final RoomClearAlertHud ROOM_CLEAR_ALERT = new RoomClearAlertHud();
     public static final InventoryHud INVENTORY = new InventoryHud();
     public static final PlayerDollHud DOLL = new PlayerDollHud();
     public static final FishingHud FISHING = new FishingHud();
@@ -32,8 +34,11 @@ public final class HudManager {
 
     /** Elements shown in the normal HUD editor, in draw order. Metrics deliberately do not register here: FPS,
      * memory and ping exist only in Settings Home. */
-    public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DUNGEON_RUN, INVENTORY,
-            DOLL, FISHING, SEA_HP, SLAYER};
+    public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DUNGEON_RUN,
+            DUNGEON_SCORE, ROOM_CLEAR_ALERT, INVENTORY, DOLL, FISHING, SEA_HP, SLAYER};
+
+    /** Targets owned by the dedicated Dungeon HUD Editor; the map keeps its established AppleSettings placement. */
+    public static final HudElement[] DUNGEON_EDITOR_ELEMENTS = {DUNGEON_SCORE, ROOM_CLEAR_ALERT};
 
     public static final String FILE_NAME = "skyvelor-hud.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient-hud.properties";
@@ -92,12 +97,21 @@ public final class HudManager {
         }
     }
 
-    /** Draws every element for the editor. Disabled elements are shown faded. */
+    /** Draws every ordinary element for the generic editor. Disabled elements are shown faded. */
     public static void renderEditor(ScaledResolution sr, int mx, int my) {
+        renderEditor(sr, mx, my, ELEMENTS);
+    }
+
+    /** Draws only the dedicated Dungeon HUD Editor's movable targets. */
+    public static void renderDungeonEditor(ScaledResolution sr, int mx, int my) {
+        renderEditor(sr, mx, my, DUNGEON_EDITOR_ELEMENTS);
+    }
+
+    private static void renderEditor(ScaledResolution sr, int mx, int my, HudElement[] elements) {
         int sw = sr.getScaledWidth();
         int sh = sr.getScaledHeight();
         HudElement under = null;
-        for (HudElement e : ELEMENTS) {
+        for (HudElement e : elements) {
             int x = e.leftFor(sw);
             int y = e.topFor(sh);
             if (mx >= x && mx < x + e.pixelWidth() && my >= y && my < y + e.pixelHeight()) under = e;
@@ -106,7 +120,7 @@ public final class HudManager {
         HudElement.hoveredInEditor = under;
         UIRender.beginFrame();
         try {
-            for (HudElement e : ELEMENTS) e.render(sw, sh, e.enabled ? 1f : 0.35f);
+            for (HudElement e : elements) e.render(sw, sh, e.enabled ? 1f : 0.35f);
         } finally {
             // These static editor hints must not bleed into the normal in-game HUD if a preview renderer throws.
             try {

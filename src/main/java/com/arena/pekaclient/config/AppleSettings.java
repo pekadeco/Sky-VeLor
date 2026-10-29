@@ -18,9 +18,9 @@ public final class AppleSettings {
 
     public static final String FILE_NAME = "skyvelor.properties";
     public static final String LEGACY_FILE_NAME = "pekaclient.properties";
-    /** Schema v3 records the fresh-default audit without mutating saved choices. */
+    /** Schema v4 records additive dungeon HUD preferences without mutating saved choices. */
     static final String CONFIG_VERSION_KEY = "config.version";
-    static final int CURRENT_CONFIG_VERSION = 3;
+    static final int CURRENT_CONFIG_VERSION = 4;
 
     public static final String[] ACCENT_NAMES = {"Blue", "Purple", "Pink", "Green", "Orange", "Teal"};
     public static final int[] ACCENT_COLORS = {
@@ -189,6 +189,26 @@ public final class AppleSettings {
     public static final HudPlacement dungeonMapPlacement = new HudPlacement(
             HudPlacement.Anchor.START, 12, HudPlacement.Anchor.START, 12);
     private static boolean dungeonMapPlacementInitialized = true;
+
+    // Dungeon HUD settings. The HUD elements themselves persist position/scale/enable state in skyvelor-hud.properties;
+    // these additive keys retain only their visible-line and alert behaviour choices in the established main file.
+    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_SCORE = true;
+    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS = true;
+    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_DEATHS = true;
+    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME = true;
+    public static boolean dungeonScoreShowScore = DEFAULT_DUNGEON_SCORE_SHOW_SCORE;
+    public static boolean dungeonScoreShowCrypts = DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS;
+    public static boolean dungeonScoreShowDeaths = DEFAULT_DUNGEON_SCORE_SHOW_DEATHS;
+    public static boolean dungeonScoreShowRunTime = DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME;
+    public static final boolean DEFAULT_DUNGEON_ROOM_CLEAR_SOUND = false;
+    public static boolean dungeonRoomClearSound = DEFAULT_DUNGEON_ROOM_CLEAR_SOUND;
+    public static final int DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS = 500;
+    public static final int DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS = 5000;
+    public static final int DEFAULT_DUNGEON_ROOM_CLEAR_DURATION_MILLIS = 1800;
+    public static int dungeonRoomClearDurationMillis = DEFAULT_DUNGEON_ROOM_CLEAR_DURATION_MILLIS;
+    /** Explicitly opt-in: a normal secret chest is never closed unless the player enables this preference. */
+    public static final boolean DEFAULT_DUNGEON_AUTO_CHEST_CLOSE = false;
+    public static boolean dungeonAutoChestClose = DEFAULT_DUNGEON_AUTO_CHEST_CLOSE;
     /**
      * Performance Boost Beta. Enabled on a fresh install. Selects lower-cost Sky VeLor GUI/HUD work:
      * fewer curve segments and no shadows in the hub and editor, slower HUD scans, and cached HUD text.
@@ -371,6 +391,7 @@ public final class AppleSettings {
             dungeonMapPlacement.reset(HudPlacement.Anchor.START, 12, HudPlacement.Anchor.START, 12);
             dungeonMapPlacementInitialized = false;
         }
+        loadDungeonHudSettings(p);
         leapKey = readBool(p, "leapKey", leapKey);
         svCommand = readBool(p, "cmd.sv", svCommand);
         slayerTracker = readBool(p, "slayer.tracker", slayerTracker);
@@ -391,6 +412,43 @@ public final class AppleSettings {
                 || settingsWindowLayoutMigrationPending || ChatQolSettings.isMigrationPending()) {
             save();
         }
+    }
+
+    /**
+     * Loads additive Dungeon HUD presentation preferences. Missing keys retain safe current defaults and do not
+     * rewrite an existing player's map, HUD placement, or feature enable choices.
+     */
+    static void loadDungeonHudSettings(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+        dungeonScoreShowScore = readBool(p, "dungeonHud.score", DEFAULT_DUNGEON_SCORE_SHOW_SCORE);
+        dungeonScoreShowCrypts = readBool(p, "dungeonHud.crypts", DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS);
+        dungeonScoreShowDeaths = readBool(p, "dungeonHud.deaths", DEFAULT_DUNGEON_SCORE_SHOW_DEATHS);
+        dungeonScoreShowRunTime = readBool(p, "dungeonHud.runTime", DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME);
+        dungeonRoomClearSound = readBool(p, "dungeonHud.roomClearSound", DEFAULT_DUNGEON_ROOM_CLEAR_SOUND);
+        dungeonRoomClearDurationMillis = readInt(p, "dungeonHud.roomClearDurationMillis",
+                DEFAULT_DUNGEON_ROOM_CLEAR_DURATION_MILLIS, DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
+                DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS);
+        dungeonAutoChestClose = readBool(p, "dungeonHud.autoChestClose", DEFAULT_DUNGEON_AUTO_CHEST_CLOSE);
+    }
+
+    /** Writes just the Dungeon HUD presentation keys; HUD positions and enable states remain HudManager-owned. */
+    static void saveDungeonHudSettings(Properties p) {
+        if (p == null) return;
+        dungeonRoomClearDurationMillis = Math.max(DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
+                Math.min(DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS, dungeonRoomClearDurationMillis));
+        p.setProperty("dungeonHud.score", Boolean.toString(dungeonScoreShowScore));
+        p.setProperty("dungeonHud.crypts", Boolean.toString(dungeonScoreShowCrypts));
+        p.setProperty("dungeonHud.deaths", Boolean.toString(dungeonScoreShowDeaths));
+        p.setProperty("dungeonHud.runTime", Boolean.toString(dungeonScoreShowRunTime));
+        p.setProperty("dungeonHud.roomClearSound", Boolean.toString(dungeonRoomClearSound));
+        p.setProperty("dungeonHud.roomClearDurationMillis", Integer.toString(dungeonRoomClearDurationMillis));
+        p.setProperty("dungeonHud.autoChestClose", Boolean.toString(dungeonAutoChestClose));
+    }
+
+    /** Clamps a direct/programmatic duration read, matching load and save semantics. */
+    public static int effectiveDungeonRoomClearDurationMillis() {
+        return Math.max(DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
+                Math.min(DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS, dungeonRoomClearDurationMillis));
     }
 
     /**
@@ -591,6 +649,7 @@ public final class AppleSettings {
             p.setProperty("dungeonMapAy", dungeonMapPlacement.anchorY.name());
             p.setProperty("dungeonMapOy", Integer.toString(dungeonMapPlacement.offsetY));
         }
+        saveDungeonHudSettings(p);
         p.setProperty("experimentalPerformance", Boolean.toString(experimentalPerformance));
         p.setProperty("leapKey", Boolean.toString(leapKey));
         p.setProperty("cmd.sv", Boolean.toString(svCommand));

@@ -20,6 +20,7 @@ public final class ConfigTests {
     public static void main(String[] args) throws IOException {
         validValuesLoad();
         dungeonRunHudIsMovableAndOptIn();
+        dungeonScoreAndRoomAlertStayBorderlessAndPersistent();
         invalidValuesFallBack();
         outOfRangeIsClamped();
         legacyPlacementLoadsForActiveHud();
@@ -74,6 +75,32 @@ public final class ConfigTests {
         boolean registered = false;
         for (HudElement element : HudManager.ELEMENTS) if (element == HudManager.DUNGEON_RUN) registered = true;
         check("Dungeon Run HUD is registered with the existing HUD editor", registered, "registered=" + registered);
+    }
+
+    private static void dungeonScoreAndRoomAlertStayBorderlessAndPersistent() throws IOException {
+        DungeonScoreHud score = new DungeonScoreHud();
+        RoomClearAlertHud alert = new RoomClearAlertHud();
+        check("Dungeon Score HUD defaults off", !score.enabled, "enabled=" + score.enabled);
+        check("Room Clear Alert defaults off", !alert.enabled, "enabled=" + alert.enabled);
+        score.load(parse("dungeonScore.enabled=true\ndungeonScore.bg=true\ndungeonScore.border=true\n"
+                + "dungeonScore.ax=CENTER\ndungeonScore.ox=12\n"));
+        alert.load(parse("roomClearAlert.enabled=true\nroomClearAlert.bg=true\nroomClearAlert.border=true\n"
+                + "roomClearAlert.scale=130\n"));
+        check("Dungeon Score HUD persists normal placement and enable state", score.enabled
+                && score.place.anchorX == Anchor.CENTER && score.place.offsetX == 12, score.place.toString());
+        check("Dungeon Score HUD forces no background or border", !score.background && !score.border,
+                "bg=" + score.background + " border=" + score.border);
+        check("Room Clear Alert keeps size while forcing no background or border", alert.enabled
+                && Math.abs(alert.scale - 1.3F) < 1e-6 && !alert.background && !alert.border,
+                "scale=" + alert.scale + " bg=" + alert.background + " border=" + alert.border);
+        boolean scoreRegistered = false;
+        boolean alertRegistered = false;
+        for (HudElement element : HudManager.DUNGEON_EDITOR_ELEMENTS) {
+            if (element == HudManager.DUNGEON_SCORE) scoreRegistered = true;
+            if (element == HudManager.ROOM_CLEAR_ALERT) alertRegistered = true;
+        }
+        check("dedicated Dungeon HUD Editor owns score and alert targets", scoreRegistered && alertRegistered,
+                "score=" + scoreRegistered + " alert=" + alertRegistered);
     }
 
     private static void invalidValuesFallBack() throws IOException {
