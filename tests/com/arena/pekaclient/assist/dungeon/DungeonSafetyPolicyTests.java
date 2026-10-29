@@ -8,6 +8,7 @@ public final class DungeonSafetyPolicyTests {
     public static void main(String[] args) {
         onlyExactNormalChestTitlesAreAllowed();
         roomAlertRejectsSpecialAndRepeatedRooms();
+        roomAlertAcceptsVisibleSidebarProgressWithoutChat();
         done();
     }
 
@@ -39,6 +40,22 @@ public final class DungeonSafetyPolicyTests {
         policy.reset();
         check("reset permits the same coordinate in a new run", policy.shouldAlert(true,
                 "Room Cleared!", "12:18", 8000L));
+    }
+
+    private static void roomAlertAcceptsVisibleSidebarProgressWithoutChat() {
+        RoomClearAlertPolicy policy = new RoomClearAlertPolicy();
+        check("first Cleared sidebar value is only a baseline", !policy.shouldAlertClearedProgress(true,
+                -1, 12, "1:1", 1000L));
+        check("Cleared sidebar increase alerts without chat", policy.shouldAlertClearedProgress(true,
+                12, 17, "1:1", 3000L));
+        check("nearby chat/sidebar confirmations de-duplicate", !policy.shouldAlert(true,
+                "Room Cleared!", "5:1", 3500L));
+        check("same Cleared value cannot alert twice", !policy.shouldAlertClearedProgress(true,
+                12, 17, "2:1", 6000L));
+        check("impossible stale progress jump is rejected", !policy.shouldAlertClearedProgress(true,
+                17, 60, "3:1", 9000L));
+        check("sidebar progress outside a dungeon is rejected", !policy.shouldAlertClearedProgress(false,
+                17, 20, "4:1", 12000L));
     }
 
     private static void check(String name, boolean okay) {

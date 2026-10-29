@@ -1,6 +1,6 @@
 package com.arena.pekaclient.feature;
 
-/** Checks the sidebar line test used to decide whether the player is in a dungeon. */
+/** Checks the corroborated sidebar test used to decide whether the player is in a dungeon. */
 public final class DungeonContextTests {
 
     private static int passed;
@@ -8,6 +8,7 @@ public final class DungeonContextTests {
 
     public static void main(String[] args) {
         catacombsLinesMatch();
+        fakepixelDungeonEvidenceMatches();
         otherLinesDoNot();
         freshSidebarResultsExplainDecision();
         System.out.println();
@@ -23,12 +24,30 @@ public final class DungeonContextTests {
         check("fresh sidebar finds a positive dungeon result", hit.inDungeon, hit.reason);
         check("fresh sidebar preserves matched visible line", "The Catacombs (F7)".equals(hit.matchedScoreboardLine),
                 hit.matchedScoreboardLine);
-        check("fresh sidebar reports matching reason", hit.reason.contains("matched Catacombs sidebar line"), hit.reason);
+        check("fresh sidebar reports matching reason", hit.reason.contains("Catacombs"), hit.reason);
+        check("fresh sidebar parses floor", "F7".equals(hit.floor), hit.floor);
 
         DungeonContext.Result uncertain = DungeonContext.evaluateSidebar("§bSKYBLOCK",
                 java.util.Arrays.asList("§7Purse: 1,000", "§aVillage"));
         check("unmatched sidebar fails closed", !uncertain.inDungeon, uncertain.reason);
-        check("unmatched sidebar reports why", uncertain.reason.contains("no Catacombs"), uncertain.reason);
+        check("unmatched sidebar reports why", uncertain.reason.contains("no corroborated"), uncertain.reason);
+    }
+
+    private static void fakepixelDungeonEvidenceMatches() {
+        DungeonContext.Result labeled = DungeonContext.evaluateSidebar("§6FAKEPIXEL",
+                java.util.Arrays.asList("§eDungeon: F6", "§aCleared: 42%"));
+        check("generic Dungeon label plus floor matches", labeled.inDungeon, labeled.reason);
+        check("generic Dungeon label identifies floor", "F6".equals(labeled.floor), labeled.floor);
+        check("generic Dungeon label identifies dungeon", "Dungeon".equals(labeled.dungeon), labeled.dungeon);
+
+        DungeonContext.Result metrics = DungeonContext.evaluateSidebar("§6FAKEPIXEL",
+                java.util.Arrays.asList("§7Floor: M3", "§aCleared: 30%", "§bSecrets: 50%", "§eDeaths: 0"));
+        check("floor plus two visible dungeon metrics matches", metrics.inDungeon, metrics.reason);
+        check("master floor is parsed", "M3".equals(metrics.floor), metrics.floor);
+
+        DungeonContext.Result weak = DungeonContext.evaluateSidebar("§6FAKEPIXEL",
+                java.util.Arrays.asList("§eDungeon Hub", "§7Purse: 1,000"));
+        check("generic dungeon wording without corroboration fails closed", !weak.inDungeon, weak.reason);
     }
 
     private static void check(String name, boolean ok, String detail) {

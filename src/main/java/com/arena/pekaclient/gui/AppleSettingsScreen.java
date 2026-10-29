@@ -1,6 +1,7 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.PekaClientMod;
+import com.arena.pekaclient.assist.dungeon.RoomClearAlertController;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
@@ -2132,6 +2133,12 @@ public class AppleSettingsScreen extends AppleScreen {
             return;
         }
         if ("open-dungeon-hud-editor".equals(id)) {
+            Minecraft.getMinecraft().displayGuiScreen(new DungeonHudEditorScreen(this));
+            return;
+        }
+        if ("room-clear-test".equals(id)) {
+            RoomClearAlertController.triggerTestAlert();
+            // The editor shows the same live placement preview even out of a dungeon, then saves changes on close.
             Minecraft.getMinecraft().displayGuiScreen(new DungeonHudEditorScreen(this));
             return;
         }

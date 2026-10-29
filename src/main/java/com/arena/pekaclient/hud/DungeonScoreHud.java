@@ -12,9 +12,13 @@ import java.util.Properties;
 
 /** Borderless, movable Dungeon Score/Stats HUD populated only from visible dungeon observations. */
 public final class DungeonScoreHud extends HudElement {
+    /** A one-time layout migration distinguishes the old accidental default-off key from a later explicit choice. */
+    private static final String DEFAULT_ON_MIGRATION_KEY = "visibleDefaultV2";
+
     public DungeonScoreHud() {
+        // A fresh HUD layout must not silently hide the score readout. A player can still explicitly disable it.
         super("dungeonScore", "Dungeon Score/Stats HUD", new HudPlacement(HudPlacement.Anchor.END, 8,
-                HudPlacement.Anchor.START, 8), false);
+                HudPlacement.Anchor.START, 8), true);
         forceBorderless();
     }
 
@@ -34,8 +38,9 @@ public final class DungeonScoreHud extends HudElement {
     @Override
     protected void drawContent() {
         if (!DungeonContext.inDungeon() && !backgroundOnHoverOnly) return;
+        // Inside a confirmed dungeon retain the layout while values are still arriving. The readout methods render
+        // unavailable inputs as --, rather than making a newly detected run look like the HUD vanished.
         DungeonScoreReadout readout = DungeonScoreTracker.INSTANCE.readout();
-        if (!readout.hasData() && !backgroundOnHoverOnly) return;
         List<String> lines = lines(readout);
         float y = 0F;
         for (int index = 0; index < lines.size(); index++) {
@@ -47,6 +52,9 @@ public final class DungeonScoreHud extends HudElement {
 
     @Override
     protected void loadExtra(Properties p, String key) {
+        // Beta-0.10.9.3 wrote this new HUD as disabled even for a player who had never made a choice. Upgrade that
+        // one historical default once; subsequent saved false values are always an explicit user preference.
+        if (!"true".equalsIgnoreCase(p.getProperty(key + DEFAULT_ON_MIGRATION_KEY))) enabled = true;
         forceBorderless();
     }
 
@@ -55,6 +63,7 @@ public final class DungeonScoreHud extends HudElement {
         // Preserve a strict borderless contract even when an older generic HUD editor wrote style fields.
         p.setProperty(key + "bg", "false");
         p.setProperty(key + "border", "false");
+        p.setProperty(key + DEFAULT_ON_MIGRATION_KEY, "true");
     }
 
     @Override

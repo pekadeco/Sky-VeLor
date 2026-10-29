@@ -10,6 +10,8 @@ import java.util.Properties;
 public final class RoomClearAlertHud extends HudElement {
     private static final String LABEL = "ROOM CLEARED";
     private long visibleUntilMillis;
+    /** A settings-only local preview may render briefly even when the user intentionally has the alert disabled. */
+    private long testVisibleUntilMillis;
 
     public RoomClearAlertHud() {
         super("roomClearAlert", "Room Clear Alert", new HudPlacement(HudPlacement.Anchor.CENTER, 0,
@@ -23,13 +25,26 @@ public final class RoomClearAlertHud extends HudElement {
                 nowMillis + AppleSettings.effectiveDungeonRoomClearDurationMillis());
     }
 
+    /** Starts a settings-only preview without persisting or changing the master enable choice. */
+    public void triggerTest(long nowMillis) {
+        long until = nowMillis + AppleSettings.effectiveDungeonRoomClearDurationMillis();
+        visibleUntilMillis = Math.max(visibleUntilMillis, until);
+        testVisibleUntilMillis = Math.max(testVisibleUntilMillis, until);
+    }
+
     /** Drops an expired/old-world alert immediately. */
     public void clear() {
         visibleUntilMillis = 0L;
+        testVisibleUntilMillis = 0L;
     }
 
     public boolean active(long nowMillis) {
         return visibleUntilMillis > nowMillis;
+    }
+
+    /** Lets HudManager draw a one-shot Test Alert even if the regular enabled flag is off. */
+    public boolean testPreviewActive(long nowMillis) {
+        return testVisibleUntilMillis > nowMillis;
     }
 
     @Override
@@ -44,9 +59,11 @@ public final class RoomClearAlertHud extends HudElement {
 
     @Override
     protected void drawContent() {
-        if (!DungeonContext.inDungeon() && !backgroundOnHoverOnly) return;
-        if (!active(System.currentTimeMillis()) && !backgroundOnHoverOnly) return;
-        text(LABEL, 0F, 0F, backgroundOnHoverOnly && !active(System.currentTimeMillis())
+        long now = System.currentTimeMillis();
+        boolean test = testPreviewActive(now);
+        if (!DungeonContext.inDungeon() && !backgroundOnHoverOnly && !test) return;
+        if (!active(now) && !backgroundOnHoverOnly) return;
+        text(LABEL, 0F, 0F, backgroundOnHoverOnly && !active(now)
                 ? Theme.textSecondary : accentColor());
     }
 

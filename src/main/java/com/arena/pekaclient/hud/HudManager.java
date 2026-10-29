@@ -91,7 +91,12 @@ public final class HudManager {
     public static void render(ScaledResolution sr) {
         UIRender.beginFrame();
         try {
-            for (HudElement e : ELEMENTS) if (e.enabled) e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
+            long now = System.currentTimeMillis();
+            for (HudElement e : ELEMENTS) {
+                // Test Alert is deliberately usable outside dungeons and without changing the saved master toggle.
+                boolean preview = e == ROOM_CLEAR_ALERT && ROOM_CLEAR_ALERT.testPreviewActive(now);
+                if (e.enabled || preview) e.render(sr.getScaledWidth(), sr.getScaledHeight(), 1f);
+            }
         } finally {
             UIRender.endFrame();
         }

@@ -92,7 +92,8 @@ public final class DungeonScoreReadout {
         return calculated.complete() ? "visible-data estimate" : "waiting for visible dungeon data";
     }
 
-    static String timeText(int seconds) {
+    /** Formats an observed elapsed value for HUD and diagnostics. */
+    public static String timeText(int seconds) {
         int bounded = Math.max(0, seconds);
         int minutes = bounded / 60;
         int remainder = bounded % 60;

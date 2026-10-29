@@ -80,9 +80,18 @@ public final class ConfigTests {
     private static void dungeonScoreAndRoomAlertStayBorderlessAndPersistent() throws IOException {
         DungeonScoreHud score = new DungeonScoreHud();
         RoomClearAlertHud alert = new RoomClearAlertHud();
-        check("Dungeon Score HUD defaults off", !score.enabled, "enabled=" + score.enabled);
+        check("Dungeon Score HUD defaults on so a detected dungeon cannot start with a missing readout", score.enabled,
+                "enabled=" + score.enabled);
+        DungeonScoreHud migratedScore = new DungeonScoreHud();
+        migratedScore.load(parse("dungeonScore.enabled=false\n"));
+        check("old accidental score-HUD default is migrated on once", migratedScore.enabled,
+                "enabled=" + migratedScore.enabled);
+        DungeonScoreHud explicitOffScore = new DungeonScoreHud();
+        explicitOffScore.load(parse("dungeonScore.enabled=false\ndungeonScore.visibleDefaultV2=true\n"));
+        check("post-migration explicit score-HUD off choice is preserved", !explicitOffScore.enabled,
+                "enabled=" + explicitOffScore.enabled);
         check("Room Clear Alert defaults off", !alert.enabled, "enabled=" + alert.enabled);
-        score.load(parse("dungeonScore.enabled=true\ndungeonScore.bg=true\ndungeonScore.border=true\n"
+        score.load(parse("dungeonScore.enabled=true\ndungeonScore.visibleDefaultV2=true\ndungeonScore.bg=true\ndungeonScore.border=true\n"
                 + "dungeonScore.ax=CENTER\ndungeonScore.ox=12\n"));
         alert.load(parse("roomClearAlert.enabled=true\nroomClearAlert.bg=true\nroomClearAlert.border=true\n"
                 + "roomClearAlert.scale=130\n"));

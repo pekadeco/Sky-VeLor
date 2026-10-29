@@ -43,9 +43,10 @@ public final class DungeonHudEditorContractTests {
                         && ReferenceSettingsCatalog.find("dungeon-crypts-line") != null
                         && ReferenceSettingsCatalog.find("dungeon-deaths-line") != null
                         && ReferenceSettingsCatalog.find("dungeon-run-time-line") != null);
-        check("Room Alert exposes duration and optional sound", alert != null && alert.children.size() == 2
-                && ReferenceSettingsCatalog.find("room-clear-duration") != null
-                && ReferenceSettingsCatalog.find("room-clear-sound") != null);
+        check("Room Alert exposes duration, optional sound, and an out-of-dungeon Test Alert", alert != null
+                && alert.children.size() == 3 && ReferenceSettingsCatalog.find("room-clear-duration") != null
+                && ReferenceSettingsCatalog.find("room-clear-sound") != null
+                && ReferenceSettingsCatalog.find("room-clear-test") != null);
         check("Auto Chest Close text makes its default-off exact-title safety clear", close != null
                 && close.description.toLowerCase(java.util.Locale.ROOT).contains("off by default")
                 && close.description.contains("Chest"));
