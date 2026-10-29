@@ -111,21 +111,18 @@ public final class CommandKeybindSettings {
     }
 
     public static boolean isExecutable(Entry entry) {
-        String command = commandForExecution(entry);
+        String command = normalizeCommand(entry == null ? null : entry.command);
         return entry != null && validKeyCode(entry.keyCode) && command.length() > 1 && command.charAt(0) == '/';
     }
 
-    /**
-     * Runtime and persisted command form: slash-led, single-line, and outer-trimmed only at this boundary.
-     * Inner spaces and ordinary typed characters stay intact.
-     */
+    /** Runtime receives the persisted command text; save() is the only path that trims its outer whitespace. */
     public static String commandForExecution(Entry entry) {
-        return normalizeCommand(entry == null ? null : entry.command);
+        return entry == null ? "/" : entry.command;
     }
 
     /**
-     * Editing preserves outer spaces until a save/execution boundary so typing a normal space cannot make the caret
-     * jump or eat the next command character. It still rejects control characters and keeps the slash convention.
+     * Editing preserves outer spaces until save() so typing a normal space cannot make the caret jump or eat the next
+     * command character. It still rejects control characters and keeps the slash convention.
      */
     private static String normalizeDraftCommand(String raw) {
         String source = raw == null ? "" : raw;
@@ -144,7 +141,7 @@ public final class CommandKeybindSettings {
         return clean.toString();
     }
 
-    /** A command is slash-led and single-line; only its outer whitespace is trimmed for execution or persistence. */
+    /** A command is slash-led and single-line; only persistence trims its outer whitespace. */
     public static String normalizeCommand(String raw) {
         String source = raw == null ? "" : raw.trim();
         StringBuilder clean = new StringBuilder(Math.min(MAX_COMMAND_LENGTH, source.length() + 1));
@@ -182,6 +179,7 @@ public final class CommandKeybindSettings {
 
     public static void save(Properties p) {
         if (p == null) return;
+        normalizeEntriesForPersistence();
         p.remove(LEGACY_PREFIX);
         p.remove(LEGACY_ENTRIES_KEY);
         p.setProperty(PREFIX, Boolean.toString(enabled));
@@ -190,6 +188,14 @@ public final class CommandKeybindSettings {
 
     private static void replace(int index, int keyCode, String command) {
         ENTRIES.set(index, new Entry(keyCode, command));
+    }
+
+    /** Save is the deliberate one-way editing boundary: canonical persisted text keeps all inner spaces. */
+    private static void normalizeEntriesForPersistence() {
+        for (int i = 0; i < ENTRIES.size(); i++) {
+            Entry entry = ENTRIES.get(i);
+            replace(i, entry.keyCode, normalizeCommand(entry.command));
+        }
     }
 
     /**
@@ -218,7 +224,7 @@ public final class CommandKeybindSettings {
         for (int i = 0; i < ENTRIES.size(); i++) {
             Entry entry = ENTRIES.get(i);
             if (i > 0) out.append(';');
-            out.append(entry.keyCode).append(",true,").append(encode(commandForExecution(entry)));
+            out.append(entry.keyCode).append(",true,").append(encode(entry.command));
         }
         return out.toString();
     }

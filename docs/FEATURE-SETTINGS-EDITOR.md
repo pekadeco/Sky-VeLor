@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.2v
+# Apple settings inventory — Beta-0.10.9.2.1v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -31,11 +31,12 @@ A visible settings row is one of five patterns:
 5. a key-capture row that shows its current key and may carry a standard enable toggle.
 
 Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
-`38 × 20` pill. Every action—including **Open HUD Editor**, **Open Item Animation Editor**, and
-**Open Command Keybind Editor**—uses the same trailing right edge, `132 × 20` control geometry, and toggle-row
-vertical center; editor master toggles sit immediately left of their CTA. Key-capture rows use a visible key capsule
-and register a separate full-row hit so the capsule/toggle geometry is never overwritten. Card headings supply the
-visual hierarchy without becoming an interactive disclosure.
+`38 × 20` pill. **Wardrobe Shortcut**, **Pets Shortcut**, **Item Lock And Swap Key**, and
+**Open Command Keybind Editor** share one responsive key-button column; their Shortcut enable toggles occupy the
+preceding shared toggle lane, and **Wardrobe Number Keys** uses that same lane. Other named editor routes retain the
+standard `132 × 20` action geometry and vertical center. Key-capture rows use a visible key capsule and register a
+separate full-row hit so the capsule/toggle geometry is never overwritten. Card headings supply the visual hierarchy
+without becoming an interactive disclosure.
 
 Each tab is a one-open accordion. All native bitmap-font text snaps its origin and effective scale to the active
 physical GUI pixel grid once per frame, avoiding fractional-scale blur without a custom-font subsystem. Rounded
@@ -74,6 +75,12 @@ continues to use the established owners; no reset dropdown was added.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
 - **Boss Health HUD** is a master toggle plus **Open HUD Editor**.
+- **Dungeons → Run Tools → Dungeon Map** has no border/frame. Its existing `100%` zoom default remains valid and
+  saved `50%`–`200%` values keep working; the upper bound is now `500%`. **Player Heads** defaults on and **Player
+  Head Size** uses a bounded native-map-pixel slider. In confirmed dungeons only, local/party map markers with ready
+  tab-list skins render the 8×8 face plus hat layer in place of their matching native arrows. Their projected centers
+  interpolate with render partial ticks, are clamped inside the `128 × 128` map viewport, preserve unrelated map
+  decorations, and leave the vanilla arrow visible until a skin is ready. Turning Player Heads off restores arrows.
 - **Dungeons → Run Tools → Spirit Bow Locator** is a direct, searchable default-off toggle backed only by
   `assist.dungeon.spiritBowLocator`. In a confirmed dungeon it scans nearby loaded armor stands on a bounded timer and
   draws a local line/outline for the nearest name containing `Spirit Bow`; it never clicks, changes input/position,
@@ -101,14 +108,15 @@ continues to use the established owners; no reset dropdown was added.
   makes at most one ordinary `windowClick` on slots `36`–`44`. Turning it off does nothing special with numbers.
   Chat and unrelated GUIs fail closed. This is direct user input, not movement, packet, farming, automatic click, or
   repeat automation.
-- **Command Keybind** entries store only a physical key and slash command; there is no per-entry On/Off state. A valid
-  key plus command is active under the existing master switch, and old saved On/Off records migrate as active entries.
-  Its solid centered window uses roughly 60% of normal GUI width, a title bar/close button, a fixed Add/Reset footer,
-  and a clipped scroll area. Normal screens show key, command field, and full **Delete** button on one readable row;
-  narrow Android/Pojav layouts put the command field beneath the key/Delete pair instead of overlapping or clipping.
-  Click capture, Escape cancel, Backspace clear, persistence, and red in-row collision warnings remain. The field owns
-  Space and ordinary characters while focused, committing only on focus loss/close so `/warp hub` and inner spaces
-  survive while outer whitespace is trimmed. The runtime samples physical key-down edges only; it sends the first
+- **Command Keybind** exposes only **Open Command Keybind Editor**; its visible Shortcut-row master toggle is gone.
+  Entries store a physical key and slash command, and a valid pair is active regardless of a retained legacy master
+  record. Old master-on/off and per-entry On/Off records load safely, with old per-entry false values treated as
+  active. Its solid centered window uses roughly 60% of normal GUI width, a title bar/close button, a fixed Add/Reset
+  footer, and a clipped scroll area. Normal screens show key, command field, and full **Delete** button on one readable
+  row; narrow Android/Pojav layouts put the command field beneath the key/Delete pair instead of overlapping or
+  clipping. Click capture, Escape cancel, Backspace clear, persistence, and red in-row collision warnings remain.
+  The field owns Space and ordinary characters while focused; internal and typed outer spaces remain in the draft, and
+  only persistence trims its ends. The runtime samples physical key-down edges only; it sends the first
   creation-order command for a duplicated key only when no chat, GUI, or editor is open, and uses a short cooldown.
 - **Item Lock And Swap** accepts a new pair only when at least one endpoint is in the hotbar. Its current L (or custom)
   binding is visible in a full-row key capture control: Escape cancels and Backspace persists `NONE`, which disables
@@ -171,12 +179,12 @@ same entry whenever its key collides with another Command Keybind, a Sky VeLor b
 
 Entries persist under `assist.shortcut.commandKeybinds` and `assist.shortcut.commandKeybinds.entries`; the previous
 `.1.8v` `assist.keybindCut.commandKeybinds` namespace loads once and is removed on the next save. The editor has no
-per-entry On/Off state: under the default-off master switch, an entry is executable when it has a slash command and a
-valid key. Old saved per-entry false values are deliberately read as active entries, so existing commands do not
-silently disappear. Raw field text stays intact while focused—normal characters and spaces are not consumed by outer
-GUI handlers—and normalization trims only its ends on commit. The client sends it only from a new physical key-down
-edge while `currentScreen` is absent, which excludes chat, all GUIs, and the editor itself. A 300 ms cooldown and
-held-key edge tracking prevent automatic repetition. Duplicate command-entry keys dispatch only their first
+visible master or per-entry On/Off state: a valid slash command plus valid key is executable even if a retained legacy
+master record says off. Old saved per-entry false values are deliberately read as active entries, so existing commands
+do not silently disappear. Raw field text stays intact while focused—normal characters and spaces are not consumed by
+outer GUI handlers—and only persistence trims its ends. The client sends it only from a new physical
+key-down edge while `currentScreen` is absent, which excludes chat, all GUIs, and the editor itself. A 300 ms cooldown
+and held-key edge tracking prevent automatic repetition. Duplicate command-entry keys dispatch only their first
 creation-order entry; the collision warning remains visible so this is never silent.
 
 ## Wardrobe behavioral attribution
@@ -191,7 +199,7 @@ assets, binaries, or dependency code were copied. The complete attribution and c
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.2v text |
+| Earlier player-facing text | Beta-0.10.9.2.1v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -235,7 +243,7 @@ shared action trailing-edge geometry, Apple title-bar targets and 8 px margin be
 behavior, fresh-open accordion reset with the intentional direct-route disclosure, search behavior, player-copy
 validation, old-config loading, Shortcut/Keybind Cut migration, Item Lock and Wardrobe capture behavior, Wardrobe
 slot-map/screen-gating policy, Command Keybind serialization/collision/direct-edge cooldown and focused-space entry,
-exact configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair cycling,
+Dungeon Map player-head interpolation/bounds and 500% projection coverage, exact configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair cycling,
 Spirit Bow marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation and Command
 Keybind panel exclusion, dead-mob render policy protections, deterministic render-time Aspect camera-path easing, and
 fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
@@ -248,8 +256,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2v.jar \
-  --version Beta-0.10.9.2v --mcmod-version 0.10.9.2
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar \
+  --version Beta-0.10.9.2.1v --mcmod-version 0.10.9.2.1
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

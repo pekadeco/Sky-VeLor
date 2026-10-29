@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.2v] [--mcmod-version 0.10.9.2]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.2.1v] [--mcmod-version 0.10.9.2.1]
 """
 
 import argparse
@@ -66,6 +66,7 @@ REQUIRED_CLASSES = [
     'gui/AppleSettingsScreen',
     'gui/ReferenceSettingsCatalog',
     'gui/SettingsRailLayout',
+    'gui/SettingsControlLayout',
     'gui/SettingsPageLayout',
     'gui/SettingsShellLayout',
     'gui/HomeMetricHistory',
@@ -75,6 +76,7 @@ REQUIRED_CLASSES = [
     'render/RoundedRectGeometry',
     'render/GuiStyle',
     'render/GuiMotion',
+    'render/SkinHead',
     'render/Theme',
     'hud/HudElement',
     'hud/ItemSlots',
@@ -108,6 +110,8 @@ REQUIRED_CLASSES = [
     'gui/ItemAnimationPanelModel',
     'dungeon/TerminalSolver',
     'dungeon/DungeonMapOverlay',
+    'dungeon/DungeonMapPlayerHeadMotion',
+    'dungeon/DungeonMapProjection',
     'dungeon/PuzzleRoomDatabase',
     'dungeon/PuzzleRoomMatcher',
     'dungeonesp/DungeonEspController',
@@ -367,8 +371,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.2v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.2')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.2.1v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.2.1')
     args = ap.parse_args()
 
     path = args.jar
@@ -532,6 +536,7 @@ def main():
     theme_raw = raw_of('render/Theme')
     dropdown_raw = raw_of('widget/AppleDropdown')
     rail_layout_raw = raw_of('gui/SettingsRailLayout')
+    settings_control_layout_raw = raw_of('gui/SettingsControlLayout')
     page_layout_raw = raw_of('gui/SettingsPageLayout')
     ui_render_raw = raw_of('render/UIRender')
     pixel_grid_raw = raw_of('render/GuiPixelGrid')
@@ -549,6 +554,10 @@ def main():
     wardrobe_shortcut_controller_raw = raw_of('assist/WardrobeShortcutController')
     item_animation_panel_raw = raw_of('gui/ItemAnimationPanelModel')
     hook_status_raw = raw_of('render/itemanimation/ItemAnimationHookStatus')
+    dungeon_map_overlay_raw = raw_of('dungeon/DungeonMapOverlay')
+    dungeon_map_projection_raw = raw_of('dungeon/DungeonMapProjection')
+    dungeon_map_head_motion_raw = raw_of('dungeon/DungeonMapPlayerHeadMotion')
+    skin_head_raw = raw_of('render/SkinHead')
 
     retired_inline_classes = (
         'gui/FeatureSettingsEditorScreen', 'gui/FeatureSettingsEditors', 'gui/FeatureSettingsUiModel',
@@ -627,6 +636,22 @@ def main():
                 and all(value in reference_catalog_raw for value in
                         (b'Custom GUI Transparency', b'GUI Transparency', b'appearance-opacity-on', b'appearance-opacity')),
             'optional GUI-transparency toggle and slider retain their established config keys and owner')
+    r.check(all(value in apple_settings_raw for value in
+                (b'dungeonMapPlayerHeads', b'dungeonMapPlayerHeadSize', b'DUNGEON_MAP_ZOOM_MAX',
+                 b'effectiveDungeonMapPlayerHeadSize'))
+                and all(value in reference_catalog_raw for value in
+                        (b'Player Heads', b'Player Head Size', b'Map Zoom'))
+                and all(value in bindings_raw for value in
+                        (b'dungeon-map-player-heads', b'dungeon-map-player-head-size'))
+                and all(value in dungeon_map_overlay_raw for value in
+                        (b'PlayerHead', b'DungeonMapPlayerHeadMotion', b'SkinHead', b'loadedSkin',
+                         b'withoutPlayerHeadMarkers'))
+                and b'drawMapBorder' not in dungeon_map_overlay_raw
+                and all(value in dungeon_map_head_motion_raw for value in
+                        (b'advanceTick', b'clampCenter'))
+                and all(value in dungeon_map_projection_raw for value in (b'fitZoom', b'project'))
+                and all(value in skin_head_raw for value in (b'quad', b'UIRender')),
+            'Dungeon Map packages default-on bounded interpolated skin heads with hats, no frame, and its extended zoom settings')
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth',
                                                         b'GuiPixelGrid', b'guiScaleFactor'))
                 and all(value in pixel_grid_raw for value in (b'textScale', b'coordinate'))
@@ -832,16 +857,20 @@ def main():
                 (b'Shortcut', b'Wardrobe Shortcut', b'Wardrobe Number Keys', b'Pets Shortcut', b'item-lock-key',
                  b'Command Keybind', b'Open Command Keybind Editor'))
                 and all(value in bindings_raw for value in (b'wardrobe-number-keys', b'pets-shortcut'))
-                and b'open-command-keybind-editor' in settings_screen_raw and b'AppleKeybindButton' in settings_screen_raw
-                and b'beginKeybindCapture' in settings_screen_raw and b'PETS_SHORTCUT_KEY' in client_raw
-                and b'rebindPetsShortcutKey' in client_raw and b'resetShortcutKeysToDefaults' in client_raw,
-            'Shortcut is a standalone card with W/P capture controls, Wardrobe Number Keys, explicit defaults and Command Keybind route')
+                and b'command-keybinds' not in bindings_raw
+                and all(value in settings_control_layout_raw for value in (b'keyButtonX', b'keyToggleX', b'rightX'))
+                and all(value in settings_screen_raw for value in
+                        (b'open-command-keybind-editor', b'AppleKeybindButton', b'beginKeybindCapture',
+                         b'keyButtonX', b'keyToggleX'))
+                and b'PETS_SHORTCUT_KEY' in client_raw and b'rebindPetsShortcutKey' in client_raw
+                and b'resetShortcutKeysToDefaults' in client_raw,
+            'Shortcut has one responsive key/toggle column, no Command Keybind master binding, W/P capture defaults, and its editor route')
     r.check(all(value in command_keybind_settings_raw for value in
                 (b'assist.shortcut.commandKeybinds', b'assist.keybindCut.commandKeybinds', b'.entries', b'MAX_ENTRIES', b'normalizeCommand',
-                 b'firstExecutableForKey'))
+                 b'commandForExecution', b'firstExecutableForKey'))
                 and all(value in command_keybind_policy_raw for value in (b'COOLDOWN_MILLIS', b'shouldSend'))
                 and all(value in command_keybind_controller_raw for value in
-                        (b'Keyboard', b'CommandKeybindSettings', b'CommandKeybindPolicy'))
+                        (b'Keyboard', b'CommandKeybindSettings', b'CommandKeybindPolicy', b'commandForExecution'))
                 and b'CommandKeybindController' in client_raw,
             'Command Keybind persistence, physical-edge cooldown policy and registered direct-user runtime are packaged')
     r.check(all(value in command_keybind_editor_raw for value in

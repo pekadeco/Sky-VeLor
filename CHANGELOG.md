@@ -1,5 +1,39 @@
 # Changelog
 
+## Beta-0.10.9.2.1v — 2026-10-29
+
+### Fixed
+
+- Removed the visible **Command Keybind** master toggle from **QoL → Shortcut**. A valid physical key plus slash
+  command now executes independently of retained legacy master-on/off data; old command records remain loadable.
+- Aligned Wardrobe Shortcut, Pets Shortcut, Item Lock And Swap Key, and the Command Keybind editor CTA in one shared
+  responsive key-control column. Wardrobe Number Keys now occupies the matching preceding toggle column.
+- Removed the Dungeon Map border/frame entirely and extended the real zoom path from the former `200%` ceiling to
+  `500%` without changing the `100%` default or rejecting existing saved zoom values.
+
+### Added
+
+- Added default-on **Player Heads** and **Player Head Size** in Dungeon Map settings. During a confirmed dungeon, ready
+  local/party tab-list skins draw their face and hat layer in place of their matching native map arrows.
+- Added bounded per-marker partial-tick interpolation so player heads move smoothly between map-decoration updates,
+  stay inside map bounds, retain unrelated map markers, and leave a native arrow visible until its skin is ready.
+- Added focused Shortcut-column, legacy-master/execution, command-space, Player Heads interpolation/bounds, 500% zoom,
+  catalog-owner, JAR, and curated-source checks.
+
+### Changed
+
+- Command text now keeps normal/internal and typed outer spaces while edited; only persistence trims its
+  ends. The centered scrollable editor retains title/close controls, Add/Reset footer, capture/cancel/clear behavior,
+  and collision warnings without a visible master or per-entry toggle.
+- Preserved Item Lock And Swap, Shortcut screen gating, Dungeon ESP, HUD Editor, Item Animation editor, Chat QoL,
+  Party Sync default-off behavior, old configuration loading, and Minecraft 1.8.9 Forge compatibility.
+
+### Verification boundary
+
+- Java 8 Forge CI, logic/layout tests, headless layout evidence, reobfuscated-JAR verification, and curated
+  source-archive checks are required before publishing. They do not launch Minecraft; this release is **NOT tested
+  in-game**.
+
 ## Beta-0.10.9.2v — 2026-10-29
 
 ### Fixed

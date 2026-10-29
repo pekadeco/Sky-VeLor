@@ -25,7 +25,7 @@ public final class InlineOptionPreservationTests {
                 "chat-message-animation", "chat-qol", "chat-smooth", "chat-tab-accent-color", "chat-tab-active-opacity",
                 "chat-tab-filter-text", "chat-tab-filter-type", "chat-tab-inactive-color", "chat-tab-name", "chat-tab-opacity",
                 "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
-                "command-keybinds", "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
+                "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
                 "dungeon-map", "dungeon-map-player-names", "dungeon-map-player-heads", "dungeon-map-player-head-size", "hud-dungeon-run", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
                 "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
@@ -50,7 +50,7 @@ public final class InlineOptionPreservationTests {
         addStyleOptions(expected, "esp-enderman");
         addStyleOptions(expected, "door-style");
         Set<String> actual = new HashSet<String>(ReferenceSettingsCatalog.configurableIds());
-        check("every retained persisted option remains after the directed Starred Mobs simplification", actual.equals(expected));
+        check("persisted inventory includes Player Heads and omits the retired Command Keybind master", actual.equals(expected));
         check("the option inventory has no duplicate ids", actual.size() == ReferenceSettingsCatalog.configurableIds().size());
     }
 

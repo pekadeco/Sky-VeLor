@@ -27,9 +27,12 @@ public final class CommandKeybindSettingsTests {
         CommandKeybindSettings.setCommand(0, "  warp  hub  ");
         CommandKeybindSettings.Entry edited = CommandKeybindSettings.entryAt(0);
         check("editing retains outer and inner spaces until persistence", edited.keyCode() == 21
-                && "  /warp  hub  ".equals(edited.command())
-                && "/warp  hub".equals(CommandKeybindSettings.commandForExecution(edited))
-                && CommandKeybindSettings.isExecutable(edited));
+                && "  /warp  hub  ".equals(edited.command()) && CommandKeybindSettings.isExecutable(edited));
+        Properties draftSave = new Properties();
+        CommandKeybindSettings.save(draftSave);
+        check("only persistence trims command ends while retaining inner spaces", "/warp  hub".equals(
+                CommandKeybindSettings.entryAt(0).command()) && "/warp  hub".equals(
+                CommandKeybindSettings.commandForExecution(CommandKeybindSettings.entryAt(0))));
         CommandKeybindSettings.setKeyCode(0, 999);
         check("invalid key clears rather than remaining executable", CommandKeybindSettings.entryAt(0).keyCode() == 0
                 && !CommandKeybindSettings.isExecutable(CommandKeybindSettings.entryAt(0)));

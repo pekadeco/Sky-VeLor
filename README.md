@@ -1,25 +1,25 @@
-# Sky VeLor — Beta-0.10.9.2v
+# Sky VeLor — Beta-0.10.9.2.1v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, Shortcut, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.2v — Shortcut editor and key polish
+## Beta-0.10.9.2.1v — Shortcut and dungeon-map polish
 
-- Rebuilds **Command Keybind Editor** as a centered, solid working window at roughly 60% of normal GUI width, with a
-  title bar, close button, scrollable entry area, and fixed **Add** / **Reset** footer. Narrow Android/Pojav-style
-  layouts switch entries to two lines instead of squeezing or clipping their controls.
-- Removes the per-entry On/Off switch. A Command Keybind now has one clear state: it is usable when its master switch
-  is on and the entry has both a real key and slash command. Existing saved On/Off records load safely as active.
-- Adds a visible **Pets Shortcut** enable/key row with click capture, Escape cancel, Backspace clear, and a direct
-  physical `/pets` edge while normal gameplay is open.
-- New installs and an explicit Shortcut reset set **Wardrobe Shortcut** to `W` and **Pets Shortcut** to `P`; saved
-  key choices remain authoritative. Every visible key row shows a small red collision warning for Minecraft controls
-  or another Sky VeLor keybind.
-- Adds **Wardrobe Number Keys**, default on, so `1`–`9` select visible Wardrobe sets only when that option and the
-  Wardrobe Shortcut are enabled. Turning it off leaves normal number-key behavior untouched in the Wardrobe GUI.
-- Keeps Minecraft 1.8.9 Forge compatibility, old-config loading, Item Lock multi-pair legality, the existing GUI/HUD
-  Editor, Item Animation, Chat QoL, Dungeon ESP, Party Sync default-off behavior, Home metrics, and fail-closed hooks.
+- Removes the visible **Command Keybind** master switch from **QoL → Shortcut**. A saved entry is active whenever it
+  has a real key and slash command; legacy master-on/off and per-entry records still load safely. Command drafts retain
+  normal/internal spaces while edited, and outer whitespace is trimmed only when the setting is persisted.
+- Gives **Wardrobe Shortcut**, **Pets Shortcut**, **Item Lock And Swap Key**, and **Open Command Keybind Editor** one
+  shared key-control column. Their enable toggles share the preceding column, and **Wardrobe Number Keys** now occupies
+  that same toggle lane.
+- Removes the Dungeon Map frame completely and raises **Map Zoom** from `200%` to `500%` without changing its `100%`
+  default or rejecting prior saved zoom values.
+- Adds default-on **Player Heads** and **Player Head Size** under Dungeon Map. In a confirmed dungeon, loaded local and
+  party tab-list skins render as bounded face-plus-hat markers in place of their matching map arrows. Marker positions
+  interpolate with render partial ticks to reduce update jumps while preserving normal arrows until a skin is ready.
+- Preserves Minecraft 1.8.9 Forge compatibility, old-config loading, physical user-key/screen gating, Item Lock / Swap,
+  Dungeon ESP, HUD Editor, Item Animation, Chat QoL, Party Sync default-off behavior, Home metrics, and fail-closed
+  hooks.
 
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
@@ -73,7 +73,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -84,8 +84,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2v.jar \
-  --version Beta-0.10.9.2v --mcmod-version 0.10.9.2
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar \
+  --version Beta-0.10.9.2.1v --mcmod-version 0.10.9.2.1
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -93,8 +93,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.2v-source.zip \
-  --version Beta-0.10.9.2v
+  SkyVeLor-1.8.9-Beta-0.10.9.2.1v-source.zip \
+  --version Beta-0.10.9.2.1v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -105,7 +105,7 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.2v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
@@ -120,8 +120,12 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
   defaults and Shortcut reset are `W` for Wardrobe and `P` for Pets without replacing an existing saved key. Each key
   row displays a small red collision warning when it matches Minecraft or another Sky VeLor binding. **Wardrobe Number
   Keys** defaults on and maps `1`–`9` to slots `36`–`44` only inside a recognized Wardrobe menu; turn it off to leave
-  those digits untouched. **Command Keybind** has one master toggle and **Open Command Keybind Editor**; slash commands
-  use direct physical presses while no chat, GUI, or editor is open and visibly warn about collisions.
+  those digits untouched. **Command Keybind** exposes only **Open Command Keybind Editor**; a valid key-plus-slash
+  command uses a direct physical press while no chat, GUI, or editor is open and visibly warns about collisions.
+- **Dungeons → Run Tools → Dungeon Map** has no border/frame, preserves its `100%` default zoom while allowing `50%`–
+  `500%`, and includes default-on **Player Heads** plus **Player Head Size**. During confirmed dungeon rendering, ready
+  local/party tab-list skin faces and hats replace their matching map arrows, stay inside the map bounds, and move with
+  partial-tick interpolation. Turning Player Heads off restores the normal native map arrows.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
 - **Dungeons → Run Tools → Spirit Bow Locator** defaults off and uses
