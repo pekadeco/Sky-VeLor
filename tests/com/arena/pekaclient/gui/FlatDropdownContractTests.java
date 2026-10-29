@@ -118,9 +118,8 @@ public final class FlatDropdownContractTests {
         ReferenceSettingsCatalog.Setting wardrobe = ReferenceSettingsCatalog.find("wardrobe-shortcut");
         ReferenceSettingsCatalog.Setting wardrobeNumbers = ReferenceSettingsCatalog.find("wardrobe-number-keys");
         ReferenceSettingsCatalog.Setting pets = ReferenceSettingsCatalog.find("pets-shortcut");
-        ReferenceSettingsCatalog.Setting heads = ReferenceSettingsCatalog.find("dungeon-map-player-heads");
-        ReferenceSettingsCatalog.Setting headSize = ReferenceSettingsCatalog.find("dungeon-map-player-head-size");
-        ReferenceSettingsCatalog.Setting mapZoom = ReferenceSettingsCatalog.find("dungeon-map-zoom");
+        ReferenceSettingsCatalog.Setting map = ReferenceSettingsCatalog.find("dungeon-map");
+        ReferenceSettingsCatalog.Setting dungeonHudEditor = ReferenceSettingsCatalog.find("dungeon-hud-editor");
         ReferenceSettingsCatalog.Setting hud = ReferenceSettingsCatalog.find("hud-editor");
         check("Hurt Camera Shake is one inline slider", hurt != null && hurt.control == ReferenceSettingsCatalog.Control.SLIDER
                 && ReferenceSettingsCatalog.find("hurt-camera") == null);
@@ -148,10 +147,11 @@ public final class FlatDropdownContractTests {
                 && !command.hasMasterToggle() && "open-command-keybind-editor".equals(command.editorActionId)
                 && "Open Command Keybind Editor".equals(command.actionLabel)
                 && ReferenceSettingsCatalog.ownerOf("command-keybinds") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
-        check("Dungeon Map exposes default player-head controls and the 500 percent zoom range", heads != null
-                && heads.control == ReferenceSettingsCatalog.Control.TOGGLE && headSize != null
-                && headSize.control == ReferenceSettingsCatalog.Control.SLIDER && headSize.min == 4 && headSize.max == 16
-                && mapZoom != null && mapZoom.max == 500);
+        check("Dungeon Map catalog surface is only its master toggle and the dedicated Dungeon HUD Editor route",
+                map != null && map.isEditor() && map.hasMasterToggle() && map.children.isEmpty()
+                        && "open-dungeon-hud-editor".equals(map.editorActionId)
+                        && dungeonHudEditor == null && ReferenceSettingsCatalog.find("dungeon-map-player-heads") == null
+                        && ReferenceSettingsCatalog.find("dungeon-map-zoom") == null);
         check("HUD Editor is a named route with no chevron", hud != null && hud.isEditor() && !hud.hasMasterToggle()
                 && "open-hud-editor".equals(hud.editorActionId) && "Open HUD Editor".equals(hud.actionLabel));
     }

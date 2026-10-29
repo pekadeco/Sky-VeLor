@@ -24,7 +24,6 @@ public final class InlineOwnerBindingsTests {
         boolean oldAspectTeleport = AssistSettings.smoothAspectTeleport;
         boolean oldHideDead = AssistSettings.hideDeadMobs;
         boolean oldMap = AppleSettings.dungeonMap;
-        boolean oldPlayerHeads = AppleSettings.dungeonMapPlayerHeads;
         boolean oldChat = ChatQolSettings.enabled;
         boolean oldSpiritBowLocator = AssistSettings.spiritBowLocator;
         boolean oldDungeonRunHud = HudManager.DUNGEON_RUN.enabled;
@@ -38,7 +37,6 @@ public final class InlineOwnerBindingsTests {
             InlineSettingsBindings.setBoolean("smooth-aspect-teleport", !oldAspectTeleport);
             InlineSettingsBindings.setBoolean("hide-dead-mobs", !oldHideDead);
             InlineSettingsBindings.setBoolean("dungeon-map", !oldMap);
-            InlineSettingsBindings.setBoolean("dungeon-map-player-heads", !oldPlayerHeads);
             InlineSettingsBindings.setBoolean("chat-qol", !oldChat);
             InlineSettingsBindings.setBoolean("spirit-bow-locator", !oldSpiritBowLocator);
             InlineSettingsBindings.setBoolean("hud-dungeon-run", !oldDungeonRunHud);
@@ -56,8 +54,6 @@ public final class InlineOwnerBindingsTests {
                     && InlineSettingsBindings.booleanValue("hide-dead-mobs") == !oldHideDead);
             check("map row writes original dungeon-map owner", AppleSettings.dungeonMap == !oldMap
                     && InlineSettingsBindings.booleanValue("dungeon-map") == !oldMap);
-            check("Player Heads row writes the persisted dungeon-map owner", AppleSettings.dungeonMapPlayerHeads == !oldPlayerHeads
-                    && InlineSettingsBindings.booleanValue("dungeon-map-player-heads") == !oldPlayerHeads);
             check("Chat master writes ChatQolSettings owner", ChatQolSettings.enabled == !oldChat
                     && InlineSettingsBindings.booleanValue("chat-qol") == !oldChat);
             check("Spirit Bow Locator writes its isolated AssistSettings owner", AssistSettings.spiritBowLocator == !oldSpiritBowLocator
@@ -75,7 +71,6 @@ public final class InlineOwnerBindingsTests {
             AssistSettings.smoothAspectTeleport = oldAspectTeleport;
             AssistSettings.hideDeadMobs = oldHideDead;
             AppleSettings.dungeonMap = oldMap;
-            AppleSettings.dungeonMapPlayerHeads = oldPlayerHeads;
             ChatQolSettings.enabled = oldChat;
             AssistSettings.spiritBowLocator = oldSpiritBowLocator;
             HudManager.DUNGEON_RUN.enabled = oldDungeonRunHud;
@@ -88,35 +83,20 @@ public final class InlineOwnerBindingsTests {
 
     private static void numericAndChoiceOwnersRemainDirect() {
         int oldShake = AssistSettings.hurtCameraShake;
-        int oldScale = AppleSettings.dungeonMapScale;
-        int oldZoom = AppleSettings.dungeonMapZoom;
-        int oldHeadSize = AppleSettings.dungeonMapPlayerHeadSize;
         int oldRoomDuration = AppleSettings.dungeonRoomClearDurationMillis;
         int oldMenu = ChatQolSettings.menuOpenMode;
         try {
             InlineSettingsBindings.setInt("hurt-camera-shake", 73);
-            InlineSettingsBindings.setInt("dungeon-map-scale", 145);
-            InlineSettingsBindings.setInt("dungeon-map-zoom", 500);
-            InlineSettingsBindings.setInt("dungeon-map-player-head-size", 14);
             InlineSettingsBindings.setInt("room-clear-duration", 2250);
             InlineSettingsBindings.setChoice("chat-menu-mode", 1);
             check("hurt camera slider keeps its AssistSettings owner", AssistSettings.hurtCameraShake == 73
                     && InlineSettingsBindings.intValue("hurt-camera-shake") == 73);
-            check("map scale slider keeps its AppleSettings owner", AppleSettings.dungeonMapScale == 145
-                    && InlineSettingsBindings.intValue("dungeon-map-scale") == 145);
-            check("map zoom accepts the new 500 percent maximum", AppleSettings.dungeonMapZoom == 500
-                    && InlineSettingsBindings.intValue("dungeon-map-zoom") == 500);
-            check("Player Head Size slider keeps its AppleSettings owner", AppleSettings.dungeonMapPlayerHeadSize == 14
-                    && InlineSettingsBindings.intValue("dungeon-map-player-head-size") == 14);
             check("Room Clear duration slider keeps its bounded AppleSettings owner",
                     AppleSettings.dungeonRoomClearDurationMillis == 2250
                             && InlineSettingsBindings.intValue("room-clear-duration") == 2250);
             check("menu choice still exposes the existing menu owner", InlineSettingsBindings.choiceValue("chat-menu-mode") == 1);
         } finally {
             AssistSettings.hurtCameraShake = oldShake;
-            AppleSettings.dungeonMapScale = oldScale;
-            AppleSettings.dungeonMapZoom = oldZoom;
-            AppleSettings.dungeonMapPlayerHeadSize = oldHeadSize;
             AppleSettings.dungeonRoomClearDurationMillis = oldRoomDuration;
             ChatQolSettings.menuOpenMode = oldMenu;
         }

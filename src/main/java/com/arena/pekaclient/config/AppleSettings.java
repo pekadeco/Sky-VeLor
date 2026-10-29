@@ -173,7 +173,27 @@ public final class AppleSettings {
     public static final int DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN = 4;
     public static final int DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX = 16;
     public static int dungeonMapPlayerHeadSize = 8;
+    /** Retains the existing saved key: it controls discovered room/puzzle labels. */
     public static boolean dungeonMapShowPuzzleName = true;
+    /** Secrets text is a map-only presentation choice; it never changes dungeon observations. */
+    public static boolean dungeonMapShowSecrets = true;
+    /** A borderless backing surface is opt-in, preserving the established bare-map appearance. */
+    public static boolean dungeonMapBackground = false;
+    public static final int DUNGEON_MAP_BACKGROUND_OPACITY_MIN = 10;
+    public static final int DUNGEON_MAP_BACKGROUND_OPACITY_MAX = 95;
+    public static int dungeonMapBackgroundOpacity = 48;
+    public static final String[] DUNGEON_MAP_BACKGROUND_COLOR_NAMES = {"Black", "Navy", "Charcoal", "Purple"};
+    public static final int[] DUNGEON_MAP_BACKGROUND_COLORS = {
+            0xFF0A0A0A, 0xFF101A35, 0xFF202124, 0xFF21142D
+    };
+    public static int dungeonMapBackgroundColor;
+    public static final String[] DUNGEON_MAP_LABEL_COLOR_NAMES = {"Green", "White", "Aqua", "Gold", "Theme"};
+    public static final int[] DUNGEON_MAP_LABEL_COLORS = {
+            0xFF55FF55, 0xFFFFFFFF, 0xFF55FFFF, 0xFFFFAA00, 0
+    };
+    /** Independent readable colors for room labels and the Secrets counter. */
+    public static int dungeonMapRoomNameColor;
+    public static int dungeonMapSecretsColor = 1;
     /** Opt-in only: map detection never sends party chat unless the player enables this. */
     public static boolean partyPuzzleAnnounce = false;
     public static final int DUNGEON_MAP_SCALE_MIN = 70;
@@ -371,6 +391,16 @@ public final class AppleSettings {
         dungeonMapPlayerHeadSize = readInt(p, "dungeonMapPlayerHeadSize", dungeonMapPlayerHeadSize,
                 DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN, DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX);
         dungeonMapShowPuzzleName = readBool(p, "dungeonMapShowPuzzleName", dungeonMapShowPuzzleName);
+        dungeonMapShowSecrets = readBool(p, "dungeonMapShowSecrets", dungeonMapShowSecrets);
+        dungeonMapBackground = readBool(p, "dungeonMapBackground", dungeonMapBackground);
+        dungeonMapBackgroundOpacity = readInt(p, "dungeonMapBackgroundOpacity", dungeonMapBackgroundOpacity,
+                DUNGEON_MAP_BACKGROUND_OPACITY_MIN, DUNGEON_MAP_BACKGROUND_OPACITY_MAX);
+        dungeonMapBackgroundColor = readInt(p, "dungeonMapBackgroundColor", dungeonMapBackgroundColor, 0,
+                DUNGEON_MAP_BACKGROUND_COLORS.length - 1);
+        dungeonMapRoomNameColor = readInt(p, "dungeonMapRoomNameColor", dungeonMapRoomNameColor, 0,
+                DUNGEON_MAP_LABEL_COLORS.length - 1);
+        dungeonMapSecretsColor = readInt(p, "dungeonMapSecretsColor", dungeonMapSecretsColor, 0,
+                DUNGEON_MAP_LABEL_COLORS.length - 1);
         partyPuzzleAnnounce = readBool(p, "partyPuzzleAnnounce", partyPuzzleAnnounce);
         dungeonMapScale = readInt(p, "dungeonMapScale", dungeonMapScale,
                 DUNGEON_MAP_SCALE_MIN, DUNGEON_MAP_SCALE_MAX);
@@ -613,6 +643,14 @@ public final class AppleSettings {
                 itemAnimationHitSlashStyle));
         itemAnimationSmoothness = Math.max(ITEM_ANIMATION_SMOOTHNESS_MIN_PERCENT,
                 Math.min(ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT, itemAnimationSmoothness));
+        dungeonMapBackgroundOpacity = Math.max(DUNGEON_MAP_BACKGROUND_OPACITY_MIN,
+                Math.min(DUNGEON_MAP_BACKGROUND_OPACITY_MAX, dungeonMapBackgroundOpacity));
+        dungeonMapBackgroundColor = Math.max(0, Math.min(DUNGEON_MAP_BACKGROUND_COLORS.length - 1,
+                dungeonMapBackgroundColor));
+        dungeonMapRoomNameColor = Math.max(0, Math.min(DUNGEON_MAP_LABEL_COLORS.length - 1,
+                dungeonMapRoomNameColor));
+        dungeonMapSecretsColor = Math.max(0, Math.min(DUNGEON_MAP_LABEL_COLORS.length - 1,
+                dungeonMapSecretsColor));
         Properties p = new Properties();
         saveConfigurationVersion(p);
         saveSettingsTheme(p);
@@ -637,6 +675,12 @@ public final class AppleSettings {
         p.setProperty("dungeonMapPlayerHeads", Boolean.toString(dungeonMapPlayerHeads));
         p.setProperty("dungeonMapPlayerHeadSize", Integer.toString(dungeonMapPlayerHeadSize));
         p.setProperty("dungeonMapShowPuzzleName", Boolean.toString(dungeonMapShowPuzzleName));
+        p.setProperty("dungeonMapShowSecrets", Boolean.toString(dungeonMapShowSecrets));
+        p.setProperty("dungeonMapBackground", Boolean.toString(dungeonMapBackground));
+        p.setProperty("dungeonMapBackgroundOpacity", Integer.toString(dungeonMapBackgroundOpacity));
+        p.setProperty("dungeonMapBackgroundColor", Integer.toString(dungeonMapBackgroundColor));
+        p.setProperty("dungeonMapRoomNameColor", Integer.toString(dungeonMapRoomNameColor));
+        p.setProperty("dungeonMapSecretsColor", Integer.toString(dungeonMapSecretsColor));
         p.setProperty("partyPuzzleAnnounce", Boolean.toString(partyPuzzleAnnounce));
         p.setProperty("dungeonMapScale", Integer.toString(dungeonMapScale));
         p.setProperty("dungeonMapScaleOn", Boolean.toString(dungeonMapScaleOn));
@@ -684,6 +728,32 @@ public final class AppleSettings {
     public static int effectiveDungeonMapPlayerHeadSize() {
         return Math.max(DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN,
                 Math.min(DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX, dungeonMapPlayerHeadSize));
+    }
+
+    /** Safe visible alpha for the optional borderless map backing surface. */
+    public static int effectiveDungeonMapBackgroundOpacity() {
+        return Math.max(DUNGEON_MAP_BACKGROUND_OPACITY_MIN,
+                Math.min(DUNGEON_MAP_BACKGROUND_OPACITY_MAX, dungeonMapBackgroundOpacity));
+    }
+
+    public static int effectiveDungeonMapBackgroundColor() {
+        return DUNGEON_MAP_BACKGROUND_COLORS[Math.max(0, Math.min(DUNGEON_MAP_BACKGROUND_COLORS.length - 1,
+                dungeonMapBackgroundColor))];
+    }
+
+    /** Theme is intentionally one label-palette choice, rather than a mutable map/render tint. */
+    public static int effectiveDungeonMapLabelColor(int choice) {
+        int index = Math.max(0, Math.min(DUNGEON_MAP_LABEL_COLORS.length - 1, choice));
+        int color = DUNGEON_MAP_LABEL_COLORS[index];
+        return color == 0 ? accentColor() : color;
+    }
+
+    public static int effectiveDungeonMapRoomNameColor() {
+        return effectiveDungeonMapLabelColor(dungeonMapRoomNameColor);
+    }
+
+    public static int effectiveDungeonMapSecretsColor() {
+        return effectiveDungeonMapLabelColor(dungeonMapSecretsColor);
     }
 
     /** Shared effective map size in GUI pixels. */

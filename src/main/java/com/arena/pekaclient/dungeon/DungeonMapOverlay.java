@@ -3,6 +3,7 @@ package com.arena.pekaclient.dungeon;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.gui.DungeonHudEditorScreen;
+import com.arena.pekaclient.gui.HudEditorScreen;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.render.SkinHead;
 import net.minecraft.client.Minecraft;
@@ -130,8 +131,8 @@ public final class DungeonMapOverlay {
     public void onOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL || !AppleSettings.dungeonMap || !DungeonContext.inDungeon()) return;
         Minecraft mc = Minecraft.getMinecraft();
-        // The dedicated editor renders one controlled map placement preview; never stack the live server map over it.
-        if (mc.currentScreen instanceof DungeonHudEditorScreen) return;
+        // Editors render their own controlled previews (or omit the map in the generic editor); never stack live data.
+        if (mc.currentScreen instanceof DungeonHudEditorScreen || mc.currentScreen instanceof HudEditorScreen) return;
         if (mc.thePlayer == null || mc.theWorld == null || mc.entityRenderer == null) return;
         ItemStack stack = mc.thePlayer.inventory.getStackInSlot(8); // hotbar slot 9
         if (stack == null || !(stack.getItem() instanceof ItemMap)) return;
@@ -175,6 +176,7 @@ public final class DungeonMapOverlay {
             GlStateManager.disableLighting();
             GlStateManager.disableDepth();
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            if (AppleSettings.dungeonMapBackground) drawBorderlessBackground();
 
             if (rotate) {
                 // Keep pixels not covered by the native map texture transparent. An opaque fill here
@@ -200,6 +202,28 @@ public final class DungeonMapOverlay {
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             GlStateManager.popMatrix();
         }
+    }
+
+    /** Draws an optional plain backing surface; it is intentionally borderless and does not tint the native map. */
+    private static void drawBorderlessBackground() {
+        int color = AppleSettings.effectiveDungeonMapBackgroundColor();
+        int alpha = Math.round(255.0F * AppleSettings.effectiveDungeonMapBackgroundOpacity() / 100.0F);
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer buffer = tessellator.getWorldRenderer();
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        buffer.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        buffer.pos(-1.0D, 129.0D, 0.0D).color((color >> 16) & 0xFF, (color >> 8) & 0xFF,
+                color & 0xFF, alpha).endVertex();
+        buffer.pos(129.0D, 129.0D, 0.0D).color((color >> 16) & 0xFF, (color >> 8) & 0xFF,
+                color & 0xFF, alpha).endVertex();
+        buffer.pos(129.0D, -1.0D, 0.0D).color((color >> 16) & 0xFF, (color >> 8) & 0xFF,
+                color & 0xFF, alpha).endVertex();
+        buffer.pos(-1.0D, -1.0D, 0.0D).color((color >> 16) & 0xFF, (color >> 8) & 0xFF,
+                color & 0xFF, alpha).endVertex();
+        tessellator.draw();
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     /** Scales static-map contents around their center while keeping the HUD viewport fixed and clipped. */
@@ -399,7 +423,8 @@ public final class DungeonMapOverlay {
                 // The anchor follows the map projection, but glyphs remain horizontal and centered.
                 GlStateManager.translate(point[0] - visualWidth * 0.5F, point[1] - visualHeight * 0.5F, 0.0F);
                 GlStateManager.scale(textScale, textScale, 1.0F);
-                mc.fontRendererObj.drawStringWithShadow(text, 0.0F, 0.0F, 0xFF55FF55);
+                mc.fontRendererObj.drawStringWithShadow(text, 0.0F, 0.0F,
+                        AppleSettings.effectiveDungeonMapRoomNameColor());
             } finally {
                 GlStateManager.popMatrix();
             }
@@ -768,10 +793,12 @@ public final class DungeonMapOverlay {
     }
 
     private void drawSecretsCount(Minecraft mc) {
+        if (!AppleSettings.dungeonMapShowSecrets) return;
         String count = currentSecrets(mc.theWorld.getScoreboard());
         if (count == null) return;
         String text = "Secrets: " + count;
-        mc.fontRendererObj.drawStringWithShadow(text, 3.0F, 116.0F, 0xFFFFFFFF);
+        mc.fontRendererObj.drawStringWithShadow(text, 3.0F, 116.0F,
+                AppleSettings.effectiveDungeonMapSecretsColor());
     }
 
     static String currentSecrets(Scoreboard scoreboard) {

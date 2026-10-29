@@ -78,11 +78,19 @@ public final class DungeonScoreHud extends HudElement {
 
     private static List<String> lines(DungeonScoreReadout readout) {
         List<String> result = new ArrayList<String>();
-        if (readout == null) return result;
-        if (AppleSettings.dungeonScoreShowScore) result.add(readout.scoreLine());
-        if (AppleSettings.dungeonScoreShowCrypts) result.add(readout.cryptsLine());
-        if (AppleSettings.dungeonScoreShowDeaths) result.add(readout.deathsLine());
-        if (AppleSettings.dungeonScoreShowRunTime) result.add(readout.timeLine());
+        // The editor must communicate useful size/line placement outside a dungeon rather than showing four blanks.
+        boolean sample = backgroundOnHoverOnly && (readout == null || !readout.hasData());
+        if (sample) {
+            if (AppleSettings.dungeonScoreShowScore) result.add("Score: 287 (S)");
+            if (AppleSettings.dungeonScoreShowCrypts) result.add("Crypts: 4");
+            if (AppleSettings.dungeonScoreShowDeaths) result.add("Deaths: 1");
+            if (AppleSettings.dungeonScoreShowRunTime) result.add("Run time: 6:32");
+        } else if (readout != null) {
+            if (AppleSettings.dungeonScoreShowScore) result.add(readout.scoreLine());
+            if (AppleSettings.dungeonScoreShowCrypts) result.add(readout.cryptsLine());
+            if (AppleSettings.dungeonScoreShowDeaths) result.add(readout.deathsLine());
+            if (AppleSettings.dungeonScoreShowRunTime) result.add(readout.timeLine());
+        }
         // A disabled group remains selectable in the dedicated editor without drawing a stray in-game placeholder.
         if (result.isEmpty() && backgroundOnHoverOnly) result.add("Dungeon Score HUD");
         return result;

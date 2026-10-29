@@ -12,13 +12,15 @@ public final class DungeonHudEditorContractTests {
         dedicatedRouteUsesTheOneRowEditorPattern();
         pickerOwnsOnlyDungeonSpecificHudTargets();
         dungeonControlsExposeSafeDefaultsAndPlacementRoute();
+        dedicatedMapOptionsAreNotDuplicatedInDungeonsCatalog();
+        responsiveEditorLayoutKeepsSurfacesSeparate();
         done();
     }
 
     private static void dedicatedRouteUsesTheOneRowEditorPattern() {
-        ReferenceSettingsCatalog.Setting row = ReferenceSettingsCatalog.find("dungeon-hud-editor");
-        check("Dungeon HUD Editor is an explicit no-master editor row", row != null && row.isEditor()
-                && !row.hasMasterToggle() && "open-dungeon-hud-editor".equals(row.editorActionId)
+        ReferenceSettingsCatalog.Setting row = ReferenceSettingsCatalog.find("dungeon-map");
+        check("Dungeon Map keeps its master toggle with an explicit Dungeon HUD Editor route", row != null && row.isEditor()
+                && row.hasMasterToggle() && "open-dungeon-hud-editor".equals(row.editorActionId)
                 && "Open Dungeon HUD Editor".equals(row.actionLabel));
         check("dedicated editor class is available", DungeonHudEditorScreen.class != null);
     }
@@ -50,6 +52,41 @@ public final class DungeonHudEditorContractTests {
         check("Auto Chest Close text makes its default-off exact-title safety clear", close != null
                 && close.description.toLowerCase(java.util.Locale.ROOT).contains("off by default")
                 && close.description.contains("Chest"));
+    }
+
+    private static void dedicatedMapOptionsAreNotDuplicatedInDungeonsCatalog() {
+        ReferenceSettingsCatalog.Setting map = ReferenceSettingsCatalog.find("dungeon-map");
+        check("Dungeons catalog keeps only the map toggle plus its editor opener", map != null
+                && map.isEditor() && map.hasMasterToggle() && map.children.isEmpty()
+                && "open-dungeon-hud-editor".equals(map.editorActionId));
+        String editor = classText(DungeonHudEditorScreen.class);
+        check("Dungeon Map element owns zoom, heads, room names, secrets, background, opacity, colors and reset actions",
+                editor.contains("map-zoom") && editor.contains("map-heads") && editor.contains("map-head-size")
+                        && editor.contains("map-room-names") && editor.contains("map-secrets")
+                        && editor.contains("map-background") && editor.contains("map-background-opacity")
+                        && editor.contains("map-background-color") && editor.contains("map-room-color")
+                        && editor.contains("map-secrets-color") && editor.contains("reset-map-position"));
+    }
+
+    private static void responsiveEditorLayoutKeepsSurfacesSeparate() {
+        DungeonHudEditorLayout desktop = DungeonHudEditorLayout.create(960, 540);
+        DungeonHudEditorLayout pojav = DungeonHudEditorLayout.create(320, 240);
+        check("wide Dungeon HUD editor uses separated solid side panels", !desktop.compact && desktop.validFor(960, 540));
+        check("Pojav-sized Dungeon HUD editor moves controls above and below the canvas without overlap",
+                pojav.compact && pojav.validFor(320, 240));
+    }
+
+    private static String classText(Class<?> type) {
+        try {
+            java.io.InputStream stream = type.getResourceAsStream('/' + type.getName().replace('.', '/') + ".class");
+            if (stream == null) return "";
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[2048];
+            for (int n; (n = stream.read(buffer)) >= 0;) out.write(buffer, 0, n);
+            return new String(out.toByteArray(), "ISO-8859-1");
+        } catch (Exception ignored) {
+            return "";
+        }
     }
 
     private static void check(String name, boolean okay) {

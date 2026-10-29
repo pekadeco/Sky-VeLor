@@ -104,7 +104,7 @@ public final class ReleaseClaimsTests {
         String client = classText("com.arena.pekaclient.PekaClientMod");
         check("Dungeon HUD editor is a dedicated centered solid picker with persistent score, room-alert and map placement",
                 classExists("com.arena.pekaclient.gui.DungeonHudEditorScreen")
-                        && ReferenceSettingsCatalog.find("dungeon-hud-editor") != null
+                        && ReferenceSettingsCatalog.find("dungeon-map") != null
                         && ReferenceSettingsCatalog.find("dungeon-score-hud") != null
                         && ReferenceSettingsCatalog.find("room-clear-alert") != null
                         && com.arena.pekaclient.hud.HudManager.DUNGEON_EDITOR_ELEMENTS.length == 2

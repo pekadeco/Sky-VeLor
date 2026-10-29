@@ -55,12 +55,6 @@ final class InlineSettingsBindings {
         if ("wardrobe-number-keys".equals(id)) return AssistSettings.wardrobeNumberKeys;
         if ("pets-shortcut".equals(id)) return AssistSettings.petsShortcut;
         if ("dungeon-map".equals(id)) return AppleSettings.dungeonMap;
-        if ("dungeon-map-rotate".equals(id)) return AppleSettings.dungeonMapRotate;
-        if ("dungeon-map-player-names".equals(id)) return AppleSettings.dungeonMapShowPlayerNames;
-        if ("dungeon-map-player-heads".equals(id)) return AppleSettings.dungeonMapPlayerHeads;
-        if ("dungeon-map-puzzle-name".equals(id)) return AppleSettings.dungeonMapShowPuzzleName;
-        if ("dungeon-map-scale-on".equals(id)) return AppleSettings.dungeonMapScaleOn;
-        if ("party-puzzle-announce".equals(id)) return AppleSettings.partyPuzzleAnnounce;
         if ("terminal-hints".equals(id)) return AssistSettings.terminalHints;
         if ("terminal-auto-click".equals(id)) return AssistSettings.terminalAutoClick;
         if ("terminal-hide-wrong".equals(id)) return AssistSettings.terminalHideIncorrect;
@@ -168,12 +162,6 @@ final class InlineSettingsBindings {
         else if ("wardrobe-number-keys".equals(id)) AssistSettings.wardrobeNumberKeys = value;
         else if ("pets-shortcut".equals(id)) AssistSettings.petsShortcut = value;
         else if ("dungeon-map".equals(id)) AppleSettings.dungeonMap = value;
-        else if ("dungeon-map-rotate".equals(id)) AppleSettings.dungeonMapRotate = value;
-        else if ("dungeon-map-player-names".equals(id)) AppleSettings.dungeonMapShowPlayerNames = value;
-        else if ("dungeon-map-player-heads".equals(id)) AppleSettings.dungeonMapPlayerHeads = value;
-        else if ("dungeon-map-puzzle-name".equals(id)) AppleSettings.dungeonMapShowPuzzleName = value;
-        else if ("dungeon-map-scale-on".equals(id)) AppleSettings.dungeonMapScaleOn = value;
-        else if ("party-puzzle-announce".equals(id)) AppleSettings.partyPuzzleAnnounce = value;
         else if ("terminal-hints".equals(id)) AssistSettings.terminalHints = value;
         else if ("terminal-auto-click".equals(id)) AssistSettings.terminalAutoClick = value;
         else if ("terminal-hide-wrong".equals(id)) AssistSettings.terminalHideIncorrect = value;
@@ -265,9 +253,6 @@ final class InlineSettingsBindings {
         if ("chat-tab-opacity".equals(id)) return ChatQolSettings.tabOpacity;
         if ("chat-tab-active-opacity".equals(id)) return ChatQolSettings.tabActiveOpacity;
         if ("chat-hover-opacity".equals(id)) return ChatQolSettings.hoverOpacity;
-        if ("dungeon-map-scale".equals(id)) return AppleSettings.dungeonMapScale;
-        if ("dungeon-map-zoom".equals(id)) return AppleSettings.dungeonMapZoom;
-        if ("dungeon-map-player-head-size".equals(id)) return AppleSettings.dungeonMapPlayerHeadSize;
         if ("room-clear-duration".equals(id)) return AppleSettings.effectiveDungeonRoomClearDurationMillis();
         if ("terminal-scale".equals(id)) return AssistSettings.terminalScale;
         if ("esp-max-distance".equals(id)) return DungeonEspSettings.maxDistance;
@@ -305,12 +290,6 @@ final class InlineSettingsBindings {
         else if ("chat-tab-opacity".equals(id)) ChatQolSettings.tabOpacity = clamp(value, 0, 100);
         else if ("chat-tab-active-opacity".equals(id)) ChatQolSettings.tabActiveOpacity = clamp(value, 0, 100);
         else if ("chat-hover-opacity".equals(id)) ChatQolSettings.hoverOpacity = clamp(value, 0, 100);
-        else if ("dungeon-map-scale".equals(id)) AppleSettings.dungeonMapScale = clamp(value,
-                AppleSettings.DUNGEON_MAP_SCALE_MIN, AppleSettings.DUNGEON_MAP_SCALE_MAX);
-        else if ("dungeon-map-zoom".equals(id)) AppleSettings.dungeonMapZoom = clamp(value,
-                AppleSettings.DUNGEON_MAP_ZOOM_MIN, AppleSettings.DUNGEON_MAP_ZOOM_MAX);
-        else if ("dungeon-map-player-head-size".equals(id)) AppleSettings.dungeonMapPlayerHeadSize = clamp(value,
-                AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN, AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX);
         else if ("room-clear-duration".equals(id)) AppleSettings.dungeonRoomClearDurationMillis = clamp(value,
                 AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS, AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS);
         else if ("terminal-scale".equals(id)) AssistSettings.terminalScale = clamp(value,

@@ -27,8 +27,7 @@ public final class InlineOptionPreservationTests {
                 "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
                 "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
-                "dungeon-map", "dungeon-map-player-names", "dungeon-map-player-heads", "dungeon-map-player-head-size", "hud-dungeon-run", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
-                "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-score-hud", "dungeon-score-line", "dungeon-crypts-line",
+                "dungeon-map", "hud-dungeon-run", "dungeon-score-hud", "dungeon-score-line", "dungeon-crypts-line",
                 "dungeon-deaths-line", "dungeon-run-time-line", "room-clear-alert", "room-clear-duration", "room-clear-sound",
                 "dungeon-auto-chest-close", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
                 "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
@@ -41,7 +40,7 @@ public final class InlineOptionPreservationTests {
                 "m7-boss-necron", "m7-boss-storm", "m7-dragon-apex", "m7-dragon-flame", "m7-dragon-ice", "m7-dragon-power",
                 "m7-dragon-soul", "m7-overlay", "m7-relic-areas", "m7-terminal-solver", "mining-ability-alert",
                 "mining-assistant-hud", "mining-bps", "mining-puzzler", "mob-esp-enabled", "nearby-encounters",
-                "no-block-particles", "party-puzzle-announce", "performance-boost", "pets-shortcut", "qn-command",
+                "no-block-particles", "performance-boost", "pets-shortcut", "qn-command",
                 "rarity-highlight", "roman-numerals", "sea-hp-hud-route", "shadows", "slayer-boss-timer", "slayer-pricing",
                 "slayer-tracker", "smooth-scrolling", "spirit-bow-locator", "spirit-leap", "sv-command", "terminal-auto-click",
                 "terminal-hide-wrong", "terminal-hints", "terminal-prevent-clicks", "terminal-scale", "terminal-waypoints",
@@ -52,7 +51,8 @@ public final class InlineOptionPreservationTests {
         addStyleOptions(expected, "esp-enderman");
         addStyleOptions(expected, "door-style");
         Set<String> actual = new HashSet<String>(ReferenceSettingsCatalog.configurableIds());
-        check("persisted inventory includes Player Heads and omits the retired Command Keybind master", actual.equals(expected));
+        check("settings-catalog inventory keeps only the Dungeon Map master and omits the retired Command Keybind master",
+                actual.equals(expected));
         check("the option inventory has no duplicate ids", actual.size() == ReferenceSettingsCatalog.configurableIds().size());
     }
 
@@ -60,7 +60,7 @@ public final class InlineOptionPreservationTests {
         assertPresent("chat-background-group", "chat-messages-group", "chat-tabs-group", "chat-menu-group",
                 "m7-bosses", "m7-dragons", "esp-starred-caption", "door-wither-style-caption");
         assertPresent("item-lock-swap", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud",
-                "spirit-bow-locator", "dungeon-hud-editor", "dungeon-score-hud", "room-clear-alert",
+                "spirit-bow-locator", "dungeon-score-hud", "room-clear-alert",
                 "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker",
                 "hud-dungeon-run", "item-animation", "command-keybinds", "item-lock-key");
         check("Chat captions are not nested dropdowns", !ReferenceSettingsCatalog.find("chat-background-group").isDropdown()

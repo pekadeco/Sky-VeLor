@@ -2138,8 +2138,8 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         if ("room-clear-test".equals(id)) {
             RoomClearAlertController.triggerTestAlert();
-            // The editor shows the same live placement preview even out of a dungeon, then saves changes on close.
-            Minecraft.getMinecraft().displayGuiScreen(new DungeonHudEditorScreen(this));
+            // The editor opens on Room Alert and shows the same live placement preview outside a dungeon.
+            Minecraft.getMinecraft().displayGuiScreen(DungeonHudEditorScreen.openRoomAlertPreview(this));
             return;
         }
         if (handleChatAction(id)) return;

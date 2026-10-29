@@ -289,6 +289,10 @@ public final class AppleSettingsTests {
         int oldZoom = AppleSettings.dungeonMapZoom;
         int oldHeadSize = AppleSettings.dungeonMapPlayerHeadSize;
         boolean oldHeads = AppleSettings.dungeonMapPlayerHeads;
+        int oldBackgroundOpacity = AppleSettings.dungeonMapBackgroundOpacity;
+        int oldBackgroundColor = AppleSettings.dungeonMapBackgroundColor;
+        int oldRoomColor = AppleSettings.dungeonMapRoomNameColor;
+        int oldSecretsColor = AppleSettings.dungeonMapSecretsColor;
         try {
             AppleSettings.dungeonMapZoom = 200;
             check("existing 200 percent dungeon-map zoom remains valid", AppleSettings.effectiveDungeonMapZoom() == 200);
@@ -304,10 +308,24 @@ public final class AppleSettingsTests {
             AppleSettings.dungeonMapPlayerHeadSize = 99;
             check("Player Head Size clamps to its supported maximum", AppleSettings.effectiveDungeonMapPlayerHeadSize()
                     == AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX);
+            AppleSettings.dungeonMapBackgroundOpacity = 999;
+            AppleSettings.dungeonMapBackgroundColor = -2;
+            AppleSettings.dungeonMapRoomNameColor = 999;
+            AppleSettings.dungeonMapSecretsColor = 1;
+            check("map backing opacity and palette choices clamp safely", AppleSettings.effectiveDungeonMapBackgroundOpacity()
+                    == AppleSettings.DUNGEON_MAP_BACKGROUND_OPACITY_MAX
+                    && AppleSettings.effectiveDungeonMapBackgroundColor() == AppleSettings.DUNGEON_MAP_BACKGROUND_COLORS[0]
+                    && AppleSettings.effectiveDungeonMapRoomNameColor()
+                    == AppleSettings.effectiveDungeonMapLabelColor(AppleSettings.DUNGEON_MAP_LABEL_COLORS.length - 1)
+                    && AppleSettings.effectiveDungeonMapSecretsColor() == AppleSettings.DUNGEON_MAP_LABEL_COLORS[1]);
         } finally {
             AppleSettings.dungeonMapZoom = oldZoom;
             AppleSettings.dungeonMapPlayerHeadSize = oldHeadSize;
             AppleSettings.dungeonMapPlayerHeads = oldHeads;
+            AppleSettings.dungeonMapBackgroundOpacity = oldBackgroundOpacity;
+            AppleSettings.dungeonMapBackgroundColor = oldBackgroundColor;
+            AppleSettings.dungeonMapRoomNameColor = oldRoomColor;
+            AppleSettings.dungeonMapSecretsColor = oldSecretsColor;
         }
     }
 
