@@ -116,7 +116,8 @@ public final class ReleaseClaimsTests {
                 && catalog.contains("Wardrobe Number Keys") && catalog.contains("Pets Shortcut")
                 && catalog.contains("Item Lock And Swap Key") && screen.contains("beginKeybindCapture")
                 && screen.contains("Backspace clears") && screen.contains("keybindCollisionWarning")
-                && screen.contains("Theme.STATUS_CRITICAL"));
+                // javac inlines the int palette constant at the caller, so prove its owner separately.
+                && classText("com.arena.pekaclient.render.Theme").contains("STATUS_CRITICAL"));
         check("Chat command route enters its requested inline owner after the ordinary reset",
                 classText("com.arena.pekaclient.command.ClientActions").contains("openChatSettings")
                         && !classText("com.arena.pekaclient.command.ClientActions").contains("ChatEditorScreen")
