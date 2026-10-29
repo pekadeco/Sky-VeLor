@@ -1,25 +1,27 @@
-# Sky VeLor — Beta-0.10.9.2.1v
+# Sky VeLor — Beta-0.10.9.3v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, Shortcut, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.2.1v — Shortcut and dungeon-map polish
+## Beta-0.10.9.3v — Dungeon HUD and visible-data score tools
 
-- Removes the visible **Command Keybind** master switch from **QoL → Shortcut**. A saved entry is active whenever it
-  has a real key and slash command; legacy master-on/off and per-entry records still load safely. Command drafts retain
-  normal/internal spaces while edited, and outer whitespace is trimmed only when the setting is persisted.
-- Gives **Wardrobe Shortcut**, **Pets Shortcut**, **Item Lock And Swap Key**, and **Open Command Keybind Editor** one
-  shared key-control column. Their enable toggles share the preceding column, and **Wardrobe Number Keys** now occupies
-  that same toggle lane.
-- Removes the Dungeon Map frame completely and raises **Map Zoom** from `200%` to `500%` without changing its `100%`
-  default or rejecting prior saved zoom values.
-- Adds default-on **Player Heads** and **Player Head Size** under Dungeon Map. In a confirmed dungeon, loaded local and
-  party tab-list skins render as bounded face-plus-hat markers in place of their matching map arrows. Marker positions
-  interpolate with render partial ticks to reduce update jumps while preserving normal arrows until a skin is ready.
+- Keeps the aligned **QoL → Shortcut** key/toggle lanes: Wardrobe, Pets, Item Lock And Swap, and the editor action all
+  use the shared key-button column immediately before the shared right-edge toggle lane. The small Shortcut reset is a
+  left-aligned footer action.
+- Adds **Dungeons → Dungeon HUD → Open Dungeon HUD Editor**: a centered, solid picker for independently persistent
+  **Score / Stats**, **Room Alert**, and existing **Dungeon Map** position/scale/reset controls. The live map is
+  suppressed while its editor preview is shown.
+- Adds a dungeon-only, native **Dungeon Score/Stats HUD**. It calculates a conservative Skill/Exploration/Speed/Bonus
+  estimate solely from already-visible Fakepixel sidebar, public tab-list, and chat observations; it accounts for
+  floors, rooms, secrets, deaths/Spirit reduction, failed puzzles, crypts, elapsed time, mimic, and Paul. A live
+  estimate is never displayed as `S+`; that rank requires a visible end-of-run recap total/rank.
+- Adds independently switchable Score/rank, Crypts, Deaths, and Run Time lines; a strict room-clear alert with optional
+  local sound/duration; and default-off **Auto Chest Close**, which only closes exact normal `Chest`/`Large Chest`
+  screens in confirmed dungeons—not reward, terminal, or other menus.
 - Preserves Minecraft 1.8.9 Forge compatibility, old-config loading, physical user-key/screen gating, Item Lock / Swap,
-  Dungeon ESP, HUD Editor, Item Animation, Chat QoL, Party Sync default-off behavior, Home metrics, and fail-closed
-  hooks.
+  Dungeon ESP/map heads, generic HUD Editor, Item Animation, Chat QoL, Party Sync default-off behavior, Home metrics,
+  and fail-closed hooks.
 
 
 The full presentation inventory, retained routes, old-config boundary, and test boundary are in
@@ -33,8 +35,8 @@ The full presentation inventory, retained routes, old-config boundary, and test 
 
 - Native settings shell and movable HUD editor with an Apple-inspired graphite-glass visual system and blue accent.
 - Dungeon map with room/puzzle templates, party labels, cached Starred Mobs/Door ESP, Floor VII overlays,
-  dragon alerts, Spirit Leap helpers, an optional read-only Click in Order helper, and opt-in local Spirit Bow/
-  sidebar-readout displays.
+  dragon alerts, Spirit Leap helpers, an optional read-only Click in Order helper, opt-in local Spirit Bow/sidebar
+  readouts, and dungeon-only visible-data score, room-alert, and safe chest-close tools.
 - Item Animation: live first-person X/Y/Z, scale, hit/slash controls, bounded persistence,
   reset actions, and a renderer-only Preview Swing.
 - Item Lock and Item Swap: persistent player-inventory locks, safe paired-slot swaps, configurable
@@ -73,7 +75,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -84,8 +86,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar \
-  --version Beta-0.10.9.2.1v --mcmod-version 0.10.9.2.1
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3v.jar \
+  --version Beta-0.10.9.3v --mcmod-version 0.10.9.3
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -93,8 +95,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.2.1v-source.zip \
-  --version Beta-0.10.9.2.1v
+  SkyVeLor-1.8.9-Beta-0.10.9.3v-source.zip \
+  --version Beta-0.10.9.3v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -105,7 +107,7 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.3v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
@@ -126,6 +128,19 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
   `500%`, and includes default-on **Player Heads** plus **Player Head Size**. During confirmed dungeon rendering, ready
   local/party tab-list skin faces and hats replace their matching map arrows, stay inside the map bounds, and move with
   partial-tick interpolation. Turning Player Heads off restores the normal native map arrows.
+- **Dungeons → Dungeon HUD → Open Dungeon HUD Editor** opens a centered solid, dedicated placement editor. Its
+  **Score / Stats**, **Room Alert**, and **Dungeon Map** picker preserves each target's saved placement/scale, offers
+  per-target enable, move, resize, and reset controls, and only shows its map preview while editing.
+- **Dungeons → Dungeon HUD → Dungeon Score/Stats HUD** is dungeon-only and borderless. It can independently show
+  Score/rank, Crypts, Deaths, and Run Time. The calculator reads no API and observes only visible Fakepixel sidebar,
+  public tab-list, and chat data; it includes room/secret progress, deaths/Spirit reductions, failed puzzles, crypts,
+  runtime, mimic, and Paul. Its live rank is deliberately capped below `S+`; `S+` requires a visible end recap.
+- **Dungeons → Dungeon HUD → Room Clear Alert** is dungeon-only and movable in the dedicated editor. It accepts only
+  narrow normal room-clear chat, deduplicates room keys, rejects blood/fairy/entrance/already-cleared cases, and has
+  a bounded duration plus optional local sound.
+- **Dungeons → Dungeon HUD → Auto Chest Close** is off by default. In a confirmed dungeon it may close only an exact
+  normal `Chest` or `Large Chest` container after it opens; reward chests, terminals, and every other title are
+  rejected.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
 - **Dungeons → Run Tools → Spirit Bow Locator** defaults off and uses
@@ -164,5 +179,5 @@ pass is still needed before claiming runtime validation; this release is **NOT t
 
 `LICENSE` records the project license. Verify the applicable license for every reused component before
 redistributing. Parts of the project were ported from RNG Carried Bald; existing attribution remains
-with the relevant code. The independently implemented Wardrobe behavior reference and its LGPL-3.0-or-later
-attribution are recorded in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+with the relevant code. The independently implemented Wardrobe and dungeon-score behavioral references and their
+LGPL-3.0-or-later attribution are recorded in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

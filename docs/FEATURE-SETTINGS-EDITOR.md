@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.2.1v
+# Apple settings inventory — Beta-0.10.9.3v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -31,12 +31,12 @@ A visible settings row is one of five patterns:
 5. a key-capture row that shows its current key and may carry a standard enable toggle.
 
 Every normal row reserves the same right-side chevron-then-toggle columns. Toggles are the standard
-`38 × 20` pill. **Wardrobe Shortcut**, **Pets Shortcut**, **Item Lock And Swap Key**, and
-**Open Command Keybind Editor** share one responsive key-button column; their Shortcut enable toggles occupy the
-preceding shared toggle lane, and **Wardrobe Number Keys** uses that same lane. Other named editor routes retain the
-standard `132 × 20` action geometry and vertical center. Key-capture rows use a visible key capsule and register a
-separate full-row hit so the capsule/toggle geometry is never overwritten. Card headings supply the visual hierarchy
-without becoming an interactive disclosure.
+`38 × 20` pill. **Wardrobe Shortcut**, **Pets Shortcut**, and **Item Lock And Swap Key** place their shared-width
+key button immediately left of the shared right-edge toggle lane; **Open Command Keybind Editor** uses that same key
+column. **Wardrobe Number Keys** uses the aligned toggle lane. Other named editor routes retain the standard
+`132 × 20` action geometry and vertical center. Key-capture rows use a visible key capsule and register a separate
+full-row hit so the capsule/toggle geometry is never overwritten. Card headings supply the visual hierarchy without
+becoming an interactive disclosure.
 
 Each tab is a one-open accordion. All native bitmap-font text snaps its origin and effective scale to the active
 physical GUI pixel grid once per frame, avoiding fractional-scale blur without a custom-font subsystem. Rounded
@@ -62,8 +62,8 @@ than a routing or binding change. Captions group flat content without becoming a
 ## Reset and ownership
 
 Every expanded feature has at most one compact **Reset to defaults** text link and that link is the
-last expanded option. The standalone **Shortcut** card also ends with that same compact reset link. Reset behavior
-continues to use the established owners; no reset dropdown was added.
+last expanded option. The standalone **Shortcut** card ends with the same small, left-aligned footer button. Reset
+behavior continues to use the established owners; no reset dropdown was added.
 
 - **Hurt Camera Shake** is one inline slider.
 - **QoL → Comfort → Smooth Aspect Teleport** is a direct toggle backed by
@@ -75,6 +75,21 @@ continues to use the established owners; no reset dropdown was added.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
 - **Boss Health HUD** is a master toggle plus **Open HUD Editor**.
+- **Dungeons → Dungeon HUD → Open Dungeon HUD Editor** is a separate centered, solid editor rather than the generic
+  HUD window. Its compact picker has **Score / Stats**, **Room Alert**, and **Dungeon Map** targets. It saves per-target
+  enable/move/resize/reset state through the existing HUD/map owners, snaps drag placement, and suppresses the live map
+  while its map preview is being edited.
+- **Dungeons → Dungeon HUD → Dungeon Score/Stats HUD** is a dungeon-only borderless movable HUD. It independently
+  toggles Score/rank, Crypts, Deaths, and Run Time lines. The native calculator has no API or packet path: it reads
+  visible Fakepixel sidebar, public tab-list, and chat values for floor, cleared rooms, secrets, deaths/Spirit penalty
+  reduction, failed puzzles, crypts, runtime, mimic, and Paul. A complete live estimate never renders `S+`; only a
+  visible `Extra Stats`/`Score Breakdown` end recap total plus matching rank may do so.
+- **Dungeons → Dungeon HUD → Room Clear Alert** is a movable dedicated-editor target. It accepts only narrow normal
+  room-clear messages in a confirmed dungeon, deduplicates rooms, rejects blood/fairy/entrance/boss/already-cleared
+  text, and offers bounded local duration plus optional local sound.
+- **Dungeons → Dungeon HUD → Auto Chest Close** is explicitly off by default. In a confirmed dungeon it is an exact
+  title allow-list for normal `Chest` and `Large Chest` containers only; rewards, terminals, and all other menus are
+  left open. It never clicks slots, accepts rewards, sends packets, or alters player movement.
 - **Dungeons → Run Tools → Dungeon Map** has no border/frame. Its existing `100%` zoom default remains valid and
   saved `50%`–`200%` values keep working; the upper bound is now `500%`. **Player Heads** defaults on and **Player
   Head Size** uses a bounded native-map-pixel slider. In confirmed dungeons only, local/party map markers with ready
@@ -94,7 +109,7 @@ continues to use the established owners; no reset dropdown was added.
 - **HUD Editor** uses **Open HUD Editor**.
 - **Item Animation** is a master toggle plus **Open Item Animation Editor**.
 - **QoL → Shortcut** is a standalone card styled like **Inventory And Chat**. It owns **Wardrobe Shortcut**,
-  **Wardrobe Number Keys**, **Pets Shortcut**, **Command Keybind**, and its compact reset link. New settings save below
+  **Wardrobe Number Keys**, **Pets Shortcut**, **Command Keybind**, and its small left-aligned reset footer. New settings save below
   `assist.shortcut.*`; `.1.8v` `assist.keybindCut.*`, older `assist.movement.*` / `assist.shortcuts.*`, and flat
   aliases still load, with new Shortcut keys taking precedence.
 - **Wardrobe Shortcut** and **Pets Shortcut** are enabled key-capture rows: click the whole row or key capsule to
@@ -199,7 +214,7 @@ assets, binaries, or dependency code were copied. The complete attribution and c
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.2.1v text |
+| Earlier player-facing text | Beta-0.10.9.3v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -243,10 +258,12 @@ shared action trailing-edge geometry, Apple title-bar targets and 8 px margin be
 behavior, fresh-open accordion reset with the intentional direct-route disclosure, search behavior, player-copy
 validation, old-config loading, Shortcut/Keybind Cut migration, Item Lock and Wardrobe capture behavior, Wardrobe
 slot-map/screen-gating policy, Command Keybind serialization/collision/direct-edge cooldown and focused-space entry,
-Dungeon Map player-head interpolation/bounds and 500% projection coverage, exact configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair cycling,
-Spirit Bow marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation and Command
-Keybind panel exclusion, dead-mob render policy protections, deterministic render-time Aspect camera-path easing, and
-fail-closed EntityRenderer/RenderGlobal transformer-shape checks.
+Dungeon Map player-head interpolation/bounds and 500% projection coverage, Dungeon HUD editor picker/move/reset routing,
+visible-data score calculation/recap-safe `S+` handling, room-clear and normal-chest allow-list policies, exact
+configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair cycling, Spirit Bow
+marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation and Command Keybind panel
+exclusion, dead-mob render policy protections, deterministic render-time Aspect camera-path easing, and fail-closed
+EntityRenderer/RenderGlobal transformer-shape checks.
 `tools/apple-layout-renderer/` compiles against the real layout/catalog classes and renders exactly
 Home, Dungeons, and GUI-scale-4 Home Java2D PNG review previews; CI uploads those previews as
 short-lived evidence. `tools/verify_release_jar.py` additionally checks the packaged class and
@@ -256,8 +273,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2.1v.jar \
-  --version Beta-0.10.9.2.1v --mcmod-version 0.10.9.2.1
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3v.jar \
+  --version Beta-0.10.9.3v --mcmod-version 0.10.9.3
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

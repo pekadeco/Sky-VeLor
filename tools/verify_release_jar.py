@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.2.1v] [--mcmod-version 0.10.9.2.1]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.3v] [--mcmod-version 0.10.9.3]
 """
 
 import argparse
@@ -104,6 +104,7 @@ REQUIRED_CLASSES = [
     'gui/HudEditorScreen',
     'gui/HudEditorLayout',
     'gui/HudEditorSelectionPolicy',
+    'gui/DungeonHudEditorScreen',
     'gui/ItemAnimationEditorScreen',
     'gui/CommandKeybindEditorScreen',
     'gui/CommandKeybindEditorLayout',
@@ -165,6 +166,14 @@ REQUIRED_CLASSES = [
     'assist/dungeon/DungeonBossTracker',
     'assist/dungeon/DungeonRunReadout',
     'assist/dungeon/DungeonRunTracker',
+    'assist/dungeon/DungeonScoreCalculator',
+    'assist/dungeon/DungeonScoreReadout',
+    'assist/dungeon/DungeonScoreTelemetry',
+    'assist/dungeon/DungeonScoreTracker',
+    'assist/dungeon/RoomClearAlertPolicy',
+    'assist/dungeon/RoomClearAlertController',
+    'assist/dungeon/DungeonChestClosePolicy',
+    'assist/dungeon/DungeonChestCloser',
     'assist/dungeon/SpiritBowLocator',
     'assist/dungeon/DungeonTerminalAssistController',
     'assist/dungeon/DungeonWaypointController',
@@ -190,6 +199,8 @@ REQUIRED_CLASSES = [
     'hud/MiningAssistantHud',
     'hud/DungeonBossHud',
     'hud/DungeonRunHud',
+    'hud/DungeonScoreHud',
+    'hud/RoomClearAlertHud',
 ]
 
 # Old terminal replacements and the unreliable renderer-replacement path must stay absent. The release highlights
@@ -371,8 +382,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.2.1v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.2.1')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.3v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.3')
     args = ap.parse_args()
 
     path = args.jar
@@ -558,6 +569,17 @@ def main():
     dungeon_map_projection_raw = raw_of('dungeon/DungeonMapProjection')
     dungeon_map_head_motion_raw = raw_of('dungeon/DungeonMapPlayerHeadMotion')
     skin_head_raw = raw_of('render/SkinHead')
+    dungeon_hud_editor_raw = raw_family_of('gui/DungeonHudEditorScreen')
+    dungeon_score_calculator_raw = raw_of('assist/dungeon/DungeonScoreCalculator')
+    dungeon_score_readout_raw = raw_of('assist/dungeon/DungeonScoreReadout')
+    dungeon_score_telemetry_raw = raw_of('assist/dungeon/DungeonScoreTelemetry')
+    dungeon_score_tracker_raw = raw_of('assist/dungeon/DungeonScoreTracker')
+    room_alert_policy_raw = raw_of('assist/dungeon/RoomClearAlertPolicy')
+    room_alert_controller_raw = raw_of('assist/dungeon/RoomClearAlertController')
+    dungeon_chest_policy_raw = raw_of('assist/dungeon/DungeonChestClosePolicy')
+    dungeon_chest_closer_raw = raw_of('assist/dungeon/DungeonChestCloser')
+    dungeon_score_hud_raw = raw_of('hud/DungeonScoreHud')
+    room_alert_hud_raw = raw_of('hud/RoomClearAlertHud')
 
     retired_inline_classes = (
         'gui/FeatureSettingsEditorScreen', 'gui/FeatureSettingsEditors', 'gui/FeatureSettingsUiModel',
@@ -652,6 +674,58 @@ def main():
                 and all(value in dungeon_map_projection_raw for value in (b'fitZoom', b'project'))
                 and all(value in skin_head_raw for value in (b'quad', b'UIRender')),
             'Dungeon Map packages default-on bounded interpolated skin heads with hats, no frame, and its extended zoom settings')
+    r.check(all(value in reference_catalog_raw for value in
+                (b'Dungeon HUD Editor', b'Open Dungeon HUD Editor', b'Dungeon Score/Stats HUD', b'Crypts',
+                 b'Deaths', b'Run Time', b'Room Clear Alert', b'Alert Duration', b'Alert Sound', b'Auto Chest Close'))
+                and all(value in bindings_raw for value in
+                        (b'dungeon-score-hud', b'dungeon-score-line', b'dungeon-crypts-line', b'dungeon-deaths-line',
+                         b'dungeon-run-time-line', b'room-clear-alert', b'room-clear-duration', b'room-clear-sound',
+                         b'dungeon-auto-chest-close'))
+                and all(value in settings_screen_raw for value in
+                        (b'open-dungeon-hud-editor', b'DungeonHudEditorScreen'))
+                and all(value in hud_manager_raw for value in
+                        (b'DUNGEON_SCORE', b'ROOM_CLEAR_ALERT', b'DUNGEON_EDITOR_ELEMENTS', b'renderDungeonEditor'))
+                and all(value in dungeon_hud_editor_raw for value in
+                        (b'Dungeon HUD Editor', b'Score / Stats', b'Room Alert', b'Dungeon Map',
+                         b'setDungeonMapPosition', b'resetSelected', b'roundRectBorder')),
+            'Dungeons packages one-row Dungeon HUD Editor routing plus persistent Score/Stats, Room Alert, and map targets')
+    r.check(all(value in apple_settings_raw for value in
+                (b'dungeonHud.score', b'dungeonHud.crypts', b'dungeonHud.deaths', b'dungeonHud.runTime',
+                 b'dungeonHud.roomClearSound', b'dungeonHud.roomClearDurationMillis', b'dungeonHud.autoChestClose',
+                 b'DEFAULT_DUNGEON_AUTO_CHEST_CLOSE'))
+                and all(value in dungeon_score_calculator_raw for value in
+                        (b'failedPuzzles', b'spiritDeathPenaltyReductions', b'mimicKilled', b'paulActive',
+                         b'projectedRank', b'rankForScore', b'S+'))
+                and all(value in dungeon_score_telemetry_raw for value in
+                        (b'Extra Stats', b'Score Breakdown', b'puzzle fail!', b'mimic', b'paul', b'scoreRecapLines'))
+                and all(value in dungeon_score_readout_raw for value in
+                        (b'hasOfficialScore', b'projectedRank', b'verified visible end score', b'S+'))
+                and all(value in dungeon_score_tracker_raw for value in
+                        (b'ClientChatReceivedEvent', b'NetworkPlayerInfo', b'observeSidebar', b'observeTab'))
+                and all(value in dungeon_score_hud_raw for value in
+                        (b'DungeonScoreTracker', b'dungeonScoreShowScore', b'dungeonScoreShowCrypts',
+                         b'dungeonScoreShowDeaths', b'dungeonScoreShowRunTime', b'forceBorderless')),
+            'native Dungeon Score Calculator uses visible sidebar/tab/chat telemetry, persists independently selectable HUD lines, and caps live S+ claims')
+    r.check(all(value in room_alert_policy_raw for value in
+                (b'clearedRooms', b'blood', b'fairy', b'entrance', b'already', b'CLEAR_MESSAGE'))
+                and all(value in room_alert_controller_raw for value in
+                        (b'ClientChatReceivedEvent', b'DungeonContext', b'RoomClearAlertPolicy', b'ROOM_CLEAR_ALERT'))
+                and all(value in room_alert_hud_raw for value in
+                        (b'ROOM CLEARED', b'effectiveDungeonRoomClearDurationMillis', b'forceBorderless')),
+            'Room Clear Alert stays dungeon-only, deduplicated, movable and safely excludes special/already-cleared rooms')
+    dungeon_chest_forbidden = (b'sendPacket', b'sendQueue', b'windowClick', b'playerController', b'clickMouse')
+    r.check(all(value in dungeon_chest_policy_raw for value in (b'chest', b'large chest', b'isNormalSecretChestTitle'))
+                and all(value in dungeon_chest_closer_raw for value in
+                        (b'GuiOpenEvent', b'DungeonContext', b'DungeonChestClosePolicy', b'pendingWindowId'))
+                and all(value not in dungeon_chest_closer_raw for value in dungeon_chest_forbidden),
+            'default-off Auto Chest Close is title-allow-listed for normal dungeon Chest/Large Chest screens without reward, terminal, packet, or click paths',
+            'forbidden: ' + ', '.join(value.decode('ascii') for value in dungeon_chest_forbidden
+                                       if value in dungeon_chest_closer_raw))
+    r.check(all(value in client_raw for value in
+                (b'DungeonScoreTracker', b'RoomClearAlertController', b'DungeonChestCloser'))
+                and all(value in hud_manager_raw for value in (b'DungeonScoreHud', b'RoomClearAlertHud')),
+            'client registers the native dungeon score, alert, chest-close, and movable-HUD runtime owners')
+
     r.check(all(value in ui_render_raw for value in (b'restoreVanillaGuiState', b'restoreFrameState', b'frameDepth',
                                                         b'GuiPixelGrid', b'guiScaleFactor'))
                 and all(value in pixel_grid_raw for value in (b'textScale', b'coordinate'))

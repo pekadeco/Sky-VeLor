@@ -1,5 +1,51 @@
 # Changelog
 
+## Beta-0.10.9.3v — 2026-10-29
+
+### Fixed
+
+- Put **Wardrobe Shortcut**, **Pets Shortcut**, and **Item Lock And Swap Key** capture buttons immediately left of one
+  shared right-edge toggle column. Aligned the Command Keybind editor action to that same key-button column and made
+  the **Shortcut** reset control a small left-aligned footer button.
+- Preserved saved Shortcut/Keybind Cut, Item Lock, Wardrobe, Pets, Command Keybind, map, HUD, and generic settings
+  behavior while adding the Dungeon HUD controls. Existing players do not have their saved key bindings reset.
+- Made the curated source ZIP safe to verify without weakening archive hygiene: chest-close class filenames no longer
+  collide with the verifier's intentional secret-looking-filename exclusion, and the verifier now requires the new
+  dungeon source/test surfaces.
+
+### Added
+
+- Added a separate centered solid **Dungeon HUD Editor** under **Dungeons → Dungeon HUD**. Its element picker contains
+  **Score / Stats**, **Room Alert**, and **Dungeon Map**; each target has persistent enable, move, resize, and reset
+  handling. The runtime map hides while its dedicated editor preview is open.
+- Added a native dungeon-only **Dungeon Score Calculator** and borderless movable **Dungeon Score/Stats HUD**. It uses
+  only already-visible Fakepixel sidebar, public tab-list, and chat observations—no API—and tracks rooms, secrets,
+  deaths/Spirit reductions, failed puzzles, crypts, runtime, mimic, Paul, Skill, Exploration, Speed, Bonus, total,
+  and rank. Score/rank, Crypts, Deaths, and Run Time lines are independently toggleable.
+- Added conservative end-of-run score validation. A live projection can never claim `S+`; `S+` is shown only after a
+  visible `Extra Stats`/`Score Breakdown` recap supplies a compatible official total/rank.
+- Added a safe movable **Room Clear Alert** with duration and optional local sound. Its narrow normal-room allow-list
+  rejects blood, fairy, entrance, boss, already-cleared, and repeated-room false positives.
+- Added default-off **Auto Chest Close**. It runs only inside confirmed dungeons and permits only exact normal
+  `Chest`/`Large Chest` titles; it rejects reward chests, terminals, and all other menus without a click/packet path.
+- Added focused logic, editor/catalog, configuration, source-archive, release-jar, and packaged-runtime contract
+  coverage. Added LGPL-3.0-or-later behavioral-reference credit for NotEnoughFakepixel dungeon-score research in
+  `THIRD-PARTY-NOTICES.md`; Sky VeLor contains an independent implementation and no copied source/dependency.
+
+### Changed
+
+- Updated the release contract, metadata, documentation, verifier examples, and delivery names to
+  `Beta-0.10.9.3v` / numeric `0.10.9.3`.
+- Kept all new dungeon behavior client-side and bounded to confirmed dungeons. Map heads/ESP, generic HUD Editor,
+  Item Animation editor, Chat QoL, physical-key/screen gating, Party Sync default-off, Home metrics, old-config
+  loading, reflection fail-closed behavior, and Minecraft 1.8.9 Forge compatibility remain intact.
+
+### Verification boundary
+
+- Java 8 Forge CI, logic/layout tests, headless layout evidence, reobfuscated-JAR verification, and curated
+  source-archive checks are required before publishing. They do not launch Minecraft; this release is **NOT tested
+  in-game**.
+
 ## Beta-0.10.9.2.1v — 2026-10-29
 
 ### Fixed
