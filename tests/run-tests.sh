@@ -30,6 +30,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsSpacingLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.SettingsControlLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HardcodedGuiColorTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.HudEditorSelectionPolicyTests
+java -cp "$OUT:$CP" com.arena.pekaclient.gui.DungeonHudEditorContractTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.InlineSettingsCatalogTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.FlatDropdownContractTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.PlayerFacingTextTests

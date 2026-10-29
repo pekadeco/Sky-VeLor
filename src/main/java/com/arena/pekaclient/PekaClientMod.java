@@ -39,6 +39,7 @@ import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.gui.AppleSettingsScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
+import com.arena.pekaclient.gui.DungeonHudEditorScreen;
 import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
@@ -471,7 +472,8 @@ public class PekaClientMod {
         Minecraft mc = Minecraft.getMinecraft();
         // The editor draws the elements itself, so skip the in-game copy while it is open. Aspect smoothing is
         // already applied inside the world render coordinate path; there is intentionally no HUD veil here.
-        if (!(mc.currentScreen instanceof HudEditorScreen) && HudManager.visibleInGame()) {
+        if (!(mc.currentScreen instanceof HudEditorScreen) && !(mc.currentScreen instanceof DungeonHudEditorScreen)
+                && HudManager.visibleInGame()) {
             HudManager.render(event.resolution);
         }
     }

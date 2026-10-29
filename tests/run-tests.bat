@@ -36,6 +36,7 @@ call :run com.arena.pekaclient.gui.SettingsSpacingLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.SettingsControlLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.HardcodedGuiColorTests || goto fail
 call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
+call :run com.arena.pekaclient.gui.DungeonHudEditorContractTests || goto fail
 call :run com.arena.pekaclient.gui.InlineSettingsCatalogTests || goto fail
 call :run com.arena.pekaclient.gui.FlatDropdownContractTests || goto fail
 call :run com.arena.pekaclient.gui.PlayerFacingTextTests || goto fail

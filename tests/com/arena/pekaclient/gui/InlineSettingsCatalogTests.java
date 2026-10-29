@@ -54,8 +54,8 @@ public final class InlineSettingsCatalogTests {
                 }
             }
         }
-        check("HUD, Item Animation, and Command Keybind editor routes are explicit", dedicatedEditorActionIds().equals(Arrays.asList(
-                "open-command-keybind-editor", "open-hud-editor", "item-animation-open-editor")));
+        check("HUD, Dungeon HUD, Item Animation, and Command Keybind editor routes are explicit", dedicatedEditorActionIds().equals(Arrays.asList(
+                "open-command-keybind-editor", "open-hud-editor", "open-dungeon-hud-editor", "item-animation-open-editor")));
         check("maintenance actions never reopen a feature screen", noRetiredOpenActionLabels());
     }
 
@@ -64,7 +64,8 @@ public final class InlineSettingsCatalogTests {
         String[] preserved = {
                 "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
                 "item-lock-swap", "item-lock-key", "chat-qol", "wardrobe-shortcut", "wardrobe-number-keys", "pets-shortcut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
-                "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
+                "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "dungeon-hud-editor", "dungeon-score-hud",
+                "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
                 "dungeon-sync-enabled", "mining-bps", "mining-assistant-settings", "catch-counter",
                 "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation", "system-appearance", "system-performance"
         };
@@ -81,6 +82,9 @@ public final class InlineSettingsCatalogTests {
                         && ReferenceSettingsCatalog.ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
         check("new local dungeon readouts use their single intended owners",
                 ReferenceSettingsCatalog.ownerOf("spirit-bow-locator") == ReferenceSettingsCatalog.Tab.DUNGEON
+                        && ReferenceSettingsCatalog.ownerOf("dungeon-hud-editor") == ReferenceSettingsCatalog.Tab.DUNGEON
+                        && ReferenceSettingsCatalog.ownerOf("dungeon-score-hud") == ReferenceSettingsCatalog.Tab.DUNGEON
+                        && ReferenceSettingsCatalog.ownerOf("room-clear-alert") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.find("spirit-bow-locator") != null
                         && ReferenceSettingsCatalog.find("hud-dungeon-run") != null);
         check("Terminal Helper is a no-master dropdown", ReferenceSettingsCatalog.find("terminal-assist") != null

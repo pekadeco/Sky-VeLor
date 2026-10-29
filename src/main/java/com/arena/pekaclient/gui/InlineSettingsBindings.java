@@ -69,6 +69,14 @@ final class InlineSettingsBindings {
         if ("spirit-leap".equals(id)) return AppleSettings.leapMenu;
         if ("leap-key".equals(id)) return AppleSettings.leapKey;
         if ("dungeon-boss-hud".equals(id)) return HudManager.DUNGEON_BOSS_HP.enabled;
+        if ("dungeon-score-hud".equals(id)) return HudManager.DUNGEON_SCORE.enabled;
+        if ("dungeon-score-line".equals(id)) return AppleSettings.dungeonScoreShowScore;
+        if ("dungeon-crypts-line".equals(id)) return AppleSettings.dungeonScoreShowCrypts;
+        if ("dungeon-deaths-line".equals(id)) return AppleSettings.dungeonScoreShowDeaths;
+        if ("dungeon-run-time-line".equals(id)) return AppleSettings.dungeonScoreShowRunTime;
+        if ("room-clear-alert".equals(id)) return HudManager.ROOM_CLEAR_ALERT.enabled;
+        if ("room-clear-sound".equals(id)) return AppleSettings.dungeonRoomClearSound;
+        if ("dungeon-auto-chest-close".equals(id)) return AppleSettings.dungeonAutoChestClose;
         if ("spirit-bow-locator".equals(id)) return AssistSettings.spiritBowLocator;
         if ("m7-overlay".equals(id)) return M7Settings.isOverlayEnabled();
         if ("m7-relic-areas".equals(id)) return M7Settings.isStatueZonesEnabled();
@@ -174,6 +182,14 @@ final class InlineSettingsBindings {
         else if ("spirit-leap".equals(id)) AppleSettings.leapMenu = value;
         else if ("leap-key".equals(id)) AppleSettings.leapKey = value;
         else if ("dungeon-boss-hud".equals(id)) HudManager.DUNGEON_BOSS_HP.enabled = value;
+        else if ("dungeon-score-hud".equals(id)) HudManager.DUNGEON_SCORE.enabled = value;
+        else if ("dungeon-score-line".equals(id)) AppleSettings.dungeonScoreShowScore = value;
+        else if ("dungeon-crypts-line".equals(id)) AppleSettings.dungeonScoreShowCrypts = value;
+        else if ("dungeon-deaths-line".equals(id)) AppleSettings.dungeonScoreShowDeaths = value;
+        else if ("dungeon-run-time-line".equals(id)) AppleSettings.dungeonScoreShowRunTime = value;
+        else if ("room-clear-alert".equals(id)) HudManager.ROOM_CLEAR_ALERT.enabled = value;
+        else if ("room-clear-sound".equals(id)) AppleSettings.dungeonRoomClearSound = value;
+        else if ("dungeon-auto-chest-close".equals(id)) AppleSettings.dungeonAutoChestClose = value;
         else if ("spirit-bow-locator".equals(id)) AssistSettings.spiritBowLocator = value;
         else if ("m7-overlay".equals(id)) M7Settings.setOverlayEnabled(value);
         else if ("m7-relic-areas".equals(id)) M7Settings.setStatueZonesEnabled(value);
@@ -252,6 +268,7 @@ final class InlineSettingsBindings {
         if ("dungeon-map-scale".equals(id)) return AppleSettings.dungeonMapScale;
         if ("dungeon-map-zoom".equals(id)) return AppleSettings.dungeonMapZoom;
         if ("dungeon-map-player-head-size".equals(id)) return AppleSettings.dungeonMapPlayerHeadSize;
+        if ("room-clear-duration".equals(id)) return AppleSettings.effectiveDungeonRoomClearDurationMillis();
         if ("terminal-scale".equals(id)) return AssistSettings.terminalScale;
         if ("esp-max-distance".equals(id)) return DungeonEspSettings.maxDistance;
         if ("esp-update-interval".equals(id)) return DungeonEspSettings.updateIntervalTicks;
@@ -294,6 +311,8 @@ final class InlineSettingsBindings {
                 AppleSettings.DUNGEON_MAP_ZOOM_MIN, AppleSettings.DUNGEON_MAP_ZOOM_MAX);
         else if ("dungeon-map-player-head-size".equals(id)) AppleSettings.dungeonMapPlayerHeadSize = clamp(value,
                 AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN, AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX);
+        else if ("room-clear-duration".equals(id)) AppleSettings.dungeonRoomClearDurationMillis = clamp(value,
+                AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS, AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS);
         else if ("terminal-scale".equals(id)) AssistSettings.terminalScale = clamp(value,
                 AssistSettings.MIN_TERMINAL_SCALE, AssistSettings.MAX_TERMINAL_SCALE);
         else if ("esp-max-distance".equals(id)) DungeonEspSettings.maxDistance = clamp(value,

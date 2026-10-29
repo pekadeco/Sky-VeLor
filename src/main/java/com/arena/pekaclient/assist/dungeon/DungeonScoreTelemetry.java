@@ -72,7 +72,7 @@ public final class DungeonScoreTelemetry {
 
     /** Observes one sidebar or tab-list line. */
     public synchronized void observeVisible(String raw) {
-        observe(raw, false);
+        observe(raw);
     }
 
     /** Observes one received chat line while the caller has already confirmed a dungeon context. */
@@ -93,7 +93,7 @@ public final class DungeonScoreTelemetry {
         if (looksLikePaul(lower)) {
             paulActive = true;
         }
-        observe(line, true);
+        observe(line);
     }
 
     /** Snapshot used by the dungeon HUD. Individual visible inputs remain available for diagnostics and tests. */
@@ -107,7 +107,7 @@ public final class DungeonScoreTelemetry {
     public synchronized int officialSpeed() { return officialSpeed; }
     public synchronized int officialBonus() { return officialBonus; }
 
-    private void observe(String raw, boolean fromChat) {
+    private void observe(String raw) {
         String line = clean(raw);
         if (line.length() == 0) return;
         String lower = line.toLowerCase(Locale.ROOT);
@@ -136,8 +136,9 @@ public final class DungeonScoreTelemetry {
         if (looksLikePaul(lower)) paulActive = true;
         if (isMimicKill(lower)) mimicKilled = true;
 
-        boolean recapHeading = lower.indexOf("dungeon score") >= 0 || lower.indexOf("extra stats") >= 0
-                || lower.indexOf("score breakdown") >= 0;
+        // A party/player chat line can imitate a score label, so only the server's multi-line recap heading opens the
+        // confirmation window. This conservatism is what prevents an unverified S+ label.
+        boolean recapHeading = lower.indexOf("extra stats") >= 0 || lower.indexOf("score breakdown") >= 0;
         if (recapHeading) scoreRecapLines = 12;
         boolean recapLine = recapHeading || scoreRecapLines > 0;
         if (recapLine) {
@@ -150,8 +151,7 @@ public final class DungeonScoreTelemetry {
         }
 
         Matcher total = TOTAL_SCORE.matcher(line);
-        boolean explicitTotal = lower.indexOf("total score") >= 0 || lower.indexOf("dungeon score") >= 0;
-        if (total.find() && (recapLine || explicitTotal || fromChat && lower.indexOf("final") >= 0)) {
+        if (total.find() && recapLine) {
             int parsed = bounded(total.group(1), 0, 999);
             if (parsed >= 0) officialTotal = parsed;
         }

@@ -28,6 +28,10 @@ public final class InlineOwnerBindingsTests {
         boolean oldChat = ChatQolSettings.enabled;
         boolean oldSpiritBowLocator = AssistSettings.spiritBowLocator;
         boolean oldDungeonRunHud = HudManager.DUNGEON_RUN.enabled;
+        boolean oldDungeonScoreHud = HudManager.DUNGEON_SCORE.enabled;
+        boolean oldRoomAlert = HudManager.ROOM_CLEAR_ALERT.enabled;
+        boolean oldScoreLine = AppleSettings.dungeonScoreShowScore;
+        boolean oldChestClose = AppleSettings.dungeonAutoChestClose;
         try {
             InlineSettingsBindings.setBoolean("no-block-particles", !oldParticles);
             InlineSettingsBindings.setBoolean("auto-sprint", !oldSprint);
@@ -38,6 +42,10 @@ public final class InlineOwnerBindingsTests {
             InlineSettingsBindings.setBoolean("chat-qol", !oldChat);
             InlineSettingsBindings.setBoolean("spirit-bow-locator", !oldSpiritBowLocator);
             InlineSettingsBindings.setBoolean("hud-dungeon-run", !oldDungeonRunHud);
+            InlineSettingsBindings.setBoolean("dungeon-score-hud", !oldDungeonScoreHud);
+            InlineSettingsBindings.setBoolean("room-clear-alert", !oldRoomAlert);
+            InlineSettingsBindings.setBoolean("dungeon-score-line", !oldScoreLine);
+            InlineSettingsBindings.setBoolean("dungeon-auto-chest-close", !oldChestClose);
             check("particle row writes AppleSettings owner", AppleSettings.noBlockParticles == !oldParticles
                     && InlineSettingsBindings.booleanValue("no-block-particles") == !oldParticles);
             check("sprint row writes AssistSettings owner", AssistSettings.autoSprint == !oldSprint
@@ -56,6 +64,11 @@ public final class InlineOwnerBindingsTests {
                     && InlineSettingsBindings.booleanValue("spirit-bow-locator") == !oldSpiritBowLocator);
             check("Dungeon Run HUD writes its movable HUD owner", HudManager.DUNGEON_RUN.enabled == !oldDungeonRunHud
                     && InlineSettingsBindings.booleanValue("hud-dungeon-run") == !oldDungeonRunHud);
+            check("Dungeon Score and Room Alert write their movable HUD owners", HudManager.DUNGEON_SCORE.enabled
+                    == !oldDungeonScoreHud && HudManager.ROOM_CLEAR_ALERT.enabled == !oldRoomAlert);
+            check("Dungeon score line and Auto Chest Close write additive AppleSettings owners",
+                    AppleSettings.dungeonScoreShowScore == !oldScoreLine
+                            && AppleSettings.dungeonAutoChestClose == !oldChestClose);
         } finally {
             AppleSettings.noBlockParticles = oldParticles;
             AssistSettings.autoSprint = oldSprint;
@@ -66,6 +79,10 @@ public final class InlineOwnerBindingsTests {
             ChatQolSettings.enabled = oldChat;
             AssistSettings.spiritBowLocator = oldSpiritBowLocator;
             HudManager.DUNGEON_RUN.enabled = oldDungeonRunHud;
+            HudManager.DUNGEON_SCORE.enabled = oldDungeonScoreHud;
+            HudManager.ROOM_CLEAR_ALERT.enabled = oldRoomAlert;
+            AppleSettings.dungeonScoreShowScore = oldScoreLine;
+            AppleSettings.dungeonAutoChestClose = oldChestClose;
         }
     }
 
@@ -74,12 +91,14 @@ public final class InlineOwnerBindingsTests {
         int oldScale = AppleSettings.dungeonMapScale;
         int oldZoom = AppleSettings.dungeonMapZoom;
         int oldHeadSize = AppleSettings.dungeonMapPlayerHeadSize;
+        int oldRoomDuration = AppleSettings.dungeonRoomClearDurationMillis;
         int oldMenu = ChatQolSettings.menuOpenMode;
         try {
             InlineSettingsBindings.setInt("hurt-camera-shake", 73);
             InlineSettingsBindings.setInt("dungeon-map-scale", 145);
             InlineSettingsBindings.setInt("dungeon-map-zoom", 500);
             InlineSettingsBindings.setInt("dungeon-map-player-head-size", 14);
+            InlineSettingsBindings.setInt("room-clear-duration", 2250);
             InlineSettingsBindings.setChoice("chat-menu-mode", 1);
             check("hurt camera slider keeps its AssistSettings owner", AssistSettings.hurtCameraShake == 73
                     && InlineSettingsBindings.intValue("hurt-camera-shake") == 73);
@@ -89,12 +108,16 @@ public final class InlineOwnerBindingsTests {
                     && InlineSettingsBindings.intValue("dungeon-map-zoom") == 500);
             check("Player Head Size slider keeps its AppleSettings owner", AppleSettings.dungeonMapPlayerHeadSize == 14
                     && InlineSettingsBindings.intValue("dungeon-map-player-head-size") == 14);
+            check("Room Clear duration slider keeps its bounded AppleSettings owner",
+                    AppleSettings.dungeonRoomClearDurationMillis == 2250
+                            && InlineSettingsBindings.intValue("room-clear-duration") == 2250);
             check("menu choice still exposes the existing menu owner", InlineSettingsBindings.choiceValue("chat-menu-mode") == 1);
         } finally {
             AssistSettings.hurtCameraShake = oldShake;
             AppleSettings.dungeonMapScale = oldScale;
             AppleSettings.dungeonMapZoom = oldZoom;
             AppleSettings.dungeonMapPlayerHeadSize = oldHeadSize;
+            AppleSettings.dungeonRoomClearDurationMillis = oldRoomDuration;
             ChatQolSettings.menuOpenMode = oldMenu;
         }
     }

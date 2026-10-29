@@ -28,7 +28,9 @@ public final class InlineOptionPreservationTests {
                 "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
                 "dungeon-map", "dungeon-map-player-names", "dungeon-map-player-heads", "dungeon-map-player-head-size", "hud-dungeon-run", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
-                "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
+                "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-score-hud", "dungeon-score-line", "dungeon-crypts-line",
+                "dungeon-deaths-line", "dungeon-run-time-line", "room-clear-alert", "room-clear-duration", "room-clear-sound",
+                "dungeon-auto-chest-close", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
                 "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
                 "esp-miniboss", "esp-mob-labels", "esp-special", "esp-starred",
                 "esp-update-interval", "fishing-festival",
@@ -58,7 +60,8 @@ public final class InlineOptionPreservationTests {
         assertPresent("chat-background-group", "chat-messages-group", "chat-tabs-group", "chat-menu-group",
                 "m7-bosses", "m7-dragons", "esp-starred-caption", "door-wither-style-caption");
         assertPresent("item-lock-swap", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud",
-                "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker",
+                "spirit-bow-locator", "dungeon-hud-editor", "dungeon-score-hud", "room-clear-alert",
+                "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker",
                 "hud-dungeon-run", "item-animation", "command-keybinds", "item-lock-key");
         check("Chat captions are not nested dropdowns", !ReferenceSettingsCatalog.find("chat-background-group").isDropdown()
                 && !ReferenceSettingsCatalog.find("chat-tabs-group").isDropdown());

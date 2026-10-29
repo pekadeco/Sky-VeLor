@@ -9,6 +9,7 @@ public final class DungeonScoreTelemetryTests {
         visibleRowsFeedTheCalculator();
         chatObservationsCoverFailuresSpiritAndMimic();
         finalVisibleScoreOverridesProjectionAndAllowsSPlus();
+        unframedScoreTextCannotManufactureSPlus();
         timerRollbackStartsANewAttempt();
         done();
     }
@@ -60,6 +61,15 @@ public final class DungeonScoreTelemetryTests {
         check("visible recap components are independently captured for mismatch diagnosis", telemetry.officialSkill() == 96
                 && telemetry.officialExploration() == 100 && telemetry.officialSpeed() == 100
                 && telemetry.officialBonus() == 5);
+    }
+
+    private static void unframedScoreTextCannotManufactureSPlus() {
+        DungeonScoreTelemetry telemetry = fullF7Telemetry();
+        telemetry.observeChat("Dungeon Score: 301");
+        telemetry.observeChat("Rank: S+");
+        DungeonScoreReadout readout = telemetry.readout();
+        check("unframed score-looking chat never becomes an official result", !readout.hasOfficialScore());
+        check("unframed score-looking chat retains the conservative live rank", "S".equals(readout.displayRank()));
     }
 
     private static void timerRollbackStartsANewAttempt() {

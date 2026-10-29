@@ -2,6 +2,7 @@ package com.arena.pekaclient.dungeon;
 
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.feature.DungeonContext;
+import com.arena.pekaclient.gui.DungeonHudEditorScreen;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.render.SkinHead;
 import net.minecraft.client.Minecraft;
@@ -129,6 +130,8 @@ public final class DungeonMapOverlay {
     public void onOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL || !AppleSettings.dungeonMap || !DungeonContext.inDungeon()) return;
         Minecraft mc = Minecraft.getMinecraft();
+        // The dedicated editor renders one controlled map placement preview; never stack the live server map over it.
+        if (mc.currentScreen instanceof DungeonHudEditorScreen) return;
         if (mc.thePlayer == null || mc.theWorld == null || mc.entityRenderer == null) return;
         ItemStack stack = mc.thePlayer.inventory.getStackInSlot(8); // hotbar slot 9
         if (stack == null || !(stack.getItem() instanceof ItemMap)) return;

@@ -2131,6 +2131,10 @@ public class AppleSettingsScreen extends AppleScreen {
             Minecraft.getMinecraft().displayGuiScreen(new CommandKeybindEditorScreen(this));
             return;
         }
+        if ("open-dungeon-hud-editor".equals(id)) {
+            Minecraft.getMinecraft().displayGuiScreen(new DungeonHudEditorScreen(this));
+            return;
+        }
         if (handleChatAction(id)) return;
         if (InlineSettingsBindings.runAction(id)) {
             // Shortcut reset deliberately restores W/P only after this explicit player action, never while loading an
