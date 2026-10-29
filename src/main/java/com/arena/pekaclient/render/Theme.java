@@ -77,6 +77,8 @@ public final class Theme {
     /** Non-interactive semantic surfaces shared by diagnostics and app-specific utility screens. */
     public static final int SHADOW = 0x40000000;
     public static final int DIM = 0x73000000;
+    /** Light, transparent canvas veil for direct HUD placement; the game remains readable underneath. */
+    public static final int HUD_EDITOR_DIM = 0x30000000;
     public static final int TOOLTIP = 0xF22A2A2E;
     public static final int DEBUG_THIN = 0xC8E85D5D;
     public static final int DEBUG_HOT = 0xFFFF4545;

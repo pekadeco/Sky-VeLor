@@ -7,6 +7,10 @@ import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.hud.HudPlacement;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
+import com.arena.pekaclient.widget.AppleButton;
+import com.arena.pekaclient.widget.AppleSlider;
+import com.arena.pekaclient.widget.AppleToggle;
+import com.arena.pekaclient.widget.Widget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
@@ -17,35 +21,51 @@ import org.lwjgl.input.Mouse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 /**
- * The self-contained editor for dungeon-only overlay elements. It always draws useful Score/Stats, Room Alert, and
- * Dungeon Map samples, including outside a dungeon, so movement and scale never depend on a live run. The responsive
- * layout keeps solid picker/inspector surfaces separate from the preview canvas on desktop and Pojav-sized screens.
+ * Direct-manipulation editor for dungeon-only overlay elements.
+ *
+ * <p>It keeps the game visible beneath a light dim layer and renders the actual Score/Stats, Room Alert and Dungeon
+ * Map samples on the same full-screen canvas where they are used. Select an element directly, drag it, or pull its
+ * lower-right handle; the one compact options dock moves away from that selection instead of reserving a permanent
+ * obstructive side panel.</p>
  */
 public final class DungeonHudEditorScreen extends AppleScreen {
     private static final float SNAP = 4F;
     private static final float TOUCH_MIN = 28F;
-    private static final float ROW_H = 25F;
-    private static final float OPTION_TOP = 31F;
     private static final float HANDLE_SIZE = 10F;
+    private static final float OPTION_ROW_H = 27F;
+    private static final float GROUP_ROW_H = 17F;
+    private static final float PANEL_HEADER_H = 25F;
 
-    private static final int TOGGLE = 0;
-    private static final int SLIDER = 1;
-    private static final int CHOICE = 2;
-    private static final int ACTION = 3;
+    private static final int HEADING = 0;
+    private static final int TOGGLE = 1;
+    private static final int SLIDER = 2;
+    private static final int CHOICE = 3;
+    private static final int ACTION = 4;
 
     private enum Target {
-        SCORE("Score / Stats", HudManager.DUNGEON_SCORE),
-        ALERT("Room Alert", HudManager.ROOM_CLEAR_ALERT),
-        MAP("Dungeon Map", null);
+        SCORE("Score", HudManager.DUNGEON_SCORE),
+        ALERT("Alert", HudManager.ROOM_CLEAR_ALERT),
+        MAP("Map", null);
 
-        final String label;
+        final String chip;
         final HudElement element;
 
-        Target(String label, HudElement element) {
-            this.label = label;
+        Target(String chip, HudElement element) {
+            this.chip = chip;
             this.element = element;
+        }
+
+        String panelTitle() {
+            if (this == SCORE) return "Score / Stats";
+            if (this == ALERT) return "Room Alert";
+            return "Dungeon Map";
         }
     }
 
@@ -58,6 +78,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         final int step;
         final GuiLayoutToolkit.Rect row = new GuiLayoutToolkit.Rect();
         final GuiLayoutToolkit.Rect control = new GuiLayoutToolkit.Rect();
+        Widget widget;
 
         Option(String id, String label, int type) {
             this(id, label, type, 0, 1, 1);
@@ -75,16 +96,25 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     private final GuiScreen parent;
     private final List<Option> options = new ArrayList<Option>();
+    private final GuiLayoutToolkit.Rect selectedBounds = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect[] targetChips = {
+            new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect()
+    };
+    private final GuiLayoutToolkit.Rect optionsChip = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect resetSelectedChip = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect resetAllChip = new GuiLayoutToolkit.Rect();
+    private final GuiLayoutToolkit.Rect doneChip = new GuiLayoutToolkit.Rect();
+
     private Target selected = Target.SCORE;
     private DungeonHudEditorLayout layout;
     private float optionScroll;
     private float maxOptionScroll;
     private float guiScale = 1F;
+    private boolean inspectorRequested = true;
     private boolean dragging;
     private boolean resizing;
-    private boolean draggingSlider;
     private Target dragTarget;
-    private Option sliderOption;
+    private Widget activeWidget;
     private float grabX;
     private float grabY;
     private float resizeStartScale;
@@ -93,6 +123,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     private int resizeStartY;
     private int guides;
     private boolean dirty;
+    private long lastDrawNanos;
 
     public DungeonHudEditorScreen(GuiScreen parent) {
         this.parent = parent;
@@ -113,6 +144,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         Keyboard.enableRepeatEvents(true);
         HudManager.ensureLoaded();
         rebuildOptions();
+        lastDrawNanos = System.nanoTime();
     }
 
     @Override
@@ -140,87 +172,227 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     }
 
     private void select(Target target) {
-        if (target == null || target == selected) return;
+        if (target == null) return;
+        boolean changedTarget = target != selected;
         selected = target;
-        optionScroll = 0F;
-        rebuildOptions();
+        inspectorRequested = true;
+        if (changedTarget) {
+            optionScroll = 0F;
+            rebuildOptions();
+        }
     }
 
     private void rebuildOptions() {
         options.clear();
         if (selected == Target.SCORE) {
-            options.add(new Option("score-enabled", "Show HUD", TOGGLE));
-            options.add(new Option("score-line", "Score and rank", TOGGLE));
-            options.add(new Option("score-crypts", "Crypts", TOGGLE));
-            options.add(new Option("score-deaths", "Deaths", TOGGLE));
-            options.add(new Option("score-time", "Run time", TOGGLE));
-            options.add(new Option("element-scale", "Size", SLIDER, 50, 200, 5));
-            options.add(new Option("reset-target", "Reset selected", ACTION));
+            heading("Display");
+            toggle("score-enabled", "Show HUD");
+            toggle("score-line", "Score and rank");
+            toggle("score-crypts", "Crypts");
+            toggle("score-deaths", "Deaths");
+            toggle("score-time", "Run time");
+            heading("Placement");
+            slider("element-scale", "Size", 50, 200, 5);
         } else if (selected == Target.ALERT) {
-            options.add(new Option("alert-enabled", "Show alert", TOGGLE));
-            options.add(new Option("alert-duration", "Alert duration", SLIDER,
-                    AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
-                    AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS, 250));
-            options.add(new Option("alert-sound", "Local sound", TOGGLE));
-            options.add(new Option("element-scale", "Size", SLIDER, 50, 200, 5));
-            options.add(new Option("test-alert", "Test Alert", ACTION));
-            options.add(new Option("reset-target", "Reset selected", ACTION));
+            heading("Display");
+            toggle("alert-enabled", "Show alert");
+            slider("element-scale", "Size", 50, 200, 5);
+            heading("Alert");
+            slider("alert-duration", "Duration", AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
+                    AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS, 250);
+            toggle("alert-sound", "Local sound");
+            action("test-alert", "Test alert");
         } else {
-            options.add(new Option("map-enabled", "Show map", TOGGLE));
-            options.add(new Option("map-scale-on", "Use map scale", TOGGLE));
-            options.add(new Option("map-scale", "Map size", SLIDER,
-                    AppleSettings.DUNGEON_MAP_SCALE_MIN, AppleSettings.DUNGEON_MAP_SCALE_MAX, 5));
-            options.add(new Option("map-zoom", "Map zoom", SLIDER,
-                    AppleSettings.DUNGEON_MAP_ZOOM_MIN, AppleSettings.DUNGEON_MAP_ZOOM_MAX, 5));
-            options.add(new Option("map-rotate", "Rotate to facing", TOGGLE));
-            options.add(new Option("map-names", "Player names", TOGGLE));
-            options.add(new Option("map-heads", "Player heads", TOGGLE));
-            options.add(new Option("map-head-size", "Head size", SLIDER,
-                    AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN,
-                    AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX, 1));
-            options.add(new Option("map-room-names", "Room / puzzle names", TOGGLE));
-            options.add(new Option("map-secrets", "Secrets", TOGGLE));
-            options.add(new Option("map-background", "Map background", TOGGLE));
-            options.add(new Option("map-background-opacity", "Background opacity", SLIDER,
-                    AppleSettings.DUNGEON_MAP_BACKGROUND_OPACITY_MIN,
-                    AppleSettings.DUNGEON_MAP_BACKGROUND_OPACITY_MAX, 5));
-            options.add(new Option("map-background-color", "Background color", CHOICE));
-            options.add(new Option("map-room-color", "Room name color", CHOICE));
-            options.add(new Option("map-secrets-color", "Secrets color", CHOICE));
-            options.add(new Option("map-announce", "Party puzzle announce", TOGGLE));
-            options.add(new Option("reset-map-position", "Reset map position", ACTION));
-            options.add(new Option("reset-target", "Reset selected", ACTION));
+            // Keep all Map controls in the requested compact semantic groups rather than spreading them across a
+            // giant settings wall.
+            heading("Display");
+            toggle("map-enabled", "Show map");
+            toggle("map-scale-on", "Use map size");
+            slider("map-scale", "Map size", AppleSettings.DUNGEON_MAP_SCALE_MIN,
+                    AppleSettings.DUNGEON_MAP_SCALE_MAX, 5);
+            slider("map-zoom", "Map zoom", AppleSettings.DUNGEON_MAP_ZOOM_MIN,
+                    AppleSettings.DUNGEON_MAP_ZOOM_MAX, 5);
+            toggle("map-rotate", "Rotate to facing");
+            toggle("map-room-names", "Room / puzzle names");
+            toggle("map-secrets", "Secrets");
+            toggle("map-announce", "Party puzzle announce");
+            heading("Players");
+            toggle("map-names", "Player names");
+            toggle("map-heads", "Player heads");
+            slider("map-head-size", "Head size", AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN,
+                    AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX, 1);
+            heading("Colors");
+            choice("map-room-color", "Room / puzzle text");
+            choice("map-secrets-color", "Secrets text");
+            heading("Background");
+            toggle("map-background", "Map background");
+            slider("map-background-opacity", "Opacity", AppleSettings.DUNGEON_MAP_BACKGROUND_OPACITY_MIN,
+                    AppleSettings.DUNGEON_MAP_BACKGROUND_OPACITY_MAX, 5);
+            choice("map-background-color", "Color");
         }
+    }
+
+    private void heading(String label) {
+        options.add(new Option("heading-" + options.size(), label, HEADING));
+    }
+
+    private void toggle(final String id, String label) {
+        Option option = new Option(id, label, TOGGLE);
+        option.widget = new AppleToggle(new Supplier<Boolean>() {
+            @Override
+            public Boolean get() {
+                return Boolean.valueOf(boolValue(id));
+            }
+        }, new Consumer<Boolean>() {
+            @Override
+            public void accept(Boolean value) {
+                setBool(id, Boolean.TRUE.equals(value));
+                changed();
+            }
+        });
+        options.add(option);
+    }
+
+    private void slider(final String id, String label, final int minimum, final int maximum, final int step) {
+        Option option = new Option(id, label, SLIDER, minimum, maximum, step);
+        AppleSlider slider = new AppleSlider(minimum, maximum, step, "", 92F, new IntSupplier() {
+            @Override
+            public int getAsInt() {
+                return intValue(id);
+            }
+        }, new IntConsumer() {
+            @Override
+            public void accept(int value) {
+                setInt(id, value);
+                changed();
+            }
+        });
+        slider.valueLabel(new IntFunction<String>() {
+            @Override
+            public String apply(int value) {
+                return sliderText(id, value);
+            }
+        });
+        option.widget = slider;
+        options.add(option);
+    }
+
+    private void choice(String id, String label) {
+        options.add(new Option(id, label, CHOICE));
+    }
+
+    private void action(final String id, String label) {
+        Option option = new Option(id, label, ACTION);
+        option.widget = new AppleButton(label, 70F, 20F, false, new Runnable() {
+            @Override
+            public void run() {
+                runAction(id);
+            }
+        });
+        options.add(option);
     }
 
     private void updateLayout() {
         layout = DungeonHudEditorLayout.create(width, height);
         guiScale = new ScaledResolution(Minecraft.getMinecraft()).getScaleFactor();
-        float viewportH = Math.max(1F, layout.inspector.h - OPTION_TOP - 5F);
-        maxOptionScroll = Math.max(0F, options.size() * ROW_H + 4F - viewportH);
+        setSelectedBounds(selectedBounds, selected);
+        layout.dockInspector(selectedBounds, optionContentHeight() + PANEL_HEADER_H + 8F, inspectorRequested);
+        layoutTopControls();
+
+        if (!layout.inspectorVisible) {
+            optionScroll = 0F;
+            maxOptionScroll = 0F;
+            return;
+        }
+        float viewportH = Math.max(1F, layout.inspector.h - PANEL_HEADER_H - 5F);
+        maxOptionScroll = Math.max(0F, optionContentHeight() + 3F - viewportH);
         optionScroll = clamp(optionScroll, 0F, maxOptionScroll);
-        float y = layout.inspector.y + OPTION_TOP - optionScroll;
+        float y = layout.inspector.y + PANEL_HEADER_H - optionScroll;
         for (Option option : options) {
-            option.row.set(layout.inspector.x + 5F, y, Math.max(1F, layout.inspector.w - 10F), ROW_H - 2F);
-            float controlW = Math.max(54F, option.row.w * .48F);
-            option.control.set(option.row.right() - controlW, option.row.y + 3F, controlW, ROW_H - 8F);
-            if (option.type == ACTION) option.control.set(option.row.x, option.row.y + 2F, option.row.w, ROW_H - 6F);
-            y += ROW_H;
+            float rowH = option.type == HEADING ? GROUP_ROW_H : OPTION_ROW_H;
+            option.row.set(layout.inspector.x + 6F, y, Math.max(1F, layout.inspector.w - 12F), rowH);
+            if (option.type != HEADING) layoutOptionControl(option);
+            y += rowH;
+        }
+    }
+
+    private float optionContentHeight() {
+        float total = 0F;
+        for (Option option : options) total += option.type == HEADING ? GROUP_ROW_H : OPTION_ROW_H;
+        return total;
+    }
+
+    private void layoutTopControls() {
+        float h = Math.max(18F, layout.topBar.h - 4F);
+        float y = layout.topBar.y + (layout.topBar.h - h) * .5F;
+        boolean compact = layout.compact;
+        float chipW = compact ? 31F : 48F;
+        float optionsW = compact ? 27F : 52F;
+        float selectedW = compact ? 24F : 78F;
+        float allW = compact ? 24F : 58F;
+        float doneW = compact ? 32F : 44F;
+        float gap = 3F;
+        float total = chipW * Target.values().length + optionsW + selectedW + allW + doneW + gap * 6F;
+        // Preserve all controls at very low GUI scales without letting the strip enter the launcher reserve.
+        if (total > layout.topBar.w - 4F) {
+            float scale = Math.max(.55F, (layout.topBar.w - 4F) / total);
+            chipW *= scale;
+            optionsW *= scale;
+            selectedW *= scale;
+            allW *= scale;
+            doneW *= scale;
+            gap = Math.max(1F, gap * scale);
+        }
+        float x = layout.topBar.x + 2F;
+        Target[] targets = Target.values();
+        for (int i = 0; i < targets.length; i++) {
+            targetChips[i].set(x, y, chipW, h);
+            x += chipW + gap;
+        }
+        optionsChip.set(x, y, optionsW, h);
+        x += optionsW + gap;
+        resetSelectedChip.set(x, y, selectedW, h);
+        x += selectedW + gap;
+        resetAllChip.set(x, y, allW, h);
+        x += allW + gap;
+        doneChip.set(x, y, doneW, h);
+    }
+
+    private void layoutOptionControl(Option option) {
+        float available = Math.max(1F, option.row.w);
+        if (option.type == TOGGLE) {
+            option.control.set(option.row.right() - 38F, option.row.y + (option.row.h - 20F) * .5F, 38F, 20F);
+        } else if (option.type == SLIDER) {
+            float w = Math.max(58F, Math.min(104F, available * .50F));
+            option.control.set(option.row.right() - w, option.row.y + 2F, w, 22F);
+        } else if (option.type == CHOICE) {
+            float w = Math.max(58F, Math.min(108F, available * .52F));
+            option.control.set(option.row.right() - w, option.row.y + 3F, w, 20F);
+        } else {
+            option.control.set(option.row.right() - Math.min(78F, available), option.row.y + 3F,
+                    Math.min(78F, available), 20F);
+        }
+        if (option.widget != null) {
+            option.widget.x = option.control.x;
+            option.widget.y = option.control.y;
+            option.widget.w = option.control.w;
+            option.widget.h = option.control.h;
         }
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         updateLayout();
-        drawDefaultBackground();
+        float delta = frameSeconds();
         UIRender.beginFrame();
         try {
-            UIRender.rect(0F, 0F, width, height, Theme.veil);
+            // Do not call drawDefaultBackground: the lightly dimmed in-world canvas is the editor itself.
+            UIRender.rect(0F, 0F, width, height, Theme.HUD_EDITOR_DIM);
         } finally {
             UIRender.endFrame();
         }
 
-        // The real HUD classes render their editor-safe samples even when no world/sidebar values exist.
+        // The real HUD classes render editor-safe samples even when no world/sidebar values exist.
         HudManager.renderDungeonEditor(new ScaledResolution(Minecraft.getMinecraft()), mouseX, mouseY);
         drawDungeonMapPreview();
 
@@ -228,81 +400,71 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         try {
             drawSelection();
             drawGuides();
-            drawHeader(mouseX, mouseY);
-            drawPicker(mouseX, mouseY);
-            drawInspector(mouseX, mouseY);
+            drawTopControls(mouseX, mouseY);
+            drawInspector(mouseX, mouseY, delta);
         } finally {
             UIRender.endFrame();
         }
     }
 
-    private void drawHeader(int mouseX, int mouseY) {
-        UIRender.rect(layout.header.x, layout.header.y, layout.header.w, layout.header.h, Theme.ITEM_ANIMATION_PANEL);
-        UIRender.line(0F, layout.header.bottom() - 1F, width, layout.header.bottom() - 1F, 1F,
-                Theme.ITEM_ANIMATION_PANEL_BORDER);
-        FontRenderer font = fr();
-        float doneW = layout.compact ? 40F : 50F;
-        float allW = layout.compact ? 40F : 68F;
-        float selectedW = layout.compact ? 46F : 92F;
-        float x = width - 5F - doneW;
-        drawButton(x, 4F, doneW, 20F, "Done", true, mouseX, mouseY);
-        x -= 4F + allW;
-        drawButton(x, 4F, allW, 20F, layout.compact ? "All" : "Reset all", false, mouseX, mouseY);
-        x -= 4F + selectedW;
-        drawButton(x, 4F, selectedW, 20F, layout.compact ? "Target" : "Reset target", false, mouseX, mouseY);
-        String title = fit(font, "Dungeon HUD Editor", Math.max(45F, x - 10F));
-        UIRender.text(font, title, 8F, 10F, Theme.textPrimary, .92F, false);
+    private float frameSeconds() {
+        long now = System.nanoTime();
+        float seconds = lastDrawNanos == 0L ? 1F / 60F : (now - lastDrawNanos) / 1000000000F;
+        lastDrawNanos = now;
+        return clamp(seconds, 0F, .10F);
     }
 
-    private void drawPicker(int mouseX, int mouseY) {
-        drawSolidPanel(layout.picker);
-        FontRenderer font = fr();
-        if (!layout.compact) {
-            UIRender.text(font, "ELEMENTS", layout.picker.x + 9F, layout.picker.y + 10F, Theme.textSecondary, .68F, false);
+    private void drawTopControls(int mouseX, int mouseY) {
+        int fill = UIRender.withAlpha(Theme.popup, .88F);
+        UIRender.roundRectBorder(layout.topBar.x, layout.topBar.y, layout.topBar.w, layout.topBar.h,
+                Math.min(7F, layout.topBar.h * .5F), fill, fill, Theme.border);
+        Target[] targets = Target.values();
+        for (int i = 0; i < targets.length; i++) {
+            drawChip(targetChips[i], targets[i].chip, targets[i] == selected, false, mouseX, mouseY);
         }
-        for (int i = 0; i < Target.values().length; i++) {
-            Target target = Target.values()[i];
-            GuiLayoutToolkit.Rect row = pickerRow(i);
-            drawButton(row.x, row.y, row.w, row.h, target.label, target == selected, mouseX, mouseY);
-        }
-        if (!layout.compact) {
-            UIRender.text(font, "Tap an element or choose it here.", layout.picker.x + 9F,
-                    Math.min(layout.picker.bottom() - 14F, layout.picker.y + 119F), Theme.textSecondary, .62F, false);
-            UIRender.text(font, "Drag to move. Pull the corner", layout.picker.x + 9F,
-                    Math.min(layout.picker.bottom() - 5F, layout.picker.y + 129F), Theme.textSecondary, .62F, false);
-        }
+        drawChip(optionsChip, layout.compact ? "Opt" : "Options", inspectorRequested, false, mouseX, mouseY);
+        drawChip(resetSelectedChip, layout.compact ? "Sel" : "Reset selected", false, false, mouseX, mouseY);
+        drawChip(resetAllChip, layout.compact ? "All" : "Reset all", false, false, mouseX, mouseY);
+        drawChip(doneChip, "Done", false, true, mouseX, mouseY);
     }
 
-    private GuiLayoutToolkit.Rect pickerRow(int index) {
-        GuiLayoutToolkit.Rect row = new GuiLayoutToolkit.Rect();
-        if (layout.compact) {
-            float gap = 3F;
-            float w = (layout.picker.w - gap * 2F) / 3F;
-            row.set(layout.picker.x + index * (w + gap), layout.picker.y + 4F, w, layout.picker.h - 8F);
-        } else {
-            row.set(layout.picker.x + 7F, layout.picker.y + 25F + index * 28F,
-                    Math.max(1F, layout.picker.w - 14F), 23F);
-        }
-        return row;
+    private void drawChip(GuiLayoutToolkit.Rect rect, String label, boolean active, boolean primary,
+                          int mouseX, int mouseY) {
+        boolean hot = rect.contains(mouseX, mouseY);
+        int fill = primary || active ? Theme.accent : Theme.buttonFill;
+        if (hot && !(primary || active)) fill = Theme.buttonHover;
+        UIRender.roundRectBorder(rect.x, rect.y, rect.w, rect.h, Math.min(5F, rect.h * .5F), fill, fill,
+                primary || active ? Theme.accent : Theme.border);
+        float scale = layout.compact ? .50F : .58F;
+        String shown = fit(fr(), label, Math.max(1F, rect.w / scale - 6F));
+        float tx = rect.x + Math.max(2F, (rect.w - fr().getStringWidth(shown) * scale) * .5F);
+        float ty = rect.y + Math.max(2F, (rect.h - 8F * scale) * .5F);
+        UIRender.text(fr(), shown, tx, ty, primary || active ? Theme.OPAQUE_WHITE : Theme.textPrimary, scale, false);
     }
 
-    private void drawInspector(int mouseX, int mouseY) {
-        drawSolidPanel(layout.inspector);
-        FontRenderer font = fr();
-        UIRender.text(font, fit(font, selected.label + " options", layout.inspector.w - 18F),
-                layout.inspector.x + 8F, layout.inspector.y + 10F, Theme.textPrimary, .78F, false);
-        UIRender.line(layout.inspector.x + 6F, layout.inspector.y + 24F, layout.inspector.right() - 6F,
-                layout.inspector.y + 24F, 1F, Theme.expandedDivider);
-        float clipY = layout.inspector.y + OPTION_TOP;
-        float clipH = Math.max(1F, layout.inspector.h - OPTION_TOP - 5F);
+    private void drawInspector(int mouseX, int mouseY, float delta) {
+        if (!layout.inspectorVisible) return;
+        int panel = UIRender.withAlpha(Theme.popup, .94F);
+        UIRender.roundRectBorder(layout.inspector.x, layout.inspector.y, layout.inspector.w, layout.inspector.h,
+                6F, panel, panel, Theme.border);
+        String title = selected.panelTitle() + " options";
+        UIRender.text(fr(), fit(fr(), title, Math.max(1F, layout.inspector.w - 43F)),
+                layout.inspector.x + 7F, layout.inspector.y + 8F, Theme.textPrimary, .67F, false);
+        drawChip(new GuiLayoutToolkit.Rect().set(layout.inspector.right() - 34F, layout.inspector.y + 4F, 28F, 17F),
+                "Hide", false, false, mouseX, mouseY);
+        UIRender.line(layout.inspector.x + 5F, layout.inspector.y + PANEL_HEADER_H - 1F,
+                layout.inspector.right() - 5F, layout.inspector.y + PANEL_HEADER_H - 1F, 1F, Theme.divider);
+
+        float clipY = layout.inspector.y + PANEL_HEADER_H;
+        float clipH = Math.max(1F, layout.inspector.h - PANEL_HEADER_H - 4F);
         UIRender.scissorBegin(layout.inspector.x + 2F, clipY, Math.max(1F, layout.inspector.w - 4F), clipH, guiScale);
         try {
-            for (Option option : options) drawOption(option, mouseX, mouseY);
+            for (Option option : options) drawOption(option, mouseX, mouseY, delta);
         } finally {
             UIRender.scissorEnd();
         }
         if (maxOptionScroll > 0F) {
-            float thumbH = Math.max(16F, clipH * clipH / (clipH + maxOptionScroll));
+            float thumbH = Math.max(15F, clipH * clipH / (clipH + maxOptionScroll));
             float travel = Math.max(0F, clipH - thumbH);
             float thumbY = clipY + travel * optionScroll / maxOptionScroll;
             UIRender.roundRect(layout.inspector.right() - 4F, thumbY, 2F, thumbH, 1F,
@@ -310,47 +472,35 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         }
     }
 
-    private void drawOption(Option option, int mouseX, int mouseY) {
-        boolean hot = option.control.contains(mouseX, mouseY);
-        FontRenderer font = fr();
-        if (option.type == ACTION) {
-            drawButton(option.control.x, option.control.y, option.control.w, option.control.h,
-                    option.label, false, mouseX, mouseY);
+    private void drawOption(Option option, int mouseX, int mouseY, float delta) {
+        if (option.type == HEADING) {
+            UIRender.text(fr(), option.label.toUpperCase(java.util.Locale.ROOT), option.row.x,
+                    option.row.y + 5F, Theme.textTertiary, .52F, false);
+            UIRender.line(option.row.x + 1F, option.row.bottom() - 2F, option.row.right(), option.row.bottom() - 2F,
+                    1F, Theme.divider);
             return;
         }
-        UIRender.text(font, fit(font, option.label, Math.max(1F, option.control.x - option.row.x - 5F)),
-                option.row.x, option.row.y + 8F, Theme.textSecondary, .66F, false);
-        if (option.type == TOGGLE) {
-            boolean on = boolValue(option.id);
-            drawButton(option.control.x, option.control.y, option.control.w, option.control.h,
-                    on ? "On" : "Off", on, mouseX, mouseY);
-        } else if (option.type == CHOICE) {
-            drawButton(option.control.x, option.control.y, option.control.w, option.control.h,
-                    fit(font, choiceName(option.id), option.control.w - 8F), false, mouseX, mouseY);
-        } else {
-            drawSlider(option, hot, mouseX);
+        float labelWidth = Math.max(1F, option.control.x - option.row.x - 5F);
+        UIRender.text(fr(), fit(fr(), option.label, labelWidth / .60F), option.row.x, option.row.y + 9F,
+                Theme.textSecondary, .60F, false);
+        if (option.type == CHOICE) {
+            drawChoice(option, mouseX, mouseY);
+            return;
+        }
+        if (option.widget != null) {
+            option.widget.update(delta);
+            option.widget.draw(mouseX, mouseY);
         }
     }
 
-    private void drawSlider(Option option, boolean hot, int mouseX) {
-        int value = intValue(option.id);
-        float fraction = (clamp(value, option.min, option.max) - option.min) / (float) Math.max(1, option.max - option.min);
-        float barY = option.control.y + option.control.h * .5F - 1F;
-        UIRender.roundRect(option.control.x, barY, option.control.w, 2F, 1F,
-                Theme.buttonFill, Theme.buttonFill, 1F);
-        UIRender.roundRect(option.control.x, barY, option.control.w * fraction, 2F, 1F,
-                Theme.accent, Theme.accent, 1F);
-        float thumbX = option.control.x + option.control.w * fraction;
-        UIRender.circle(thumbX, barY + 1F, hot || sliderOption == option ? 4F : 3F, Theme.accent);
-        String text = sliderText(option, value);
-        UIRender.text(fr(), text, option.control.x + option.control.w - fr().getStringWidth(text) * .55F,
-                option.control.y - 6F, Theme.textPrimary, .55F, false);
-    }
-
-    private String sliderText(Option option, int value) {
-        if ("alert-duration".equals(option.id)) return value + " ms";
-        if ("map-head-size".equals(option.id)) return value + " px";
-        return value + "%";
+    private void drawChoice(Option option, int mouseX, int mouseY) {
+        boolean hot = option.control.contains(mouseX, mouseY);
+        int fill = hot ? Theme.buttonHover : Theme.buttonFill;
+        UIRender.roundRectBorder(option.control.x, option.control.y, option.control.w, option.control.h,
+                4F, fill, fill, Theme.border);
+        String name = fit(fr(), choiceName(option.id), Math.max(1F, option.control.w / .55F - 15F));
+        UIRender.text(fr(), name, option.control.x + 4F, option.control.y + 6F, Theme.textPrimary, .55F, false);
+        UIRender.text(fr(), ">", option.control.right() - 8F, option.control.y + 6F, Theme.textSecondary, .55F, false);
     }
 
     private void drawDungeonMapPreview() {
@@ -362,7 +512,6 @@ public final class DungeonHudEditorScreen extends AppleScreen {
             int background = AppleSettings.dungeonMapBackground
                     ? withPercentAlpha(AppleSettings.effectiveDungeonMapBackgroundColor(),
                     AppleSettings.effectiveDungeonMapBackgroundOpacity()) : UIRender.withAlpha(Theme.card, .78F);
-            // There is deliberately no decorative frame or border around the live-map equivalent.
             UIRender.rect(left, top, size, size, background);
             float cell = size / 4F;
             int roomA = UIRender.mix(Theme.windowBottom, Theme.accent, .32F);
@@ -374,10 +523,10 @@ public final class DungeonHudEditorScreen extends AppleScreen {
                     UIRender.rect(x, y, cell * .64F, cell * .64F, (row + col) % 2 == 0 ? roomA : roomB);
                 }
             }
-            UIRender.line(left + cell, top + cell * 1.5F, left + cell * 3F, top + cell * 1.5F, Math.max(1F, cell * .12F),
-                    UIRender.withAlpha(Theme.textSecondary, .55F));
-            UIRender.line(left + cell * 2F, top + cell * .5F, left + cell * 2F, top + cell * 2.5F, Math.max(1F, cell * .12F),
-                    UIRender.withAlpha(Theme.textSecondary, .55F));
+            UIRender.line(left + cell, top + cell * 1.5F, left + cell * 3F, top + cell * 1.5F,
+                    Math.max(1F, cell * .12F), UIRender.withAlpha(Theme.textSecondary, .55F));
+            UIRender.line(left + cell * 2F, top + cell * .5F, left + cell * 2F, top + cell * 2.5F,
+                    Math.max(1F, cell * .12F), UIRender.withAlpha(Theme.textSecondary, .55F));
             if (AppleSettings.dungeonMapShowPuzzleName && size >= 58) {
                 UIRender.text(fr(), "Puzzle", left + cell * 1.22F, top + cell * .83F,
                         AppleSettings.effectiveDungeonMapRoomNameColor(), .55F, true);
@@ -406,12 +555,10 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     }
 
     private void drawSelection() {
-        int left = targetLeft(selected);
-        int top = targetTop(selected);
-        int targetWidth = targetWidth(selected);
-        int targetHeight = targetHeight(selected);
-        UIRender.roundRectRing(left - 3F, top - 3F, targetWidth + 6F, targetHeight + 6F, 3F, 1F, Theme.accent);
-        UIRender.rect(left + targetWidth - HANDLE_SIZE * .5F, top + targetHeight - HANDLE_SIZE * .5F,
+        setSelectedBounds(selectedBounds, selected);
+        UIRender.roundRectRing(selectedBounds.x - 3F, selectedBounds.y - 3F, selectedBounds.w + 6F,
+                selectedBounds.h + 6F, 3F, 1F, Theme.accent);
+        UIRender.rect(selectedBounds.right() - HANDLE_SIZE * .5F, selectedBounds.bottom() - HANDLE_SIZE * .5F,
                 HANDLE_SIZE, HANDLE_SIZE, Theme.accent);
     }
 
@@ -425,31 +572,14 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         if ((guides & HudPlacement.GUIDE_BOTTOM) != 0) UIRender.rect(0F, height - 1F, width, 1F, Theme.accent);
     }
 
-    private void drawSolidPanel(GuiLayoutToolkit.Rect panel) {
-        UIRender.roundRectBorder(panel.x, panel.y, panel.w, panel.h, 5F, Theme.ITEM_ANIMATION_PANEL,
-                Theme.ITEM_ANIMATION_PANEL, Theme.ITEM_ANIMATION_PANEL_BORDER);
-    }
-
-    private void drawButton(float x, float y, float w, float h, String label, boolean active, int mouseX, int mouseY) {
-        boolean hot = inside(mouseX, mouseY, x, y, w, h);
-        int fill = active ? Theme.accent : Theme.buttonFill;
-        int text = active ? Theme.windowTop : (hot ? Theme.textPrimary : Theme.textSecondary);
-        UIRender.roundRectBorder(x, y, w, h, Math.min(5F, h * .5F), fill, fill,
-                active ? Theme.accent : Theme.border);
-        float scale = .62F;
-        float textW = fr().getStringWidth(label) * scale;
-        UIRender.text(fr(), label, x + Math.max(3F, (w - textW) * .5F), y + Math.max(3F, (h - 8F) * .5F),
-                text, scale, false);
-    }
-
     @Override
     public void handleMouseInput() throws IOException {
         int wheel = Mouse.getEventDWheel();
         super.handleMouseInput();
         int mouseX = Mouse.getEventX() * width / Math.max(1, Minecraft.getMinecraft().displayWidth);
         int mouseY = height - Mouse.getEventY() * height / Math.max(1, Minecraft.getMinecraft().displayHeight) - 1;
-        if (wheel != 0 && layout != null && layout.inspector.contains(mouseX, mouseY)) {
-            optionScroll = clamp(optionScroll - Math.signum(wheel) * 38F, 0F, maxOptionScroll);
+        if (wheel != 0 && layout != null && layout.inspectorVisible && layout.inspector.contains(mouseX, mouseY)) {
+            optionScroll = clamp(optionScroll - Math.signum(wheel) * 34F, 0F, maxOptionScroll);
         }
     }
 
@@ -457,26 +587,21 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     protected void mouseClicked(int mouseX, int mouseY, int button) throws IOException {
         if (button != 0) return;
         updateLayout();
-        if (headerClick(mouseX, mouseY)) return;
-        for (int i = 0; i < Target.values().length; i++) {
-            if (pickerRow(i).contains(mouseX, mouseY)) {
-                select(Target.values()[i]);
-                return;
-            }
+        if (topClick(mouseX, mouseY)) return;
+        if (layout.inspectorVisible && inside(mouseX, mouseY, layout.inspector.x, layout.inspector.y,
+                layout.inspector.w, PANEL_HEADER_H)) {
+            inspectorRequested = false;
+            activeWidget = null;
+            return;
         }
         Option option = optionAt(mouseX, mouseY);
         if (option != null) {
-            if (option.type == ACTION) runAction(option.id);
-            else if (option.type == TOGGLE) {
-                setBool(option.id, !boolValue(option.id));
-                changed();
-            } else if (option.type == CHOICE) {
+            if (option.type == CHOICE) {
                 cycleChoice(option.id);
                 changed();
-            } else {
-                sliderOption = option;
-                draggingSlider = true;
-                setSliderFromMouse(option, mouseX);
+            } else if (option.widget != null) {
+                activeWidget = option.widget;
+                activeWidget.onPress(mouseX, mouseY);
             }
             return;
         }
@@ -484,43 +609,45 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         if (target == null) return;
         select(target);
         dragTarget = target;
-        int left = targetLeft(target);
-        int top = targetTop(target);
-        int targetWidth = targetWidth(target);
-        int targetHeight = targetHeight(target);
-        if (inside(mouseX, mouseY, left + targetWidth - HANDLE_SIZE * 1.5F,
-                top + targetHeight - HANDLE_SIZE * 1.5F, HANDLE_SIZE * 2F, HANDLE_SIZE * 2F)) {
+        setSelectedBounds(selectedBounds, target);
+        if (inside(mouseX, mouseY, selectedBounds.right() - HANDLE_SIZE * 1.5F,
+                selectedBounds.bottom() - HANDLE_SIZE * 1.5F, HANDLE_SIZE * 2F, HANDLE_SIZE * 2F)) {
             resizing = true;
             resizeStartScale = target == Target.MAP ? AppleSettings.effectiveDungeonMapScale() / 100F
                     : target.element.scale;
-            resizeStartSize = Math.max(1, Math.max(targetWidth, targetHeight));
+            resizeStartSize = Math.max(1, Math.max(Math.round(selectedBounds.w), Math.round(selectedBounds.h)));
             resizeStartX = mouseX;
             resizeStartY = mouseY;
         } else {
             dragging = true;
-            grabX = mouseX - left;
-            grabY = mouseY - top;
+            grabX = mouseX - selectedBounds.x;
+            grabY = mouseY - selectedBounds.y;
         }
         guides = 0;
     }
 
-    private boolean headerClick(int mouseX, int mouseY) {
-        float doneW = layout.compact ? 40F : 50F;
-        float allW = layout.compact ? 40F : 68F;
-        float selectedW = layout.compact ? 46F : 92F;
-        float x = width - 5F - doneW;
-        if (inside(mouseX, mouseY, x, 4F, doneW, 20F)) {
-            close();
+    private boolean topClick(int mouseX, int mouseY) {
+        Target[] targets = Target.values();
+        for (int i = 0; i < targets.length; i++) {
+            if (targetChips[i].contains(mouseX, mouseY)) {
+                select(targets[i]);
+                return true;
+            }
+        }
+        if (optionsChip.contains(mouseX, mouseY)) {
+            inspectorRequested = !inspectorRequested;
             return true;
         }
-        x -= 4F + allW;
-        if (inside(mouseX, mouseY, x, 4F, allW, 20F)) {
+        if (resetSelectedChip.contains(mouseX, mouseY)) {
+            resetSelected();
+            return true;
+        }
+        if (resetAllChip.contains(mouseX, mouseY)) {
             resetAll();
             return true;
         }
-        x -= 4F + selectedW;
-        if (inside(mouseX, mouseY, x, 4F, selectedW, 20F)) {
-            resetSelected();
+        if (doneChip.contains(mouseX, mouseY)) {
+            close();
             return true;
         }
         return false;
@@ -528,24 +655,24 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int button, long timeSinceLastClick) {
-        if (draggingSlider && sliderOption != null) {
-            setSliderFromMouse(sliderOption, mouseX);
+        if (activeWidget != null) {
+            activeWidget.onDrag(mouseX, mouseY);
+            changed();
             return;
         }
         if (dragTarget == null) return;
-        if (resizing) {
-            resizeTarget(mouseX, mouseY);
-            return;
-        }
-        if (dragging) moveTarget(mouseX, mouseY);
+        if (resizing) resizeTarget(mouseX, mouseY);
+        else if (dragging) moveTarget(mouseX, mouseY);
     }
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int button) {
+        if (activeWidget != null) {
+            activeWidget.onRelease(mouseX, mouseY, button == 0);
+            activeWidget = null;
+        }
         dragging = false;
         resizing = false;
-        draggingSlider = false;
-        sliderOption = null;
         dragTarget = null;
         guides = 0;
     }
@@ -556,25 +683,28 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     }
 
     private Option optionAt(int mouseX, int mouseY) {
-        if (layout == null || !layout.inspector.contains(mouseX, mouseY)) return null;
-        for (Option option : options) if (option.control.contains(mouseX, mouseY)) return option;
+        if (layout == null || !layout.inspectorVisible || !layout.inspector.contains(mouseX, mouseY)) return null;
+        for (Option option : options) {
+            if (option.type != HEADING && option.control.contains(mouseX, mouseY)) return option;
+        }
         return null;
     }
 
     private Target targetAt(int mouseX, int mouseY) {
-        // Prefer the current target at overlaps; an explicit picker remains available for every other target.
+        // Prefer the already-selected target at overlaps; slim chips still select every other target explicitly.
         if (targetContains(selected, mouseX, mouseY)) return selected;
-        for (Target target : Target.values()) if (target != selected && targetContains(target, mouseX, mouseY)) return target;
+        for (Target target : Target.values()) {
+            if (target != selected && targetContains(target, mouseX, mouseY)) return target;
+        }
         return null;
     }
 
     private boolean targetContains(Target target, int mouseX, int mouseY) {
-        int targetWidth = targetWidth(target);
-        int targetHeight = targetHeight(target);
-        float padX = Math.max(4F, (TOUCH_MIN - targetWidth) * .5F);
-        float padY = Math.max(4F, (TOUCH_MIN - targetHeight) * .5F);
-        return inside(mouseX, mouseY, targetLeft(target) - padX, targetTop(target) - padY,
-                targetWidth + padX * 2F, targetHeight + padY * 2F);
+        setSelectedBounds(selectedBounds, target);
+        float padX = Math.max(4F, (TOUCH_MIN - selectedBounds.w) * .5F);
+        float padY = Math.max(4F, (TOUCH_MIN - selectedBounds.h) * .5F);
+        return inside(mouseX, mouseY, selectedBounds.x - padX, selectedBounds.y - padY,
+                selectedBounds.w + padX * 2F, selectedBounds.h + padY * 2F);
     }
 
     private void moveTarget(int mouseX, int mouseY) {
@@ -604,6 +734,12 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         changed();
     }
 
+    private void setSelectedBounds(GuiLayoutToolkit.Rect out, Target target) {
+        int targetWidth = targetWidth(target);
+        int targetHeight = targetHeight(target);
+        out.set(targetLeft(target), targetTop(target), targetWidth, targetHeight);
+    }
+
     private int targetLeft(Target target) {
         return target == Target.MAP ? mapLeft(mapSize()) : target.element.leftFor(width);
     }
@@ -630,14 +766,6 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     private int mapTop(int size) {
         return AppleSettings.dungeonMapTop(width, height, size);
-    }
-
-    private void setSliderFromMouse(Option option, int mouseX) {
-        float fraction = clamp((mouseX - option.control.x) / Math.max(1F, option.control.w), 0F, 1F);
-        int raw = option.min + Math.round((option.max - option.min) * fraction);
-        int value = option.min + Math.round((raw - option.min) / (float) option.step) * option.step;
-        setInt(option.id, clamp(value, option.min, option.max));
-        changed();
     }
 
     private boolean boolValue(String id) {
@@ -702,6 +830,12 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         else if ("map-background-opacity".equals(id)) AppleSettings.dungeonMapBackgroundOpacity = value;
     }
 
+    private String sliderText(String id, int value) {
+        if ("alert-duration".equals(id)) return value + " ms";
+        if ("map-head-size".equals(id)) return value + " px";
+        return value + "%";
+    }
+
     private String choiceName(String id) {
         if ("map-background-color".equals(id)) {
             return AppleSettings.DUNGEON_MAP_BACKGROUND_COLOR_NAMES[clamp(AppleSettings.dungeonMapBackgroundColor,
@@ -730,27 +864,40 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         if ("test-alert".equals(id)) {
             RoomClearAlertController.triggerTestAlert();
             select(Target.ALERT);
-        } else if ("reset-map-position".equals(id)) {
-            AppleSettings.resetDungeonMapPosition();
             changed();
-        } else if ("reset-target".equals(id)) {
-            resetSelected();
         }
     }
 
     private void resetSelected() {
         if (selected == Target.MAP) resetMap();
-        else selected.element.resetAll();
+        else if (selected == Target.SCORE) resetScore();
+        else resetAlert();
+        optionScroll = 0F;
         rebuildOptions();
         changed();
     }
 
     private void resetAll() {
-        HudManager.DUNGEON_SCORE.resetAll();
-        HudManager.ROOM_CLEAR_ALERT.resetAll();
+        resetScore();
+        resetAlert();
         resetMap();
+        optionScroll = 0F;
         rebuildOptions();
         changed();
+    }
+
+    private void resetScore() {
+        HudManager.DUNGEON_SCORE.resetAll();
+        AppleSettings.dungeonScoreShowScore = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_SCORE;
+        AppleSettings.dungeonScoreShowCrypts = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS;
+        AppleSettings.dungeonScoreShowDeaths = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_DEATHS;
+        AppleSettings.dungeonScoreShowRunTime = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME;
+    }
+
+    private void resetAlert() {
+        HudManager.ROOM_CLEAR_ALERT.resetAll();
+        AppleSettings.dungeonRoomClearSound = AppleSettings.DEFAULT_DUNGEON_ROOM_CLEAR_SOUND;
+        AppleSettings.dungeonRoomClearDurationMillis = AppleSettings.DEFAULT_DUNGEON_ROOM_CLEAR_DURATION_MILLIS;
     }
 
     private void resetMap() {

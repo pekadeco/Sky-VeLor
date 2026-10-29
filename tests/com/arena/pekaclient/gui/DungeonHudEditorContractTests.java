@@ -3,7 +3,7 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
 
-/** Reachability contract for the dedicated, separate Dungeon HUD editing surface. */
+/** Reachability and direct-canvas geometry contract for the dedicated Dungeon HUD editor. */
 public final class DungeonHudEditorContractTests {
     private static int passed;
     private static int failed;
@@ -12,8 +12,8 @@ public final class DungeonHudEditorContractTests {
         dedicatedRouteUsesTheOneRowEditorPattern();
         pickerOwnsOnlyDungeonSpecificHudTargets();
         dungeonControlsExposeSafeDefaultsAndPlacementRoute();
-        dedicatedMapOptionsAreNotDuplicatedInDungeonsCatalog();
-        responsiveEditorLayoutKeepsSurfacesSeparate();
+        directCanvasEditorOwnsGroupedMapOptions();
+        responsiveEditorLayoutAvoidsTheSelectedElement();
         done();
     }
 
@@ -32,7 +32,7 @@ public final class DungeonHudEditorContractTests {
             if (element == HudManager.DUNGEON_SCORE) score = true;
             if (element == HudManager.ROOM_CLEAR_ALERT) alert = true;
         }
-        check("Dungeon picker has Score/Stats and Room Alert targets", score && alert
+        check("Dungeon editor owns Score/Stats and Room Alert targets", score && alert
                 && HudManager.DUNGEON_EDITOR_ELEMENTS.length == 2);
     }
 
@@ -54,26 +54,38 @@ public final class DungeonHudEditorContractTests {
                 && close.description.contains("Chest"));
     }
 
-    private static void dedicatedMapOptionsAreNotDuplicatedInDungeonsCatalog() {
-        ReferenceSettingsCatalog.Setting map = ReferenceSettingsCatalog.find("dungeon-map");
-        check("Dungeons catalog keeps only the map toggle plus its editor opener", map != null
-                && map.isEditor() && map.hasMasterToggle() && map.children.isEmpty()
-                && "open-dungeon-hud-editor".equals(map.editorActionId));
+    private static void directCanvasEditorOwnsGroupedMapOptions() {
         String editor = classText(DungeonHudEditorScreen.class);
-        check("Dungeon Map element owns zoom, heads, room names, secrets, background, opacity, colors and reset actions",
+        check("direct editor keeps map zoom, heads, labels, secrets, background, colors and reset support",
                 editor.contains("map-zoom") && editor.contains("map-heads") && editor.contains("map-head-size")
                         && editor.contains("map-room-names") && editor.contains("map-secrets")
                         && editor.contains("map-background") && editor.contains("map-background-opacity")
                         && editor.contains("map-background-color") && editor.contains("map-room-color")
-                        && editor.contains("map-secrets-color") && editor.contains("reset-map-position"));
+                        && editor.contains("map-secrets-color") && editor.contains("resetMap"));
+        check("map controls are grouped and use existing compact toggle and slider widgets",
+                editor.contains("heading(\"Display\")") && editor.contains("heading(\"Players\")")
+                        && editor.contains("heading(\"Colors\")") && editor.contains("heading(\"Background\")")
+                        && editor.contains("AppleToggle") && editor.contains("AppleSlider"));
+        check("direct editor keeps direct element selection rather than restoring a large background panel",
+                editor.contains("drawSelection") && !editor.contains("drawDefaultBackground"));
     }
 
-    private static void responsiveEditorLayoutKeepsSurfacesSeparate() {
+    private static void responsiveEditorLayoutAvoidsTheSelectedElement() {
+        GuiLayoutToolkit.Rect selected = new GuiLayoutToolkit.Rect().set(10F, 80F, 120F, 72F);
         DungeonHudEditorLayout desktop = DungeonHudEditorLayout.create(960, 540);
+        desktop.dockInspector(selected, 220F, true);
+        check("wide direct editor keeps a slim top strip inside the launcher-safe area",
+                !desktop.compact && desktop.topBar.right() <= 882F && desktop.validFor(960, 540));
+        check("wide selected panel stays at about one quarter width and avoids the selected element",
+                desktop.inspectorVisible && desktop.inspector.w <= 960F * .25F + .01F
+                        && desktop.inspectorAvoids(selected));
+
+        GuiLayoutToolkit.Rect pojavSelected = new GuiLayoutToolkit.Rect().set(18F, 34F, 72F, 72F);
         DungeonHudEditorLayout pojav = DungeonHudEditorLayout.create(320, 240);
-        check("wide Dungeon HUD editor uses separated solid side panels", !desktop.compact && desktop.validFor(960, 540));
-        check("Pojav-sized Dungeon HUD editor moves controls above and below the canvas without overlap",
-                pojav.compact && pojav.validFor(320, 240));
+        pojav.dockInspector(pojavSelected, 110F, true);
+        check("Pojav-sized editor uses a shallow touchable dock without covering the selected element",
+                pojav.compact && pojav.validFor(320, 240) && pojav.inspectorVisible
+                        && pojav.inspectorAvoids(pojavSelected));
     }
 
     private static String classText(Class<?> type) {
