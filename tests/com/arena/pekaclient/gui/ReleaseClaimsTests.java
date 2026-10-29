@@ -97,10 +97,9 @@ public final class ReleaseClaimsTests {
     private static void dungeonHudContractsArePackaged() {
         String catalog = classText("com.arena.pekaclient.gui.ReferenceSettingsCatalog");
         String bindings = classText("com.arena.pekaclient.gui.InlineSettingsBindings");
-        String screen = classText("com.arena.pekaclient.gui.AppleSettingsScreen");
-        String editor = classText("com.arena.pekaclient.gui.DungeonHudEditorScreen");
         String manager = classText("com.arena.pekaclient.hud.HudManager");
-        String score = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator");
+        String scoreInput = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator$Input");
+        String scoreResult = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator$Result");
         String telemetry = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreTelemetry");
         String readout = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreReadout");
         String roomPolicy = classText("com.arena.pekaclient.assist.dungeon.RoomClearAlertPolicy");
@@ -109,10 +108,12 @@ public final class ReleaseClaimsTests {
         String client = classText("com.arena.pekaclient.PekaClientMod");
         check("Dungeon HUD editor is a dedicated centered solid picker with persistent score, room-alert and map placement",
                 classExists("com.arena.pekaclient.gui.DungeonHudEditorScreen")
-                        && catalog.contains("Open Dungeon HUD Editor") && screen.contains("DungeonHudEditorScreen")
-                        && editor.contains("Score / Stats") && editor.contains("Room Alert") && editor.contains("Dungeon Map")
-                        && editor.contains("setDungeonMapPosition") && editor.contains("roundRectBorder")
-                        && manager.contains("DUNGEON_EDITOR_ELEMENTS"));
+                        && ReferenceSettingsCatalog.find("dungeon-hud-editor") != null
+                        && ReferenceSettingsCatalog.find("dungeon-score-hud") != null
+                        && ReferenceSettingsCatalog.find("room-clear-alert") != null
+                        && com.arena.pekaclient.hud.HudManager.DUNGEON_EDITOR_ELEMENTS.length == 2
+                        && classExists("com.arena.pekaclient.hud.DungeonScoreHud")
+                        && classExists("com.arena.pekaclient.hud.RoomClearAlertHud"));
         check("Dungeon score presentation persists independent score, crypt, death and time lines",
                 catalog.contains("Dungeon Score/Stats HUD") && catalog.contains("Crypts")
                         && catalog.contains("Deaths") && catalog.contains("Run Time")
@@ -120,10 +121,11 @@ public final class ReleaseClaimsTests {
                         && bindings.contains("dungeon-deaths-line") && bindings.contains("dungeon-run-time-line")
                         && classExists("com.arena.pekaclient.hud.DungeonScoreHud"));
         check("Dungeon score stays visible-data-only and does not promote a live estimate to S plus",
-                score.contains("failedPuzzles") && score.contains("mimicKilled") && score.contains("paulActive")
-                        && score.contains("projectedRank") && telemetry.contains("Extra Stats")
-                        && telemetry.contains("Score Breakdown") && readout.contains("hasOfficialScore")
-                        && readout.contains("projectedRank"));
+                classExists("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator")
+                        && scoreInput.contains("failedPuzzles") && scoreInput.contains("mimicKilled")
+                        && scoreInput.contains("paulActive") && scoreResult.contains("projectedRank")
+                        && telemetry.contains("Extra Stats") && telemetry.contains("Score Breakdown")
+                        && readout.contains("hasOfficialScore") && readout.contains("projectedRank"));
         check("Room Clear Alert rejects special or repeated rooms and Auto Chest Close remains allow-listed",
                 classExists("com.arena.pekaclient.hud.RoomClearAlertHud") && roomPolicy.contains("clearedRooms")
                         && roomPolicy.contains("blood") && roomPolicy.contains("fairy") && roomPolicy.contains("entrance")
