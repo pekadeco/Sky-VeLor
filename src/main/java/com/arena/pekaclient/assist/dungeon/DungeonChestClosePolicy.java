@@ -1,8 +1,8 @@
 package com.arena.pekaclient.assist.dungeon;
 
 /** Strict allow-list for the optional dungeon chest close path. */
-public final class DungeonSecretChestPolicy {
-    private DungeonSecretChestPolicy() {
+public final class DungeonChestClosePolicy {
+    private DungeonChestClosePolicy() {
     }
 
     /**

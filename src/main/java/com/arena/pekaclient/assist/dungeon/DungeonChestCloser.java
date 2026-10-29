@@ -15,7 +15,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
  * Optional, title-allow-listed close for normal dungeon secret chests. It waits for the opened GuiChest to remain
  * current, then invokes vanilla's ordinary closeScreen path; no packet or reward/terminal interaction is created.
  */
-public final class DungeonSecretChestCloser {
+public final class DungeonChestCloser {
     private int pendingWindowId = -1;
     private int pendingTicks;
 
@@ -31,7 +31,7 @@ public final class DungeonSecretChestCloser {
         ContainerChest container = (ContainerChest) chest.inventorySlots;
         if (container.getLowerChestInventory() == null || container.getLowerChestInventory().getDisplayName() == null) return;
         String title = container.getLowerChestInventory().getDisplayName().getUnformattedText();
-        if (!DungeonSecretChestPolicy.isNormalSecretChestTitle(title)) return;
+        if (!DungeonChestClosePolicy.isNormalSecretChestTitle(title)) return;
         pendingWindowId = container.windowId;
         // Let vanilla install the matching screen first; a replacement/reward menu invalidates this pending close.
         pendingTicks = 2;
@@ -50,7 +50,7 @@ public final class DungeonSecretChestCloser {
             if (!(inventory instanceof ContainerChest) || inventory.windowId != pendingWindowId) return;
             ContainerChest chest = (ContainerChest) inventory;
             if (chest.getLowerChestInventory() == null || chest.getLowerChestInventory().getDisplayName() == null) return;
-            if (!DungeonSecretChestPolicy.isNormalSecretChestTitle(
+            if (!DungeonChestClosePolicy.isNormalSecretChestTitle(
                     chest.getLowerChestInventory().getDisplayName().getUnformattedText())) return;
             mc.thePlayer.closeScreen();
         } finally {

@@ -7,7 +7,7 @@ import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonBossTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonRunTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonScoreTracker;
-import com.arena.pekaclient.assist.dungeon.DungeonSecretChestCloser;
+import com.arena.pekaclient.assist.dungeon.DungeonChestCloser;
 import com.arena.pekaclient.assist.dungeon.RoomClearAlertController;
 import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonWaypointController;
@@ -153,7 +153,7 @@ public class PekaClientMod {
     private final DungeonBossTracker dungeonBossTracker = new DungeonBossTracker();
     private final DungeonTerminalAssistController dungeonTerminalAssistController = new DungeonTerminalAssistController();
     private final RoomClearAlertController roomClearAlertController = new RoomClearAlertController();
-    private final DungeonSecretChestCloser dungeonSecretChestCloser = new DungeonSecretChestCloser();
+    private final DungeonChestCloser dungeonChestCloser = new DungeonChestCloser();
     private final DungeonWaypointController dungeonWaypointController = new DungeonWaypointController();
     private final SpiritBowLocator spiritBowLocator = new SpiritBowLocator();
     private final AutoSprintController autoSprintController = new AutoSprintController();
@@ -228,7 +228,7 @@ public class PekaClientMod {
         DungeonRunTracker.markRegistered();
         MinecraftForge.EVENT_BUS.register(DungeonScoreTracker.INSTANCE);
         MinecraftForge.EVENT_BUS.register(roomClearAlertController);
-        MinecraftForge.EVENT_BUS.register(dungeonSecretChestCloser);
+        MinecraftForge.EVENT_BUS.register(dungeonChestCloser);
         MinecraftForge.EVENT_BUS.register(spiritBowLocator);
         SpiritBowLocator.markRegistered();
         MinecraftForge.EVENT_BUS.register(autoSprintController);

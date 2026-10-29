@@ -12,12 +12,12 @@ public final class DungeonSafetyPolicyTests {
     }
 
     private static void onlyExactNormalChestTitlesAreAllowed() {
-        check("plain Chest is allowed", DungeonSecretChestPolicy.isNormalSecretChestTitle("Chest"));
-        check("formatted Large Chest is allowed", DungeonSecretChestPolicy.isNormalSecretChestTitle("\u00a76Large Chest"));
-        check("reward chest is rejected", !DungeonSecretChestPolicy.isNormalSecretChestTitle("Reward Chest"));
-        check("end reward menu is rejected", !DungeonSecretChestPolicy.isNormalSecretChestTitle("Dungeon Reward Chest"));
-        check("terminal title is rejected", !DungeonSecretChestPolicy.isNormalSecretChestTitle("Click in order!"));
-        check("substring title is rejected", !DungeonSecretChestPolicy.isNormalSecretChestTitle("Large Chest Rewards"));
+        check("plain Chest is allowed", DungeonChestClosePolicy.isNormalSecretChestTitle("Chest"));
+        check("formatted Large Chest is allowed", DungeonChestClosePolicy.isNormalSecretChestTitle("\u00a76Large Chest"));
+        check("reward chest is rejected", !DungeonChestClosePolicy.isNormalSecretChestTitle("Reward Chest"));
+        check("end reward menu is rejected", !DungeonChestClosePolicy.isNormalSecretChestTitle("Dungeon Reward Chest"));
+        check("terminal title is rejected", !DungeonChestClosePolicy.isNormalSecretChestTitle("Click in order!"));
+        check("substring title is rejected", !DungeonChestClosePolicy.isNormalSecretChestTitle("Large Chest Rewards"));
     }
 
     private static void roomAlertRejectsSpecialAndRepeatedRooms() {
