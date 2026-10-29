@@ -71,8 +71,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float EDITOR_BUTTON_TEXT_SCALE = .62f;
     private static final float ACTION_BUTTON_W = SettingsControlLayout.ACTION_BUTTON_WIDTH;
     private static final float ACTION_BUTTON_H = SettingsControlLayout.CONTROL_HEIGHT;
-    /** Key labels stay wide enough for NONE and common names such as RSHIFT without truncation. */
-    private static final float KEYBIND_BUTTON_W = 82f;
+    /** Shortcut keys, Item Lock, and the Command editor share one readable fixed control column. */
+    private static final float KEYBIND_BUTTON_W = ACTION_BUTTON_W;
     /** Reserved under every visible key capsule so a persistent red conflict warning never overlaps row copy. */
     private static final float KEYBIND_WARNING_H = 11f;
     private static final float KEYBIND_WARNING_SCALE = .56f;
@@ -786,7 +786,7 @@ public class AppleSettingsScreen extends AppleScreen {
                 || setting.control == ReferenceSettingsCatalog.Control.ACTION;
         float trailingW = setting.isEditor() ? editorButtonWidth(setting)
                 : setting.isKeybind() ? keybindButtonWidth() : valueW;
-        float actionX = usesTrailingAction(setting) ? actionButtonX(x, rowW, trailingW) : 0f;
+        float actionX = usesTrailingAction(setting) ? trailingActionX(setting, x, rowW, trailingW) : 0f;
         float labelRight;
         if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
             labelRight = actionX - CONTROL_GAP;
@@ -826,13 +826,16 @@ public class AppleSettingsScreen extends AppleScreen {
                 // A distinct full-row key keeps its geometry from mutating the compact button hit in knownHits.
                 // Register it first so the key capsule and optional toggle retain click priority above it.
                 registerHit("keybind-row:" + setting.id, HIT_CONTROL, x + 1f, y + 1f, rowW - 2f, baseH - 1f, setting, "");
-                if (setting.hasMasterToggle()) drawKeybindToggle(setting, Math.max(leftX, editorToggleX(actionX)), actionY,
-                        mouseX, mouseY);
+                if (setting.hasMasterToggle()) drawKeybindToggle(setting,
+                        Math.max(leftX, shortcutKeyToggleX(x, rowW)), actionY, mouseX, mouseY);
                 drawControl(setting, actionX, actionY, trailingW, mouseX, mouseY);
                 drawKeybindConflictWarning(setting, leftX, y + baseH - KEYBIND_WARNING_H + 1f,
                         Math.max(1f, rowW - ROW_PAD_X * 2f));
             } else if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
-                drawControl(setting, toggleX, centeredControlY(y, baseH, ACTION_BUTTON_H), TOGGLE_COLUMN_W, mouseX, mouseY);
+                float toggleColumnX = "wardrobe-number-keys".equals(setting.id)
+                        ? Math.max(leftX, shortcutKeyToggleX(x, rowW)) : toggleX;
+                drawControl(setting, toggleColumnX, centeredControlY(y, baseH, ACTION_BUTTON_H),
+                        TOGGLE_COLUMN_W, mouseX, mouseY);
             } else if (inlineControl) {
                 float controlX = inlineControlX(setting, x, rowW, leftX, controlRight, valueW);
                 float controlY = inlineControlY(setting, y, baseH);
@@ -928,7 +931,7 @@ public class AppleSettingsScreen extends AppleScreen {
         if (setting.control == ReferenceSettingsCatalog.Control.ACTION || setting.isEditor() || setting.isKeybind()) {
             float actionW = setting.isEditor() ? editorButtonWidth(setting)
                     : setting.isKeybind() ? keybindButtonWidth() : controlWidth(setting);
-            float actionX = actionButtonX(0f, contentW, actionW);
+            float actionX = trailingActionX(setting, 0f, contentW, actionW);
             float labelRight = (setting.isEditor() || setting.isKeybind()) && setting.hasMasterToggle()
                     ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP;
             labelW = Math.max(42f, labelRight - left);
@@ -959,7 +962,11 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float keybindButtonWidth() {
-        return Math.max(64f, Math.min(KEYBIND_BUTTON_W, contentW - ROW_PAD_X * 2f));
+        // Reserve the preceding shared toggle lane even for Item Lock/Command so all four rows retain one x/width
+        // contract at scale 4 instead of forcing a narrow pair to overlap.
+        float available = Math.max(1f, contentW - ROW_PAD_X * 2f - TOGGLE_COLUMN_W
+                - SettingsControlLayout.COLUMN_GAP);
+        return Math.min(KEYBIND_BUTTON_W, available);
     }
 
     private float actionButtonWidth() {
@@ -968,6 +975,21 @@ public class AppleSettingsScreen extends AppleScreen {
 
     private float actionButtonX(float x, float rowW, float actionW) {
         return SettingsControlLayout.actionButtonX(x, rowW, ROW_PAD_X, actionW);
+    }
+
+    /** Shortcut capture rows and the Command route share a key-button edge; unrelated editor routes stay unchanged. */
+    private float trailingActionX(ReferenceSettingsCatalog.Setting setting, float x, float rowW, float actionW) {
+        if (usesSharedKeyColumn(setting)) return SettingsControlLayout.keyButtonX(x, rowW, ROW_PAD_X, actionW);
+        return actionButtonX(x, rowW, actionW);
+    }
+
+    private static boolean usesSharedKeyColumn(ReferenceSettingsCatalog.Setting setting) {
+        return setting != null && (setting.isKeybind() || "command-keybinds".equals(setting.id));
+    }
+
+    /** The single shortcut toggle lane is immediately before the shared key-button lane. */
+    private float shortcutKeyToggleX(float x, float rowW) {
+        return SettingsControlLayout.keyToggleX(x, rowW, ROW_PAD_X, keybindButtonWidth());
     }
 
     private float editorToggleX(float actionX) {
@@ -1126,9 +1148,9 @@ public class AppleSettingsScreen extends AppleScreen {
         return setting.actionLabel.length() == 0 ? "Open Editor" : setting.actionLabel;
     }
 
-    /** A fixed action width makes named editor routes line up with every other action across tabs. */
+    /** Only Command Keybind shares the capture-control column; other named editor routes retain their existing width. */
     private float editorButtonWidth(ReferenceSettingsCatalog.Setting setting) {
-        return actionButtonWidth();
+        return usesSharedKeyColumn(setting) ? keybindButtonWidth() : actionButtonWidth();
     }
 
     private String terminalStatusText() {

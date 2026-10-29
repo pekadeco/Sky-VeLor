@@ -27,7 +27,7 @@ public final class InlineOptionPreservationTests {
                 "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
                 "command-keybinds", "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
-                "dungeon-map", "dungeon-map-player-names", "hud-dungeon-run", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
+                "dungeon-map", "dungeon-map-player-names", "dungeon-map-player-heads", "dungeon-map-player-head-size", "hud-dungeon-run", "dungeon-map-puzzle-name", "dungeon-map-rotate", "dungeon-map-scale",
                 "dungeon-map-scale-on", "dungeon-map-zoom", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
                 "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
                 "esp-miniboss", "esp-mob-labels", "esp-special", "esp-starred",

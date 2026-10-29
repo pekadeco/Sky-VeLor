@@ -8,6 +8,7 @@ public final class SettingsControlLayoutTests {
     public static void main(String[] args) {
         rightEdgesStayEquivalentAtAllGuiScales();
         actionButtonsShareTheToggleTrailingEdgeAndHeight();
+        shortcutKeyColumnsStayAlignedAtAllGuiScales();
         verticalPoliciesStayInsideTheirRows();
         System.out.println("settings control layout: passed " + passed + ", failed " + failed);
         if (failed > 0) System.exit(1);
@@ -55,6 +56,37 @@ public final class SettingsControlLayoutTests {
             float actionY = SettingsControlLayout.centeredY(rowY, rowH, SettingsControlLayout.CONTROL_HEIGHT);
             check("action and toggle share vertical center at scale " + scale,
                     close(actionY + SettingsControlLayout.CONTROL_HEIGHT * .5f, rowY + rowH * .5f));
+        }
+    }
+
+    /** Wardrobe, Pets, Command Editor, and Item Lock use this one x/width contract. */
+    private static void shortcutKeyColumnsStayAlignedAtAllGuiScales() {
+        for (int scale = 1; scale <= 4; scale++) {
+            float rowX = 12f;
+            float rowWidth = Math.max(176f, 460f / scale);
+            float padding = 12f;
+            float keyWidth = Math.min(SettingsControlLayout.ACTION_BUTTON_WIDTH,
+                    rowWidth - padding * 2f - SettingsControlLayout.TOGGLE_COLUMN_WIDTH
+                            - SettingsControlLayout.COLUMN_GAP);
+            float wardrobeKeyX = SettingsControlLayout.keyButtonX(rowX, rowWidth, padding, keyWidth);
+            float petsKeyX = SettingsControlLayout.keyButtonX(rowX, rowWidth, padding, keyWidth);
+            float itemLockKeyX = SettingsControlLayout.keyButtonX(rowX, rowWidth, padding, keyWidth);
+            float commandEditorX = SettingsControlLayout.keyButtonX(rowX, rowWidth, padding, keyWidth);
+            float wardrobeToggleX = SettingsControlLayout.keyToggleX(rowX, rowWidth, padding, keyWidth);
+            float petsToggleX = SettingsControlLayout.keyToggleX(rowX, rowWidth, padding, keyWidth);
+            float numberKeysToggleX = SettingsControlLayout.keyToggleX(rowX, rowWidth, padding, keyWidth);
+            check("shortcut key left edges align at scale " + scale,
+                    close(wardrobeKeyX, petsKeyX) && close(wardrobeKeyX, itemLockKeyX)
+                            && close(wardrobeKeyX, commandEditorX));
+            check("shortcut key widths share one responsive fixed column at scale " + scale,
+                    close(keyWidth, Math.min(SettingsControlLayout.ACTION_BUTTON_WIDTH,
+                            rowWidth - padding * 2f - SettingsControlLayout.TOGGLE_COLUMN_WIDTH
+                                    - SettingsControlLayout.COLUMN_GAP)));
+            check("shortcut toggles share one preceding column at scale " + scale,
+                    close(wardrobeToggleX, petsToggleX) && close(wardrobeToggleX, numberKeysToggleX));
+            check("shortcut toggle ends before the key column at scale " + scale,
+                    close(wardrobeToggleX + SettingsControlLayout.TOGGLE_COLUMN_WIDTH + SettingsControlLayout.COLUMN_GAP,
+                            wardrobeKeyX));
         }
     }
 

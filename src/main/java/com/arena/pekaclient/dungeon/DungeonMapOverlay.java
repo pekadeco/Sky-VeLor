@@ -3,8 +3,8 @@ package com.arena.pekaclient.dungeon;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.feature.LeapText;
+import com.arena.pekaclient.render.SkinHead;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,6 +65,10 @@ public final class DungeonMapOverlay {
     private long decorationHash;
     private long rosterHash;
     private Map<String, String> assignments = Collections.emptyMap();
+    /** Per-marker interpolation state lives only for the current map/world and never changes server/player state. */
+    private MapData playerHeadMotionData;
+    private final Map<String, DungeonMapPlayerHeadMotion> playerHeadMotions =
+            new HashMap<String, DungeonMapPlayerHeadMotion>();
     private String lastPartyPuzzleKey = "";
 
     @SubscribeEvent
@@ -74,6 +79,7 @@ public final class DungeonMapOverlay {
             roomMatcher.reset();
             lastPartyPuzzleKey = "";
             clearPuzzleMemory();
+            clearPlayerHeadMotions();
             if (!DungeonContext.inDungeon() || mc.theWorld == null) clearRoster();
             return;
         }
@@ -85,6 +91,7 @@ public final class DungeonMapOverlay {
         rememberDetectedPuzzle();
         if (AppleSettings.partyPuzzleAnnounce) announcePuzzleToParty(mc);
         if (mc.theWorld != rosterWorld || System.currentTimeMillis() - rosterUpdatedAt >= 900L) refreshRoster(mc);
+        advancePlayerHeadMotions();
     }
 
     private void rememberDetectedPuzzle() {
@@ -114,6 +121,7 @@ public final class DungeonMapOverlay {
         lastPartyPuzzleKey = "";
         clearRoster();
         clearPuzzleMemory();
+        clearPlayerHeadMotions();
         rotationZoomSource = null;
     }
 
@@ -126,10 +134,10 @@ public final class DungeonMapOverlay {
         if (stack == null || !(stack.getItem() instanceof ItemMap)) return;
         MapData data = ((ItemMap) stack.getItem()).getMapData(stack, mc.theWorld);
         if (data == null || data.colors == null || data.colors.length < 128 * 128) return;
-        drawMap(mc, data);
+        drawMap(mc, data, event.partialTicks);
     }
 
-    private void drawMap(Minecraft mc, MapData data) {
+    private void drawMap(Minecraft mc, MapData data, float partialTicks) {
         ScaledResolution sr = new ScaledResolution(mc);
         // Position and size use the same geometry as the HUD editor. Unlike ordinary HUD cards,
         // the dungeon map may extend beyond the viewport when the user deliberately places it there.
@@ -150,6 +158,10 @@ public final class DungeonMapOverlay {
         float contentZoom = AppleSettings.dungeonMapZoomFactor();
         float rotateZoom = rotate ? stableRotationZoom(data, self) * contentZoom : contentZoom;
         DungeonMapProjection projection = new DungeonMapProjection(rotate, pivotX, pivotY, angle, rotateZoom);
+        List<PlayerHead> playerHeads = AppleSettings.dungeonMapPlayerHeads
+                ? collectPlayerHeads(mc, data) : Collections.<PlayerHead>emptyList();
+        if (!AppleSettings.dungeonMapPlayerHeads) clearPlayerHeadMotions();
+        Set<String> replacedPlayerMarkerKeys = playerHeadMarkerKeys(playerHeads);
 
         GlStateManager.pushMatrix();
         try {
@@ -164,19 +176,16 @@ public final class DungeonMapOverlay {
             if (rotate) {
                 // Keep pixels not covered by the native map texture transparent. An opaque fill here
                 // obscures the game behind unknown map pixels and makes the entire map look black.
-                // The border is drawn separately after the map.
-                renderRotatingMap(mc, data, self, angle, rotateZoom, x, y, scale);
+                renderRotatingMap(mc, data, self, angle, rotateZoom, x, y, scale, replacedPlayerMarkerKeys);
             } else {
-                renderStaticMap(mc, data, contentZoom, x, y, scale);
+                renderStaticMap(mc, data, contentZoom, x, y, scale, replacedPlayerMarkerKeys);
             }
 
-            // Text is deliberately drawn after the map transform: its anchor follows the world map,
-            // but the glyphs stay level and have no opaque rectangle behind them.
+            // Text and faces are deliberately drawn after the map transform: their anchors follow the world map,
+            // while labels remain level and player skin faces replace only their matching native arrows.
             drawDiscoveredPuzzleNames(mc, data, projection);
+            drawPlayerHeads(playerHeads, projection, partialTicks);
             drawPlayerNames(mc, data, projection);
-            // The border belongs to the fixed HUD viewport, not the rotated content. The rotated map
-            // is fitted with an inset, so this outline does not cover its edge pixels and makes placement clear.
-            drawMapBorder();
             drawSecretsCount(mc);
         } finally {
             GlStateManager.disableLighting();
@@ -192,7 +201,7 @@ public final class DungeonMapOverlay {
 
     /** Scales static-map contents around their center while keeping the HUD viewport fixed and clipped. */
     private void renderStaticMap(Minecraft mc, MapData data, float contentZoom,
-                                 int screenX, int screenY, float scale) {
+                                 int screenX, int screenY, float scale, Set<String> replacedPlayerMarkerKeys) {
         ScaledResolution resolution = new ScaledResolution(mc);
         int factor = resolution.getScaleFactor();
         int scissorX = Math.round(screenX * factor);
@@ -206,6 +215,7 @@ public final class DungeonMapOverlay {
         int prevW = PREVIOUS_SCISSOR.get(2);
         int prevH = PREVIOUS_SCISSOR.get(3);
 
+        Map<String, Vec4b> actualDecorations = data.mapDecorations;
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(scissorX, scissorY, scissorSize, scissorSize);
         GlStateManager.pushMatrix();
@@ -213,8 +223,16 @@ public final class DungeonMapOverlay {
             GlStateManager.translate(64.0F, 64.0F, 0.0F);
             GlStateManager.scale(contentZoom, contentZoom, 1.0F);
             GlStateManager.translate(-64.0F, -64.0F, 0.0F);
-            mc.entityRenderer.getMapItemRenderer().renderMap(data, false);
+            // Vanilla draws decorations as part of renderMap. Temporarily omit only skins we can actually draw,
+            // preserving every non-party map icon and avoiding a one-frame arrow/face overlap.
+            data.mapDecorations = withoutPlayerHeadMarkers(actualDecorations, replacedPlayerMarkerKeys);
+            try {
+                mc.entityRenderer.getMapItemRenderer().renderMap(data, false);
+            } finally {
+                data.mapDecorations = actualDecorations;
+            }
         } finally {
+            data.mapDecorations = actualDecorations;
             GlStateManager.popMatrix();
             if (wasScissored) {
                 GL11.glScissor(prevX, prevY, prevW, prevH);
@@ -226,7 +244,7 @@ public final class DungeonMapOverlay {
 
     /** Rotates around the local-player decoration and clips to the map square. */
     private void renderRotatingMap(Minecraft mc, MapData data, Vec4b self, float angle, float rotateZoom,
-                                   int screenX, int screenY, float scale) {
+                                   int screenX, int screenY, float scale, Set<String> replacedPlayerMarkerKeys) {
         float pivotX = self.func_176112_b() / 2.0F + 64.0F;
         float pivotY = self.func_176113_c() / 2.0F + 64.0F;
         ScaledResolution resolution = new ScaledResolution(mc);
@@ -257,7 +275,7 @@ public final class DungeonMapOverlay {
             } finally {
                 data.mapDecorations = actualDecorations;
             }
-            drawNativeMapMarkers(mc, actualDecorations, angle);
+            drawNativeMapMarkers(mc, withoutPlayerHeadMarkers(actualDecorations, replacedPlayerMarkerKeys), angle);
         } finally {
             data.mapDecorations = actualDecorations;
             GlStateManager.popMatrix();
@@ -267,6 +285,18 @@ public final class DungeonMapOverlay {
                 GL11.glDisable(GL11.GL_SCISSOR_TEST);
             }
         }
+    }
+
+    /** Creates the tiny filtered decoration set only when an available skin is taking a matching arrow's place. */
+    private static Map<String, Vec4b> withoutPlayerHeadMarkers(Map<String, Vec4b> decorations,
+                                                                 Set<String> replacedPlayerMarkerKeys) {
+        if (decorations == null || decorations.isEmpty() || replacedPlayerMarkerKeys == null
+                || replacedPlayerMarkerKeys.isEmpty()) return decorations;
+        Map<String, Vec4b> visible = new HashMap<String, Vec4b>();
+        for (Map.Entry<String, Vec4b> entry : decorations.entrySet()) {
+            if (!replacedPlayerMarkerKeys.contains(entry.getKey())) visible.put(entry.getKey(), entry.getValue());
+        }
+        return visible;
     }
 
     private static void drawNativeMapMarkers(Minecraft mc, Map<String, Vec4b> decorations, float angle) {
@@ -373,6 +403,78 @@ public final class DungeonMapOverlay {
         }
     }
 
+    /** Collects only party/local markers with a loaded tab-list skin, so an unavailable texture keeps its normal arrow. */
+    private List<PlayerHead> collectPlayerHeads(Minecraft mc, MapData data) {
+        if (playerHeadMotionData != data) {
+            clearPlayerHeadMotions();
+            playerHeadMotionData = data;
+        }
+        Map<String, String> names = mappedNames(mc, data);
+        if (names.isEmpty()) {
+            playerHeadMotions.clear();
+            return Collections.emptyList();
+        }
+        List<PlayerHead> heads = new ArrayList<PlayerHead>();
+        Set<String> activeIdentities = new HashSet<String>();
+        for (Map.Entry<String, Vec4b> entry : sortedDecorations(data.mapDecorations)) {
+            Vec4b marker = entry.getValue();
+            if (!isPlayerMarker(marker)) continue;
+            String name = names.get(entry.getKey());
+            ResourceLocation skin = loadedSkin(mc, name);
+            if (skin == null) continue;
+            String identity = String.valueOf(entry.getKey()) + "|" + name.toLowerCase(Locale.ROOT);
+            DungeonMapPlayerHeadMotion motion = playerHeadMotions.get(identity);
+            if (motion == null) {
+                motion = new DungeonMapPlayerHeadMotion();
+                playerHeadMotions.put(identity, motion);
+            }
+            motion.update(marker.func_176112_b() / 2.0F + 64.0F, marker.func_176113_c() / 2.0F + 64.0F);
+            activeIdentities.add(identity);
+            heads.add(new PlayerHead(entry.getKey(), skin, motion));
+        }
+        for (Iterator<Map.Entry<String, DungeonMapPlayerHeadMotion>> it = playerHeadMotions.entrySet().iterator();
+             it.hasNext();) {
+            if (!activeIdentities.contains(it.next().getKey())) it.remove();
+        }
+        return heads;
+    }
+
+    /** Vanilla starts a safe asynchronous skin fetch on getLocationSkin; draw only after the tab texture is ready. */
+    private static ResourceLocation loadedSkin(Minecraft mc, String name) {
+        if (mc == null || mc.getNetHandler() == null || name == null || name.length() == 0) return null;
+        NetworkPlayerInfo info = mc.getNetHandler().getPlayerInfo(name);
+        if (info == null) return null;
+        ResourceLocation requested = info.getLocationSkin();
+        return info.hasLocationSkin() ? requested : null;
+    }
+
+    private static Set<String> playerHeadMarkerKeys(List<PlayerHead> heads) {
+        if (heads == null || heads.isEmpty()) return Collections.emptySet();
+        Set<String> keys = new HashSet<String>();
+        for (PlayerHead head : heads) keys.add(head.markerKey);
+        return keys;
+    }
+
+    /** Faces are projected through exactly the same static/rotated/zoomed map transform as names and puzzle labels. */
+    private static void drawPlayerHeads(List<PlayerHead> heads, DungeonMapProjection projection, float partialTicks) {
+        if (heads == null || heads.isEmpty() || projection == null) return;
+        float headSize = AppleSettings.effectiveDungeonMapPlayerHeadSize();
+        float half = headSize * .5F;
+        for (PlayerHead head : heads) {
+            float[] point = projection.project(head.motion.x(partialTicks), head.motion.y(partialTicks));
+            float centerX = DungeonMapPlayerHeadMotion.clampCenter(point[0], headSize);
+            float centerY = DungeonMapPlayerHeadMotion.clampCenter(point[1], headSize);
+            // SkinHead draws the 8x8 face plus the transparent hat layer using the Android-safe GUI texture path.
+            SkinHead.draw(head.skin, centerX - half, centerY - half, headSize, 1.0F);
+        }
+    }
+
+    private static boolean isPlayerMarker(Vec4b marker) {
+        if (marker == null) return false;
+        int type = marker.func_176110_a();
+        return type == 0 || type == 1 || type == 3;
+    }
+
     private void drawPlayerNames(Minecraft mc, MapData data, DungeonMapProjection projection) {
         if (!AppleSettings.dungeonMapShowPlayerNames || data.mapDecorations == null || data.mapDecorations.isEmpty()) return;
         Map<String, String> names = mappedNames(mc, data);
@@ -380,8 +482,7 @@ public final class DungeonMapOverlay {
             Vec4b marker = entry.getValue();
             String name = names.get(entry.getKey());
             if (marker == null || name == null) continue;
-            int type = marker.func_176110_a();
-            if (type != 0 && type != 1 && type != 3) continue;
+            if (!isPlayerMarker(marker)) continue;
             name = StringUtils.stripControlCodes(name);
             if (name == null || name.isEmpty()) continue;
             float rawX = marker.func_176112_b() / 2.0F + 64.0F;
@@ -678,11 +779,25 @@ public final class DungeonMapOverlay {
         return null;
     }
 
-    private static void drawMapBorder() {
-        Gui.drawRect(-1, -1, 129, 0, 0xAA252B34);
-        Gui.drawRect(-1, 128, 129, 129, 0xAA252B34);
-        Gui.drawRect(-1, 0, 0, 128, 0xAA252B34);
-        Gui.drawRect(128, 0, 129, 128, 0xAA252B34);
+    private void advancePlayerHeadMotions() {
+        for (DungeonMapPlayerHeadMotion motion : playerHeadMotions.values()) motion.advanceTick();
+    }
+
+    private void clearPlayerHeadMotions() {
+        playerHeadMotionData = null;
+        playerHeadMotions.clear();
+    }
+
+    private static final class PlayerHead {
+        final String markerKey;
+        final ResourceLocation skin;
+        final DungeonMapPlayerHeadMotion motion;
+
+        PlayerHead(String markerKey, ResourceLocation skin, DungeonMapPlayerHeadMotion motion) {
+            this.markerKey = markerKey;
+            this.skin = skin;
+            this.motion = motion;
+        }
     }
 
     private void clearRoster() {

@@ -300,7 +300,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
             cancelCapture();
             focusCommand(row.index);
         } else {
-            // Leaving a field commits its outer-trimmed value, preserving every inner space the player just typed.
+            // Leaving a field keeps its complete draft; persistence trims only outer whitespace during settings save.
             focusCommand(-1);
             if (row != null && widget == row.keyButton) cancelCapture();
         }
@@ -349,8 +349,8 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
                 return;
             }
             // Minecraft can report a zero event character for KEY_SPACE on some 1.8.9 GUI paths. Supply the ordinary
-            // printable character ourselves and always consume it while this command field owns focus. Inner spaces
-            // remain in the field until commitCommand performs the deliberate outer-only trim on persistence.
+            // printable character ourselves and always consume it while this command field owns focus. All normal
+            // spaces remain in the draft; AppleSettings.save performs the deliberate outer-only persistence trim.
             char acceptedChar = keyCode == Keyboard.KEY_SPACE && typedChar == 0 ? ' ' : typedChar;
             String before = row.commandField.text();
             boolean consumed = row.commandField.keyTyped(acceptedChar, keyCode);
@@ -419,7 +419,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         for (int i = 0; i < rows.size(); i++) rows.get(i).commandField.setFocused(rows.get(i).index == index);
     }
 
-    /** Commits only when editing ends, so a typed trailing space is not stripped before its next normal character. */
+    /** Commits a complete draft only when editing ends; command serialization owns the later outer-only trim. */
     private void commitCommand(int index) {
         BindingRow row = rowAt(index);
         if (row == null) return;

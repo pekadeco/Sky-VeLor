@@ -31,13 +31,12 @@ public final class CommandKeybindController {
             previousDown[keyCode] = down;
             CommandKeybindSettings.Entry entry = CommandKeybindSettings.firstExecutableForKey(keyCode);
             if (entry == null) continue;
-            if (!CommandKeybindPolicy.shouldSend(CommandKeybindSettings.enabled,
-                    CommandKeybindSettings.isExecutable(entry), playerPresent, screenOpen, down, wasDown,
-                    now, lastSentAt)) {
+            if (!CommandKeybindPolicy.shouldSend(CommandKeybindSettings.isExecutable(entry), playerPresent,
+                    screenOpen, down, wasDown, now, lastSentAt)) {
                 continue;
             }
             // This is a direct player chat command caused by the one physical edge above, not a scheduled action.
-            mc.thePlayer.sendChatMessage(entry.command());
+            mc.thePlayer.sendChatMessage(CommandKeybindSettings.commandForExecution(entry));
             lastSentAt = now;
         }
     }

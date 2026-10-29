@@ -18,15 +18,18 @@ public final class CommandKeybindSettingsTests {
 
     private static void defaultsAndEditing() {
         CommandKeybindSettings.reset();
-        check("master defaults off and list starts empty", !CommandKeybindSettings.enabled && CommandKeybindSettings.count() == 0);
+        check("legacy master record defaults off while the list starts empty", !CommandKeybindSettings.enabled
+                && CommandKeybindSettings.count() == 0);
         check("add creates an editable row", CommandKeybindSettings.add() && CommandKeybindSettings.count() == 1);
         CommandKeybindSettings.Entry fresh = CommandKeybindSettings.entryAt(0);
         check("fresh row has a clearable key and slash placeholder", fresh.keyCode() == 0 && "/".equals(fresh.command()));
         CommandKeybindSettings.setKeyCode(0, 21);
         CommandKeybindSettings.setCommand(0, "  warp  hub  ");
         CommandKeybindSettings.Entry edited = CommandKeybindSettings.entryAt(0);
-        check("edit outer-trims slash commands while preserving inner spaces", edited.keyCode() == 21
-                && "/warp  hub".equals(edited.command()) && CommandKeybindSettings.isExecutable(edited));
+        check("editing retains outer and inner spaces until persistence", edited.keyCode() == 21
+                && "  /warp  hub  ".equals(edited.command())
+                && "/warp  hub".equals(CommandKeybindSettings.commandForExecution(edited))
+                && CommandKeybindSettings.isExecutable(edited));
         CommandKeybindSettings.setKeyCode(0, 999);
         check("invalid key clears rather than remaining executable", CommandKeybindSettings.entryAt(0).keyCode() == 0
                 && !CommandKeybindSettings.isExecutable(CommandKeybindSettings.entryAt(0)));
@@ -63,6 +66,13 @@ public final class CommandKeybindSettingsTests {
                 && "/warp alpha;beta, gamma".equals(CommandKeybindSettings.entryAt(0).command())
                 && CommandKeybindSettings.entryAt(0).keyCode() == 21 && CommandKeybindSettings.isExecutable(CommandKeybindSettings.entryAt(1)));
 
+        Properties legacyMasterOff = new Properties();
+        legacyMasterOff.setProperty(CommandKeybindSettings.PREFIX, "false");
+        legacyMasterOff.setProperty(CommandKeybindSettings.ENTRIES_KEY, records);
+        CommandKeybindSettings.load(legacyMasterOff);
+        check("legacy master-off records leave valid key-command entries active", !CommandKeybindSettings.enabled
+                && CommandKeybindSettings.firstExecutableForKey(21) != null);
+
         Properties malformed = new Properties();
         malformed.setProperty(CommandKeybindSettings.PREFIX, "true");
         malformed.setProperty(CommandKeybindSettings.ENTRIES_KEY,
@@ -87,17 +97,17 @@ public final class CommandKeybindSettingsTests {
                 && CommandKeybindPolicy.collisionWith(33, new int[]{21, 33}));
         check("first creation-order command wins duplicate dispatch", "/wardrobe".equals(
                 CommandKeybindSettings.firstExecutableForKey(33).command()));
-        check("direct down edge with no screen sends", CommandKeybindPolicy.shouldSend(true, true, true,
+        check("direct down edge with no screen sends", CommandKeybindPolicy.shouldSend(true, true,
                 false, true, false, 1000L, 0L));
-        check("held repeat never sends", !CommandKeybindPolicy.shouldSend(true, true, true,
+        check("held repeat never sends", !CommandKeybindPolicy.shouldSend(true, true,
                 false, true, true, 1000L, 0L));
-        check("chat GUI/editor open never sends", !CommandKeybindPolicy.shouldSend(true, true, true,
+        check("chat GUI/editor open never sends", !CommandKeybindPolicy.shouldSend(true, true,
                 true, true, false, 1000L, 0L));
-        check("missing player or master never sends", !CommandKeybindPolicy.shouldSend(false, true, true,
-                false, true, false, 1000L, 0L) && !CommandKeybindPolicy.shouldSend(true, true, false,
+        check("missing player never sends but a legacy master-off flag no longer blocks", !CommandKeybindPolicy.shouldSend(true,
+                false, false, true, false, 1000L, 0L) && CommandKeybindPolicy.shouldSend(false, true, true,
                 false, true, false, 1000L, 0L));
-        check("short anti-spam cooldown blocks then expires", !CommandKeybindPolicy.shouldSend(true, true, true,
-                false, true, false, 1100L, 1000L) && CommandKeybindPolicy.shouldSend(true, true, true,
+        check("short anti-spam cooldown blocks then expires", !CommandKeybindPolicy.shouldSend(true, true,
+                false, true, false, 1100L, 1000L) && CommandKeybindPolicy.shouldSend(true, true,
                 false, true, false, 1300L, 1000L));
     }
 

@@ -21,7 +21,8 @@ final class DungeonMapProjection {
         this.cos = Math.cos(radians);
         this.sin = Math.sin(radians);
         // Values above 1 deliberately crop the map viewport for content zoom-in; the widget bounds stay fixed.
-        this.zoom = Math.max(0.25F, Math.min(3.0F, zoom));
+        // AppleSettings exposes up to 500%, so projection must not silently cut a valid saved/UI value back to 300%.
+        this.zoom = Math.max(0.25F, Math.min(5.0F, zoom));
     }
 
     /**

@@ -41,6 +41,20 @@ public final class SettingsControlLayout {
         return rightX(rowX, rowWidth, trailingPadding, width);
     }
 
+    /**
+     * Fixed key-button lane used by every Shortcut capture row and the Item Lock key capture.
+     * A named editor can start at this same edge without introducing a near-identical second column.
+     */
+    public static float keyButtonX(float rowX, float rowWidth, float trailingPadding, float keyButtonWidth) {
+        return rightX(rowX, rowWidth, trailingPadding, keyButtonWidth);
+    }
+
+    /** The Shortcut toggle lane immediately precedes the shared key-button lane. */
+    public static float keyToggleX(float rowX, float rowWidth, float trailingPadding, float keyButtonWidth) {
+        return keyButtonX(rowX, rowWidth, trailingPadding, keyButtonWidth)
+                - COLUMN_GAP - TOGGLE_COLUMN_WIDTH;
+    }
+
     /** Right edge for a control inside a row with the declared trailing padding. */
     public static float rightX(float rowX, float rowWidth, float trailingPadding, float controlWidth) {
         float width = Math.max(0f, rowWidth);

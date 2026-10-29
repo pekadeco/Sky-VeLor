@@ -19,7 +19,11 @@ public final class CommandKeybindSettings {
     public static final int MAX_KEY_CODE = 255;
     public static final int MAX_COMMAND_LENGTH = 240;
 
-    /** Master switch shown beside the editor route in the settings shell. Default off: commands are always opt-in. */
+    /**
+     * Retained solely to load and rewrite old master-toggle records. The visible master switch is retired: a valid
+     * key-plus-command entry is executable regardless of this legacy value.
+     */
+    @Deprecated
     public static boolean enabled;
 
     private static final ArrayList<Entry> ENTRIES = new ArrayList<Entry>();
@@ -78,7 +82,7 @@ public final class CommandKeybindSettings {
     public static void setCommand(int index, String command) {
         Entry current = entryAt(index);
         if (current == null) return;
-        replace(index, current.keyCode, normalizeCommand(command));
+        replace(index, current.keyCode, normalizeDraftCommand(command));
     }
 
     /**
@@ -86,7 +90,7 @@ public final class CommandKeybindSettings {
      * chats. There is deliberately no per-entry On/Off state: a valid key plus slash command is the active state.
      */
     public static Entry firstExecutableForKey(int keyCode) {
-        if (!enabled || !validKeyCode(keyCode)) return null;
+        if (!validKeyCode(keyCode)) return null;
         for (int i = 0; i < ENTRIES.size(); i++) {
             Entry entry = ENTRIES.get(i);
             if (entry.keyCode == keyCode && isExecutable(entry)) return entry;
@@ -107,11 +111,40 @@ public final class CommandKeybindSettings {
     }
 
     public static boolean isExecutable(Entry entry) {
-        return entry != null && validKeyCode(entry.keyCode) && entry.command.length() > 1
-                && entry.command.charAt(0) == '/';
+        String command = commandForExecution(entry);
+        return entry != null && validKeyCode(entry.keyCode) && command.length() > 1 && command.charAt(0) == '/';
     }
 
-    /** A command is slash-led and single-line; only its outer whitespace is trimmed so inner command arguments survive. */
+    /**
+     * Runtime and persisted command form: slash-led, single-line, and outer-trimmed only at this boundary.
+     * Inner spaces and ordinary typed characters stay intact.
+     */
+    public static String commandForExecution(Entry entry) {
+        return normalizeCommand(entry == null ? null : entry.command);
+    }
+
+    /**
+     * Editing preserves outer spaces until a save/execution boundary so typing a normal space cannot make the caret
+     * jump or eat the next command character. It still rejects control characters and keeps the slash convention.
+     */
+    private static String normalizeDraftCommand(String raw) {
+        String source = raw == null ? "" : raw;
+        StringBuilder clean = new StringBuilder(Math.min(MAX_COMMAND_LENGTH, source.length() + 1));
+        for (int i = 0; i < source.length() && clean.length() < MAX_COMMAND_LENGTH; i++) {
+            char c = source.charAt(i);
+            if (c >= 32 && c != 127) clean.append(c);
+        }
+        if (clean.length() == 0) return "/";
+        int firstContent = 0;
+        while (firstContent < clean.length() && Character.isWhitespace(clean.charAt(firstContent))) firstContent++;
+        if (firstContent < clean.length() && clean.charAt(firstContent) != '/') {
+            if (clean.length() >= MAX_COMMAND_LENGTH) clean.setLength(MAX_COMMAND_LENGTH - 1);
+            clean.insert(firstContent, '/');
+        }
+        return clean.toString();
+    }
+
+    /** A command is slash-led and single-line; only its outer whitespace is trimmed for execution or persistence. */
     public static String normalizeCommand(String raw) {
         String source = raw == null ? "" : raw.trim();
         StringBuilder clean = new StringBuilder(Math.min(MAX_COMMAND_LENGTH, source.length() + 1));
@@ -185,7 +218,7 @@ public final class CommandKeybindSettings {
         for (int i = 0; i < ENTRIES.size(); i++) {
             Entry entry = ENTRIES.get(i);
             if (i > 0) out.append(';');
-            out.append(entry.keyCode).append(",true,").append(encode(entry.command));
+            out.append(entry.keyCode).append(",true,").append(encode(commandForExecution(entry)));
         }
         return out.toString();
     }

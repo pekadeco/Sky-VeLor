@@ -10,13 +10,23 @@ public final class CommandKeybindPolicy {
     }
 
     /** A command is eligible only from an actual down edge while the player has no chat, GUI, or editor open. */
-    public static boolean shouldSend(boolean masterEnabled, boolean entryExecutable, boolean playerPresent,
-                                     boolean screenOpen, boolean physicalDown, boolean wasDown,
-                                     long now, long lastSentAt) {
-        if (!masterEnabled || !entryExecutable || !playerPresent || screenOpen || !physicalDown || wasDown) {
+    public static boolean shouldSend(boolean entryExecutable, boolean playerPresent, boolean screenOpen,
+                                     boolean physicalDown, boolean wasDown, long now, long lastSentAt) {
+        if (!entryExecutable || !playerPresent || screenOpen || !physicalDown || wasDown) {
             return false;
         }
         return lastSentAt <= 0L || now - lastSentAt >= COOLDOWN_MILLIS;
+    }
+
+    /**
+     * Compatibility overload for older callers/tests. The retired visible master flag deliberately no longer gates a
+     * complete key-plus-command entry.
+     */
+    @Deprecated
+    public static boolean shouldSend(boolean ignoredLegacyMaster, boolean entryExecutable, boolean playerPresent,
+                                     boolean screenOpen, boolean physicalDown, boolean wasDown,
+                                     long now, long lastSentAt) {
+        return shouldSend(entryExecutable, playerPresent, screenOpen, physicalDown, wasDown, now, lastSentAt);
     }
 
     public static boolean collisionWith(int candidateKey, int[] keyCodes) {

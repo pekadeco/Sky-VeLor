@@ -239,7 +239,7 @@ public final class ReferenceSettingsCatalog {
                             "pets key bind capture", true),
                     editor("command-keybinds", "Command Keybind",
                             "Send a slash command from a physical key press.",
-                            "command keybind slash key collision", true,
+                            "command keybind slash key collision", false,
                             "Open Command Keybind Editor", "open-command-keybind-editor"),
                     reset("shortcut-reset"))
     );
@@ -265,10 +265,12 @@ public final class ReferenceSettingsCatalog {
                     masterDropdown("dungeon-map", "Dungeon Map", "Room, puzzle, and party information.", "map rooms party",
                             toggle("dungeon-map-rotate", "Rotate To Facing", "Keep your room facing up.", "map rotate"),
                             toggle("dungeon-map-player-names", "Show Player Names", "Show party names on the map.", "map names"),
+                            toggle("dungeon-map-player-heads", "Player Heads", "Show party skin faces with hats instead of map arrows.", "map player heads skins hats"),
+                            slider("dungeon-map-player-head-size", "Player Head Size", "Set player-head size on the map.", "map player head size", 4, 16, 1, " px"),
                             toggle("dungeon-map-puzzle-name", "Show Puzzle Name", "Show puzzle names on the map.", "map puzzle"),
                             toggle("dungeon-map-scale-on", "Use Map Scale", "Use the saved map scale.", "map scale"),
                             slider("dungeon-map-scale", "Map Scale", "Set map size.", "map scale", 70, 250, 5, "%"),
-                            slider("dungeon-map-zoom", "Map Zoom", "Set map zoom.", "map zoom", 50, 200, 5, "%"),
+                            slider("dungeon-map-zoom", "Map Zoom", "Set map zoom.", "map zoom", 50, 500, 5, "%"),
                             toggle("party-puzzle-announce", "Party Puzzle Announce", "Send puzzle calls to party chat.", "puzzle announce")),
                     dropdown("terminal-assist", "Terminal Helper", "Helpers and click safeguards for terminals.",
                             "terminal f7 m7 status",

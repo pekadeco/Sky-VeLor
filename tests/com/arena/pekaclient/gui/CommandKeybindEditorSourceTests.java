@@ -23,8 +23,9 @@ public final class CommandKeybindEditorSourceTests {
                 && text.contains("Keyboard.KEY_BACK") && text.contains("Keyboard.KEY_ESCAPE"));
         check("editor removes the per-entry On Off control and uses key plus command eligibility", !text.contains("AppleToggle")
                 && !text.contains("enabledToggle") && text.contains("A command is active when it has both a key"));
-        check("focused command entry owns space and defers outer-trim persistence until focus leaves", text.contains("Keyboard.KEY_SPACE")
-                && text.contains("commitCommand") && text.contains("focusCommand") && text.contains("Inner spaces"));
+        check("focused command entry owns normal spaces and defers outer-only trim until settings persistence", text.contains("Keyboard.KEY_SPACE")
+                && text.contains("commitCommand") && text.contains("focusCommand") && text.contains("All normal")
+                && text.contains("AppleSettings.save"));
         check("editor visibly warns command, Sky VeLor and Minecraft collisions in the affected row", text.contains("hasOtherEntryWithKey")
                 && text.contains("Sky VeLor") && text.contains("Minecraft ") && text.contains("collisionWarning")
                 && text.contains("Theme.STATUS_CRITICAL"));

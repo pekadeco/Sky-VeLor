@@ -109,6 +109,7 @@ java -cp "$OUT:$CP" com.arena.pekaclient.hud.ClientMetricTextTests
 java -cp "$OUT:$CP" com.arena.pekaclient.startup.StartupTimingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.fishing.FishingTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.DragonKillTests
+java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.DungeonMapPlayerHeadMotionTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.M7SettingsTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeon.PuzzleRoomMemoryTests
 java -cp "$OUT:$CP" com.arena.pekaclient.slayer.SlayerTests

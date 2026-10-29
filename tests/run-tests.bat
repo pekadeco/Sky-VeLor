@@ -113,6 +113,7 @@ call :run com.arena.pekaclient.hud.ClientMetricTextTests || goto fail
 call :run com.arena.pekaclient.startup.StartupTimingTests || goto fail
 call :run com.arena.pekaclient.fishing.FishingTests || goto fail
 call :run com.arena.pekaclient.dungeon.DragonKillTests || goto fail
+call :run com.arena.pekaclient.dungeon.DungeonMapPlayerHeadMotionTests || goto fail
 call :run com.arena.pekaclient.dungeon.M7SettingsTests || goto fail
 call :run com.arena.pekaclient.dungeon.PuzzleRoomMemoryTests || goto fail
 call :run com.arena.pekaclient.slayer.SlayerTests || goto fail

@@ -74,6 +74,7 @@ public final class AppleSettingsTests {
         settingsWindowLayoutPersistence();
         guiTransparencyLegacyCompatibility();
         configurationVersionMigration();
+        dungeonMapHeadAndZoomBounds();
 
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
@@ -280,6 +281,33 @@ public final class AppleSettingsTests {
         check("current schema does not reapply the migration", !AppleSettings.applyConfigurationVersionUpgrade(migrated));
         check("saved OFF choices survive a restart", !AppleSettings.noBlockParticles
                 && !ChatQolSettings.compactMessages);
+    }
+
+    /** Existing 200% saves remain valid while the new UI/runtime accepts up to 500%. */
+    private static void dungeonMapHeadAndZoomBounds() {
+        int oldZoom = AppleSettings.dungeonMapZoom;
+        int oldHeadSize = AppleSettings.dungeonMapPlayerHeadSize;
+        boolean oldHeads = AppleSettings.dungeonMapPlayerHeads;
+        try {
+            AppleSettings.dungeonMapZoom = 200;
+            check("existing 200 percent dungeon-map zoom remains valid", AppleSettings.effectiveDungeonMapZoom() == 200);
+            AppleSettings.dungeonMapZoom = 500;
+            check("dungeon-map zoom now accepts 500 percent", AppleSettings.DUNGEON_MAP_ZOOM_MAX == 500
+                    && AppleSettings.effectiveDungeonMapZoom() == 500 && AppleSettings.dungeonMapZoomFactor() == 5.0F);
+            AppleSettings.dungeonMapZoom = 999;
+            check("invalid high dungeon-map zoom still clamps safely", AppleSettings.effectiveDungeonMapZoom() == 500);
+            AppleSettings.dungeonMapPlayerHeads = true;
+            AppleSettings.dungeonMapPlayerHeadSize = 8;
+            check("Player Heads default-on settings expose the native default size", AppleSettings.dungeonMapPlayerHeads
+                    && AppleSettings.effectiveDungeonMapPlayerHeadSize() == 8);
+            AppleSettings.dungeonMapPlayerHeadSize = 99;
+            check("Player Head Size clamps to its supported maximum", AppleSettings.effectiveDungeonMapPlayerHeadSize()
+                    == AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX);
+        } finally {
+            AppleSettings.dungeonMapZoom = oldZoom;
+            AppleSettings.dungeonMapPlayerHeadSize = oldHeadSize;
+            AppleSettings.dungeonMapPlayerHeads = oldHeads;
+        }
     }
 
     private static void check(String name, boolean ok) {

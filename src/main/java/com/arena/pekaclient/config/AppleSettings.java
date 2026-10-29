@@ -168,6 +168,11 @@ public final class AppleSettings {
     public static boolean dungeonMap = true;
     public static boolean dungeonMapRotate = true;
     public static boolean dungeonMapShowPlayerNames = true;
+    /** Dungeon-only skin-face markers replace available local/party map arrows by default. */
+    public static boolean dungeonMapPlayerHeads = true;
+    public static final int DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN = 4;
+    public static final int DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX = 16;
+    public static int dungeonMapPlayerHeadSize = 8;
     public static boolean dungeonMapShowPuzzleName = true;
     /** Opt-in only: map detection never sends party chat unless the player enables this. */
     public static boolean partyPuzzleAnnounce = false;
@@ -176,7 +181,7 @@ public final class AppleSettings {
     public static int dungeonMapScale = 100;
     public static boolean dungeonMapScaleOn = true;
     public static final int DUNGEON_MAP_ZOOM_MIN = 50;
-    public static final int DUNGEON_MAP_ZOOM_MAX = 200;
+    public static final int DUNGEON_MAP_ZOOM_MAX = 500;
     public static int dungeonMapZoom = 100;
     /** Legacy percentage coordinates are kept only for migration from map-enabled friend configs. */
     public static int dungeonMapXPercent = 2;
@@ -342,6 +347,9 @@ public final class AppleSettings {
         dungeonMap = readBool(p, "dungeonMap", dungeonMap);
         dungeonMapRotate = readBool(p, "dungeonMapRotate", dungeonMapRotate);
         dungeonMapShowPlayerNames = readBool(p, "dungeonMapShowPlayerNames", dungeonMapShowPlayerNames);
+        dungeonMapPlayerHeads = readBool(p, "dungeonMapPlayerHeads", dungeonMapPlayerHeads);
+        dungeonMapPlayerHeadSize = readInt(p, "dungeonMapPlayerHeadSize", dungeonMapPlayerHeadSize,
+                DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN, DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX);
         dungeonMapShowPuzzleName = readBool(p, "dungeonMapShowPuzzleName", dungeonMapShowPuzzleName);
         partyPuzzleAnnounce = readBool(p, "partyPuzzleAnnounce", partyPuzzleAnnounce);
         dungeonMapScale = readInt(p, "dungeonMapScale", dungeonMapScale,
@@ -568,6 +576,8 @@ public final class AppleSettings {
         p.setProperty("dungeonMap", Boolean.toString(dungeonMap));
         p.setProperty("dungeonMapRotate", Boolean.toString(dungeonMapRotate));
         p.setProperty("dungeonMapShowPlayerNames", Boolean.toString(dungeonMapShowPlayerNames));
+        p.setProperty("dungeonMapPlayerHeads", Boolean.toString(dungeonMapPlayerHeads));
+        p.setProperty("dungeonMapPlayerHeadSize", Integer.toString(dungeonMapPlayerHeadSize));
         p.setProperty("dungeonMapShowPuzzleName", Boolean.toString(dungeonMapShowPuzzleName));
         p.setProperty("partyPuzzleAnnounce", Boolean.toString(partyPuzzleAnnounce));
         p.setProperty("dungeonMapScale", Integer.toString(dungeonMapScale));
@@ -609,6 +619,12 @@ public final class AppleSettings {
 
     public static float dungeonMapZoomFactor() {
         return effectiveDungeonMapZoom() / 100.0F;
+    }
+
+    /** Native map-coordinate size for a skin face, clamped even if a caller changed the raw field directly. */
+    public static int effectiveDungeonMapPlayerHeadSize() {
+        return Math.max(DUNGEON_MAP_PLAYER_HEAD_SIZE_MIN,
+                Math.min(DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX, dungeonMapPlayerHeadSize));
     }
 
     /** Shared effective map size in GUI pixels. */
