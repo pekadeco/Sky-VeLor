@@ -688,7 +688,26 @@ def main():
                         (b'advanceTick', b'clampCenter'))
                 and all(value in dungeon_map_projection_raw for value in (b'fitZoom', b'project'))
                 and all(value in skin_head_raw for value in (b'quad', b'UIRender')),
-            'Dungeon Map packages all presentation controls in its dedicated editor, with retained bounded interpolated skin heads, no frame, and 500 percent zoom')
+            'Dungeon Map packages all presentation controls in its dedicated editor, with retained bounded interpolated skin heads, no frame, and 500 percent zoom',
+            'settings=%s catalog=%s editor=%s legacyBindings=%s genericHud=%s overlay=%s headMotion=%s projection=%s skin=%s' % (
+                    missing_raw_values(apple_settings_raw, (b'dungeonMapPlayerHeads', b'dungeonMapPlayerHeadSize',
+                            b'dungeonMapShowPuzzleName', b'dungeonMapShowSecrets', b'dungeonMapBackground',
+                            b'dungeonMapBackgroundOpacity', b'dungeonMapBackgroundColor', b'dungeonMapRoomNameColor',
+                            b'dungeonMapSecretsColor', b'DUNGEON_MAP_ZOOM_MAX', b'effectiveDungeonMapPlayerHeadSize')),
+                    missing_raw_values(reference_catalog_raw, (b'Dungeon Map', b'Open Dungeon HUD Editor',
+                            b'open-dungeon-hud-editor')),
+                    missing_raw_values(dungeon_hud_editor_raw, (b'map-scale', b'map-zoom', b'map-heads',
+                            b'map-head-size', b'map-room-names', b'map-secrets', b'map-background',
+                            b'map-background-opacity', b'map-background-color', b'map-room-color',
+                            b'map-secrets-color', b'map-announce', b'reset-map-position', b'onGuiClosed', b'persist')),
+                    b'dungeon-map-player-heads' in bindings_raw, b'dungeonMap' in hud_editor_raw,
+                    missing_raw_values(dungeon_map_overlay_raw, (b'PlayerHead', b'DungeonMapPlayerHeadMotion',
+                            b'SkinHead', b'loadedSkin', b'withoutPlayerHeadMarkers',
+                            b'effectiveDungeonMapBackgroundColor', b'effectiveDungeonMapRoomNameColor',
+                            b'effectiveDungeonMapSecretsColor')),
+                    missing_raw_values(dungeon_map_head_motion_raw, (b'advanceTick', b'clampCenter')),
+                    missing_raw_values(dungeon_map_projection_raw, (b'fitZoom', b'project')),
+                    missing_raw_values(skin_head_raw, (b'quad', b'UIRender'))))
     r.check(all(value in reference_catalog_raw for value in
                 (b'Dungeon HUD Editor', b'Open Dungeon HUD Editor', b'Dungeon Score/Stats HUD', b'Crypts',
                  b'Deaths', b'Run Time', b'Room Clear Alert', b'Alert Duration', b'Alert Sound', b'Auto Chest Close'))
@@ -705,7 +724,22 @@ def main():
                          b'resizeTarget', b'Reset all', b'Reset selected', b'onGuiClosed', b'persist'))
                 and all(value in dungeon_hud_editor_layout_raw for value in
                         (b'header', b'picker', b'inspector', b'canvas', b'compact', b'validFor', b'intersects')),
-            'Dungeons packages a responsive dedicated HUD Editor with selectable Score/Stats, Room Alert, and map samples, drag/resize/reset controls, save-on-close, and non-overlapping compact layout')
+            'Dungeons packages a responsive dedicated HUD Editor with selectable Score/Stats, Room Alert, and map samples, drag/resize/reset controls, save-on-close, and non-overlapping compact layout',
+            'catalog=%s bindings=%s screen=%s manager=%s editor=%s layout=%s' % (
+                    missing_raw_values(reference_catalog_raw, (b'Dungeon HUD Editor', b'Open Dungeon HUD Editor',
+                            b'Dungeon Score/Stats HUD', b'Crypts', b'Deaths', b'Run Time', b'Room Clear Alert',
+                            b'Alert Duration', b'Alert Sound', b'Auto Chest Close')),
+                    missing_raw_values(bindings_raw, (b'dungeon-score-hud', b'dungeon-score-line', b'dungeon-crypts-line',
+                            b'dungeon-deaths-line', b'dungeon-run-time-line', b'room-clear-alert',
+                            b'room-clear-duration', b'room-clear-sound', b'dungeon-auto-chest-close')),
+                    missing_raw_values(settings_screen_raw, (b'open-dungeon-hud-editor', b'DungeonHudEditorScreen')),
+                    missing_raw_values(hud_manager_raw, (b'DUNGEON_SCORE', b'ROOM_CLEAR_ALERT',
+                            b'DUNGEON_EDITOR_ELEMENTS', b'renderDungeonEditor')),
+                    missing_raw_values(dungeon_hud_editor_raw, (b'Score / Stats', b'Room Alert', b'Dungeon Map',
+                            b'drawDungeonMapPreview', b'moveTarget', b'resizeTarget', b'Reset all', b'Reset selected',
+                            b'onGuiClosed', b'persist')),
+                    missing_raw_values(dungeon_hud_editor_layout_raw, (b'header', b'picker', b'inspector', b'canvas',
+                            b'compact', b'validFor', b'intersects'))))
     r.check(all(value in apple_settings_raw for value in
                 (b'dungeonHud.score', b'dungeonHud.crypts', b'dungeonHud.deaths', b'dungeonHud.runTime',
                  b'dungeonHud.roomClearSound', b'dungeonHud.roomClearDurationMillis', b'dungeonHud.autoChestClose',
