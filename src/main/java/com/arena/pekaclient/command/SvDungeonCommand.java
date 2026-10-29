@@ -47,6 +47,7 @@ public final class SvDungeonCommand extends CommandBase {
         DungeonScoreTracker.DebugSnapshot snapshot = DungeonScoreTracker.INSTANCE.captureDebugSnapshot(
                 Minecraft.getMinecraft());
         DungeonContext.Result context = snapshot.context;
+        DungeonScoreReadout readout = snapshot.readout;
         say(sender, "Dungeon debug begin -- copy all lines below");
         say(sender, "detected dungeon=" + value(context.dungeon) + ", floor=" + value(context.floor)
                 + ", inDungeon=" + context.inDungeon);
@@ -55,12 +56,24 @@ public final class SvDungeonCommand extends CommandBase {
         say(sender, "raw sidebar title: " + raw(snapshot.sidebarTitle));
         sayRawList(sender, "raw sidebar", snapshot.sidebarLines);
         sayRawList(sender, "raw tab", snapshot.tabLines);
-        DungeonScoreReadout readout = snapshot.readout;
-        say(sender, "parsed rooms/cleared=" + number(readout.clearedPercent) + "%, secrets="
-                + number(readout.secretsPercent) + "%, deaths=" + number(readout.deaths) + ", crypts="
-                + number(readout.crypts) + ", time=" + time(readout));
-        say(sender, "parsed floor=" + value(readout.floor) + ", score=" + number(readout.displayScore())
-                + ", rank=" + value(readout.displayRank()) + ", source=" + readout.calculationStatus());
+        say(sender, "parsed sidebar/tab floor=" + value(readout.floor) + ", cleared raw="
+                + number(readout.clearedPercent) + "%, cleared score input="
+                + number(readout.calculated.adjustedClearedPercent) + "%, secrets=" + number(readout.secretsPercent)
+                + "%, deaths=" + number(readout.deaths) + ", crypts=" + number(readout.crypts)
+                + ", time=" + time(readout));
+        say(sender, "parsed chat puzzles=" + readout.failedPuzzles + ", Spirit reductions="
+                + readout.spiritDeathPenaltyReductions + ", Blood Door=" + readout.bloodDoorOpened
+                + ", Mimic seen=" + readout.mimicKilled + ", Paul=" + readout.paulActive);
+        say(sender, "calculated skill=" + number(readout.calculated.skill) + ", clear="
+                + number(readout.calculated.clear) + ", secret=" + number(readout.calculated.secret)
+                + ", exploration=" + number(readout.calculated.exploration) + ", speed="
+                + number(readout.calculated.speed) + ", bonus=" + number(readout.calculated.bonus));
+        say(sender, "parsed score=" + number(readout.displayScore()) + ", rank=" + value(readout.displayRank())
+                + ", source=" + readout.calculationStatus());
+        say(sender, "official recap total=" + number(readout.officialTotal) + ", rank="
+                + value(readout.officialRank) + ", skill=" + number(readout.officialSkill) + ", exploration="
+                + number(readout.officialExploration) + ", speed=" + number(readout.officialSpeed)
+                + ", bonus=" + number(readout.officialBonus));
         say(sender, "Dungeon debug end");
     }
 

@@ -6,14 +6,15 @@ import java.util.Locale;
  * Native, data-only Catacombs score calculation.
  *
  * <p>The values are calculated solely from visible dungeon observations supplied by
- * {@link DungeonScoreTelemetry}. Floor secret targets and speed bands were independently reimplemented from
- * observed Fakepixel scoring behaviour; this class intentionally has no API, packet, entity, or inventory access.
- * A projected result is deliberately conservative: callers must use {@link Result#projectedRank()} rather than
- * promoting an unverified projection to S+.</p>
+ * {@link DungeonScoreTelemetry}. Floor secret targets, the Blood Door clear adjustment, speed bands, and rank
+ * boundaries were independently reimplemented from observed Fakepixel scoring behaviour. This class intentionally
+ * has no API, packet, entity, or inventory access. A projected result is deliberately conservative: callers must use
+ * {@link Result#projectedRank()} rather than promoting an unverified projection to S+.</p>
  */
 public final class DungeonScoreCalculator {
     /** Represents a value that has not been observed on the visible sidebar/tab/chat yet. */
     public static final int UNKNOWN = -1;
+    private static final int BLOOD_DOOR_CLEAR_PERCENT = 9;
 
     private DungeonScoreCalculator() {
     }
@@ -28,15 +29,21 @@ public final class DungeonScoreCalculator {
         int skill = effectiveDeaths < 0 ? UNKNOWN : clamp(100 - effectiveDeaths * 2
                 - Math.max(0, safe.failedPuzzles) * 14, 0, 100);
 
-        int clear = percentScore(safe.clearedPercent, 100, 60);
+        // Fakepixel credits the Blood Door's remaining clear contribution only after the visible server chat confirms
+        // it opened. Keep the raw sidebar percent in Input/Readout for diagnostics and room-clear alerts.
+        int adjustedClearedPercent = adjustedClearPercent(safe.clearedPercent, safe.bloodDoorOpened);
+        int clear = percentScore(adjustedClearedPercent, 100, 60);
         int secret = rule == null ? UNKNOWN : percentScore(safe.secretsPercent, rule.secretPercent, 40);
         int exploration = clear < 0 || secret < 0 ? UNKNOWN : clear + secret;
         int speed = rule == null || safe.elapsedSeconds < 0 ? UNKNOWN : speedScore(safe.elapsedSeconds, rule.timeOffset);
+        // The visible Fakepixel calculation awards capped crypts and a confirmed Paul bonus. Mimic state remains in
+        // telemetry solely as a diagnostic observation; it is not a score bonus.
         int bonus = safe.crypts < 0 ? UNKNOWN : Math.max(0, Math.min(5, safe.crypts))
-                + (safe.mimicKilled ? 2 : 0) + (safe.paulActive ? 10 : 0);
+                + (safe.paulActive ? 10 : 0);
         int total = skill < 0 || exploration < 0 || speed < 0 || bonus < 0 ? UNKNOWN
                 : skill + exploration + speed + bonus;
-        return new Result(rule, effectiveDeaths, skill, clear, secret, exploration, speed, bonus, total);
+        return new Result(rule, adjustedClearedPercent, effectiveDeaths, skill, clear, secret, exploration, speed,
+                bonus, total);
     }
 
     /** Normalizes the displayed Catacombs floor identifier, or returns an empty value when it is unsupported. */
@@ -55,6 +62,12 @@ public final class DungeonScoreCalculator {
         if (score >= 160) return "B";
         if (score >= 100) return "C";
         return "D";
+    }
+
+    private static int adjustedClearPercent(int clearedPercent, boolean bloodDoorOpened) {
+        if (clearedPercent < 0) return UNKNOWN;
+        int adjusted = clearedPercent + (bloodDoorOpened ? BLOOD_DOOR_CLEAR_PERCENT : 0);
+        return clamp(adjusted, 0, 100);
     }
 
     private static int percentScore(int percent, int required, int max) {
@@ -113,7 +126,9 @@ public final class DungeonScoreCalculator {
         public final int spiritDeathPenaltyReductions;
         public final int crypts;
         public final int elapsedSeconds;
+        /** Retained as a visible diagnostic only; Fakepixel's score formula does not award Mimic points. */
         public final boolean mimicKilled;
+        public final boolean bloodDoorOpened;
         public final boolean paulActive;
 
         private Input(Builder builder) {
@@ -126,6 +141,7 @@ public final class DungeonScoreCalculator {
             crypts = builder.crypts;
             elapsedSeconds = builder.elapsedSeconds;
             mimicKilled = builder.mimicKilled;
+            bloodDoorOpened = builder.bloodDoorOpened;
             paulActive = builder.paulActive;
         }
 
@@ -143,6 +159,7 @@ public final class DungeonScoreCalculator {
             private int crypts = UNKNOWN;
             private int elapsedSeconds = UNKNOWN;
             private boolean mimicKilled;
+            private boolean bloodDoorOpened;
             private boolean paulActive;
 
             public Builder floor(String value) { floor = value == null ? "" : value; return this; }
@@ -153,7 +170,9 @@ public final class DungeonScoreCalculator {
             public Builder spiritDeathPenaltyReductions(int value) { spiritDeathPenaltyReductions = value; return this; }
             public Builder crypts(int value) { crypts = value; return this; }
             public Builder elapsedSeconds(int value) { elapsedSeconds = value; return this; }
+            /** Compatibility diagnostic; it no longer changes the calculated score. */
             public Builder mimicKilled(boolean value) { mimicKilled = value; return this; }
+            public Builder bloodDoorOpened(boolean value) { bloodDoorOpened = value; return this; }
             public Builder paulActive(boolean value) { paulActive = value; return this; }
             public Input build() { return new Input(this); }
         }
@@ -163,6 +182,8 @@ public final class DungeonScoreCalculator {
     public static final class Result {
         public final String floor;
         public final int requiredSecretsPercent;
+        /** Raw visible clear percent plus the confirmed Blood Door adjustment, capped at 100. */
+        public final int adjustedClearedPercent;
         public final int effectiveDeaths;
         public final int skill;
         public final int clear;
@@ -172,10 +193,11 @@ public final class DungeonScoreCalculator {
         public final int bonus;
         public final int total;
 
-        private Result(FloorRule rule, int effectiveDeaths, int skill, int clear, int secret, int exploration,
-                       int speed, int bonus, int total) {
+        private Result(FloorRule rule, int adjustedClearedPercent, int effectiveDeaths, int skill, int clear,
+                       int secret, int exploration, int speed, int bonus, int total) {
             this.floor = rule == null ? "" : rule.id;
             this.requiredSecretsPercent = rule == null ? UNKNOWN : rule.secretPercent;
+            this.adjustedClearedPercent = adjustedClearedPercent;
             this.effectiveDeaths = effectiveDeaths;
             this.skill = skill;
             this.clear = clear;

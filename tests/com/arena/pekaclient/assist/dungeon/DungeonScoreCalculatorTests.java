@@ -6,14 +6,15 @@ public final class DungeonScoreCalculatorTests {
     private static int failed;
 
     public static void main(String[] args) {
-        floorAwareScoresAndMimicBonus();
+        floorAwareScoresDoNotInventMimicBonus();
+        bloodDoorAdjustmentUsesOnlyVisibleChatState();
         failuresAndSpiritReductionAffectSkill();
         speedBandsRespectFloorOffsets();
         incompleteObservationsDoNotInventATotal();
         done();
     }
 
-    private static void floorAwareScoresAndMimicBonus() {
+    private static void floorAwareScoresDoNotInventMimicBonus() {
         DungeonScoreCalculator.Result result = DungeonScoreCalculator.calculate(DungeonScoreCalculator.Input.builder()
                 .floor("F7").clearedPercent(100).secretsPercent(100).deaths(0).crypts(5)
                 .elapsedSeconds(300).mimicKilled(true).build());
@@ -21,10 +22,23 @@ public final class DungeonScoreCalculatorTests {
         check("full clear and secrets produce 100 exploration", result.clear == 60 && result.secret == 40
                 && result.exploration == 100);
         check("F7 offset preserves a 100 speed score for a quick run", result.speed == 100);
-        check("crypts and a confirmed mimic contribute separately", result.bonus == 7);
-        check("complete live score includes every component", result.total == 307 && result.complete());
+        check("Mimic observation does not invent a score bonus", result.bonus == 5);
+        check("complete live score sums only supported components", result.total == 305 && result.complete());
         check("unverified 300-plus projection is never labelled S+", "S".equals(result.projectedRank()));
-        check("actual score threshold still identifies server-confirmed S+", "S+".equals(DungeonScoreCalculator.rankForScore(307)));
+        check("actual score threshold still identifies server-confirmed S+", "S+".equals(DungeonScoreCalculator.rankForScore(305)));
+    }
+
+    private static void bloodDoorAdjustmentUsesOnlyVisibleChatState() {
+        DungeonScoreCalculator.Result unopened = DungeonScoreCalculator.calculate(DungeonScoreCalculator.Input.builder()
+                .floor("F7").clearedPercent(91).secretsPercent(100).deaths(0).crypts(0)
+                .elapsedSeconds(300).build());
+        DungeonScoreCalculator.Result opened = DungeonScoreCalculator.calculate(DungeonScoreCalculator.Input.builder()
+                .floor("F7").clearedPercent(91).secretsPercent(100).deaths(0).crypts(0)
+                .elapsedSeconds(300).bloodDoorOpened(true).build());
+        check("raw sidebar clear remains unadjusted until Blood Door chat", unopened.adjustedClearedPercent == 91
+                && unopened.clear == 54);
+        check("visible Blood Door chat adds the capped nine clear percent", opened.adjustedClearedPercent == 100
+                && opened.clear == 60 && opened.exploration == 100);
     }
 
     private static void failuresAndSpiritReductionAffectSkill() {

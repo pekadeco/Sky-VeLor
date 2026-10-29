@@ -3,6 +3,7 @@ package com.arena.pekaclient.assist.dungeon;
 /** Immutable snapshot of visible dungeon-score observations and their native calculation. */
 public final class DungeonScoreReadout {
     public final String floor;
+    /** Raw sidebar Dungeon Cleared percentage; it deliberately excludes the Blood Door score adjustment. */
     public final int clearedPercent;
     public final int secretsPercent;
     public final int deaths;
@@ -10,15 +11,24 @@ public final class DungeonScoreReadout {
     public final int elapsedSeconds;
     public final int failedPuzzles;
     public final int spiritDeathPenaltyReductions;
+    /** Observed for diagnostics only; it is not a Fakepixel score bonus. */
     public final boolean mimicKilled;
+    public final boolean bloodDoorOpened;
     public final boolean paulActive;
     public final int officialTotal;
     public final String officialRank;
+    /** Components copied only from the visible end-of-run recap, or -1 when the recap did not show them. */
+    public final int officialSkill;
+    public final int officialExploration;
+    public final int officialSpeed;
+    public final int officialBonus;
     public final DungeonScoreCalculator.Result calculated;
 
     DungeonScoreReadout(String floor, int clearedPercent, int secretsPercent, int deaths, int crypts,
                         int elapsedSeconds, int failedPuzzles, int spiritDeathPenaltyReductions,
-                        boolean mimicKilled, boolean paulActive, int officialTotal, String officialRank) {
+                        boolean mimicKilled, boolean bloodDoorOpened, boolean paulActive, int officialTotal,
+                        String officialRank, int officialSkill, int officialExploration, int officialSpeed,
+                        int officialBonus) {
         this.floor = floor == null ? "" : floor;
         this.clearedPercent = clearedPercent;
         this.secretsPercent = secretsPercent;
@@ -28,20 +38,25 @@ public final class DungeonScoreReadout {
         this.failedPuzzles = failedPuzzles;
         this.spiritDeathPenaltyReductions = spiritDeathPenaltyReductions;
         this.mimicKilled = mimicKilled;
+        this.bloodDoorOpened = bloodDoorOpened;
         this.paulActive = paulActive;
         this.officialTotal = officialTotal;
         this.officialRank = officialRank == null ? "" : officialRank;
+        this.officialSkill = officialSkill;
+        this.officialExploration = officialExploration;
+        this.officialSpeed = officialSpeed;
+        this.officialBonus = officialBonus;
         calculated = DungeonScoreCalculator.calculate(DungeonScoreCalculator.Input.builder()
                 .floor(this.floor).clearedPercent(clearedPercent).secretsPercent(secretsPercent).deaths(deaths)
                 .crypts(crypts).elapsedSeconds(elapsedSeconds).failedPuzzles(failedPuzzles)
                 .spiritDeathPenaltyReductions(spiritDeathPenaltyReductions).mimicKilled(mimicKilled)
-                .paulActive(paulActive).build());
+                .bloodDoorOpened(bloodDoorOpened).paulActive(paulActive).build());
     }
 
     /** True when at least one current-run value came from a visible sidebar, tab row, or dungeon chat line. */
     public boolean hasData() {
         return floor.length() > 0 || clearedPercent >= 0 || secretsPercent >= 0 || deaths >= 0 || crypts >= 0
-                || elapsedSeconds >= 0 || officialTotal >= 0;
+                || elapsedSeconds >= 0 || bloodDoorOpened || officialTotal >= 0;
     }
 
     /** True only after a score total appeared in a final visible score recap. */

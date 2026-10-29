@@ -52,9 +52,9 @@ public final class DungeonScoreTracker {
      * This is intentionally command-only; it neither fabricates a score nor sends anything to the server.
      */
     public DebugSnapshot captureDebugSnapshot(Minecraft mc) {
-        DungeonContext.Result context = DungeonContext.evaluateNow(mc);
         RawSidebar sidebar = readSidebar(mc == null ? null : mc.theWorld);
         List<String> tab = readTab(mc);
+        DungeonContext.Result context = DungeonContext.evaluateNow(mc, sidebar.title, sidebar.lines, tab);
         if (context.inDungeon && mc != null && mc.theWorld != null) {
             beginWorld(mc.theWorld);
             observe(sidebar, tab);
@@ -81,18 +81,19 @@ public final class DungeonScoreTracker {
         if (++scanTicks < SCAN_INTERVAL_TICKS) return;
         scanTicks = 0;
 
-        // Do not depend on the slower cache alone. This direct, bounded scan is what lets a Fakepixel-formatted
-        // sidebar begin score collection even when it arrived just after DungeonContext's 20-tick refresh.
-        DungeonContext.Result context = DungeonContext.evaluateNow(mc);
+        // Capture both surfaces before deciding. Fakepixel's decisive live Dungeon: marker is in the public tab list,
+        // while Dungeon Cleared is in the sidebar, so either source must not be discarded by a sidebar-only gate.
+        RawSidebar sidebar = readSidebar(mc.theWorld);
+        List<String> tab = readTab(mc);
+        DungeonContext.Result context = DungeonContext.evaluateNow(mc, sidebar.title, sidebar.lines, tab);
         if (!context.inDungeon) {
             // Keep observations only long enough to parse a final visible recap arriving immediately after a run.
             if (activeWorld != mc.theWorld || now - lastDungeonSeenMillis > END_SCORE_GRACE_MILLIS) clear();
+            latestDebug = new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, telemetry.readout());
             return;
         }
         beginWorld(mc.theWorld);
         lastDungeonSeenMillis = now;
-        RawSidebar sidebar = readSidebar(mc.theWorld);
-        List<String> tab = readTab(mc);
         observe(sidebar, tab);
         latestDebug = new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, telemetry.readout());
     }
@@ -130,9 +131,9 @@ public final class DungeonScoreTracker {
     }
 
     private void observe(RawSidebar sidebar, List<String> tab) {
-        if (sidebar.title.length() > 0) telemetry.observeVisible(sidebar.title);
-        for (String line : sidebar.lines) telemetry.observeVisible(line);
-        for (String line : tab) telemetry.observeVisible(line);
+        if (sidebar.title.length() > 0) telemetry.observeSidebar(sidebar.title);
+        for (String line : sidebar.lines) telemetry.observeSidebar(line);
+        for (String line : tab) telemetry.observeTab(line);
     }
 
     private static RawSidebar readSidebar(World world) {
@@ -207,7 +208,7 @@ public final class DungeonScoreTracker {
         private static DebugSnapshot empty() {
             return new DebugSnapshot(DungeonContext.cachedResult(), "", Collections.<String>emptyList(),
                     Collections.<String>emptyList(), new DungeonScoreReadout("", -1, -1, -1, -1, -1,
-                            0, 0, false, false, -1, ""));
+                            0, 0, false, false, false, -1, "", -1, -1, -1, -1));
         }
     }
 }

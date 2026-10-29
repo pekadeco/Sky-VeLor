@@ -21,6 +21,9 @@ commit `f80cddf6ac1e752bd402d1d963f3f987253b4795` (reviewed 2026-10-29).
 
 NotEnoughFakepixel is licensed under **LGPL-3.0-or-later**. No NotEnoughFakepixel source,
 assets, binaries, or dependency code are included in Sky VeLor. Sky VeLor uses its own
-Minecraft-free parser/calculator and observes only already-visible Fakepixel sidebar, tab-list,
-and chat text. It performs no API requests and does not adopt NotEnoughFakepixel's source,
-assets, binaries, or dependencies.
+Minecraft-free parser/calculator and observes only already-visible Fakepixel data: Catacombs/floor
+and `Dungeon Cleared` sidebar rows; public tab-list `Dungeon:`, `Secrets Found:`, `Time:`,
+`Deaths:`, and `Crypts:` rows; and dungeon chat puzzle/Spirit Pet/Blood Door/final-recap events.
+It independently implements the observed score behaviour, including the visible Blood Door clear
+adjustment and capped crypt/Paul bonus only. It performs no API requests and does not adopt
+NotEnoughFakepixel's source, assets, binaries, or dependencies.

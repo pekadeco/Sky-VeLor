@@ -67,7 +67,10 @@ public final class RoomClearAlertController {
     }
 
     private void observeSidebarProgress(Minecraft mc, long now) {
-        int current = DungeonScoreTracker.INSTANCE.readout().clearedPercent;
+        DungeonScoreReadout readout = DungeonScoreTracker.INSTANCE.readout();
+        // Use the raw sidebar Dungeon Cleared percentage, never the calculator's Blood Door-adjusted clear input.
+        // The latter is score-only and must not create a false room-clear alert when Blood opens.
+        int current = readout.clearedPercent;
         if (current < 0) return;
         int previous = lastClearedPercent;
         lastClearedPercent = current;
