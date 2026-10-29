@@ -780,7 +780,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     private static int withPercentAlpha(int color, int percent) {
         int alpha = Math.max(0, Math.min(255, Math.round(percent * 2.55F)));
-        return (alpha << 24) | (color & 0x00FFFFFF);
+        return (alpha << 24) | (color & Theme.RGB_MASK);
     }
 
     private static float clamp(float value, float minimum, float maximum) {
