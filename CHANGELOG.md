@@ -1,5 +1,43 @@
 # Changelog
 
+## Beta-0.10.9.3.2v — 2026-10-29
+
+### Fixed
+
+- Corrected the native Dungeon Score Calculator: it had been adding an unsupported `+2` Mimic bonus and was missing
+  Fakepixel's visible Blood Door `+9%` clear adjustment. The score now uses capped Crypts plus Paul for bonus, while
+  retaining Mimic only as a diagnostic chat observation.
+- Corrected collection/detection ordering so a public tab-list `Dungeon:` row is evaluated with sidebar evidence before
+  score collection is rejected. Source-aware parser entry points now keep sidebar, tab, and chat data distinct.
+- Kept Room Clear Alert on raw visible `Dungeon Cleared` progress, so the Blood Door score adjustment cannot create a
+  false room-clear event.
+
+### Added
+
+- Added source-aware Fakepixel parsing for Catacombs/floor and `Dungeon Cleared` sidebar rows; public `Dungeon:`,
+  `Secrets Found:`, `Time:`, `Deaths:`, and `Crypts:` tab rows; and puzzle, Spirit Pet, Blood Door, and official end
+  recap chat events.
+- Expanded `/svdungeon debug` with raw sidebar/tab rows, detector evidence, raw/adjusted clear, parsed chat flags,
+  calculated component values, and official recap components.
+- Added direct-canvas Dungeon HUD editing: click visible Score, Alert, or Map samples, drag them, and resize with the
+  selected lower-right corner handle. The compact map inspector now groups controls under Display, Players, Colors,
+  and Background.
+
+### Changed
+
+- Replaced the obstructive picker/inspector layout with a light transparent fullscreen canvas, slim safe top-centre
+  element/action chips, and one collapsible/scrollable selected-element dock that avoids the selected element. Pojav
+  layouts use a shallow touchable dock when a one-quarter-width control column would be unusable.
+- Updated metadata, build contract, verifier examples, documentation, and delivery names to
+  `Beta-0.10.9.3.2v` / numeric `0.10.9.3.2`.
+- Rechecked compatibility surfaces for GUI, Shortcut keys, Item Lock And Swap, dungeon map/heads/ESP, Auto Chest
+  Close, generic HUD editor, Item Animation editor, and Chat QoL through the retained Java 8 headless test suite.
+
+### Verification boundary
+
+- Automated checks do not launch Minecraft. A live Fakepixel run and `/svdungeon debug` pasteback are still required
+  to claim field parity for every possible server text/layout variation; no GitHub Release is created for this branch.
+
 ## Beta-0.10.9.3.1v — 2026-10-29
 
 ### Fixed

@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.3.1v
+# Apple settings inventory — Beta-0.10.9.3.2v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -75,18 +75,22 @@ behavior continues to use the established owners; no reset dropdown was added.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
 - **Boss Health HUD** is a master toggle plus **Open HUD Editor**.
-- **Dungeons → Dungeon Map → Open Dungeon HUD Editor** is a separate centered, solid editor rather than the generic
-  HUD window. Its compact picker has **Score / Stats**, **Room Alert**, and **Dungeon Map** targets. Every target shows
-  a useful sample outside a dungeon, supports selection, drag movement, resize handles/sliders, selected/all resets,
-  and saves through the existing HUD/map owners on close. It snaps placement and suppresses the live map while its map
-  preview is being edited.
+- **Dungeons → Dungeon Map → Open Dungeon HUD Editor** is a separate transparent direct-manipulation canvas rather
+  than the generic HUD window. Its slim top-centre chips select **Score**, **Alert**, and **Map** without entering the
+  launcher's top-right MOUSE/GUI space. Click a useful out-of-dungeon sample to select it, drag it to move, and pull
+  its lower-right handle to resize; **Reset selected**, **Reset all**, Escape, and **Done** retain existing HUD/map
+  owners and persistence. One compact collapsible/scrollable dock avoids the selected element; on narrow Pojav
+  dimensions it becomes a shallow touchable dock. Map controls are grouped under **Display**, **Players**, **Colors**,
+  and **Background**.
 - **Score / Stats** is a dungeon-only borderless movable target. It independently toggles Score/rank, Crypts, Deaths,
-  and Run Time lines. The native calculator has no API or packet path: it reads visible Fakepixel sidebar, public
-  tab-list, and chat values for floor, cleared rooms, secrets, deaths/Spirit penalty reduction, failed puzzles, crypts,
-  runtime, mimic, and Paul. Corroborated generic Dungeon/Floor sidebars are accepted alongside Catacombs; unobserved
-  fields render as `--`. A complete live estimate never renders `S+`; only a visible `Extra Stats`/`Score Breakdown`
-  end recap total plus matching rank may do so. **`/svdungeon debug`** prints detector evidence, raw sidebar/tab rows,
-  and the parsed support values without sending a server command.
+  and Run Time lines. The native calculator has no API or packet path: it reads Catacombs/floor and `Dungeon Cleared`
+  from the visible sidebar; `Dungeon:`, `Secrets Found:`, `Time:`, `Deaths:`, and `Crypts:` from public tab-list rows;
+  and puzzle/Spirit Pet/Blood Door/final-recap events from dungeon chat. The visible formula uses the Blood Door `+9%`
+  clear adjustment, capped Crypts plus Paul bonus, and no Mimic bonus. Corroborated public `Dungeon:` tab evidence is
+  evaluated with sidebar context; unobserved fields render as `--`. A complete live estimate never renders `S+`; only
+  a visible `Extra Stats`/`Score Breakdown` end recap total plus matching rank may do so. **`/svdungeon debug`** prints
+  detector evidence, raw sidebar/tab rows, raw/adjusted clear, parsed chat flags, calculated components, and official
+  recap values without sending a server command.
 - **Room Alert** is a movable dedicated-editor target. It accepts narrow normal room-clear chat in a confirmed dungeon
   or a plausible visible sidebar **Cleared %** increase, then de-duplicates the sources. It rejects blood, fairy,
   entrance, boss, already-cleared, invalid-jump, and repeat-room cases. Bounded local duration/sound remain available;
@@ -219,7 +223,7 @@ assets, binaries, or dependency code were copied. The complete attribution and c
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.3.1v text |
+| Earlier player-facing text | Beta-0.10.9.3.2v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -263,8 +267,9 @@ shared action trailing-edge geometry, Apple title-bar targets and 8 px margin be
 behavior, fresh-open accordion reset with the intentional direct-route disclosure, search behavior, player-copy
 validation, old-config loading, Shortcut/Keybind Cut migration, Item Lock and Wardrobe capture behavior, Wardrobe
 slot-map/screen-gating policy, Command Keybind serialization/collision/direct-edge cooldown and focused-space entry,
-Dungeon Map player-head interpolation/bounds and 500% projection coverage, Dungeon HUD editor picker/move/reset routing,
-visible-data score calculation/recap-safe `S+` handling, room-clear and normal-chest allow-list policies, exact
+Dungeon Map player-head interpolation/bounds and 500% projection coverage, direct-canvas Dungeon HUD editor
+selection/dock/move/reset routing, source-aware visible-data score calculation/recap-safe `S+` handling, room-clear
+and normal-chest allow-list policies, exact
 configurable-id preservation, direct binding audit, hotbar-only Item Lock pair migration/multi-pair cycling, Spirit Bow
 marker matching, bounded Dungeon Run sidebar parsing/HUD persistence, opaque Item Animation and Command Keybind panel
 exclusion, dead-mob render policy protections, deterministic render-time Aspect camera-path easing, and fail-closed
@@ -278,8 +283,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3.1v.jar \
-  --version Beta-0.10.9.3.1v --mcmod-version 0.10.9.3.1
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3.2v.jar \
+  --version Beta-0.10.9.3.2v --mcmod-version 0.10.9.3.2
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

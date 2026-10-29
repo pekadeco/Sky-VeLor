@@ -201,7 +201,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
             slider("alert-duration", "Duration", AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
                     AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS, 250);
             toggle("alert-sound", "Local sound");
-            action("test-alert", "Test alert");
+            action("test-alert", "Test Alert");
         } else {
             // Keep all Map controls in the requested compact semantic groups rather than spreading them across a
             // giant settings wall.
