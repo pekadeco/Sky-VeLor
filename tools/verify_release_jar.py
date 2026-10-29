@@ -696,7 +696,7 @@ def main():
                         (b'failedPuzzles', b'spiritDeathPenaltyReductions', b'mimicKilled', b'paulActive',
                          b'projectedRank', b'rankForScore', b'S+'))
                 and all(value in dungeon_score_telemetry_raw for value in
-                        (b'Extra Stats', b'Score Breakdown', b'puzzle fail!', b'mimic', b'paul', b'scoreRecapLines'))
+                        (b'extra stats', b'score breakdown', b'puzzle fail!', b'mimic', b'paul', b'scoreRecapLines'))
                 and all(value in dungeon_score_readout_raw for value in
                         (b'hasOfficialScore', b'projectedRank', b'verified visible end score', b'S+'))
                 and all(value in dungeon_score_tracker_raw for value in
@@ -704,7 +704,22 @@ def main():
                 and all(value in dungeon_score_hud_raw for value in
                         (b'DungeonScoreTracker', b'dungeonScoreShowScore', b'dungeonScoreShowCrypts',
                          b'dungeonScoreShowDeaths', b'dungeonScoreShowRunTime', b'forceBorderless')),
-            'native Dungeon Score Calculator uses visible sidebar/tab/chat telemetry, persists independently selectable HUD lines, and caps live S+ claims')
+            'native Dungeon Score Calculator uses visible sidebar/tab/chat telemetry, persists independently selectable HUD lines, and caps live S+ claims',
+            'missing settings=%s calculator=%s telemetry=%s readout=%s tracker=%s hud=%s' % (
+                    missing_raw_values(apple_settings_raw, (b'dungeonHud.score', b'dungeonHud.crypts', b'dungeonHud.deaths',
+                            b'dungeonHud.runTime', b'dungeonHud.roomClearSound', b'dungeonHud.roomClearDurationMillis',
+                            b'dungeonHud.autoChestClose', b'DEFAULT_DUNGEON_AUTO_CHEST_CLOSE')),
+                    missing_raw_values(dungeon_score_calculator_raw, (b'failedPuzzles', b'spiritDeathPenaltyReductions',
+                            b'mimicKilled', b'paulActive', b'projectedRank', b'rankForScore', b'S+')),
+                    missing_raw_values(dungeon_score_telemetry_raw, (b'extra stats', b'score breakdown', b'puzzle fail!',
+                            b'mimic', b'paul', b'scoreRecapLines')),
+                    missing_raw_values(dungeon_score_readout_raw, (b'hasOfficialScore', b'projectedRank',
+                            b'verified visible end score', b'S+')),
+                    missing_raw_values(dungeon_score_tracker_raw, (b'ClientChatReceivedEvent', b'NetworkPlayerInfo',
+                            b'observeSidebar', b'observeTab')),
+                    missing_raw_values(dungeon_score_hud_raw, (b'DungeonScoreTracker', b'dungeonScoreShowScore',
+                            b'dungeonScoreShowCrypts', b'dungeonScoreShowDeaths', b'dungeonScoreShowRunTime',
+                            b'forceBorderless'))))
     r.check(all(value in room_alert_policy_raw for value in
                 (b'clearedRooms', b'blood', b'fairy', b'entrance', b'already', b'CLEAR_MESSAGE'))
                 and all(value in room_alert_controller_raw for value in
