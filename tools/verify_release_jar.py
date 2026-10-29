@@ -664,8 +664,8 @@ def main():
     aspect_transformer_raw = raw_family_of('assist/visual/AspectTeleportCameraTransformer')
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.shortcut.autoSprint',
-                 b'assist.shortcut.wardrobe', b'assist.shortcut.wardrobeKey', b'assist.shortcut.wardrobeNumberKeys',
-                 b'assist.shortcut.pets', b'assist.shortcut.petsKey', b'assist.keybindCut.autoSprint',
+                 b'assist.shortcut.wardrobe', b'shortcut.wardrobeKey', b'assist.shortcut.wardrobeNumberKeys',
+                 b'assist.shortcut.pets', b'shortcut.petsKey', b'assist.keybindCut.autoSprint',
                  b'assist.keybindCut.wardrobe', b'movement.autoSprint', b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled',
                  b'assist.dungeon.sync.endpoint', b'assist.dungeon.spiritBowLocator', b'spiritBowLocator',
                  b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
