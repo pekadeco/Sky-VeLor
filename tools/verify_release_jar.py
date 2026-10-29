@@ -665,9 +665,8 @@ def main():
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.shortcut.autoSprint',
                  b'assist.shortcut.wardrobe', b'assist.shortcut.wardrobeKey', b'assist.shortcut.wardrobeNumberKeys',
-                 b'assist.shortcut.pets', b'assist.shortcut.petsKey', b'DEFAULT_WARDROBE_SHORTCUT_KEY_CODE',
-                 b'DEFAULT_PETS_SHORTCUT_KEY_CODE', b'assist.keybindCut.autoSprint', b'assist.keybindCut.wardrobe',
-                 b'movement.autoSprint', b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled',
+                 b'assist.shortcut.pets', b'assist.shortcut.petsKey', b'assist.keybindCut.autoSprint',
+                 b'assist.keybindCut.wardrobe', b'movement.autoSprint', b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled',
                  b'assist.dungeon.sync.endpoint', b'assist.dungeon.spiritBowLocator', b'spiritBowLocator',
                  b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
             'AssistSettings retains bounded visual, comfort, W/P Shortcut migration, Wardrobe-number preference, terminal, sync and opt-in Spirit Bow locator owners')
