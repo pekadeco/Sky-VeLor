@@ -66,6 +66,9 @@ call :run com.arena.pekaclient.assist.ShortcutControllerSourceTests || goto fail
 call :run com.arena.pekaclient.gui.CommandKeybindEditorLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.CommandKeybindEditorSourceTests || goto fail
 call :run com.arena.pekaclient.assist.dungeon.DungeonRunReadoutTests || goto fail
+call :run com.arena.pekaclient.assist.dungeon.DungeonScoreCalculatorTests || goto fail
+call :run com.arena.pekaclient.assist.dungeon.DungeonScoreTelemetryTests || goto fail
+call :run com.arena.pekaclient.assist.dungeon.DungeonSafetyPolicyTests || goto fail
 call :run com.arena.pekaclient.assist.dungeon.SpiritBowLocatorTests || goto fail
 call :run com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests || goto fail
 call :run com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests || goto fail

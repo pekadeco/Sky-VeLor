@@ -59,6 +59,9 @@ java -cp "$OUT:$CP" com.arena.pekaclient.assist.ShortcutControllerSourceTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.CommandKeybindEditorLayoutTests
 java -cp "$OUT:$CP" com.arena.pekaclient.gui.CommandKeybindEditorSourceTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.DungeonRunReadoutTests
+java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.DungeonScoreCalculatorTests
+java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.DungeonScoreTelemetryTests
+java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.DungeonSafetyPolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.SpiritBowLocatorTests
 java -cp "$OUT:$CP" com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests
 java -cp "$OUT:$CP" com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests
