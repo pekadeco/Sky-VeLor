@@ -98,10 +98,6 @@ public final class ReleaseClaimsTests {
         String catalog = classText("com.arena.pekaclient.gui.ReferenceSettingsCatalog");
         String bindings = classText("com.arena.pekaclient.gui.InlineSettingsBindings");
         String manager = classText("com.arena.pekaclient.hud.HudManager");
-        String scoreInput = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator$Input");
-        String scoreResult = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator$Result");
-        String telemetry = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreTelemetry");
-        String readout = classText("com.arena.pekaclient.assist.dungeon.DungeonScoreReadout");
         String roomPolicy = classText("com.arena.pekaclient.assist.dungeon.RoomClearAlertPolicy");
         String chestPolicy = classText("com.arena.pekaclient.assist.dungeon.DungeonChestClosePolicy");
         String chestCloser = classText("com.arena.pekaclient.assist.dungeon.DungeonChestCloser");
@@ -120,12 +116,20 @@ public final class ReleaseClaimsTests {
                         && bindings.contains("dungeon-score-line") && bindings.contains("dungeon-crypts-line")
                         && bindings.contains("dungeon-deaths-line") && bindings.contains("dungeon-run-time-line")
                         && classExists("com.arena.pekaclient.hud.DungeonScoreHud"));
+        com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator.Result completeLiveScore =
+                com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator.calculate(
+                        com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator.Input.builder()
+                                .floor("F7").clearedPercent(100).secretsPercent(100).deaths(0).crypts(5)
+                                .elapsedSeconds(0).mimicKilled(true).paulActive(true).build());
         check("Dungeon score stays visible-data-only and does not promote a live estimate to S plus",
                 classExists("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator")
-                        && scoreInput.contains("failedPuzzles") && scoreInput.contains("mimicKilled")
-                        && scoreInput.contains("paulActive") && scoreResult.contains("projectedRank")
-                        && telemetry.contains("Extra Stats") && telemetry.contains("Score Breakdown")
-                        && readout.contains("hasOfficialScore") && readout.contains("projectedRank"));
+                        && classExists("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator$Input")
+                        && classExists("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator$Result")
+                        && classExists("com.arena.pekaclient.assist.dungeon.DungeonScoreTelemetry")
+                        && classExists("com.arena.pekaclient.assist.dungeon.DungeonScoreReadout")
+                        && com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator.rankForScore(300).equals("S+")
+                        && completeLiveScore.complete() && completeLiveScore.projectedRank().equals("S")
+                        && ReferenceSettingsCatalog.find("dungeon-score-hud") != null);
         check("Room Clear Alert rejects special or repeated rooms and Auto Chest Close remains allow-listed",
                 classExists("com.arena.pekaclient.hud.RoomClearAlertHud") && roomPolicy.contains("clearedRooms")
                         && roomPolicy.contains("blood") && roomPolicy.contains("fairy") && roomPolicy.contains("entrance")
