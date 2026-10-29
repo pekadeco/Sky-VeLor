@@ -13,9 +13,10 @@ public final class WardrobeShortcutControllerSourceTests {
         File source = new File(repositoryRoot(), "src/main/java/com/arena/pekaclient/assist/WardrobeShortcutController.java");
         String text = source.isFile() ? read(source) : "";
         check("native Wardrobe controller source exists", source.isFile());
-        check("controller requires physical keyboard edges and an actual GuiChest ContainerChest", text.contains("Keyboard.isKeyDown")
+        check("controller requires physical keyboard edges, an enabled number-key option, and an actual GuiChest ContainerChest", text.contains("Keyboard.isKeyDown")
                 && text.contains("Keyboard.getEventKeyState") && text.contains("Keyboard.isRepeatEvent")
-                && text.contains("GuiChest") && text.contains("ContainerChest") && text.contains("digitForKey"));
+                && text.contains("wardrobeNumberKeys") && text.contains("GuiChest") && text.contains("ContainerChest")
+                && text.contains("digitForKey"));
         check("controller sends only user /wardrobe chat or one normal visible-menu click", text.contains("sendChatMessage(\"/wardrobe\")")
                 && text.contains("windowClick") && text.contains("WardrobeShortcutPolicy") && text.contains("FIRST_WARDROBE_SLOT")
                 && text.contains("LAST_WARDROBE_SLOT"));

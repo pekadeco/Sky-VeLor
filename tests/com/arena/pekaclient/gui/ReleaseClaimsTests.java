@@ -40,7 +40,8 @@ public final class ReleaseClaimsTests {
                 && classText("com.arena.pekaclient.command.ClientActions").contains("ItemAnimationEditorScreen")
                 && !classExists("com.arena.pekaclient.gui.ItemAnimationUiModel"));
         check("Command Keybind owns its distinct opaque editor surface", classExists(
-                "com.arena.pekaclient.gui.CommandKeybindEditorScreen"));
+                "com.arena.pekaclient.gui.CommandKeybindEditorScreen")
+                && classExists("com.arena.pekaclient.gui.CommandKeybindEditorLayout"));
         String[] retired = {
                 "com.arena.pekaclient.gui.FeatureSettingsEditorScreen",
                 "com.arena.pekaclient.gui.FeatureSettingsEditors",
@@ -56,28 +57,40 @@ public final class ReleaseClaimsTests {
         String policy = classText("com.arena.pekaclient.assist.CommandKeybindPolicy");
         String controller = classText("com.arena.pekaclient.assist.CommandKeybindController");
         String editor = classText("com.arena.pekaclient.gui.CommandKeybindEditorScreen");
+        String editorLayout = classText("com.arena.pekaclient.gui.CommandKeybindEditorLayout");
         String theme = classText("com.arena.pekaclient.render.Theme");
         String client = classText("com.arena.pekaclient.PekaClientMod");
-        check("Shortcut stores a bounded slash-command list under its new namespace and reads the prior namespace",
+        String assistSettings = classText("com.arena.pekaclient.config.AssistSettings");
+        String pets = classText("com.arena.pekaclient.assist.ShortcutController");
+        check("Shortcut stores a bounded key-plus-command list under its new namespace and reads the prior namespace",
                 settings.contains("assist.shortcut.commandKeybinds") && settings.contains("assist.keybindCut.commandKeybinds")
                         && settings.contains("MAX_ENTRIES") && settings.contains("normalizeCommand")
-                        && settings.contains("firstExecutableForKey"));
+                        && settings.contains("firstExecutableForKey") && settings.contains(",true,"));
         check("Command Keybind uses a direct edge and short cooldown policy", policy.contains("COOLDOWN_MILLIS")
                 && policy.contains("shouldSend") && controller.contains("Keyboard")
                 && controller.contains("CommandKeybindPolicy") && client.contains("CommandKeybindController"));
         String wardrobePolicy = classText("com.arena.pekaclient.assist.WardrobeShortcutPolicy");
         String wardrobe = classText("com.arena.pekaclient.assist.WardrobeShortcutController");
-        check("Wardrobe Shortcut is native physical input gated to a recognized GuiChest", wardrobePolicy.contains("slotForDigit")
+        check("Wardrobe Shortcut is native physical input gated to a recognized GuiChest and its number option", wardrobePolicy.contains("slotForDigit")
                 && wardrobePolicy.contains("shouldOpenWardrobe") && wardrobe.contains("Keyboard") && wardrobe.contains("GuiChest")
                 && wardrobe.contains("ContainerChest") && wardrobe.contains("windowClick") && wardrobe.contains("/wardrobe")
-                && !wardrobe.contains("sendPacket") && !wardrobe.contains("setPosition"));
-        check("Command Keybind editor is opaque, compact, capture/reset capable, space-safe and collision-aware",
+                && wardrobe.contains("wardrobeNumberKeys") && !wardrobe.contains("sendPacket") && !wardrobe.contains("setPosition"));
+        check("Pets Shortcut is a direct physical edge with normal-screen protection", pets.contains("PETS_SHORTCUT_KEY")
+                && pets.contains("Keyboard") && pets.contains("petsWasDown") && pets.contains("/pets")
+                && !pets.contains("isPressed") && !pets.contains("sendPacket"));
+        check("Shortcut defaults and rebind paths preserve W/P and migrate the new keys", assistSettings.contains("DEFAULT_WARDROBE_SHORTCUT_KEY_CODE")
+                && assistSettings.contains("DEFAULT_PETS_SHORTCUT_KEY_CODE") && assistSettings.contains("shortcut.petsKey")
+                && assistSettings.contains("shortcut.wardrobeNumberKeys") && client.contains("rebindPetsShortcutKey")
+                && client.contains("resetShortcutKeysToDefaults"));
+        check("Command Keybind editor is opaque, centered, responsive, capture/reset capable, space-safe and collision-aware",
                 editor.contains("roundRectBorder") && theme.contains("ITEM_ANIMATION_PANEL")
                         && theme.contains("ITEM_ANIMATION_PANEL_BORDER") && !editor.contains("drawDefaultBackground")
                         && editor.contains("AppleKeybindButton") && editor.contains("Keyboard")
                         && editor.contains("Key capture canceled") && editor.contains("Key cleared")
                         && editor.contains("Warning: conflicts with Sky VeLor")
-                        && editor.contains("Warning: conflicts with Minecraft"));
+                        && editor.contains("Warning: conflicts with Minecraft") && editor.contains("drawTitleBar")
+                        && editor.contains("drawScrollBar") && !editor.contains("AppleToggle")
+                        && editorLayout.contains("PANEL_WIDTH_RATIO") && editorLayout.contains("COMPACT_ROW_BREAKPOINT"));
     }
 
     private static void inlineShellHasRequiredBehavior() {
@@ -97,11 +110,13 @@ public final class ReleaseClaimsTests {
                         && screen.contains("editorButtonWidth") && screen.contains("all QoL ->")
                         && !screen.contains("all player ->") && !screen.contains("[Edit]"));
         String catalog = classText("com.arena.pekaclient.gui.ReferenceSettingsCatalog");
-        check("editor routes expose clear destination labels and Shortcut has native key capture", catalog.contains("Open HUD Editor")
+        check("editor routes expose clear destination labels and Shortcut has native capture/collision rows", catalog.contains("Open HUD Editor")
                 && catalog.contains("Open Item Animation Editor") && catalog.contains("Open Command Keybind Editor")
                 && catalog.contains("Shortcut") && catalog.contains("Wardrobe Shortcut")
+                && catalog.contains("Wardrobe Number Keys") && catalog.contains("Pets Shortcut")
                 && catalog.contains("Item Lock And Swap Key") && screen.contains("beginKeybindCapture")
-                && screen.contains("Backspace clears"));
+                && screen.contains("Backspace clears") && screen.contains("keybindCollisionWarning")
+                && screen.contains("Theme.STATUS_CRITICAL"));
         check("Chat command route enters its requested inline owner after the ordinary reset",
                 classText("com.arena.pekaclient.command.ClientActions").contains("openChatSettings")
                         && !classText("com.arena.pekaclient.command.ClientActions").contains("ChatEditorScreen")

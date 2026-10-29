@@ -52,6 +52,7 @@ final class InlineSettingsBindings {
         if ("slayer-pricing".equals(id)) return AppleSettings.slayerPricing;
 
         if ("wardrobe-shortcut".equals(id)) return AssistSettings.wardrobeShortcut;
+        if ("wardrobe-number-keys".equals(id)) return AssistSettings.wardrobeNumberKeys;
         if ("pets-shortcut".equals(id)) return AssistSettings.petsShortcut;
         if ("command-keybinds".equals(id)) return CommandKeybindSettings.enabled;
 
@@ -157,6 +158,7 @@ final class InlineSettingsBindings {
         else if ("slayer-pricing".equals(id)) AppleSettings.slayerPricing = value;
 
         else if ("wardrobe-shortcut".equals(id)) AssistSettings.wardrobeShortcut = value;
+        else if ("wardrobe-number-keys".equals(id)) AssistSettings.wardrobeNumberKeys = value;
         else if ("pets-shortcut".equals(id)) AssistSettings.petsShortcut = value;
         else if ("command-keybinds".equals(id)) CommandKeybindSettings.enabled = value;
 
@@ -392,7 +394,10 @@ final class InlineSettingsBindings {
         }
         if ("shortcut-reset".equals(id)) {
             AssistSettings.wardrobeShortcut = false;
+            AssistSettings.wardrobeNumberKeys = AssistSettings.DEFAULT_WARDROBE_NUMBER_KEYS;
+            AssistSettings.wardrobeShortcutKeyCode = AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE;
             AssistSettings.petsShortcut = false;
+            AssistSettings.petsShortcutKeyCode = AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE;
             CommandKeybindSettings.reset();
             return true;
         }

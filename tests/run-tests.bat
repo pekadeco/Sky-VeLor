@@ -60,6 +60,10 @@ call :run com.arena.pekaclient.config.DungeonEspSettingsTests || goto fail
 call :run com.arena.pekaclient.config.AssistSettingsTests || goto fail
 call :run com.arena.pekaclient.assist.AssistFeatureTests || goto fail
 call :run com.arena.pekaclient.assist.CommandKeybindSettingsTests || goto fail
+call :run com.arena.pekaclient.assist.WardrobeShortcutPolicyTests || goto fail
+call :run com.arena.pekaclient.assist.WardrobeShortcutControllerSourceTests || goto fail
+call :run com.arena.pekaclient.assist.ShortcutControllerSourceTests || goto fail
+call :run com.arena.pekaclient.gui.CommandKeybindEditorLayoutTests || goto fail
 call :run com.arena.pekaclient.gui.CommandKeybindEditorSourceTests || goto fail
 call :run com.arena.pekaclient.assist.dungeon.DungeonRunReadoutTests || goto fail
 call :run com.arena.pekaclient.assist.dungeon.SpiritBowLocatorTests || goto fail

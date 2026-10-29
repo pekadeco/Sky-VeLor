@@ -116,6 +116,8 @@ public final class FlatDropdownContractTests {
         ReferenceSettingsCatalog.Setting hand = ReferenceSettingsCatalog.find("item-animation");
         ReferenceSettingsCatalog.Setting command = ReferenceSettingsCatalog.find("command-keybinds");
         ReferenceSettingsCatalog.Setting wardrobe = ReferenceSettingsCatalog.find("wardrobe-shortcut");
+        ReferenceSettingsCatalog.Setting wardrobeNumbers = ReferenceSettingsCatalog.find("wardrobe-number-keys");
+        ReferenceSettingsCatalog.Setting pets = ReferenceSettingsCatalog.find("pets-shortcut");
         ReferenceSettingsCatalog.Setting hud = ReferenceSettingsCatalog.find("hud-editor");
         check("Hurt Camera Shake is one inline slider", hurt != null && hurt.control == ReferenceSettingsCatalog.Control.SLIDER
                 && ReferenceSettingsCatalog.find("hurt-camera") == null);
@@ -134,6 +136,11 @@ public final class FlatDropdownContractTests {
                 && "Open Item Animation Editor".equals(hand.actionLabel));
         check("Wardrobe Shortcut is one aligned enabled toggle plus visible key capture", wardrobe != null && wardrobe.isKeybind()
                 && wardrobe.hasMasterToggle() && wardrobe.description.contains("Backspace clears"));
+        check("Wardrobe Number Keys is a direct toggle below Wardrobe", wardrobeNumbers != null
+                && wardrobeNumbers.control == ReferenceSettingsCatalog.Control.TOGGLE
+                && ReferenceSettingsCatalog.ownerOf("wardrobe-number-keys") == ReferenceSettingsCatalog.Tab.GAMEPLAY);
+        check("Pets Shortcut matches Wardrobe capture with its own enabled toggle", pets != null && pets.isKeybind()
+                && pets.hasMasterToggle() && pets.description.contains("Backspace clears"));
         check("Command Keybind is one aligned toggle plus named editor route", command != null && command.isEditor()
                 && command.hasMasterToggle() && "open-command-keybind-editor".equals(command.editorActionId)
                 && "Open Command Keybind Editor".equals(command.actionLabel)

@@ -126,11 +126,11 @@ public class PekaClientMod {
     public static final KeyBinding ITEM_LOCK_SWAP_KEY =
             new KeyBinding("key.pekaclient.itemLockSwap", Keyboard.KEY_L, "key.categories.pekaclient");
 
-    /** User-triggered command shortcuts stay unbound until the player chooses a key in Controls. */
+    /** Fresh installs and Shortcut reset use W/P; an already-saved Controls or Shortcut value always wins instead. */
     public static final KeyBinding WARDROBE_SHORTCUT_KEY =
-            new KeyBinding("key.pekaclient.wardrobeShortcut", Keyboard.KEY_NONE, "key.categories.pekaclient");
+            new KeyBinding("key.pekaclient.wardrobeShortcut", Keyboard.KEY_W, "key.categories.pekaclient");
     public static final KeyBinding PETS_SHORTCUT_KEY =
-            new KeyBinding("key.pekaclient.petsShortcut", Keyboard.KEY_NONE, "key.categories.pekaclient");
+            new KeyBinding("key.pekaclient.petsShortcut", Keyboard.KEY_P, "key.categories.pekaclient");
     private boolean loadingShown;
     /** The world identity already given the explicit Item Animation launcher/hook diagnosis. */
     private Object itemAnimationReportedWorld;
@@ -175,13 +175,22 @@ public class PekaClientMod {
             ITEM_LOCK_SWAP_KEY.setKeyCode(ItemLockSwapSettings.keyCode);
             KeyBinding.resetKeyBindingArrayAndHash();
         }
-        // No saved Shortcut override means existing Minecraft Controls data remains authoritative on this first .1.9 load.
+        // A saved Shortcut value wins. If an older config has no value, retain the Controls binding already loaded by
+        // Minecraft; fresh assist properties explicitly contain the new W/P defaults.
+        boolean shortcutKeysChanged = false;
         if (AssistSettings.validShortcutKeyCode(AssistSettings.wardrobeShortcutKeyCode)) {
             WARDROBE_SHORTCUT_KEY.setKeyCode(AssistSettings.wardrobeShortcutKeyCode);
-            KeyBinding.resetKeyBindingArrayAndHash();
+            shortcutKeysChanged = true;
         } else {
             AssistSettings.wardrobeShortcutKeyCode = WARDROBE_SHORTCUT_KEY.getKeyCode();
         }
+        if (AssistSettings.validShortcutKeyCode(AssistSettings.petsShortcutKeyCode)) {
+            PETS_SHORTCUT_KEY.setKeyCode(AssistSettings.petsShortcutKeyCode);
+            shortcutKeysChanged = true;
+        } else {
+            AssistSettings.petsShortcutKeyCode = PETS_SHORTCUT_KEY.getKeyCode();
+        }
+        if (shortcutKeysChanged) KeyBinding.resetKeyBindingArrayAndHash();
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);
@@ -250,20 +259,39 @@ public class PekaClientMod {
     /** Same explicit capture contract as Item Lock: Escape is owned by the UI, and zero is an intentional clear. */
     public static String rebindWardrobeShortcutKey(int keyCode) {
         if (!AssistSettings.validShortcutKeyCode(keyCode) || keyCode == Keyboard.KEY_ESCAPE) return null;
+        String conflict = rebindShortcutKey(WARDROBE_SHORTCUT_KEY, keyCode);
+        AssistSettings.wardrobeShortcutKeyCode = keyCode;
+        return conflict;
+    }
+
+    /** Pets uses the same persisted visible capture behavior as Wardrobe. */
+    public static String rebindPetsShortcutKey(int keyCode) {
+        if (!AssistSettings.validShortcutKeyCode(keyCode) || keyCode == Keyboard.KEY_ESCAPE) return null;
+        String conflict = rebindShortcutKey(PETS_SHORTCUT_KEY, keyCode);
+        AssistSettings.petsShortcutKeyCode = keyCode;
+        return conflict;
+    }
+
+    /** Applies the documented W/P defaults only after the player explicitly chooses Shortcut reset. */
+    public static void resetShortcutKeysToDefaults() {
+        rebindWardrobeShortcutKey(AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE);
+        rebindPetsShortcutKey(AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE);
+    }
+
+    private static String rebindShortcutKey(KeyBinding own, int keyCode) {
         String conflict = null;
         Minecraft mc = Minecraft.getMinecraft();
         if (keyCode > 0 && mc != null && mc.gameSettings != null && mc.gameSettings.keyBindings != null) {
             KeyBinding[] bindings = mc.gameSettings.keyBindings;
             for (int i = 0; i < bindings.length; i++) {
                 KeyBinding binding = bindings[i];
-                if (binding != null && binding != WARDROBE_SHORTCUT_KEY && binding.getKeyCode() == keyCode) {
+                if (binding != null && binding != own && binding.getKeyCode() == keyCode) {
                     conflict = binding.getKeyDescription();
                     break;
                 }
             }
         }
-        WARDROBE_SHORTCUT_KEY.setKeyCode(keyCode);
-        AssistSettings.wardrobeShortcutKeyCode = keyCode;
+        own.setKeyCode(keyCode);
         KeyBinding.resetKeyBindingArrayAndHash();
         return conflict;
     }
@@ -278,6 +306,9 @@ public class PekaClientMod {
             }
             if (AssistSettings.wardrobeShortcutKeyCode != WARDROBE_SHORTCUT_KEY.getKeyCode()) {
                 AssistSettings.wardrobeShortcutKeyCode = WARDROBE_SHORTCUT_KEY.getKeyCode();
+            }
+            if (AssistSettings.petsShortcutKeyCode != PETS_SHORTCUT_KEY.getKeyCode()) {
+                AssistSettings.petsShortcutKeyCode = PETS_SHORTCUT_KEY.getKeyCode();
             }
             reportItemAnimationWorldJoin(mc);
             if (!loadingShown && StartupTasks.hasWork()) {

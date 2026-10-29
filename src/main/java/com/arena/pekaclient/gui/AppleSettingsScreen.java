@@ -28,6 +28,7 @@ import com.arena.pekaclient.widget.Widget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -72,6 +73,9 @@ public class AppleSettingsScreen extends AppleScreen {
     private static final float ACTION_BUTTON_H = SettingsControlLayout.CONTROL_HEIGHT;
     /** Key labels stay wide enough for NONE and common names such as RSHIFT without truncation. */
     private static final float KEYBIND_BUTTON_W = 82f;
+    /** Reserved under every visible key capsule so a persistent red conflict warning never overlaps row copy. */
+    private static final float KEYBIND_WARNING_H = 11f;
+    private static final float KEYBIND_WARNING_SCALE = .56f;
     /** Every row reserves these fixed right-side columns, even when they are intentionally blank. */
     private static final float CHEVRON_COLUMN_W = SettingsControlLayout.CHEVRON_COLUMN_WIDTH;
     private static final float TOGGLE_COLUMN_W = SettingsControlLayout.TOGGLE_COLUMN_WIDTH;
@@ -818,13 +822,15 @@ public class AppleSettingsScreen extends AppleScreen {
                         TOGGLE_COLUMN_W, mouseX, mouseY);
                 drawEditorButton(setting, actionX, actionY, trailingW, mouseX, mouseY);
             } else if (setting.isKeybind()) {
-                float actionY = trailingActionY(y, baseH);
+                float actionY = keybindControlY(y, baseH);
                 // A distinct full-row key keeps its geometry from mutating the compact button hit in knownHits.
                 // Register it first so the key capsule and optional toggle retain click priority above it.
                 registerHit("keybind-row:" + setting.id, HIT_CONTROL, x + 1f, y + 1f, rowW - 2f, baseH - 1f, setting, "");
                 if (setting.hasMasterToggle()) drawKeybindToggle(setting, Math.max(leftX, editorToggleX(actionX)), actionY,
                         mouseX, mouseY);
                 drawControl(setting, actionX, actionY, trailingW, mouseX, mouseY);
+                drawKeybindConflictWarning(setting, leftX, y + baseH - KEYBIND_WARNING_H + 1f,
+                        Math.max(1f, rowW - ROW_PAD_X * 2f));
             } else if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
                 drawControl(setting, toggleX, centeredControlY(y, baseH, ACTION_BUTTON_H), TOGGLE_COLUMN_W, mouseX, mouseY);
             } else if (inlineControl) {
@@ -941,6 +947,9 @@ public class AppleSettingsScreen extends AppleScreen {
         float textH = 10f + lines * 8f;
         float base = Math.max(textH, controlHeight(setting)) + ROW_PAD_Y * 2f - 1f;
         if (narrowRows && stackedAction) base += controlHeight(setting) + 5f;
+        // Key rows reserve one quiet line even when there is no conflict, preventing late collision text from changing
+        // the row flow or overlapping another control.
+        if (setting.isKeybind()) base += KEYBIND_WARNING_H;
         return Math.max(31f, base);
     }
 
@@ -968,6 +977,13 @@ public class AppleSettingsScreen extends AppleScreen {
     private float trailingActionY(float y, float baseH) {
         return narrowRows ? SettingsControlLayout.stackedY(y, baseH, ACTION_BUTTON_H, 7f)
                 : centeredControlY(y, baseH, ACTION_BUTTON_H);
+    }
+
+    /** Places a key capsule above its always-reserved conflict line on both wide and narrow settings pages. */
+    private float keybindControlY(float y, float baseH) {
+        float usable = Math.max(ACTION_BUTTON_H, baseH - KEYBIND_WARNING_H);
+        return narrowRows ? y + Math.max(0f, baseH - KEYBIND_WARNING_H - ACTION_BUTTON_H - 5f)
+                : centeredControlY(y, usable, ACTION_BUTTON_H);
     }
 
     private float inlineControlX(ReferenceSettingsCatalog.Setting setting, float x, float rowW, float leftX,
@@ -1691,7 +1707,49 @@ public class AppleSettingsScreen extends AppleScreen {
     private int keybindValue(String id) {
         if ("item-lock-key".equals(id)) return PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode();
         if ("wardrobe-shortcut".equals(id)) return PekaClientMod.WARDROBE_SHORTCUT_KEY.getKeyCode();
+        if ("pets-shortcut".equals(id)) return PekaClientMod.PETS_SHORTCUT_KEY.getKeyCode();
         return 0;
+    }
+
+    /** Returns a compact persistent warning for a key that overlaps vanilla Controls or another Sky VeLor binding. */
+    private String keybindCollisionWarning(String id) {
+        int keyCode = keybindValue(id);
+        if (keyCode <= 0) return "";
+        KeyBinding own = keybindForId(id);
+        KeyBinding[] skyVelor = {PekaClientMod.OPEN_KEY, PekaClientMod.ITEM_ANIMATION_KEY, PekaClientMod.LEAP_KEY,
+                PekaClientMod.CHAT_TAB_KEY, PekaClientMod.CHAT_EDITOR_KEY, PekaClientMod.ITEM_LOCK_SWAP_KEY,
+                PekaClientMod.WARDROBE_SHORTCUT_KEY, PekaClientMod.PETS_SHORTCUT_KEY};
+        String[] skyVelorNames = {"Open Menu", "Item Animation", "Spirit Leap", "Chat Tab", "Chat Settings",
+                "Item Lock And Swap", "Wardrobe Shortcut", "Pets Shortcut"};
+        for (int i = 0; i < skyVelor.length; i++) {
+            if (skyVelor[i] != null && skyVelor[i] != own && skyVelor[i].getKeyCode() == keyCode) {
+                return "Key conflict: Sky VeLor " + skyVelorNames[i];
+            }
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc != null && mc.gameSettings != null && mc.gameSettings.keyBindings != null) {
+            for (int i = 0; i < mc.gameSettings.keyBindings.length; i++) {
+                KeyBinding binding = mc.gameSettings.keyBindings[i];
+                if (binding != null && binding != own && binding.getKeyCode() == keyCode) {
+                    return "Key conflict: Minecraft " + binding.getKeyDescription();
+                }
+            }
+        }
+        return "";
+    }
+
+    private void drawKeybindConflictWarning(ReferenceSettingsCatalog.Setting setting, float x, float y, float w) {
+        String warning = keybindCollisionWarning(setting == null ? null : setting.id);
+        if (warning.length() == 0) return;
+        UIRender.text(fr(), fit(fr(), warning, Math.max(12f, w) / KEYBIND_WARNING_SCALE), x, y,
+                Theme.STATUS_CRITICAL, KEYBIND_WARNING_SCALE, false);
+    }
+
+    private static KeyBinding keybindForId(String id) {
+        if ("item-lock-key".equals(id)) return PekaClientMod.ITEM_LOCK_SWAP_KEY;
+        if ("wardrobe-shortcut".equals(id)) return PekaClientMod.WARDROBE_SHORTCUT_KEY;
+        if ("pets-shortcut".equals(id)) return PekaClientMod.PETS_SHORTCUT_KEY;
+        return null;
     }
 
     private void beginKeybindCapture(String id) {
@@ -1732,6 +1790,7 @@ public class AppleSettingsScreen extends AppleScreen {
         String conflict = null;
         if ("item-lock-key".equals(id)) conflict = PekaClientMod.rebindItemLockSwapKey(keyCode);
         else if ("wardrobe-shortcut".equals(id)) conflict = PekaClientMod.rebindWardrobeShortcutKey(keyCode);
+        else if ("pets-shortcut".equals(id)) conflict = PekaClientMod.rebindPetsShortcutKey(keyCode);
         else return;
         Widget widget = controls.get(id);
         if (widget instanceof AppleKeybindButton) ((AppleKeybindButton) widget).finishCapture();
@@ -2023,6 +2082,9 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         if (handleChatAction(id)) return;
         if (InlineSettingsBindings.runAction(id)) {
+            // Shortcut reset deliberately restores W/P only after this explicit player action, never while loading an
+            // established config that merely lacks the newer key fields.
+            if ("shortcut-reset".equals(id)) PekaClientMod.resetShortcutKeysToDefaults();
             showToast("Applied " + actionToastLabel(id));
             return;
         }

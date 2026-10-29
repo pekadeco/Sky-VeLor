@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.1.9v
+# Apple settings inventory — Beta-0.10.9.2v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -87,22 +87,29 @@ continues to use the established owners; no reset dropdown was added.
 - **HUD Editor** uses **Open HUD Editor**.
 - **Item Animation** is a master toggle plus **Open Item Animation Editor**.
 - **QoL → Shortcut** is a standalone card styled like **Inventory And Chat**. It owns **Wardrobe Shortcut**,
-  **Pets Shortcut**, **Command Keybind**, and its compact reset link. New settings save below `assist.shortcut.*`;
-  `.1.8v` `assist.keybindCut.*`, older `assist.movement.*` / `assist.shortcuts.*`, and flat aliases still load, with
-  new Shortcut keys taking precedence.
-- **Wardrobe Shortcut** is an enabled key-capture row: click the whole row or key capsule to capture a key, Escape to
-  cancel, and Backspace to persist `NONE`. A physical down edge sends `/wardrobe` only while enabled, a player exists,
-  and no GUI is open. Number keys `1`–`9` are intercepted only for a recognized title-bearing Wardrobe `GuiChest` with
-  a real `ContainerChest`; each non-repeat input makes at most one ordinary `windowClick` on slots `36`–`44`. Chat and
-  unrelated GUIs fail closed. This is direct user input, not movement, packet, farming, automatic click, or repeat
-  automation.
-- **Command Keybind** entries store a physical key, slash command, and per-entry on/off state. The solid no-dim editor
-  has one compact line per entry: key, command field, On/Off pill, and full **Delete** button; it scrolls only after
-  its capped visible rows and retains **Add** / **Reset** in the footer. Click capture, Escape cancel, Backspace key
-  clear, persistence, and collision warnings remain. The field owns Space and ordinary characters while focused,
-  committing only on focus loss/close so `/warp hub` and inner spaces survive while outer whitespace is trimmed. The
-  runtime samples physical key-down edges only; it sends the first enabled creation-order command for a duplicated
-  key only when no chat, GUI, or editor is open, and uses a short cooldown.
+  **Wardrobe Number Keys**, **Pets Shortcut**, **Command Keybind**, and its compact reset link. New settings save below
+  `assist.shortcut.*`; `.1.8v` `assist.keybindCut.*`, older `assist.movement.*` / `assist.shortcuts.*`, and flat
+  aliases still load, with new Shortcut keys taking precedence.
+- **Wardrobe Shortcut** and **Pets Shortcut** are enabled key-capture rows: click the whole row or key capsule to
+  capture a key, Escape to cancel, and Backspace to persist `NONE`. Fresh installs and explicit Shortcut reset use
+  `W` for Wardrobe and `P` for Pets, while an established saved Controls/Shortcut key remains authoritative. Each key
+  row reserves a small red warning line for a collision with a Minecraft control or another Sky VeLor keybind. A
+  physical Wardrobe down edge sends `/wardrobe` only while enabled, a player exists, and no GUI is open. Pets uses the
+  same direct physical edge/no-screen gate for `/pets` while retaining its server guard.
+- **Wardrobe Number Keys** defaults on. Only while it and Wardrobe Shortcut are enabled, number keys `1`–`9` are
+  intercepted in a recognized title-bearing Wardrobe `GuiChest` with a real `ContainerChest`; each non-repeat input
+  makes at most one ordinary `windowClick` on slots `36`–`44`. Turning it off does nothing special with numbers.
+  Chat and unrelated GUIs fail closed. This is direct user input, not movement, packet, farming, automatic click, or
+  repeat automation.
+- **Command Keybind** entries store only a physical key and slash command; there is no per-entry On/Off state. A valid
+  key plus command is active under the existing master switch, and old saved On/Off records migrate as active entries.
+  Its solid centered window uses roughly 60% of normal GUI width, a title bar/close button, a fixed Add/Reset footer,
+  and a clipped scroll area. Normal screens show key, command field, and full **Delete** button on one readable row;
+  narrow Android/Pojav layouts put the command field beneath the key/Delete pair instead of overlapping or clipping.
+  Click capture, Escape cancel, Backspace clear, persistence, and red in-row collision warnings remain. The field owns
+  Space and ordinary characters while focused, committing only on focus loss/close so `/warp hub` and inner spaces
+  survive while outer whitespace is trimmed. The runtime samples physical key-down edges only; it sends the first
+  creation-order command for a duplicated key only when no chat, GUI, or editor is open, and uses a short cooldown.
 - **Item Lock And Swap** accepts a new pair only when at least one endpoint is in the hotbar. Its current L (or custom)
   binding is visible in a full-row key capture control: Escape cancels and Backspace persists `NONE`, which disables
   the physical gesture. Inventory↔hotbar and armor↔hotbar routes remain legal; inventory-only and armor-only legacy
@@ -154,21 +161,23 @@ Animation values continue to load unchanged.
 
 ## Command Keybind editor
 
-**QoL → Shortcut → Open Command Keybind Editor** opens `CommandKeybindEditorScreen`. It uses the same compact
-opaque/no-dim panel treatment as Item Animation, rather than a vanilla dialog or a fullscreen veil. Each row is one
-line with a click-to-capture key, direct slash-command text field, per-entry On/Off pill, and fully visible **Delete**
-button; the footer provides **Add** and **Reset**. The panel is content-height-sized up to seven visible rows, then
-scrolls. Escape cancels a pending key capture, and Backspace clears that captured key. The editor warns before the
-player leaves if a key collides with another Command Keybind, a Sky VeLor binding, or a Minecraft control.
+**QoL → Shortcut → Open Command Keybind Editor** opens `CommandKeybindEditorScreen`. It is a centered, opaque
+settings-sized window at roughly 60% of ordinary GUI width, with a readable title bar, explicit Close button, clipped
+scroll area, and fixed **Add** / **Reset** footer. It never opens at the top-left corner. On a normal screen each row
+has a click-to-capture key, direct slash-command field, and fully visible **Delete** button. On narrow Android/Pojav
+launcher coordinates the command field moves below the key/Delete pair rather than overlapping or clipping text.
+Escape cancels a pending key capture and Backspace clears that captured key. A small red warning is painted in the
+same entry whenever its key collides with another Command Keybind, a Sky VeLor binding, or a Minecraft control.
 
-Entries now persist under `assist.shortcut.commandKeybinds` and
-`assist.shortcut.commandKeybinds.entries`; the previous `.1.8v` `assist.keybindCut.commandKeybinds` namespace loads
-once and is removed on the next save. The master switch is default off. A command must have a slash, a valid key, and
-an enabled entry. Raw field text stays intact while focused—normal characters and spaces are not consumed by outer GUI
-handlers—and normalization trims only its ends on commit. The client sends it only from a new physical key-down edge
-while `currentScreen` is absent, which excludes chat, all GUIs, and the editor itself. A 300 ms cooldown and held-key
-edge tracking prevent automatic repetition. Duplicate command-entry keys dispatch only their first creation-order
-entry; the collision warning remains visible so this is never silent.
+Entries persist under `assist.shortcut.commandKeybinds` and `assist.shortcut.commandKeybinds.entries`; the previous
+`.1.8v` `assist.keybindCut.commandKeybinds` namespace loads once and is removed on the next save. The editor has no
+per-entry On/Off state: under the default-off master switch, an entry is executable when it has a slash command and a
+valid key. Old saved per-entry false values are deliberately read as active entries, so existing commands do not
+silently disappear. Raw field text stays intact while focused—normal characters and spaces are not consumed by outer
+GUI handlers—and normalization trims only its ends on commit. The client sends it only from a new physical key-down
+edge while `currentScreen` is absent, which excludes chat, all GUIs, and the editor itself. A 300 ms cooldown and
+held-key edge tracking prevent automatic repetition. Duplicate command-entry keys dispatch only their first
+creation-order entry; the collision warning remains visible so this is never silent.
 
 ## Wardrobe behavioral attribution
 
@@ -182,7 +191,7 @@ assets, binaries, or dependency code were copied. The complete attribution and c
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.1.9v text |
+| Earlier player-facing text | Beta-0.10.9.2v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -239,8 +248,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.9v.jar \
-  --version Beta-0.10.9.1.9v --mcmod-version 0.10.9.1.9
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2v.jar \
+  --version Beta-0.10.9.2v --mcmod-version 0.10.9.2
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are

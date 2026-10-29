@@ -43,7 +43,7 @@ public final class InlineOptionPreservationTests {
                 "rarity-highlight", "roman-numerals", "sea-hp-hud-route", "shadows", "slayer-boss-timer", "slayer-pricing",
                 "slayer-tracker", "smooth-scrolling", "spirit-bow-locator", "spirit-leap", "sv-command", "terminal-auto-click",
                 "terminal-hide-wrong", "terminal-hints", "terminal-prevent-clicks", "terminal-scale", "terminal-waypoints",
-                "tooltip-scroll", "wardrobe-shortcut"));
+                "tooltip-scroll", "wardrobe-shortcut", "wardrobe-number-keys"));
         addStyleOptions(expected, "esp-starred");
         addStyleOptions(expected, "esp-miniboss");
         addStyleOptions(expected, "esp-special");

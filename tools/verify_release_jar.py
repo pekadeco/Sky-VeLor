@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.1.9v] [--mcmod-version 0.10.9.1.9]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.2v] [--mcmod-version 0.10.9.2]
 """
 
 import argparse
@@ -104,6 +104,7 @@ REQUIRED_CLASSES = [
     'gui/HudEditorSelectionPolicy',
     'gui/ItemAnimationEditorScreen',
     'gui/CommandKeybindEditorScreen',
+    'gui/CommandKeybindEditorLayout',
     'gui/ItemAnimationPanelModel',
     'dungeon/TerminalSolver',
     'dungeon/DungeonMapOverlay',
@@ -366,8 +367,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.1.9v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.1.9')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.2v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.2')
     args = ap.parse_args()
 
     path = args.jar
@@ -539,9 +540,11 @@ def main():
     item_slots_raw = raw_of('hud/ItemSlots')
     item_animation_editor_raw = raw_family_of('gui/ItemAnimationEditorScreen')
     command_keybind_editor_raw = raw_family_of('gui/CommandKeybindEditorScreen')
+    command_keybind_editor_layout_raw = raw_of('gui/CommandKeybindEditorLayout')
     command_keybind_settings_raw = raw_of('assist/CommandKeybindSettings')
     command_keybind_policy_raw = raw_of('assist/CommandKeybindPolicy')
     command_keybind_controller_raw = raw_of('assist/CommandKeybindController')
+    shortcut_controller_raw = raw_of('assist/ShortcutController')
     wardrobe_shortcut_policy_raw = raw_of('assist/WardrobeShortcutPolicy')
     wardrobe_shortcut_controller_raw = raw_of('assist/WardrobeShortcutController')
     item_animation_panel_raw = raw_of('gui/ItemAnimationPanelModel')
@@ -661,12 +664,13 @@ def main():
     aspect_transformer_raw = raw_family_of('assist/visual/AspectTeleportCameraTransformer')
     r.check(all(value in assist_settings_raw for value in
                 (b'assist.visual.hurtCameraShake', b'assist.visual.smoothAspectTeleport', b'assist.shortcut.autoSprint',
-                 b'assist.shortcut.wardrobe', b'assist.shortcut.wardrobeKey', b'assist.shortcut.pets',
-                 b'assist.keybindCut.autoSprint', b'assist.keybindCut.wardrobe', b'movement.autoSprint',
-                 b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled', b'assist.dungeon.sync.endpoint',
-                 b'assist.dungeon.spiritBowLocator', b'spiritBowLocator', b'assist.dungeon.terminal.autoClick',
-                 b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
-            'AssistSettings retains bounded visual, comfort, Shortcut migration, terminal, sync and opt-in Spirit Bow locator owners')
+                 b'assist.shortcut.wardrobe', b'assist.shortcut.wardrobeKey', b'assist.shortcut.wardrobeNumberKeys',
+                 b'assist.shortcut.pets', b'assist.shortcut.petsKey', b'DEFAULT_WARDROBE_SHORTCUT_KEY_CODE',
+                 b'DEFAULT_PETS_SHORTCUT_KEY_CODE', b'assist.keybindCut.autoSprint', b'assist.keybindCut.wardrobe',
+                 b'movement.autoSprint', b'assist.comfort.hideDeadMobs', b'assist.dungeon.sync.enabled',
+                 b'assist.dungeon.sync.endpoint', b'assist.dungeon.spiritBowLocator', b'spiritBowLocator',
+                 b'assist.dungeon.terminal.autoClick', b'hurtCameraShakeMultiplier')) and b'itemGuard' not in assist_settings_raw,
+            'AssistSettings retains bounded visual, comfort, W/P Shortcut migration, Wardrobe-number preference, terminal, sync and opt-in Spirit Bow locator owners')
     # Raw bytes include declaration names; parse_class.members_of intentionally only reports referenced members.
     aspect_policy_values = (b'isAspectTeleportItem', b'isLargePositionJump', b'cameraProgress', b'aspect of the end',
                             b'aspect of the void', b'CAMERA_INTERPOLATION_NANOS')
@@ -826,10 +830,13 @@ def main():
                 and b'ItemAnimationHookStatus' not in hud_editor_raw,
             'HUD Editor contains no Item Animation target, sample-panel surface, or renderer controls')
     r.check(all(value in reference_catalog_raw for value in
-                (b'Shortcut', b'Wardrobe Shortcut', b'item-lock-key', b'Command Keybind', b'Open Command Keybind Editor'))
-                and b'command-keybinds' in bindings_raw and b'open-command-keybind-editor' in settings_screen_raw
-                and b'AppleKeybindButton' in settings_screen_raw and b'beginKeybindCapture' in settings_screen_raw,
-            'Shortcut is a standalone card with visible Item Lock/Wardrobe capture controls and Command Keybind route')
+                (b'Shortcut', b'Wardrobe Shortcut', b'Wardrobe Number Keys', b'Pets Shortcut', b'item-lock-key',
+                 b'Command Keybind', b'Open Command Keybind Editor'))
+                and all(value in bindings_raw for value in (b'wardrobe-number-keys', b'pets-shortcut'))
+                and b'open-command-keybind-editor' in settings_screen_raw and b'AppleKeybindButton' in settings_screen_raw
+                and b'beginKeybindCapture' in settings_screen_raw and b'PETS_SHORTCUT_KEY' in client_raw
+                and b'rebindPetsShortcutKey' in client_raw and b'resetShortcutKeysToDefaults' in client_raw,
+            'Shortcut is a standalone card with W/P capture controls, Wardrobe Number Keys, explicit defaults and Command Keybind route')
     r.check(all(value in command_keybind_settings_raw for value in
                 (b'assist.shortcut.commandKeybinds', b'assist.keybindCut.commandKeybinds', b'.entries', b'MAX_ENTRIES', b'normalizeCommand',
                  b'firstExecutableForKey'))
@@ -840,16 +847,24 @@ def main():
             'Command Keybind persistence, physical-edge cooldown policy and registered direct-user runtime are packaged')
     r.check(all(value in command_keybind_editor_raw for value in
                 (b'Command Keybind', b'AppleKeybindButton', b'Key capture canceled', b'Key cleared',
-                 b'Warning: conflicts with Sky VeLor ', b'Warning: conflicts with Minecraft ', b'AppleSettings'))
-                and b'drawDefaultBackground' not in command_keybind_editor_raw,
-            'Command Keybind editor is an opaque compact one-line add/delete/capture/reset surface with focused space entry and visible collision warnings')
+                 b'Warning: conflicts with Sky VeLor ', b'Warning: conflicts with Minecraft ', b'AppleSettings',
+                 b'CommandKeybindEditorLayout', b'drawTitleBar', b'drawScrollBar'))
+                and all(value in command_keybind_editor_layout_raw for value in
+                        (b'PANEL_WIDTH_RATIO', b'PANEL_HEIGHT_RATIO', b'COMPACT_ROW_BREAKPOINT', b'panelX', b'panelY'))
+                and b'AppleToggle' not in command_keybind_editor_raw and b'drawDefaultBackground' not in command_keybind_editor_raw,
+            'Command Keybind editor is an opaque centered responsive add/delete/capture/reset window with no per-entry toggle, focused space entry and visible collision warnings')
+    r.check(all(value in shortcut_controller_raw for value in
+                (b'PETS_SHORTCUT_KEY', b'Keyboard', b'/pets', b'petsWasDown', b'isFakepixel'))
+                and all(value not in shortcut_controller_raw for value in
+                        (b'isPressed', b'sendPacket', b'setPosition', b'clickMouse')),
+            'Pets Shortcut remains one physical key-down edge with player/screen/server guards and no automation path')
     wardrobe_policy_values = (b'shouldOpenWardrobe', b'shouldSelectSlot', b'FIRST_WARDROBE_SLOT',
                               b'LAST_WARDROBE_SLOT', b'isWardrobeTitle')
     # Minecraft GUI/container type names and PlayerControllerMP.windowClick are reobfuscated in the shipped jar.
     # Require the stable Forge input event, LWJGL key source, local guard policy, command literal, and the 1.8.9
     # SRG window-click member here; source tests separately audit the readable GuiChest/ContainerChest gates.
     wardrobe_controller_values = (b'Keyboard', b'KeyboardInputEvent$Pre', b'WardrobeShortcutPolicy', b'/wardrobe',
-                                  b'func_78753_a')
+                                  b'wardrobeNumberKeys', b'func_78753_a')
     wardrobe_forbidden_values = (b'sendPacket', b'setPosition', b'setLocationAndAngles', b'clickMouse', b'Thread.sleep')
     r.check(all(value in wardrobe_shortcut_policy_raw for value in wardrobe_policy_values)
                 and all(value in wardrobe_shortcut_controller_raw for value in wardrobe_controller_values)

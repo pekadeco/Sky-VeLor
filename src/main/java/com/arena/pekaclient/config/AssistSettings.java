@@ -27,6 +27,10 @@ public final class AssistSettings {
     public static final boolean DEFAULT_RARITY_HIGHLIGHT = true;
     /** Client-side visual cleanup for dead/dying mob and server-NPC body/nameplate renders. */
     public static final boolean DEFAULT_HIDE_DEAD_MOBS = true;
+    /** LWJGL 1.8.9 key codes kept as plain constants so this persistence model stays Minecraft-independent. */
+    public static final int DEFAULT_WARDROBE_SHORTCUT_KEY_CODE = 17; // W
+    public static final int DEFAULT_PETS_SHORTCUT_KEY_CODE = 25; // P
+    public static final boolean DEFAULT_WARDROBE_NUMBER_KEYS = true;
 
     public static boolean miningAbilityAlert;
     public static boolean miningPuzzlerMarker;
@@ -42,9 +46,13 @@ public final class AssistSettings {
 
     public static boolean autoSprint;
     public static boolean wardrobeShortcut;
-    /** -1 means preserve the established Minecraft Controls binding until this feature is explicitly captured. */
+    /** -1 means preserve an established Minecraft Controls binding until this feature is explicitly captured. */
     public static int wardrobeShortcutKeyCode;
+    /** Direct number-key selection is opt-in at the Wardrobe GUI only and defaults on to preserve .1.9 behavior. */
+    public static boolean wardrobeNumberKeys;
     public static boolean petsShortcut;
+    /** -1 has the same preserve-existing-controls meaning as the Wardrobe key. */
+    public static int petsShortcutKeyCode;
     /** QoL visual owner for render-only dead mob/server-NPC body and nameplate cleanup. */
     public static boolean hideDeadMobs;
 
@@ -85,8 +93,12 @@ public final class AssistSettings {
         smoothAspectTeleport = DEFAULT_SMOOTH_ASPECT_TELEPORT;
         autoSprint = false;
         wardrobeShortcut = false;
-        wardrobeShortcutKeyCode = -1;
+        // Fresh installs and the visible Shortcut reset start with W/P. Established configurations without an explicit
+        // shortcut key retain their existing Controls binding instead of being overwritten by this new default.
+        wardrobeShortcutKeyCode = freshInstall ? DEFAULT_WARDROBE_SHORTCUT_KEY_CODE : -1;
+        wardrobeNumberKeys = DEFAULT_WARDROBE_NUMBER_KEYS;
         petsShortcut = false;
+        petsShortcutKeyCode = freshInstall ? DEFAULT_PETS_SHORTCUT_KEY_CODE : -1;
         CommandKeybindSettings.reset();
         // This is a visual cleanup, not combat automation: it is deliberately useful on new and established configs.
         hideDeadMobs = DEFAULT_HIDE_DEAD_MOBS;
@@ -121,8 +133,13 @@ public final class AssistSettings {
         // original aliases preserve established choices on their first load before save rewrites them under shortcut.*.
         autoSprint = shortcutBool(p, "shortcut.autoSprint", "keybindCut.autoSprint", "movement.autoSprint", "autoSprintEnabled", false);
         wardrobeShortcut = shortcutBool(p, "shortcut.wardrobe", "keybindCut.wardrobe", "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
-        wardrobeShortcutKeyCode = shortcutKeyCode(p);
+        int savedWardrobeKey = shortcutKeyCode(p, "shortcut.wardrobeKey", "keybindCut.wardrobeKey");
+        if (savedWardrobeKey >= 0) wardrobeShortcutKeyCode = savedWardrobeKey;
+        wardrobeNumberKeys = shortcutBool(p, "shortcut.wardrobeNumberKeys", "keybindCut.wardrobeNumberKeys",
+                "shortcuts.wardrobeNumberKeys", null, DEFAULT_WARDROBE_NUMBER_KEYS);
         petsShortcut = shortcutBool(p, "shortcut.pets", "keybindCut.pets", "shortcuts.pets", "petsShortcutEnabled", false);
+        int savedPetsKey = shortcutKeyCode(p, "shortcut.petsKey", "keybindCut.petsKey");
+        if (savedPetsKey >= 0) petsShortcutKeyCode = savedPetsKey;
         CommandKeybindSettings.load(p);
         // The Comfort key wins. The former ESP-local zero-health flag migrates once so an explicit OFF choice is
         // preserved, while absent keys use the new default and include deathTime animation frames.
@@ -153,10 +170,14 @@ public final class AssistSettings {
         p.remove(PREFIX + "keybindCut.autoSprint");
         p.remove(PREFIX + "keybindCut.wardrobe");
         p.remove(PREFIX + "keybindCut.wardrobeKey");
+        p.remove(PREFIX + "keybindCut.wardrobeNumberKeys");
         p.remove(PREFIX + "keybindCut.pets");
+        p.remove(PREFIX + "keybindCut.petsKey");
         p.remove(PREFIX + "movement.autoSprint");
         p.remove(PREFIX + "shortcuts.wardrobe");
+        p.remove(PREFIX + "shortcuts.wardrobeNumberKeys");
         p.remove(PREFIX + "shortcuts.pets");
+        p.remove(PREFIX + "shortcuts.petsKey");
         p.remove("autoSprintEnabled");
         p.remove("wardrobeShortcutEnabled");
         p.remove("petsShortcutEnabled");
@@ -172,12 +193,10 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "visual.smoothAspectTeleport", Boolean.toString(smoothAspectTeleport));
         p.setProperty(PREFIX + "shortcut.autoSprint", Boolean.toString(autoSprint));
         p.setProperty(PREFIX + "shortcut.wardrobe", Boolean.toString(wardrobeShortcut));
-        if (validShortcutKeyCode(wardrobeShortcutKeyCode)) {
-            p.setProperty(PREFIX + "shortcut.wardrobeKey", Integer.toString(wardrobeShortcutKeyCode));
-        } else {
-            p.remove(PREFIX + "shortcut.wardrobeKey");
-        }
+        saveShortcutKeyCode(p, "shortcut.wardrobeKey", wardrobeShortcutKeyCode);
+        p.setProperty(PREFIX + "shortcut.wardrobeNumberKeys", Boolean.toString(wardrobeNumberKeys));
         p.setProperty(PREFIX + "shortcut.pets", Boolean.toString(petsShortcut));
+        saveShortcutKeyCode(p, "shortcut.petsKey", petsShortcutKeyCode);
         CommandKeybindSettings.save(p);
         p.setProperty(PREFIX + "comfort.hideDeadMobs", Boolean.toString(hideDeadMobs));
         p.setProperty(PREFIX + "dungeon.sync.enabled", Boolean.toString(dungeonSync));
@@ -218,6 +237,7 @@ public final class AssistSettings {
         terminalScale = clamp(terminalScale, MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE);
         hurtCameraShake = clamp(hurtCameraShake, MIN_HURT_CAMERA_SHAKE, MAX_HURT_CAMERA_SHAKE);
         if (!validShortcutKeyCode(wardrobeShortcutKeyCode)) wardrobeShortcutKeyCode = -1;
+        if (!validShortcutKeyCode(petsShortcutKeyCode)) petsShortcutKeyCode = -1;
     }
 
     /**
@@ -260,9 +280,10 @@ public final class AssistSettings {
         return keyCode >= 0 && keyCode <= 255;
     }
 
-    private static int shortcutKeyCode(Properties p) {
-        String value = p.getProperty(PREFIX + "shortcut.wardrobeKey");
-        if (value == null) value = p.getProperty(PREFIX + "keybindCut.wardrobeKey");
+    /** Returns -1 only when no valid persisted value exists, preserving an established Controls binding on older files. */
+    private static int shortcutKeyCode(Properties p, String currentPath, String predecessorPath) {
+        String value = p.getProperty(PREFIX + currentPath);
+        if (value == null && predecessorPath != null) value = p.getProperty(PREFIX + predecessorPath);
         if (value == null) return -1;
         try {
             int code = Integer.parseInt(value.trim());
@@ -270,6 +291,11 @@ public final class AssistSettings {
         } catch (NumberFormatException ignored) {
             return -1;
         }
+    }
+
+    private static void saveShortcutKeyCode(Properties p, String path, int keyCode) {
+        if (validShortcutKeyCode(keyCode)) p.setProperty(PREFIX + path, Integer.toString(keyCode));
+        else p.remove(PREFIX + path);
     }
 
     /** New Shortcut keys take precedence over Keybind Cut, older section paths, and then flat aliases. */

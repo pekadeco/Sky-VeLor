@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 
-/** Source-level contract for the deliberately custom, opaque Command Keybind editor surface. */
+/** Source-level contract for the centered, opaque Command Keybind editor surface. */
 public final class CommandKeybindEditorSourceTests {
     private static int passed;
     private static int failed;
@@ -13,16 +13,21 @@ public final class CommandKeybindEditorSourceTests {
         File source = new File(repositoryRoot(), "src/main/java/com/arena/pekaclient/gui/CommandKeybindEditorScreen.java");
         String text = source.isFile() ? read(source) : "";
         check("Command Keybind editor source exists", source.isFile());
-        check("editor is solid and undimmed like Item Animation", text.contains("Theme.ITEM_ANIMATION_PANEL")
-                && text.contains("roundRectBorder") && !text.contains("drawDefaultBackground"));
-        check("editor exposes compact one-line add delete capture clear and reset paths", text.contains("new AppleButton(\"Add\"")
+        check("editor is a solid centered settings-sized window", text.contains("CommandKeybindEditorLayout")
+                && text.contains("layout.panelX") && text.contains("layout.panelY") && text.contains("drawTitleBar")
+                && text.contains("Theme.ITEM_ANIMATION_PANEL") && text.contains("roundRectBorder")
+                && !text.contains("drawDefaultBackground"));
+        check("editor exposes normal add delete capture clear reset and responsive scrolling paths", text.contains("new AppleButton(\"Add\"")
                 && text.contains("new AppleButton(\"Delete\"") && text.contains("new AppleButton(\"Reset\"")
-                && text.contains("MAX_VISIBLE_ROWS") && text.contains("ROW_H") && text.contains("DELETE_W")
-                && text.contains("AppleKeybindButton") && text.contains("Keyboard.KEY_BACK") && text.contains("Keyboard.KEY_ESCAPE"));
+                && text.contains("layout.compactRows") && text.contains("drawScrollBar") && text.contains("AppleKeybindButton")
+                && text.contains("Keyboard.KEY_BACK") && text.contains("Keyboard.KEY_ESCAPE"));
+        check("editor removes the per-entry On Off control and uses key plus command eligibility", !text.contains("AppleToggle")
+                && !text.contains("enabledToggle") && text.contains("A command is active when it has both a key"));
         check("focused command entry owns space and defers outer-trim persistence until focus leaves", text.contains("Keyboard.KEY_SPACE")
-                && text.contains("commitCommand") && text.contains("focusCommand") && text.contains("inner space"));
-        check("editor visibly warns command, Sky VeLor and Minecraft collisions", text.contains("hasOtherEntryWithKey")
-                && text.contains("Sky VeLor") && text.contains("Minecraft ") && text.contains("collisionWarning"));
+                && text.contains("commitCommand") && text.contains("focusCommand") && text.contains("Inner spaces"));
+        check("editor visibly warns command, Sky VeLor and Minecraft collisions in the affected row", text.contains("hasOtherEntryWithKey")
+                && text.contains("Sky VeLor") && text.contains("Minecraft ") && text.contains("collisionWarning")
+                && text.contains("Theme.STATUS_CRITICAL"));
         check("editor persists through established settings save", text.contains("AppleSettings.save()")
                 && text.contains("doesGuiPauseGame"));
         System.out.println("command keybind editor source: passed " + passed + ", failed " + failed);

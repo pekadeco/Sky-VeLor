@@ -63,7 +63,7 @@ public final class InlineSettingsCatalogTests {
         check("required feature ownership remains complete", ReferenceSettingsCatalog.routesAreComplete());
         String[] preserved = {
                 "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
-                "item-lock-swap", "item-lock-key", "chat-qol", "wardrobe-shortcut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
+                "item-lock-swap", "item-lock-key", "chat-qol", "wardrobe-shortcut", "wardrobe-number-keys", "pets-shortcut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
                 "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
                 "dungeon-sync-enabled", "mining-bps", "mining-assistant-settings", "catch-counter",
                 "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation", "system-appearance", "system-performance"
@@ -108,6 +108,11 @@ public final class InlineSettingsCatalogTests {
         check("Item Lock has an explicit click-to-capture key field", itemLockKey != null
                 && itemLockKey.control == ReferenceSettingsCatalog.Control.KEYBIND
                 && itemLockKey.description.contains("Backspace clears"));
+        ReferenceSettingsCatalog.Setting petsKey = ReferenceSettingsCatalog.find("pets-shortcut");
+        ReferenceSettingsCatalog.Setting wardrobeNumbers = ReferenceSettingsCatalog.find("wardrobe-number-keys");
+        check("Shortcut exposes Pets capture and the Wardrobe number-key preference", petsKey != null
+                && petsKey.control == ReferenceSettingsCatalog.Control.KEYBIND && petsKey.hasMasterToggle()
+                && wardrobeNumbers != null && wardrobeNumbers.control == ReferenceSettingsCatalog.Control.TOGGLE);
         Properties p = new Properties();
         FeatureUiPreferences.load(p);
         openParents(chat);

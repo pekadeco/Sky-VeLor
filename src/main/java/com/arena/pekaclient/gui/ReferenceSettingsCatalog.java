@@ -135,7 +135,7 @@ public final class ReferenceSettingsCatalog {
     /** Direct feature owners; ids are presentation ids, never replacement configuration keys. */
     public static final String[] REQUIRED_ROUTE_IDS = {
             "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
-            "item-lock-swap", "inventory-assist", "chat-qol", "wardrobe-shortcut", "command-keybinds", "slayer-tracker",
+            "item-lock-swap", "inventory-assist", "chat-qol", "wardrobe-shortcut", "wardrobe-number-keys", "pets-shortcut", "command-keybinds", "slayer-tracker",
             "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "m7-overlay",
             "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
             "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation",
@@ -232,7 +232,11 @@ public final class ReferenceSettingsCatalog {
                     keybind("wardrobe-shortcut", "Wardrobe Shortcut",
                             "Enable, then click the key. Esc cancels; Backspace clears.",
                             "wardrobe key bind capture", true),
-                    toggle("pets-shortcut", "Pets Shortcut", "Use the Pets key shortcut.", "pets key"),
+                    toggle("wardrobe-number-keys", "Wardrobe Number Keys",
+                            "Use 1–9 to choose sets while the Wardrobe is open.", "wardrobe gear sets number keys"),
+                    keybind("pets-shortcut", "Pets Shortcut",
+                            "Enable, then click the key. Esc cancels; Backspace clears.",
+                            "pets key bind capture", true),
                     editor("command-keybinds", "Command Keybind",
                             "Send a slash command from a physical key press.",
                             "command keybind slash key collision", true,

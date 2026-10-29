@@ -1,5 +1,41 @@
 # Changelog
 
+## Beta-0.10.9.2v — 2026-10-29
+
+### Fixed
+
+- Rebuilt **Command Keybind Editor** from its top-left compact palette into a centered, solid settings-sized window.
+  It now has a title bar, close button, normal text/control sizes, a clipped entry scroll area, and an anchored
+  **Add** / **Reset** footer. Narrow Android/Pojav-style GUI sizes use a two-line entry form instead of overlap or
+  cutoff.
+- Removed the per-entry Command Keybind On/Off control. An entry now has a single clear active condition: a valid key
+  plus slash command under the existing master switch. Prior serialized true/false entry records load as active so no
+  saved command is silently disabled.
+- Visible Item Lock, Wardrobe, and Pets key rows reserve small red in-row warnings when their selected key conflicts
+  with a Minecraft control or another Sky VeLor keybind.
+
+### Added
+
+- Added **Pets Shortcut** key capture beside its enabled toggle. It supports click capture, Escape cancel, Backspace
+  clear, saved-key migration, and one physical `/pets` edge from normal gameplay.
+- Added **Wardrobe Number Keys**, default on, under Wardrobe Shortcut. It controls whether physical `1`–`9` inputs
+  select the recognized Wardrobe menu slots; off leaves those keys alone.
+- Added focused responsive Command Keybind layout, migration, Pets input-boundary, Wardrobe-number-option, key-default,
+  and collision-warning coverage.
+
+### Changed
+
+- Fresh installs and explicit **Shortcut → Reset to defaults** now set Wardrobe Shortcut to `W` and Pets Shortcut to
+  `P`. Existing saved Shortcut/Controls values remain authoritative and are never replaced merely because an older
+  config lacks the new fields.
+- Preserved GUI, Item Lock / Swap legality/multi-pair behavior, Hide Dead Mobs, Smooth Aspect Teleport, Item Animation
+  editor, Dungeon ESP, Chat QoL, old configuration loading, and Minecraft 1.8.9 Forge compatibility.
+
+### Verification boundary
+
+- Java 8 Forge CI, standalone logic/layout tests, reobfuscated JAR verification, and curated source-archive checks are
+  required before publishing. They do not launch Minecraft; this release is **NOT tested in-game**.
+
 ## Beta-0.10.9.1.9v — 2026-10-29
 
 ### Fixed

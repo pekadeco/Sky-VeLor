@@ -1,27 +1,23 @@
-# Sky VeLor — Beta-0.10.9.1.9v
+# Sky VeLor — Beta-0.10.9.2v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, Shortcut, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.1.9v — Shortcut and key-capture polish
+## Beta-0.10.9.2v — Shortcut editor and key polish
 
-- **Item Lock And Swap Key** now visibly shows its binding and supports full-row click-to-capture: press a key to set
-  it, Escape to cancel, or Backspace to clear it to `NONE`. A cleared binding safely disables the physical L gesture.
-- Replaces the visible **Keybind Cut** dropdown with a standalone **Shortcut** card beside **Inventory And Chat**.
-  Existing `assist.keybindCut.*`, older movement/shortcut aliases, and Command Keybind records migrate to the new
-  `assist.shortcut.*` namespace without resetting a saved choice.
-- Adds a visible **Wardrobe Shortcut** enable toggle and key capsule with the same capture/cancel/clear interaction.
-  The saved Minecraft Controls binding is preserved when no new feature override exists.
-- Wardrobe uses only direct physical player input: its key can send `/wardrobe` from normal gameplay, and a number
-  key `1`–`9` makes one ordinary selection of slots `36`–`44` only in a recognized Wardrobe `GuiChest`. It cannot act
-  in chat or another unrelated GUI, repeat while held, move a player, or send packets directly.
-- Reworks **Command Keybind** into compact one-line entries: key, slash-command field, On/Off control, and a fully
-  visible Delete button. The panel grows only to its capped visible rows; **Add** and **Reset** remain at the bottom.
-- Command fields retain ordinary typed characters and inner spaces such as `/warp hub`; outer whitespace is normalized
-  only when focus leaves or the editor closes, and a focused field consumes Space before general GUI/keybind handling.
-- Documents the behavioral-only NotEnoughFakepixel Wardrobe reference and its LGPL-3.0-or-later license in
-  [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md). No source, dependency, or asset was copied.
+- Rebuilds **Command Keybind Editor** as a centered, solid working window at roughly 60% of normal GUI width, with a
+  title bar, close button, scrollable entry area, and fixed **Add** / **Reset** footer. Narrow Android/Pojav-style
+  layouts switch entries to two lines instead of squeezing or clipping their controls.
+- Removes the per-entry On/Off switch. A Command Keybind now has one clear state: it is usable when its master switch
+  is on and the entry has both a real key and slash command. Existing saved On/Off records load safely as active.
+- Adds a visible **Pets Shortcut** enable/key row with click capture, Escape cancel, Backspace clear, and a direct
+  physical `/pets` edge while normal gameplay is open.
+- New installs and an explicit Shortcut reset set **Wardrobe Shortcut** to `W` and **Pets Shortcut** to `P`; saved
+  key choices remain authoritative. Every visible key row shows a small red collision warning for Minecraft controls
+  or another Sky VeLor keybind.
+- Adds **Wardrobe Number Keys**, default on, so `1`–`9` select visible Wardrobe sets only when that option and the
+  Wardrobe Shortcut are enabled. Turning it off leaves normal number-key behavior untouched in the Wardrobe GUI.
 - Keeps Minecraft 1.8.9 Forge compatibility, old-config loading, Item Lock multi-pair legality, the existing GUI/HUD
   Editor, Item Animation, Chat QoL, Dungeon ESP, Party Sync default-off behavior, Home metrics, and fail-closed hooks.
 
@@ -77,7 +73,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.9v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -88,8 +84,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.1.9v.jar \
-  --version Beta-0.10.9.1.9v --mcmod-version 0.10.9.1.9
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.2v.jar \
+  --version Beta-0.10.9.2v --mcmod-version 0.10.9.2
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -97,8 +93,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.1.9v-source.zip \
-  --version Beta-0.10.9.1.9v
+  SkyVeLor-1.8.9-Beta-0.10.9.2v-source.zip \
+  --version Beta-0.10.9.2v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -109,7 +105,7 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.1.9v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.2v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes
@@ -119,10 +115,13 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
   `NONE`. A new pair must include a hotbar slot; illegal legacy saved pairs are dropped safely. Shared endpoints
   retain every legal pair and completed manual swaps cycle those targets in creation order.
 - **QoL → Shortcut** is a standalone card for Wardrobe, Pets, and Command Keybind. Existing Keybind Cut and older
-  shortcut settings load compatibly and save under `assist.shortcut.*`. **Wardrobe Shortcut** has an enable toggle and
-  visible click-capture key; it sends `/wardrobe` only from normal gameplay and maps `1`–`9` to slots `36`–`44` only
-  inside a recognized Wardrobe menu. **Command Keybind** has one master toggle and **Open Command Keybind Editor**;
-  slash commands use direct physical presses while no chat, GUI, or editor is open and visibly warn about collisions.
+  shortcut settings load compatibly and save under `assist.shortcut.*`. **Wardrobe Shortcut** and **Pets Shortcut**
+  each have an enable toggle plus visible click-capture key: Escape cancels and Backspace clears to `NONE`. Fresh
+  defaults and Shortcut reset are `W` for Wardrobe and `P` for Pets without replacing an existing saved key. Each key
+  row displays a small red collision warning when it matches Minecraft or another Sky VeLor binding. **Wardrobe Number
+  Keys** defaults on and maps `1`–`9` to slots `36`–`44` only inside a recognized Wardrobe menu; turn it off to leave
+  those digits untouched. **Command Keybind** has one master toggle and **Open Command Keybind Editor**; slash commands
+  use direct physical presses while no chat, GUI, or editor is open and visibly warn about collisions.
 - **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
   master switch. Auto click stays off by default.
 - **Dungeons → Run Tools → Spirit Bow Locator** defaults off and uses

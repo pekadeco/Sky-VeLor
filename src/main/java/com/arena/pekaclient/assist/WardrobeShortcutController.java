@@ -41,15 +41,16 @@ public final class WardrobeShortcutController {
     }
 
     /**
-     * Number keys are consumed only in the already-visible, specifically named Wardrobe menu. Handling the raw
-     * keyboard event rather than a timer/poll loop guarantees one direct player input can cause no more than one
+     * Number keys are consumed only when the visible Wardrobe Number Keys option is enabled and the menu is
+     * specifically named Wardrobe. Handling the raw keyboard event rather than a timer/poll loop guarantees one direct player input can cause no more than one
      * regular container click and prevents vanilla GUI/hotbar handling from also acting on that same digit.
      */
     @SubscribeEvent
     public void onKeyboard(GuiScreenEvent.KeyboardInputEvent.Pre event) {
         if (event == null || !Keyboard.getEventKeyState() || Keyboard.isRepeatEvent()) return;
         int digit = digitForKey(Keyboard.getEventKey());
-        if (digit <= 0 || !AssistSettings.wardrobeShortcut || !(event.gui instanceof GuiChest)) return;
+        if (digit <= 0 || !AssistSettings.wardrobeShortcut || !AssistSettings.wardrobeNumberKeys
+                || !(event.gui instanceof GuiChest)) return;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null || mc.thePlayer == null || mc.playerController == null) return;
         GuiChest chest = (GuiChest) event.gui;

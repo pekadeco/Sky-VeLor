@@ -28,6 +28,9 @@ public final class AssistSettingsTests {
         check("hurt camera defaults to vanilla 100 percent", AssistSettings.hurtCameraShake == 100
                 && Math.abs(AssistSettings.hurtCameraShakeMultiplier() - 1f) < .00001f);
         check("endpoint default is usable", AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
+        check("fresh Shortcut defaults reserve W/P and keep Wardrobe number keys on", AssistSettings.wardrobeShortcutKeyCode
+                == AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE && AssistSettings.petsShortcutKeyCode
+                == AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE && AssistSettings.wardrobeNumberKeys);
     }
 
     private static void legacyInputLoadsWithoutRevivingRetiredFeatures() {
@@ -48,6 +51,9 @@ public final class AssistSettingsTests {
         AssistSettings.load(old);
         check("retained aliases load", AssistSettings.miningAbilityAlert && AssistSettings.autoSprint
                 && AssistSettings.wardrobeShortcut && AssistSettings.petsShortcut && AssistSettings.terminalScale == 150);
+        check("established files without newer key captures retain Controls and keep Wardrobe digits on",
+                AssistSettings.wardrobeShortcutKeyCode == -1 && AssistSettings.petsShortcutKeyCode == -1
+                        && AssistSettings.wardrobeNumberKeys);
         check("old no-hurt toggle maps to zero percent", AssistSettings.hurtCameraShake == 0);
         check("old zero-health ESP choice migrates to Comfort", !AssistSettings.hideDeadMobs);
         check("established config does not acquire newly defaulted inventory visuals", !AssistSettings.romanNumerals
@@ -65,6 +71,7 @@ public final class AssistSettingsTests {
                 && !rewritten.containsKey("assist.shortcuts.pets") && !rewritten.containsKey("assist.keybindCut.wardrobe")
                 && "true".equals(rewritten.getProperty("assist.shortcut.autoSprint"))
                 && "true".equals(rewritten.getProperty("assist.shortcut.wardrobe"))
+                && "true".equals(rewritten.getProperty("assist.shortcut.wardrobeNumberKeys"))
                 && "true".equals(rewritten.getProperty("assist.shortcut.pets"))
                 && "false".equals(rewritten.getProperty("assist.comfort.hideDeadMobs")));
         check("removed Item Protection keys are harmlessly ignored", old.containsKey("itemProtectionEnabled")
@@ -88,8 +95,16 @@ public final class AssistSettingsTests {
         check("previous Keybind Cut key wins over the older shortcut path", !AssistSettings.wardrobeShortcut);
         Properties previousKeyCapture = new Properties();
         previousKeyCapture.setProperty("assist.keybindCut.wardrobeKey", "20");
+        previousKeyCapture.setProperty("assist.shortcut.petsKey", "25");
+        previousKeyCapture.setProperty("assist.shortcut.wardrobeNumberKeys", "false");
         AssistSettings.load(previousKeyCapture);
-        check("previous namespace wardrobe key capture migrates without resetting", AssistSettings.wardrobeShortcutKeyCode == 20);
+        check("previous namespace wardrobe and current Pets captures migrate without resetting",
+                AssistSettings.wardrobeShortcutKeyCode == 20 && AssistSettings.petsShortcutKeyCode == 25
+                        && !AssistSettings.wardrobeNumberKeys);
+        AssistSettings.resetDefaults();
+        check("explicit defaults restore W/P and enabled Wardrobe digits", AssistSettings.wardrobeShortcutKeyCode
+                == AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE && AssistSettings.petsShortcutKeyCode
+                == AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE && AssistSettings.wardrobeNumberKeys);
     }
 
     private static void hurtCameraShakePersistsAtZeroIntermediateAndVanilla() {
@@ -145,6 +160,8 @@ public final class AssistSettingsTests {
         AssistSettings.smoothAspectTeleport = false;
         AssistSettings.autoSprint = true;
         AssistSettings.wardrobeShortcutKeyCode = 19;
+        AssistSettings.wardrobeNumberKeys = false;
+        AssistSettings.petsShortcutKeyCode = 25;
         AssistSettings.hideDeadMobs = false;
         AssistSettings.dungeonSync = true;
         AssistSettings.dungeonSyncEndpoint = "wss://sync.example.org/ws";
@@ -162,13 +179,16 @@ public final class AssistSettingsTests {
                 && saved.containsKey("assist.visual.hurtCameraShake")
                 && saved.containsKey("assist.visual.smoothAspectTeleport") && saved.containsKey("assist.shortcut.autoSprint")
                 && saved.containsKey("assist.shortcut.commandKeybinds") && "19".equals(saved.getProperty("assist.shortcut.wardrobeKey"))
+                && "false".equals(saved.getProperty("assist.shortcut.wardrobeNumberKeys"))
+                && "25".equals(saved.getProperty("assist.shortcut.petsKey"))
                 && saved.containsKey("assist.comfort.hideDeadMobs") && saved.containsKey("assist.dungeon.sync.enabled")
                 && saved.containsKey("assist.dungeon.spiritBowLocator") && saved.containsKey("assist.dungeon.terminal.autoClick")
                 && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.hurtCameraShake == 44
                 && !AssistSettings.smoothAspectTeleport && AssistSettings.autoSprint
-                && AssistSettings.wardrobeShortcutKeyCode == 19 && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
+                && AssistSettings.wardrobeShortcutKeyCode == 19 && !AssistSettings.wardrobeNumberKeys
+                && AssistSettings.petsShortcutKeyCode == 25 && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
                 && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint) && AssistSettings.spiritBowLocator
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222
                 && CommandKeybindSettings.enabled && CommandKeybindSettings.count() == 1

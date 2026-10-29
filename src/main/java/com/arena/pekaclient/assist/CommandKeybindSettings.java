@@ -5,7 +5,8 @@ import java.util.Properties;
 
 /**
  * Persistent direct-user command bindings for the Shortcut editor. This model deliberately has no Minecraft
- * dependency, so malformed data, entry order, and execution eligibility can be covered by standalone tests.
+ * dependency, so malformed data, entry order, migration, and execution eligibility can be covered by standalone
+ * tests.
  */
 public final class CommandKeybindSettings {
 
@@ -30,12 +31,10 @@ public final class CommandKeybindSettings {
     public static final class Entry {
         private final int keyCode;
         private final String command;
-        private final boolean enabled;
 
-        private Entry(int keyCode, String command, boolean enabled) {
+        private Entry(int keyCode, String command) {
             this.keyCode = keyCode;
             this.command = command;
-            this.enabled = enabled;
         }
 
         public int keyCode() {
@@ -44,10 +43,6 @@ public final class CommandKeybindSettings {
 
         public String command() {
             return command;
-        }
-
-        public boolean enabled() {
-            return enabled;
         }
     }
 
@@ -63,7 +58,7 @@ public final class CommandKeybindSettings {
     /** Adds an incomplete but visibly editable slash-command row. It cannot execute until it has a real key/command. */
     public static boolean add() {
         if (ENTRIES.size() >= MAX_ENTRIES) return false;
-        ENTRIES.add(new Entry(0, "/", true));
+        ENTRIES.add(new Entry(0, "/"));
         return true;
     }
 
@@ -77,27 +72,24 @@ public final class CommandKeybindSettings {
         Entry current = entryAt(index);
         if (current == null) return;
         // Zero is the explicit cleared state. Every other malformed value fails closed to zero.
-        replace(index, validKeyCode(keyCode) ? keyCode : 0, current.command, current.enabled);
+        replace(index, validKeyCode(keyCode) ? keyCode : 0, current.command);
     }
 
     public static void setCommand(int index, String command) {
         Entry current = entryAt(index);
         if (current == null) return;
-        replace(index, current.keyCode, normalizeCommand(command), current.enabled);
+        replace(index, current.keyCode, normalizeCommand(command));
     }
 
-    public static void setEntryEnabled(int index, boolean value) {
-        Entry current = entryAt(index);
-        if (current == null) return;
-        replace(index, current.keyCode, current.command, value);
-    }
-
-    /** The first creation-order entry wins duplicate keys; the editor warns rather than silently dispatching two chats. */
+    /**
+     * The first creation-order entry wins duplicate keys; the editor warns rather than silently dispatching two
+     * chats. There is deliberately no per-entry On/Off state: a valid key plus slash command is the active state.
+     */
     public static Entry firstExecutableForKey(int keyCode) {
         if (!enabled || !validKeyCode(keyCode)) return null;
         for (int i = 0; i < ENTRIES.size(); i++) {
             Entry entry = ENTRIES.get(i);
-            if (entry.enabled && entry.keyCode == keyCode && isExecutable(entry)) return entry;
+            if (entry.keyCode == keyCode && isExecutable(entry)) return entry;
         }
         return null;
     }
@@ -138,7 +130,7 @@ public final class CommandKeybindSettings {
         ENTRIES.clear();
     }
 
-    /** Loading never crashes on a corrupt entry: valid siblings retain their creation order. */
+    /** Loading never crashes on corrupt records: valid siblings retain their creation order. */
     public static void load(Properties source) {
         Properties p = source == null ? new Properties() : source;
         reset();
@@ -163,10 +155,14 @@ public final class CommandKeybindSettings {
         p.setProperty(ENTRIES_KEY, serialize());
     }
 
-    private static void replace(int index, int keyCode, String command, boolean entryEnabled) {
-        ENTRIES.set(index, new Entry(keyCode, command, entryEnabled));
+    private static void replace(int index, int keyCode, String command) {
+        ENTRIES.set(index, new Entry(keyCode, command));
     }
 
+    /**
+     * .1.9 records encoded {@code key,enabled,command}. The middle flag is intentionally read for shape
+     * compatibility but ignored: all valid migrated entries are active when they have both a key and command.
+     */
     private static Entry parse(String raw) {
         if (raw == null) return null;
         int first = raw.indexOf(',');
@@ -175,21 +171,21 @@ public final class CommandKeybindSettings {
         try {
             int key = Integer.parseInt(raw.substring(0, first));
             if (key != 0 && !validKeyCode(key)) return null;
-            boolean entryEnabled = Boolean.parseBoolean(raw.substring(first + 1, second));
             String decoded = decode(raw.substring(second + 1));
             if (decoded == null) return null;
-            return new Entry(key, normalizeCommand(decoded), entryEnabled);
+            return new Entry(key, normalizeCommand(decoded));
         } catch (NumberFormatException ignored) {
             return null;
         }
     }
 
+    /** Writes the compatible three-part record with the retired middle flag fixed to true for older readers. */
     private static String serialize() {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < ENTRIES.size(); i++) {
             Entry entry = ENTRIES.get(i);
             if (i > 0) out.append(';');
-            out.append(entry.keyCode).append(',').append(entry.enabled).append(',').append(encode(entry.command));
+            out.append(entry.keyCode).append(",true,").append(encode(entry.command));
         }
         return out.toString();
     }
