@@ -82,11 +82,12 @@ public final class SettingsControlLayoutTests {
                     close(keyWidth, Math.min(SettingsControlLayout.ACTION_BUTTON_WIDTH,
                             rowWidth - padding * 2f - SettingsControlLayout.TOGGLE_COLUMN_WIDTH
                                     - SettingsControlLayout.COLUMN_GAP)));
-            check("shortcut toggles share one preceding column at scale " + scale,
+            check("shortcut toggles share the one right-edge column at scale " + scale,
                     close(wardrobeToggleX, petsToggleX) && close(wardrobeToggleX, numberKeysToggleX));
-            check("shortcut toggle ends before the key column at scale " + scale,
-                    close(wardrobeToggleX + SettingsControlLayout.TOGGLE_COLUMN_WIDTH + SettingsControlLayout.COLUMN_GAP,
-                            wardrobeKeyX));
+            check("shortcut key button ends immediately before the right-edge toggle at scale " + scale,
+                    close(wardrobeKeyX + keyWidth + SettingsControlLayout.COLUMN_GAP, wardrobeToggleX));
+            check("shortcut toggle owns the normal shared right edge at scale " + scale,
+                    close(wardrobeToggleX + SettingsControlLayout.TOGGLE_COLUMN_WIDTH, rowX + rowWidth - padding));
         }
     }
 

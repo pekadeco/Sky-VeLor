@@ -752,6 +752,11 @@ public class AppleSettingsScreen extends AppleScreen {
                               ReferenceSettingsCatalog.Card card, ReferenceSettingsCatalog.Setting setting,
                               boolean child, boolean dimmed) {
         if (setting.isCaption()) return drawGroupCaption(y, setting, dimmed);
+        // Shortcut intentionally keeps its reset as a compact left-aligned card footer even though its rows are
+        // direct card children; expanded groups retain their established footer-link treatment for nested resets.
+        if (setting.isResetAction() && "shortcut-reset".equals(setting.id)) {
+            return drawShortcutResetFooter(y, setting, dimmed);
+        }
         if (child && setting.isResetAction()) return drawResetFooter(y, setting, dimmed);
 
         boolean disclosure = setting.isDropdown();
@@ -791,7 +796,12 @@ public class AppleSettingsScreen extends AppleScreen {
         if (setting.control == ReferenceSettingsCatalog.Control.ACTION) {
             labelRight = actionX - CONTROL_GAP;
         } else if (setting.isEditor() || setting.isKeybind()) {
-            labelRight = setting.hasMasterToggle() ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP;
+            // Shortcut keys and the Command route reserve the rightmost toggle lane, so their shared button begins
+            // left of it. A non-Shortcut editor that owns a toggle still keeps its historical toggle-before-button
+            // layout.
+            labelRight = setting.isKeybind() || usesSharedKeyColumn(setting)
+                    ? actionX - CONTROL_GAP
+                    : (setting.hasMasterToggle() ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP);
         } else {
             labelRight = inlineControl ? controlRight - valueW - CONTROL_GAP : controlRight;
         }
@@ -903,7 +913,7 @@ public class AppleSettingsScreen extends AppleScreen {
         return y + h;
     }
 
-    /** The only reset presentation is a compact end-of-panel link, not another full settings row. */
+    /** The expanded-group reset presentation remains a compact end-of-panel link, never a full settings row. */
     private float drawResetFooter(float y, ReferenceSettingsCatalog.Setting setting, boolean dimmed) {
         float h = 24f;
         float x = contentX + ROW_PAD_X;
@@ -916,8 +926,26 @@ public class AppleSettingsScreen extends AppleScreen {
         return y + h;
     }
 
+    /** Shortcut uses the requested small, tangible left-aligned footer button instead of an ordinary settings row. */
+    private float drawShortcutResetFooter(float y, ReferenceSettingsCatalog.Setting setting, boolean dimmed) {
+        float h = 26f;
+        float x = contentX + ROW_PAD_X;
+        String label = "Reset to defaults";
+        float w = Math.max(88f, fr().getStringWidth(label) * .62f + 16f);
+        float buttonY = y + 3f;
+        int fill = dimmed ? Theme.expandedPanel : Theme.buttonFill;
+        int border = dimmed ? Theme.expandedBorder : Theme.border;
+        int text = dimmed ? Theme.dependentTextSecondary : Theme.textPrimary;
+        UIRender.roundRectBorder(x, buttonY, w, 18f, 9f, fill, fill, border);
+        UIRender.text(fr(), label, x + (w - fr().getStringWidth(label) * .62f) * .5f, buttonY + 5f,
+                text, .62f, false);
+        registerHit("reset:" + setting.id, HIT_ACTION, x, buttonY, w, 18f, setting, setting.id);
+        return y + h;
+    }
+
     private float measureSetting(ReferenceSettingsCatalog.Setting setting, boolean child) {
         if (setting.isCaption()) return 18f;
+        if (setting.isResetAction() && "shortcut-reset".equals(setting.id)) return 26f;
         if (child && setting.isResetAction()) return 24f;
         float h = baseSettingHeight(setting, child) + valueDropdownReservation(setting);
         if (setting.isDropdown()) h += childBlockHeight(setting) * dropdownProgress(setting);
@@ -933,6 +961,7 @@ public class AppleSettingsScreen extends AppleScreen {
                     : setting.isKeybind() ? keybindButtonWidth() : controlWidth(setting);
             float actionX = trailingActionX(setting, 0f, contentW, actionW);
             float labelRight = (setting.isEditor() || setting.isKeybind()) && setting.hasMasterToggle()
+                    && !setting.isKeybind() && !usesSharedKeyColumn(setting)
                     ? editorToggleX(actionX) - CONTROL_GAP : actionX - CONTROL_GAP;
             labelW = Math.max(42f, labelRight - left);
         } else if (setting.control == ReferenceSettingsCatalog.Control.SLIDER
@@ -962,8 +991,8 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float keybindButtonWidth() {
-        // Reserve the preceding shared toggle lane even for Item Lock/Command so all four rows retain one x/width
-        // contract at scale 4 instead of forcing a narrow pair to overlap.
+        // Reserve the shared right-edge toggle lane even for Item Lock/Command so every key/editor button keeps one
+        // x/width contract at scale 4 instead of forcing a narrow pair to overlap.
         float available = Math.max(1f, contentW - ROW_PAD_X * 2f - TOGGLE_COLUMN_W
                 - SettingsControlLayout.COLUMN_GAP);
         return Math.min(KEYBIND_BUTTON_W, available);
@@ -987,7 +1016,7 @@ public class AppleSettingsScreen extends AppleScreen {
         return setting != null && (setting.isKeybind() || "command-keybinds".equals(setting.id));
     }
 
-    /** The single shortcut toggle lane is immediately before the shared key-button lane. */
+    /** The single Shortcut toggle lane is the shell's shared right-edge column, immediately after the key button. */
     private float shortcutKeyToggleX(float x, float rowW) {
         return SettingsControlLayout.keyToggleX(x, rowW, ROW_PAD_X, keybindButtonWidth());
     }

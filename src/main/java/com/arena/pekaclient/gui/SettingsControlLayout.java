@@ -42,17 +42,17 @@ public final class SettingsControlLayout {
     }
 
     /**
-     * Fixed key-button lane used by every Shortcut capture row and the Item Lock key capture.
-     * A named editor can start at this same edge without introducing a near-identical second column.
+     * Fixed key-button lane used by every Shortcut capture row and the Item Lock key capture. It sits immediately
+     * left of the shared right-edge toggle column, so named editor routes can align with the same key-button edge.
      */
     public static float keyButtonX(float rowX, float rowWidth, float trailingPadding, float keyButtonWidth) {
-        return rightX(rowX, rowWidth, trailingPadding, keyButtonWidth);
+        return keyToggleX(rowX, rowWidth, trailingPadding, keyButtonWidth)
+                - COLUMN_GAP - Math.max(0f, Math.min(Math.max(0f, rowWidth), keyButtonWidth));
     }
 
-    /** The Shortcut toggle lane immediately precedes the shared key-button lane. */
+    /** The Shortcut toggle lane is the normal rightmost toggle column used throughout the settings shell. */
     public static float keyToggleX(float rowX, float rowWidth, float trailingPadding, float keyButtonWidth) {
-        return keyButtonX(rowX, rowWidth, trailingPadding, keyButtonWidth)
-                - COLUMN_GAP - TOGGLE_COLUMN_WIDTH;
+        return toggleX(rowX, rowWidth, trailingPadding);
     }
 
     /** Right edge for a control inside a row with the declared trailing padding. */
