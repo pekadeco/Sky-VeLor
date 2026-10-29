@@ -25,7 +25,7 @@ matters: javac emits debug info by default, so a mod's own local variable named
 mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
 runs with no JDK installed.
 
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.3v] [--mcmod-version 0.10.9.3]
+Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.9.3.1v] [--mcmod-version 0.10.9.3.1]
 """
 
 import argparse
@@ -63,6 +63,7 @@ REQUIRED_CLASSES = [
     'feature/ChatSurfaceRenderer',
     'command/ItemDebugCommand',
     'command/SvCommand',
+    'command/SvDungeonCommand',
     'gui/AppleSettingsScreen',
     'gui/ReferenceSettingsCatalog',
     'gui/SettingsRailLayout',
@@ -105,6 +106,7 @@ REQUIRED_CLASSES = [
     'gui/HudEditorLayout',
     'gui/HudEditorSelectionPolicy',
     'gui/DungeonHudEditorScreen',
+    'gui/DungeonHudEditorLayout',
     'gui/ItemAnimationEditorScreen',
     'gui/CommandKeybindEditorScreen',
     'gui/CommandKeybindEditorLayout',
@@ -382,8 +384,8 @@ def parse_class(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('jar')
-    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.3v')
-    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.3')
+    ap.add_argument('--version', help='expected display/manifest version, e.g. Beta-0.10.9.3.1v')
+    ap.add_argument('--mcmod-version', help='expected numeric mcmod.info version, e.g. 0.10.9.3.1')
     args = ap.parse_args()
 
     path = args.jar
@@ -552,6 +554,7 @@ def main():
     ui_render_raw = raw_of('render/UIRender')
     pixel_grid_raw = raw_of('render/GuiPixelGrid')
     hud_manager_raw = raw_of('hud/HudManager')
+    hud_editor_raw = raw_family_of('gui/HudEditorScreen')
     hud_element_raw = raw_of('hud/HudElement')
     item_slots_raw = raw_of('hud/ItemSlots')
     item_animation_editor_raw = raw_family_of('gui/ItemAnimationEditorScreen')
@@ -570,6 +573,9 @@ def main():
     dungeon_map_head_motion_raw = raw_of('dungeon/DungeonMapPlayerHeadMotion')
     skin_head_raw = raw_of('render/SkinHead')
     dungeon_hud_editor_raw = raw_family_of('gui/DungeonHudEditorScreen')
+    dungeon_hud_editor_layout_raw = raw_of('gui/DungeonHudEditorLayout')
+    sv_dungeon_command_raw = raw_of('command/SvDungeonCommand')
+    dungeon_context_raw = raw_family_of('feature/DungeonContext')
     # Inputs and safe-rank results are nested classes, so inspect the complete calculator family.
     dungeon_score_calculator_raw = raw_family_of('assist/dungeon/DungeonScoreCalculator')
     dungeon_score_readout_raw = raw_of('assist/dungeon/DungeonScoreReadout')
@@ -660,21 +666,29 @@ def main():
                         (b'Custom GUI Transparency', b'GUI Transparency', b'appearance-opacity-on', b'appearance-opacity')),
             'optional GUI-transparency toggle and slider retain their established config keys and owner')
     r.check(all(value in apple_settings_raw for value in
-                (b'dungeonMapPlayerHeads', b'dungeonMapPlayerHeadSize', b'DUNGEON_MAP_ZOOM_MAX',
-                 b'effectiveDungeonMapPlayerHeadSize'))
+                (b'dungeonMapPlayerHeads', b'dungeonMapPlayerHeadSize', b'dungeonMapShowPuzzleName',
+                 b'dungeonMapShowSecrets', b'dungeonMapBackground', b'dungeonMapBackgroundOpacity',
+                 b'dungeonMapBackgroundColor', b'dungeonMapRoomNameColor', b'dungeonMapSecretsColor',
+                 b'DUNGEON_MAP_ZOOM_MAX', b'effectiveDungeonMapPlayerHeadSize'))
                 and all(value in reference_catalog_raw for value in
-                        (b'Player Heads', b'Player Head Size', b'Map Zoom'))
-                and all(value in bindings_raw for value in
-                        (b'dungeon-map-player-heads', b'dungeon-map-player-head-size'))
+                        (b'Dungeon Map', b'Open Dungeon HUD Editor', b'open-dungeon-hud-editor'))
+                and all(value in dungeon_hud_editor_raw for value in
+                        (b'map-scale', b'map-zoom', b'map-heads', b'map-head-size', b'map-room-names',
+                         b'map-secrets', b'map-background', b'map-background-opacity', b'map-background-color',
+                         b'map-room-color', b'map-secrets-color', b'map-announce', b'reset-map-position',
+                         b'onGuiClosed', b'persist'))
+                and b'dungeon-map-player-heads' not in bindings_raw
+                and b'dungeonMap' not in hud_editor_raw
                 and all(value in dungeon_map_overlay_raw for value in
                         (b'PlayerHead', b'DungeonMapPlayerHeadMotion', b'SkinHead', b'loadedSkin',
-                         b'withoutPlayerHeadMarkers'))
+                         b'withoutPlayerHeadMarkers', b'effectiveDungeonMapBackgroundColor',
+                         b'effectiveDungeonMapRoomNameColor', b'effectiveDungeonMapSecretsColor'))
                 and b'drawMapBorder' not in dungeon_map_overlay_raw
                 and all(value in dungeon_map_head_motion_raw for value in
                         (b'advanceTick', b'clampCenter'))
                 and all(value in dungeon_map_projection_raw for value in (b'fitZoom', b'project'))
                 and all(value in skin_head_raw for value in (b'quad', b'UIRender')),
-            'Dungeon Map packages default-on bounded interpolated skin heads with hats, no frame, and its extended zoom settings')
+            'Dungeon Map packages all presentation controls in its dedicated editor, with retained bounded interpolated skin heads, no frame, and 500 percent zoom')
     r.check(all(value in reference_catalog_raw for value in
                 (b'Dungeon HUD Editor', b'Open Dungeon HUD Editor', b'Dungeon Score/Stats HUD', b'Crypts',
                  b'Deaths', b'Run Time', b'Room Clear Alert', b'Alert Duration', b'Alert Sound', b'Auto Chest Close'))
@@ -686,8 +700,12 @@ def main():
                         (b'open-dungeon-hud-editor', b'DungeonHudEditorScreen'))
                 and all(value in hud_manager_raw for value in
                         (b'DUNGEON_SCORE', b'ROOM_CLEAR_ALERT', b'DUNGEON_EDITOR_ELEMENTS', b'renderDungeonEditor'))
-                and len(dungeon_hud_editor_raw) > 0,
-            'Dungeons packages one-row Dungeon HUD Editor routing plus persistent Score/Stats, Room Alert, and map targets')
+                and all(value in dungeon_hud_editor_raw for value in
+                        (b'Score / Stats', b'Room Alert', b'Dungeon Map', b'drawDungeonMapPreview', b'moveTarget',
+                         b'resizeTarget', b'Reset all', b'Reset selected', b'onGuiClosed', b'persist'))
+                and all(value in dungeon_hud_editor_layout_raw for value in
+                        (b'header', b'picker', b'inspector', b'canvas', b'compact', b'validFor', b'intersects')),
+            'Dungeons packages a responsive dedicated HUD Editor with selectable Score/Stats, Room Alert, and map samples, drag/resize/reset controls, save-on-close, and non-overlapping compact layout')
     r.check(all(value in apple_settings_raw for value in
                 (b'dungeonHud.score', b'dungeonHud.crypts', b'dungeonHud.deaths', b'dungeonHud.runTime',
                  b'dungeonHud.roomClearSound', b'dungeonHud.roomClearDurationMillis', b'dungeonHud.autoChestClose',
@@ -700,11 +718,12 @@ def main():
                 and all(value in dungeon_score_readout_raw for value in
                         (b'hasOfficialScore', b'projectedRank', b'verified visible end score', b'S+'))
                 and all(value in dungeon_score_tracker_raw for value in
-                        (b'ClientChatReceivedEvent', b'NetworkPlayerInfo', b'observeSidebar', b'observeTab'))
+                        (b'ClientChatReceivedEvent', b'NetworkPlayerInfo', b'readSidebar', b'readTab',
+                         b'captureDebugSnapshot', b'latestDebugSnapshot'))
                 and all(value in dungeon_score_hud_raw for value in
-                        (b'DungeonScoreTracker', b'dungeonScoreShowScore', b'dungeonScoreShowCrypts',
-                         b'dungeonScoreShowDeaths', b'dungeonScoreShowRunTime', b'forceBorderless')),
-            'native Dungeon Score Calculator uses visible sidebar/tab/chat telemetry, persists independently selectable HUD lines, and caps live S+ claims',
+                        (b'DungeonScoreTracker', b'DungeonContext', b'dungeonScoreShowScore', b'dungeonScoreShowCrypts',
+                         b'dungeonScoreShowDeaths', b'dungeonScoreShowRunTime', b'visibleDefaultV2', b'forceBorderless')),
+            'native Dungeon Score Calculator uses visible sidebar/tab/chat telemetry, keeps a detected dungeon HUD visible with unavailable values, and caps live S+ claims',
             'missing settings=%s calculator=%s telemetry=%s readout=%s tracker=%s hud=%s' % (
                     missing_raw_values(apple_settings_raw, (b'dungeonHud.score', b'dungeonHud.crypts', b'dungeonHud.deaths',
                             b'dungeonHud.runTime', b'dungeonHud.roomClearSound', b'dungeonHud.roomClearDurationMillis',
@@ -714,19 +733,30 @@ def main():
                     missing_raw_values(dungeon_score_telemetry_raw, (b'extra stats', b'score breakdown', b'puzzle fail!',
                             b'mimic', b'paul', b'scoreRecapLines')),
                     missing_raw_values(dungeon_score_readout_raw, (b'hasOfficialScore', b'projectedRank',
-                            b'verified visible end score', b'S+')),
+                            b'verified visible end score', b'S+', b'Score: --')),
                     missing_raw_values(dungeon_score_tracker_raw, (b'ClientChatReceivedEvent', b'NetworkPlayerInfo',
-                            b'observeSidebar', b'observeTab')),
-                    missing_raw_values(dungeon_score_hud_raw, (b'DungeonScoreTracker', b'dungeonScoreShowScore',
-                            b'dungeonScoreShowCrypts', b'dungeonScoreShowDeaths', b'dungeonScoreShowRunTime',
-                            b'forceBorderless'))))
+                            b'readSidebar', b'readTab', b'captureDebugSnapshot', b'latestDebugSnapshot')),
+                    missing_raw_values(dungeon_score_hud_raw, (b'DungeonScoreTracker', b'DungeonContext',
+                            b'dungeonScoreShowScore', b'dungeonScoreShowCrypts', b'dungeonScoreShowDeaths',
+                            b'dungeonScoreShowRunTime', b'visibleDefaultV2', b'forceBorderless'))))
+    r.check(all(value in sv_dungeon_command_raw for value in
+                (b'/svdungeon debug', b'Dungeon debug begin', b'detected dungeon=', b'raw sidebar', b'raw tab',
+                 b'parsed rooms/cleared=', b'crypts=', b'time=', b'score=', b'rank='))
+                and all(value in dungeon_context_raw for value in
+                        (b'Catacombs', b'matched corroborated Dungeon sidebar evidence', b'floor', b'evaluateNow')),
+            '/svdungeon debug packages live detector, raw sidebar/tab, and parsed dungeon-score diagnostics without a server command')
     r.check(all(value in room_alert_policy_raw for value in
-                (b'clearedRooms', b'blood', b'fairy', b'entrance', b'already', b'CLEAR_MESSAGE'))
+                (b'clearedRooms', b'clearedProgress', b'shouldAlertClearedProgress', b'MAX_PROGRESS_JUMP',
+                 b'blood', b'fairy', b'entrance', b'already', b'CLEAR_MESSAGE'))
                 and all(value in room_alert_controller_raw for value in
-                        (b'ClientChatReceivedEvent', b'DungeonContext', b'RoomClearAlertPolicy', b'ROOM_CLEAR_ALERT'))
+                        (b'ClientChatReceivedEvent', b'DungeonContext', b'DungeonScoreTracker', b'RoomClearAlertPolicy',
+                         b'ROOM_CLEAR_ALERT', b'observeSidebarProgress', b'triggerTestAlert'))
                 and all(value in room_alert_hud_raw for value in
-                        (b'ROOM CLEARED', b'effectiveDungeonRoomClearDurationMillis', b'forceBorderless')),
-            'Room Clear Alert stays dungeon-only, deduplicated, movable and safely excludes special/already-cleared rooms')
+                        (b'ROOM CLEARED', b'effectiveDungeonRoomClearDurationMillis', b'triggerTest',
+                         b'testVisibleUntilMillis', b'forceBorderless'))
+                and all(value in dungeon_hud_editor_raw for value in
+                        (b'test-alert', b'Test Alert', b'RoomClearAlertController')),
+            'Room Clear Alert stays dungeon-only, deduplicated across visible chat and cleared-percent sources, safely excludes special/repeated rooms, and has a local Test Alert preview')
     dungeon_chest_forbidden = (b'sendPacket', b'sendQueue', b'windowClick', b'playerController', b'clickMouse')
     r.check(all(value in dungeon_chest_policy_raw for value in (b'chest', b'large chest', b'isNormalSecretChestTitle'))
                 and all(value in dungeon_chest_closer_raw for value in

@@ -1,24 +1,27 @@
-# Sky VeLor — Beta-0.10.9.3v
+# Sky VeLor — Beta-0.10.9.3.1v
 
 Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
 dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
 Item Lock / Swap, Shortcut, and Item Animation for Minecraft's first-person hand renderer.
 
-## Beta-0.10.9.3v — Dungeon HUD and visible-data score tools
+## Beta-0.10.9.3.1v — Dungeon runtime repair and dedicated map editor
 
-- Keeps the aligned **QoL → Shortcut** key/toggle lanes: Wardrobe, Pets, Item Lock And Swap, and the editor action all
-  use the shared key-button column immediately before the shared right-edge toggle lane. The small Shortcut reset is a
-  left-aligned footer action.
-- Adds **Dungeons → Dungeon HUD → Open Dungeon HUD Editor**: a centered, solid picker for independently persistent
-  **Score / Stats**, **Room Alert**, and existing **Dungeon Map** position/scale/reset controls. The live map is
-  suppressed while its editor preview is shown.
-- Adds a dungeon-only, native **Dungeon Score/Stats HUD**. It calculates a conservative Skill/Exploration/Speed/Bonus
-  estimate solely from already-visible Fakepixel sidebar, public tab-list, and chat observations; it accounts for
-  floors, rooms, secrets, deaths/Spirit reduction, failed puzzles, crypts, elapsed time, mimic, and Paul. A live
-  estimate is never displayed as `S+`; that rank requires a visible end-of-run recap total/rank.
-- Adds independently switchable Score/rank, Crypts, Deaths, and Run Time lines; a strict room-clear alert with optional
-  local sound/duration; and default-off **Auto Chest Close**, which only closes exact normal `Chest`/`Large Chest`
-  screens in confirmed dungeons—not reward, terminal, or other menus.
+- Repairs the score-HUD path identified in source: Catacombs-only context detection rejected corroborated Fakepixel
+  dungeon sidebars, the new HUD could be created default-off, and a no-data render gate made it disappear while visible
+  rows were still arriving. Confirmed dungeons now retain the enabled HUD and render unavailable values as `--`; its
+  live estimate remains conservative and never promotes a projection to `S+` without an official visible recap.
+- Adds **`/svdungeon debug`**, a client-only paste-back report with detector/floor evidence, raw sidebar and public
+  tab-list rows, plus parsed rooms/cleared percentage, secrets, deaths, crypts, time, score, and rank.
+- Repairs the room-clear path with two independent visible observations: narrow safe chat confirmation and a plausible
+  sidebar **Cleared %** increase. Shared de-duplication still rejects blood, fairy, entrance, boss, already-cleared,
+  invalid-jump, and repeat-room alerts. **Test Alert** previews the movable alert outside a dungeon without changing
+  the saved enable switch.
+- Rebuilds **Dungeons → Dungeon Map → Open Dungeon HUD Editor** as a solid responsive picker for **Score / Stats**,
+  **Room Alert**, and **Dungeon Map**. It supplies useful out-of-dungeon samples, dragging, resize handles/sliders,
+  selected/all resets, save-on-close, and compact non-overlapping Pojav-sized geometry.
+- Moves all Dungeon Map presentation controls into that map target: master/show, size, zoom through `500%`, rotation,
+  player names/heads/head size, room/puzzle labels, secrets, background/opacity/colors, party puzzle announce, and
+  position/reset. Existing map keys and saved settings remain in their original owner.
 - Preserves Minecraft 1.8.9 Forge compatibility, old-config loading, physical user-key/screen gating, Item Lock / Swap,
   Dungeon ESP/map heads, generic HUD Editor, Item Animation, Chat QoL, Party Sync default-off behavior, Home metrics,
   and fail-closed hooks.
@@ -75,7 +78,7 @@ TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 The distributable JAR is:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3v.jar
+build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3.1v.jar
 ```
 
 `reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
@@ -86,8 +89,8 @@ Verify the JAR before publishing:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3v.jar \
-  --version Beta-0.10.9.3v --mcmod-version 0.10.9.3
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3.1v.jar \
+  --version Beta-0.10.9.3.1v --mcmod-version 0.10.9.3.1
 ```
 
 The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
@@ -95,8 +98,8 @@ owners, and archive hygiene. The source archive is generated from a curated `git
 
 ```sh
 python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.3v-source.zip \
-  --version Beta-0.10.9.3v
+  SkyVeLor-1.8.9-Beta-0.10.9.3.1v-source.zip \
+  --version Beta-0.10.9.3.1v
 ```
 
 A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
@@ -107,7 +110,7 @@ and unrelated archives do not belong in the source ZIP. In particular, the root 
 ## Installation
 
 1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.3v.jar` in the Minecraft `mods` folder.
+2. Put `SkyVeLor-1.8.9-Beta-0.10.9.3.1v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile.
 
 ## Settings routes

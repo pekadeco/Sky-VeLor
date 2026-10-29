@@ -1,5 +1,44 @@
 # Changelog
 
+## Beta-0.10.9.3.1v — 2026-10-29
+
+### Fixed
+
+- Repaired the Dungeon Score/Stats HUD failure path found in source: the detector accepted only Catacombs wording,
+  the newly registered HUD could load as default-off, and the renderer returned early until telemetry had data. The
+  detector now accepts corroborated visible Dungeon/Floor/metric sidebars, the historical accidental default-off state
+  migrates once, and a detected dungeon keeps the HUD visible with unavailable fields shown as `--`.
+- Repaired Room Clear Alert evidence handling. The previous runtime depended on narrow chat text alone; it now joins
+  safe chat confirmation with bounded visible sidebar **Cleared %** progression and de-duplicates the two sources.
+  Blood, fairy, entrance, boss, already-cleared, invalid-jump, and repeat-room cases remain rejected.
+
+### Added
+
+- Added client-only **`/svdungeon debug`**. It emits the detected dungeon/floor and reason, raw sidebar/title/public
+  tab rows, and parsed rooms/cleared percentage, secrets, deaths, crypts, time, score, and rank for support pasteback.
+- Added **Test Alert** beside Room Clear Alert options. It plays the local configured preview outside a dungeon without
+  enabling the saved alert toggle or sending server chat/packets.
+- Added a responsive dedicated **Dungeon HUD Editor** with selectable Score / Stats, Room Alert, and Dungeon Map
+  samples outside a dungeon; drag movement, resize handle/slider support, selected/all reset actions, solid picker and
+  inspector surfaces, save-on-close, and compact non-overlapping Pojav geometry.
+
+### Changed
+
+- Made **Dungeons → Dungeon Map** the sole catalog map row: its master toggle remains there and **Open Dungeon HUD
+  Editor** opens the map inspector. The generic HUD editor no longer owns a map target or map placement controls.
+- Moved every map presentation option to the Dungeon Map inspector: size, `500%` zoom, rotation, player names/heads/
+  head size, room/puzzle labels, secrets, background/opacity/colors, party puzzle announce, and position/reset. Existing
+  AppleSettings keys are retained so previous saved map choices continue to load.
+- Updated metadata, build contract, verifier examples, and delivery names to `Beta-0.10.9.3.1v` / numeric `0.10.9.3.1`.
+- Preserved Shortcut keys, Item Lock And Swap, Dungeon ESP/map heads, Auto Chest Close, generic HUD Editor, Item
+  Animation editor, Chat QoL, old config loading, and Minecraft 1.8.9 Forge compatibility.
+
+### Verification boundary
+
+- Automated Java 8 Forge compile, standalone logic/layout, package, and archive checks do not launch Minecraft. The
+  new Fakepixel detector/telemetry and room-clear paths still require a fresh in-game run and `/svdungeon debug`
+  pasteback before they can be claimed as field-verified.
+
 ## Beta-0.10.9.3v — 2026-10-29
 
 ### Fixed

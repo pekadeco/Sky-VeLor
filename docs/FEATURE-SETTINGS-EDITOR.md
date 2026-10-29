@@ -1,4 +1,4 @@
-# Apple settings inventory — Beta-0.10.9.3v
+# Apple settings inventory — Beta-0.10.9.3.1v
 
 Sky VeLor uses its native Minecraft 1.8.9 Forge GUI. The historical in-project Apple settings shell
 informs presentation only: this release ships no browser runtime, React code, third-party GUI framework,
@@ -75,24 +75,29 @@ behavior continues to use the established owners; no reset dropdown was added.
 - **Spirit Leap Picker** is a master dropdown containing its key option.
 - **Terminal Helper** has no master; it shows its live `n / 5 on` count.
 - **Boss Health HUD** is a master toggle plus **Open HUD Editor**.
-- **Dungeons → Dungeon HUD → Open Dungeon HUD Editor** is a separate centered, solid editor rather than the generic
-  HUD window. Its compact picker has **Score / Stats**, **Room Alert**, and **Dungeon Map** targets. It saves per-target
-  enable/move/resize/reset state through the existing HUD/map owners, snaps drag placement, and suppresses the live map
-  while its map preview is being edited.
-- **Dungeons → Dungeon HUD → Dungeon Score/Stats HUD** is a dungeon-only borderless movable HUD. It independently
-  toggles Score/rank, Crypts, Deaths, and Run Time lines. The native calculator has no API or packet path: it reads
-  visible Fakepixel sidebar, public tab-list, and chat values for floor, cleared rooms, secrets, deaths/Spirit penalty
-  reduction, failed puzzles, crypts, runtime, mimic, and Paul. A complete live estimate never renders `S+`; only a
-  visible `Extra Stats`/`Score Breakdown` end recap total plus matching rank may do so.
-- **Dungeons → Dungeon HUD → Room Clear Alert** is a movable dedicated-editor target. It accepts only narrow normal
-  room-clear messages in a confirmed dungeon, deduplicates rooms, rejects blood/fairy/entrance/boss/already-cleared
-  text, and offers bounded local duration plus optional local sound.
-- **Dungeons → Dungeon HUD → Auto Chest Close** is explicitly off by default. In a confirmed dungeon it is an exact
-  title allow-list for normal `Chest` and `Large Chest` containers only; rewards, terminals, and all other menus are
-  left open. It never clicks slots, accepts rewards, sends packets, or alters player movement.
-- **Dungeons → Run Tools → Dungeon Map** has no border/frame. Its existing `100%` zoom default remains valid and
-  saved `50%`–`200%` values keep working; the upper bound is now `500%`. **Player Heads** defaults on and **Player
-  Head Size** uses a bounded native-map-pixel slider. In confirmed dungeons only, local/party map markers with ready
+- **Dungeons → Dungeon Map → Open Dungeon HUD Editor** is a separate centered, solid editor rather than the generic
+  HUD window. Its compact picker has **Score / Stats**, **Room Alert**, and **Dungeon Map** targets. Every target shows
+  a useful sample outside a dungeon, supports selection, drag movement, resize handles/sliders, selected/all resets,
+  and saves through the existing HUD/map owners on close. It snaps placement and suppresses the live map while its map
+  preview is being edited.
+- **Score / Stats** is a dungeon-only borderless movable target. It independently toggles Score/rank, Crypts, Deaths,
+  and Run Time lines. The native calculator has no API or packet path: it reads visible Fakepixel sidebar, public
+  tab-list, and chat values for floor, cleared rooms, secrets, deaths/Spirit penalty reduction, failed puzzles, crypts,
+  runtime, mimic, and Paul. Corroborated generic Dungeon/Floor sidebars are accepted alongside Catacombs; unobserved
+  fields render as `--`. A complete live estimate never renders `S+`; only a visible `Extra Stats`/`Score Breakdown`
+  end recap total plus matching rank may do so. **`/svdungeon debug`** prints detector evidence, raw sidebar/tab rows,
+  and the parsed support values without sending a server command.
+- **Room Alert** is a movable dedicated-editor target. It accepts narrow normal room-clear chat in a confirmed dungeon
+  or a plausible visible sidebar **Cleared %** increase, then de-duplicates the sources. It rejects blood, fairy,
+  entrance, boss, already-cleared, invalid-jump, and repeat-room cases. Bounded local duration/sound remain available;
+  **Test Alert** previews the exact movable alert outside a dungeon without changing its saved enabled state.
+- **Auto Chest Close** is explicitly off by default. In a confirmed dungeon it is an exact title allow-list for normal
+  `Chest` and `Large Chest` containers only; rewards, terminals, and all other menus are left open. It never clicks
+  slots, accepts rewards, sends packets, or alters player movement.
+- **Dungeon Map** keeps only its master toggle and the editor action in Dungeons. Its map target owns every existing
+  presentation choice: position/size, `100%` default and bounded zoom through `500%`, rotation, player names/heads/
+  head size, room/puzzle labels, secrets, background/opacity/colors, and party puzzle announce. Existing settings keys
+  retain saved values. The map has no border/frame. In confirmed dungeons only, local/party map markers with ready
   tab-list skins render the 8×8 face plus hat layer in place of their matching native arrows. Their projected centers
   interpolate with render partial ticks, are clamped inside the `128 × 128` map viewport, preserve unrelated map
   decorations, and leave the vanilla arrow visible until a skin is ready. Turning Player Heads off restores arrows.
@@ -214,7 +219,7 @@ assets, binaries, or dependency code were copied. The complete attribution and c
 All catalog labels and descriptions are limited to 60 characters and use Title Case labels with
 sentence-case descriptions. Implementation-facing wording is excluded by the catalog copy audit.
 
-| Earlier player-facing text | Beta-0.10.9.3v text |
+| Earlier player-facing text | Beta-0.10.9.3.1v text |
 | --- | --- |
 | `No farming features yet` | `No Farming Features Yet` |
 | `Item Lock / Swap` | `Item Lock And Swap` |
@@ -273,8 +278,8 @@ Build with Java 8 Forge and verify the result:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3v.jar \
-  --version Beta-0.10.9.3v --mcmod-version 0.10.9.3
+  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3.1v.jar \
+  --version Beta-0.10.9.3.1v --mcmod-version 0.10.9.3.1
 ```
 
 The checks do not launch Minecraft. Rendering, input feel, placement, and gameplay are
