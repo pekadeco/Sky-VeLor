@@ -676,7 +676,7 @@ def main():
                         (b'map-scale', b'map-zoom', b'map-heads', b'map-head-size', b'map-room-names',
                          b'map-secrets', b'map-background', b'map-background-opacity', b'map-background-color',
                          b'map-room-color', b'map-secrets-color', b'map-announce', b'reset-map-position',
-                         b'onGuiClosed', b'persist'))
+                         b'AppleSettings', b'HudManager', b'persist'))
                 and b'dungeon-map-player-heads' not in bindings_raw
                 and b'dungeonMap' not in hud_editor_raw
                 and all(value in dungeon_map_overlay_raw for value in
@@ -699,7 +699,8 @@ def main():
                     missing_raw_values(dungeon_hud_editor_raw, (b'map-scale', b'map-zoom', b'map-heads',
                             b'map-head-size', b'map-room-names', b'map-secrets', b'map-background',
                             b'map-background-opacity', b'map-background-color', b'map-room-color',
-                            b'map-secrets-color', b'map-announce', b'reset-map-position', b'onGuiClosed', b'persist')),
+                            b'map-secrets-color', b'map-announce', b'reset-map-position', b'AppleSettings',
+                            b'HudManager', b'persist')),
                     b'dungeon-map-player-heads' in bindings_raw, b'dungeonMap' in hud_editor_raw,
                     missing_raw_values(dungeon_map_overlay_raw, (b'PlayerHead', b'DungeonMapPlayerHeadMotion',
                             b'SkinHead', b'loadedSkin', b'withoutPlayerHeadMarkers',
@@ -708,6 +709,8 @@ def main():
                     missing_raw_values(dungeon_map_head_motion_raw, (b'advanceTick', b'clampCenter')),
                     missing_raw_values(dungeon_map_projection_raw, (b'fitZoom', b'project')),
                     missing_raw_values(skin_head_raw, (b'quad', b'UIRender'))))
+    # GuiScreen lifecycle overrides are reobfuscated in the release jar, so persistence is proved through the editor's
+    # stable local persist routine and its two owner references rather than the MCP onGuiClosed spelling.
     r.check(all(value in reference_catalog_raw for value in
                 (b'Dungeon HUD Editor', b'Open Dungeon HUD Editor', b'Dungeon Score/Stats HUD', b'Crypts',
                  b'Deaths', b'Run Time', b'Room Clear Alert', b'Alert Duration', b'Alert Sound', b'Auto Chest Close'))
@@ -721,7 +724,7 @@ def main():
                         (b'DUNGEON_SCORE', b'ROOM_CLEAR_ALERT', b'DUNGEON_EDITOR_ELEMENTS', b'renderDungeonEditor'))
                 and all(value in dungeon_hud_editor_raw for value in
                         (b'Score / Stats', b'Room Alert', b'Dungeon Map', b'drawDungeonMapPreview', b'moveTarget',
-                         b'resizeTarget', b'Reset all', b'Reset selected', b'onGuiClosed', b'persist'))
+                         b'resizeTarget', b'Reset all', b'Reset selected', b'AppleSettings', b'HudManager', b'persist'))
                 and all(value in dungeon_hud_editor_layout_raw for value in
                         (b'header', b'picker', b'inspector', b'canvas', b'compact', b'validFor', b'intersects')),
             'Dungeons packages a responsive dedicated HUD Editor with selectable Score/Stats, Room Alert, and map samples, drag/resize/reset controls, save-on-close, and non-overlapping compact layout',
@@ -737,7 +740,7 @@ def main():
                             b'DUNGEON_EDITOR_ELEMENTS', b'renderDungeonEditor')),
                     missing_raw_values(dungeon_hud_editor_raw, (b'Score / Stats', b'Room Alert', b'Dungeon Map',
                             b'drawDungeonMapPreview', b'moveTarget', b'resizeTarget', b'Reset all', b'Reset selected',
-                            b'onGuiClosed', b'persist')),
+                            b'AppleSettings', b'HudManager', b'persist')),
                     missing_raw_values(dungeon_hud_editor_layout_raw, (b'header', b'picker', b'inspector', b'canvas',
                             b'compact', b'validFor', b'intersects'))))
     r.check(all(value in apple_settings_raw for value in
