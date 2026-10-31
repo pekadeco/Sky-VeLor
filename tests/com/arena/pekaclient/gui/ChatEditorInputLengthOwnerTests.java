@@ -11,11 +11,20 @@ public final class ChatEditorInputLengthOwnerTests {
 
     public static void main(String[] args) throws Exception {
         String editor = read("src/main/java/com/arena/pekaclient/gui/ChatEditorScreen.java");
+        String catalog = read("src/main/java/com/arena/pekaclient/gui/ReferenceSettingsCatalog.java");
+        String settingsScreen = read("src/main/java/com/arena/pekaclient/gui/AppleSettingsScreen.java");
         String inputMixin = read("src/main/java/com/arena/pekaclient/mixin/MixinGuiChat.java");
         String packetMixin = read("src/main/java/com/arena/pekaclient/mixin/MixinC01PacketChatMessage.java");
 
         check("Chat Editor uses the active persisted chat-length owner",
                 editor.contains("AppleSettings.chatLengthEnabled"));
+        check("Chat Editor visibly labels the optional 256-character switch",
+                editor.contains("Chat length (256 characters)") && editor.contains("ChatEditorLayout.MESSAGES"));
+        check("Chat length remains reachable through Misc to the retained Chat Editor",
+                catalog.contains("editor(\"chat-editor\", \"Chat Editor\"")
+                        && catalog.contains("\"open-chat-editor\"")
+                        && settingsScreen.contains("\"open-chat-editor\"")
+                        && settingsScreen.contains("new ChatEditorScreen(this)"));
         check("Chat Editor has no stale parallel chat-length owner",
                 !editor.contains("ChatQolSettings.extendedChatLength"));
         check("input mixin reads the same owner", inputMixin.contains("AppleSettings.chatLengthEnabled"));
