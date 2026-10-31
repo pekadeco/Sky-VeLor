@@ -41,8 +41,9 @@ public final class HudManager {
     public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DUNGEON_RUN,
             DUNGEON_SCORE, ROOM_CLEAR_ALERT, DUNGEON_SECRETS, INVENTORY, DOLL, FISHING, SEA_HP, SLAYER};
 
-    /** Targets owned by the dedicated Dungeon HUD Editor; the map keeps its established AppleSettings placement. */
-    public static final HudElement[] DUNGEON_EDITOR_ELEMENTS = {DUNGEON_SCORE, ROOM_CLEAR_ALERT, DUNGEON_SECRETS};
+    /** Targets owned by the dedicated Dungeon HUD Editor; the map keeps its established AppleSettings placement.
+     * Dungeon Secrets remains an ordinary movable HUD element because the direct editor has no Secrets target/options. */
+    public static final HudElement[] DUNGEON_EDITOR_ELEMENTS = {DUNGEON_SCORE, ROOM_CLEAR_ALERT};
 
     public static final String FILE_NAME = "lunaria-hud.properties";
     public static final String PRIOR_RELEASE_LEGACY_FILE_NAME = "skyvelor-hud.properties";
