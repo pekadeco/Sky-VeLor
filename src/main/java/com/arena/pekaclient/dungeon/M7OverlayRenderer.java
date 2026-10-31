@@ -9,8 +9,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.arena.pekaclient.fishing.SeaCreatureParser;
+import com.arena.pekaclient.feature.SkyblockContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
+import com.arena.pekaclient.render.WorldBox;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.boss.EntityDragon;
@@ -29,7 +30,6 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.lwjgl.opengl.GL11;
 
 /** Owns Floor 7/M7 entity tracking, floor detection, and world-space outlines. */
 public final class M7OverlayRenderer {
@@ -88,7 +88,7 @@ public final class M7OverlayRenderer {
 
     @SubscribeEvent
     public void onEntityJoinWorld(EntityJoinWorldEvent event) {
-        if (event == null || event.world == null || !event.world.isRemote
+        if (!SkyblockContext.isInSkyblock() || event == null || event.world == null || !event.world.isRemote
                 || !(event.entity instanceof EntityDragon)) {
             return;
         }
@@ -107,10 +107,10 @@ public final class M7OverlayRenderer {
         }
     }
 
-    /** Uses the observed final-phase chat cue to start showing M7 relic areas. */
+    /** Uses the NEF 1.2.4 final-phase chat cue to start showing M7 relic areas. */
     @SubscribeEvent
     public void onChatReceived(ClientChatReceivedEvent event) {
-        if (event == null || event.message == null
+        if (!SkyblockContext.isInSkyblock() || event == null || event.message == null
                 || !isM7FinalPhaseMessage(event.message.getUnformattedText())) {
             return;
         }
@@ -128,6 +128,10 @@ public final class M7OverlayRenderer {
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft == null || minecraft.theWorld == null || minecraft.thePlayer == null) {
             resetWorldState();
+            return;
+        }
+        if (!SkyblockContext.isInSkyblock()) {
+            if (cachedWorld != null || m7ScoreboardDetected || floorSevenScoreboardDetected) resetWorldState();
             return;
         }
 
@@ -153,7 +157,7 @@ public final class M7OverlayRenderer {
                 if (!m7FinalPhaseSeen) {
                     m7DragonSpawnedAfterFinalPhase = true;
                 }
-                // Some compatible servers use dragon health lines instead of the phase chat cue.
+                // Fakepixel uses dragon health lines instead of NEF's Hypixel phase chat cue.
                 m7FinalPhaseSeen = true;
             } else if (fakepixelM7DungeonRunId != null
                     && !fakepixelM7DungeonRunId.equals(fakepixelRunId)) {
@@ -262,7 +266,7 @@ public final class M7OverlayRenderer {
                             cachedM7Outlines.add(new M7Outline(entity, dragon, null, statue));
                         }
                     } else if (M7Settings.isBossHitboxEnabled(candidate.target)) {
-                        Entity body = findNearbyBossBody(entity, livingCandidates);
+                        Entity body = findNearbyBossBody(entity, livingCandidates, candidate.target);
                         cachedM7Outlines.add(new M7Outline(entity, body, candidate.target, null));
                     }
                     continue;
@@ -382,7 +386,7 @@ public final class M7OverlayRenderer {
                     }
                 }
             } else if (M7Settings.isBossHitboxEnabled(target)) {
-                Entity bossBody = findNearbyBossBody(entity, loadedEntities);
+                Entity bossBody = findNearbyBossBody(entity, loadedEntities, target);
                 if (bossBody != null) {
                     drawEntityBox(bossBody, target.color, partialTicks, cameraX, cameraY, cameraZ);
                 } else {
@@ -415,7 +419,8 @@ public final class M7OverlayRenderer {
         }
     }
 
-    private Entity findNearbyBossBody(Entity nameplate, List<? extends Entity> loadedEntities) {
+    private Entity findNearbyBossBody(Entity nameplate, List<? extends Entity> loadedEntities,
+                                      M7HitboxTarget expectedTarget) {
         EntityWither nearestWither = null;
         double nearestWitherDistanceSq = Double.MAX_VALUE;
         EntityLivingBase nearestLiving = null;
@@ -426,24 +431,36 @@ public final class M7OverlayRenderer {
                     || candidate instanceof EntityDragon || !(candidate instanceof EntityLivingBase)) {
                 continue;
             }
+            M7HitboxTarget candidateTarget = classifyM7HitboxTarget(getEntityName(candidate), false);
+            // An ordinary nearby mob is not evidence that it is the boss body. Keep anonymous vanilla Withers
+            // eligible, but only accept a non-Wither fallback when its own visible/custom name identifies the
+            // same boss as this nameplate. This avoids the broad r5 proximity fallback creating random boxes.
+            if (candidate instanceof EntityWither) {
+                if (candidateTarget != null && candidateTarget != expectedTarget) continue;
+            } else if (candidateTarget != expectedTarget) {
+                continue;
+            }
             double dx = candidate.posX - nameplate.posX;
             double dy = candidate.posY - nameplate.posY;
             double dz = candidate.posZ - nameplate.posZ;
             double horizontalDistanceSq = dx * dx + dz * dz;
-            // Nameplates can drift above or away from their entity as bosses move; search
-            // the full nearby arena rather than requiring the label to sit on the body.
-            if (horizontalDistanceSq > 256.0D || Math.abs(dy) > 16.0D) {
-                continue;
-            }
-            double distanceSq = horizontalDistanceSq + dy * dy;
+            // Keep the Wither-specific match strict, then allow nearby custom living entities for servers that
+            // represent the boss body with a non-Wither class. Nameplates are not allowed to bind to armor stands,
+            // players, dragons or entities classified as a different boss.
             if (candidate instanceof EntityWither) {
-                if (distanceSq < nearestWitherDistanceSq) {
+                if (horizontalDistanceSq > 100.0D || Math.abs(dy) > 10.0D) continue;
+                double distanceSq = horizontalDistanceSq + dy * dy;
+                if (distanceSq <= 144.0D && distanceSq < nearestWitherDistanceSq) {
                     nearestWither = (EntityWither) candidate;
                     nearestWitherDistanceSq = distanceSq;
                 }
-            } else if (horizontalDistanceSq <= 64.0D && distanceSq < nearestLivingDistanceSq) {
-                nearestLiving = (EntityLivingBase) candidate;
-                nearestLivingDistanceSq = distanceSq;
+            } else {
+                if (horizontalDistanceSq > 64.0D || Math.abs(dy) > 16.0D) continue;
+                double distanceSq = horizontalDistanceSq + dy * dy;
+                if (distanceSq < nearestLivingDistanceSq) {
+                    nearestLiving = (EntityLivingBase) candidate;
+                    nearestLivingDistanceSq = distanceSq;
+                }
             }
         }
         return nearestWither != null ? nearestWither : nearestLiving;
@@ -461,8 +478,8 @@ public final class M7OverlayRenderer {
             double dz = candidate.posZ - nameplate.posZ;
             double horizontalDistanceSq = dx * dx + dz * dz;
             double distanceSq = horizontalDistanceSq + dy * dy;
-            if (horizontalDistanceSq <= 576.0D && Math.abs(dy) <= 32.0D
-                    && distanceSq < nearestDistanceSq) {
+            if (horizontalDistanceSq <= 324.0D && Math.abs(dy) <= 24.0D
+                    && distanceSq <= 900.0D && distanceSq < nearestDistanceSq) {
                 nearest = (EntityDragon) candidate;
                 nearestDistanceSq = distanceSq;
             }
@@ -547,22 +564,18 @@ public final class M7OverlayRenderer {
         String compact = normalized.replaceAll("[^A-Z0-9]+", "");
         boolean explicitM7 = normalized.matches("(?s).*\\bM\\s*7\\b.*")
                 || normalized.matches("(?s).*\\bM\\s*VII\\b.*")
-                || normalized.matches("(?s).*\\bMM\\s*7\\b.*")
-                || compact.contains("M7") || compact.contains("MMF7");
-        boolean floorSeven = normalized.contains("FLOOR VII") || normalized.contains("FLOOR 7")
-                || normalized.matches("(?s).*\\bF\\s*7\\b.*")
-                || normalized.matches("(?s).*\\bF\\s*VII\\b.*")
-                || compact.contains("F7") || compact.contains("FLOORVII")
-                || compact.contains("FLOOR7") || compact.contains("MASTERMODEVII")
-                || compact.contains("MASTERMODE7");
-        boolean masterMode = normalized.contains("MASTER MODE")
-                || normalized.matches("(?s).*\\bMM\\b.*")
-                || compact.contains("MASTERMODE") || compact.contains("MMF7");
-        boolean catacombs = compact.contains("CATACOMBS");
+                || normalized.matches("(?s).*\\bMM\\s*7\\b.*");
+        boolean floorSeven = normalized.matches("(?s).*\\bFLOOR\\s*(?:VII|7)\\b.*")
+                || normalized.matches("(?s).*\\bF\\s*(?:7|VII)\\b.*")
+                || normalized.matches("(?s).*\\bMASTER\\s*MODE\\s*(?:VII|7)\\b.*");
+        boolean masterMode = normalized.matches("(?s).*\\bMASTER\\s*MODE\\b.*")
+                || normalized.matches("(?s).*\\bMM\\b.*");
+        boolean catacombs = normalized.matches("(?s).*\\bCATACOMBS\\b.*");
+        boolean dungeonWord = normalized.matches("(?s).*\\bDUNGEONS?\\b.*");
         boolean fakepixelM7 = hasFakepixelM7DragonScoreboard(normalized, compact);
-        // Normal F7 sidebars use Catacombs + Floor VII/F7; Master Mode can identify itself
-        // independently. Fakepixel uses a generic Dungeon/dung-* sidebar with dragon HP lines.
-        return explicitM7 || fakepixelM7 || (floorSeven && (masterMode || catacombs));
+        // Require dungeon context for generic M7/F7 markers. Fakepixel's run id plus dragon-health
+        // lines remains a separate, stricter signal for its nonstandard sidebar.
+        return fakepixelM7 || ((catacombs || dungeonWord || masterMode) && (explicitM7 || floorSeven));
     }
 
     static boolean isM7ScoreboardText(String text) {
@@ -573,19 +586,15 @@ public final class M7OverlayRenderer {
         String compact = normalized.replaceAll("[^A-Z0-9]+", "");
         boolean explicitM7 = normalized.matches("(?s).*\\bM\\s*7\\b.*")
                 || normalized.matches("(?s).*\\bM\\s*VII\\b.*")
-                || normalized.matches("(?s).*\\bMM\\s*7\\b.*")
-                || compact.contains("M7") || compact.contains("MMF7");
-        boolean floorSeven = normalized.contains("FLOOR VII") || normalized.contains("FLOOR 7")
-                || normalized.matches("(?s).*\\bF\\s*7\\b.*")
-                || normalized.matches("(?s).*\\bF\\s*VII\\b.*")
-                || compact.contains("F7") || compact.contains("FLOORVII")
-                || compact.contains("FLOOR7") || compact.contains("MASTERMODEVII")
-                || compact.contains("MASTERMODE7");
-        boolean masterMode = normalized.contains("MASTER MODE")
-                || normalized.matches("(?s).*\\bMM\\b.*")
-                || compact.contains("MASTERMODE") || compact.contains("MMF7");
+                || normalized.matches("(?s).*\\bMM\\s*7\\b.*");
+        boolean floorSeven = normalized.matches("(?s).*\\bFLOOR\\s*(?:VII|7)\\b.*")
+                || normalized.matches("(?s).*\\bF\\s*(?:7|VII)\\b.*")
+                || normalized.matches("(?s).*\\bMASTER\\s*MODE\\s*(?:VII|7)\\b.*");
+        boolean masterMode = normalized.matches("(?s).*\\bMASTER\\s*MODE\\b.*")
+                || normalized.matches("(?s).*\\bMM\\b.*");
+        boolean catacombs = normalized.matches("(?s).*\\bCATACOMBS\\b.*");
         boolean fakepixelM7 = hasFakepixelM7DragonScoreboard(normalized, compact);
-        return explicitM7 || fakepixelM7 || (masterMode && floorSeven);
+        return fakepixelM7 || (masterMode && floorSeven) || (catacombs && explicitM7);
     }
 
     static boolean isFakepixelM7DragonScoreboardText(String text) {
@@ -603,7 +612,7 @@ public final class M7OverlayRenderer {
             return false;
         }
         for (M7DragonStatue statue : M7DragonStatue.values()) {
-            if (normalized.contains(statue.dragonName.toUpperCase(Locale.ROOT))) {
+            if (containsWholeBossName(normalized, statue.dragonName.toUpperCase(Locale.ROOT))) {
                 return true;
             }
         }
@@ -665,30 +674,36 @@ public final class M7OverlayRenderer {
 
     static M7HitboxTarget classifyM7HitboxTarget(String displayName, boolean dragonEntity) {
         String normalized = SeaCreatureParser.stripFormatting(displayName == null ? "" : displayName)
-                .toUpperCase(Locale.ROOT);
-        if (normalized.contains("MAXOR")) {
+                .toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+        if (containsWholeBossName(normalized, "MAXOR")) {
             return M7HitboxTarget.MAXOR;
         }
-        if (normalized.contains("STORM")) {
+        if (containsWholeBossName(normalized, "STORM")) {
             return M7HitboxTarget.STORM;
         }
-        if (normalized.contains("GOLDOR")) {
+        if (containsWholeBossName(normalized, "GOLDOR")) {
             return M7HitboxTarget.GOLDOR;
         }
-        if (normalized.contains("NECRON")) {
+        if (containsWholeBossName(normalized, "NECRON")) {
             return M7HitboxTarget.NECRON;
         }
-        if (dragonEntity || normalized.contains("DRAGON")) {
+        // A real dragon entity can use a generic server name, but a separate nameplate must
+        // match one of the known M7 dragon names; the word "Dragon" alone is too broad.
+        if (dragonEntity || dragonStatueForName(normalized) != null) {
             return M7HitboxTarget.DRAGON;
         }
         return null;
     }
 
+    private static boolean containsWholeBossName(String value, String name) {
+        return value.matches("(?s).*\\b" + name + "\\b.*");
+    }
+
     static M7DragonStatue dragonStatueForName(String displayName) {
         String normalized = SeaCreatureParser.stripFormatting(displayName == null ? "" : displayName)
-                .toUpperCase(Locale.ROOT);
+                .toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
         for (M7DragonStatue statue : M7DragonStatue.values()) {
-            if (normalized.contains(statue.dragonName.toUpperCase(Locale.ROOT))) {
+            if (containsWholeBossName(normalized, statue.dragonName.toUpperCase(Locale.ROOT))) {
                 return statue;
             }
         }
@@ -707,7 +722,8 @@ public final class M7OverlayRenderer {
                 nearest = statue;
             }
         }
-        return nearest;
+        // A generic Ender Dragon outside the M7 encounter area is not evidence of an M7 dragon.
+        return nearestDistanceSq <= 36.0D * 36.0D ? nearest : null;
     }
 
     private static String getEntityName(Entity entity) {
@@ -730,53 +746,16 @@ public final class M7OverlayRenderer {
     }
 
     private static void drawOutlinedBox(AxisAlignedBB box, int color, boolean throughWalls) {
-        float red = ((color >> 16) & 0xFF) / 255.0F;
-        float green = ((color >> 8) & 0xFF) / 255.0F;
-        float blue = (color & 0xFF) / 255.0F;
-        GlStateManager.pushMatrix();
-        GlStateManager.disableTexture2D();
-        GlStateManager.disableLighting();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.disableCull();
-        if (throughWalls) {
-            GlStateManager.disableDepth();
-            GlStateManager.depthMask(false);
-        } else {
-            GlStateManager.enableDepth();
-            GlStateManager.depthMask(true);
+        if (box == null) {
+            return;
         }
-        GL11.glLineWidth(2.0F);
-        GL11.glColor4f(red, green, blue, 0.95F);
-        GL11.glBegin(GL11.GL_LINES);
-        drawBoxEdge(box.minX, box.minY, box.minZ, box.maxX, box.minY, box.minZ);
-        drawBoxEdge(box.maxX, box.minY, box.minZ, box.maxX, box.minY, box.maxZ);
-        drawBoxEdge(box.maxX, box.minY, box.maxZ, box.minX, box.minY, box.maxZ);
-        drawBoxEdge(box.minX, box.minY, box.maxZ, box.minX, box.minY, box.minZ);
-        drawBoxEdge(box.minX, box.maxY, box.minZ, box.maxX, box.maxY, box.minZ);
-        drawBoxEdge(box.maxX, box.maxY, box.minZ, box.maxX, box.maxY, box.maxZ);
-        drawBoxEdge(box.maxX, box.maxY, box.maxZ, box.minX, box.maxY, box.maxZ);
-        drawBoxEdge(box.minX, box.maxY, box.maxZ, box.minX, box.maxY, box.minZ);
-        drawBoxEdge(box.minX, box.minY, box.minZ, box.minX, box.maxY, box.minZ);
-        drawBoxEdge(box.maxX, box.minY, box.minZ, box.maxX, box.maxY, box.minZ);
-        drawBoxEdge(box.maxX, box.minY, box.maxZ, box.maxX, box.maxY, box.maxZ);
-        drawBoxEdge(box.minX, box.minY, box.maxZ, box.minX, box.maxY, box.maxZ);
-        GL11.glEnd();
-        GL11.glLineWidth(1.0F);
-        GlStateManager.depthMask(true);
-        GlStateManager.enableDepth();
-        GlStateManager.enableCull();
-        GlStateManager.disableBlend();
-        GlStateManager.enableLighting();
-        GlStateManager.enableTexture2D();
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        GlStateManager.popMatrix();
-    }
-
-    private static void drawBoxEdge(double x1, double y1, double z1,
-                                    double x2, double y2, double z2) {
-        GL11.glVertex3d(x1, y1, z1);
-        GL11.glVertex3d(x2, y2, z2);
+        WorldBox.begin(0.0D, 0.0D, 0.0D, throughWalls);
+        try {
+            WorldBox.outline(box.minX, box.minY, box.minZ,
+                    box.maxX, box.maxY, box.maxZ, color);
+        } finally {
+            WorldBox.end();
+        }
     }
 
     public enum M7HitboxTarget {
@@ -793,7 +772,7 @@ public final class M7OverlayRenderer {
         }
     }
 
-    /** M7 relic-area box geometry. */
+    /** M7 relic-area box geometry adapted from NEF 1.2.4 DragonCloseAlert. */
     enum M7DragonKillArea {
         RED_RELIC(new BlockPos(43, 6, 64), -11, 21, -11, 13, 0xFFFF0000),
         GREEN_RELIC(new BlockPos(43, 6, 102), -11, 21, -11, 13, 0xFF00FF00),
