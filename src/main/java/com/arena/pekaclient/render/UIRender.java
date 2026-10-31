@@ -552,13 +552,17 @@ public final class UIRender {
 
     // ------------------------------------------------------------------ text
 
-    /**
-     * Draws Minecraft's native bitmap font on whole physical pixels. The requested compact logical scale is rounded
-     * once against the active {@link ScaledResolution}, and the origin is snapped to the same grid before the matrix
-     * transform. That avoids the soft fractional glyph sampling visible at GUI scales two through four without
-     * introducing a custom font renderer or a per-widget workaround.
-     */
+    /** Draws in the default Lunaria UI area, with the native font as the safe fallback. */
     public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow) {
+        text(fr, s, x, y, color, scale, shadow, GlobalFontManager.Area.UI);
+    }
+
+    /**
+     * Draws text for one Lunaria-owned area. A selected custom font is given the same snapped origin as native text;
+     * any unavailable atlas or renderer error falls through to Minecraft's bitmap font rather than breaking a GUI.
+     */
+    public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow,
+                            GlobalFontManager.Area area) {
         if (fr == null || s == null || s.isEmpty()) {
             return;
         }
@@ -572,6 +576,16 @@ public final class UIRender {
         GuiDebugOverlay.recordLabel(s, snappedX, snappedY, fr.getStringWidth(s) * effectiveScale,
                 Math.max(1f, fr.FONT_HEIGHT * effectiveScale));
         flush();
+        try {
+            if (GlobalFontManager.draw(s, snappedX, snappedY, c, effectiveScale, shadow,
+                    area == null ? GlobalFontManager.Area.UI : area)) {
+                GlStateManager.disableAlpha();
+                GlStateManager.disableTexture2D();
+                return;
+            }
+        } catch (Throwable ignored) {
+            // Dynamic custom fonts are optional. Preserve the normal Minecraft fallback on unusual launchers.
+        }
         GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();
         if (effectiveScale == 1f) {

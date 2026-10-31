@@ -153,8 +153,10 @@ public final class ChatEditorScreen extends AppleScreen {
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Compact messages", new AppleToggle(
                 () -> ChatQolSettings.compactMessages, value -> ChatQolSettings.compactMessages = value)));
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Compact counter colour", compactCounterColour));
+        // The current Mixin input/packet guards read AppleSettings.chatLengthEnabled. Keep the editor bound to that
+        // single persisted setting so the displayed toggle cannot drift from the actual 100/256 character limit.
         entries.add(new Entry(ChatEditorLayout.MESSAGES, "Chat length (256 characters)", new AppleToggle(
-                () -> ChatQolSettings.extendedChatLength, value -> ChatQolSettings.extendedChatLength = value)));
+                () -> AppleSettings.chatLengthEnabled, value -> AppleSettings.chatLengthEnabled = value)));
 
         entries.add(new Entry(ChatEditorLayout.TABS, "Unselected tab colour", tabInactiveColour));
         entries.add(new Entry(ChatEditorLayout.TABS, "Selected tab colour", tabBaseColour));

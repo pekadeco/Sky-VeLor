@@ -7,6 +7,7 @@ final class DungeonMapProjection {
     private final float pivotY;
     private final double cos;
     private final double sin;
+    private final float angle;
     private final float zoom;
 
     DungeonMapProjection(boolean rotated, float pivotX, float pivotY, float angle) {
@@ -17,6 +18,7 @@ final class DungeonMapProjection {
         this.rotated = rotated;
         this.pivotX = pivotX;
         this.pivotY = pivotY;
+        this.angle = angle;
         double radians = Math.toRadians(angle);
         this.cos = Math.cos(radians);
         this.sin = Math.sin(radians);
@@ -49,14 +51,28 @@ final class DungeonMapProjection {
         return zoom;
     }
 
+    /** Rotation used by map-relative puzzle-label glyphs; static maps deliberately keep text level. */
+    float textRotation() {
+        return rotated ? angle : 0.0F;
+    }
+
     float[] project(float rawX, float rawY) {
+        float[] result = new float[2];
+        project(rawX, rawY, result);
+        return result;
+    }
+
+    /** Projects into caller-owned storage so map labels do not allocate an array for each candidate position. */
+    void project(float rawX, float rawY, float[] result) {
+        if (result == null || result.length < 2) throw new IllegalArgumentException("result must have two slots");
         if (!rotated) {
-            return new float[]{64.0F + (rawX - 64.0F) * zoom,
-                    64.0F + (rawY - 64.0F) * zoom};
+            result[0] = 64.0F + (rawX - 64.0F) * zoom;
+            result[1] = 64.0F + (rawY - 64.0F) * zoom;
+            return;
         }
         double dx = rawX - pivotX;
         double dy = rawY - pivotY;
-        return new float[]{(float) (64.0D + zoom * (dx * cos - dy * sin)),
-                (float) (64.0D + zoom * (dx * sin + dy * cos))};
+        result[0] = (float) (64.0D + zoom * (dx * cos - dy * sin));
+        result[1] = (float) (64.0D + zoom * (dx * sin + dy * cos));
     }
 }
