@@ -177,8 +177,9 @@ def main():
                      "mcmod metadata uses Lunaria public identity")
         result.check('"version": "' + numeric + '"' in metadata,
                      "processed mcmod metadata carries numeric version " + numeric)
-        result.check('"mcversion": "1.8.9-11.15.1.2318-1.8.9"' in metadata,
-                     "mcmod metadata targets Forge 1.8.9")
+        # mcmod.info declares the Minecraft compatibility version; build.gradle pins the Forge coordinate.
+        result.check('"mcversion": "1.8.9"' in metadata,
+                     "mcmod metadata targets Minecraft 1.8.9")
 
         version_class = archive.read("com/arena/pekaclient/PekaVersion.class") if "com/arena/pekaclient/PekaVersion.class" in name_set else b""
         entry_class = archive.read("com/arena/pekaclient/PekaClientMod.class") if "com/arena/pekaclient/PekaClientMod.class" in name_set else b""
@@ -190,8 +191,8 @@ def main():
                      "entry point wires Lunaria metadata, terrain overlay, and retained chest feature")
         result.check(contains_all(command_class, (b"lunaria", b"sv", b"velor", b"dungeon")),
                      "main command packages /lunaria with /sv and /velor aliases")
-        result.check(contains_all(dungeon_command, (b"debug", b"diagnostics", b"svdungeon")),
-                     "dungeon command retains debug/diagnostics and legacy direct alias support")
+        result.check(contains_all(dungeon_command, (b"debug", b"svdungeon", b"Dungeon debug begin", b"raw sidebar")),
+                     "dungeon command retains live diagnostics and legacy direct alias support")
 
         mixins = archive.read("mixins.lunaria.json") if "mixins.lunaria.json" in name_set else b""
         result.check(contains_all(mixins, (b"com.arena.pekaclient.mixin", b"MixinGuiContainer", b"MixinEntityRenderer")),
@@ -211,8 +212,10 @@ def main():
             if "com/arena/pekaclient/gui/LunariaArtwork.class" in name_set else b""
         terrain = archive.read("com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.class") \
             if "com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.class" in name_set else b""
-        result.check(contains_all(artwork, (b"drawScaledCustomSizeModalRect", b"lunaria_loading_background", b"lunaria_logo")),
-                     "loading art packages cover-fit crop and Lunaria artwork rendering")
+        # ForgeGradle remaps Gui draw-method names in reobfuscated bytecode. The source archive verifier checks the
+        # cover-fit call itself; this packaged check relies on stable resource identifiers instead.
+        result.check(contains_all(artwork, (b"lunaria_loading_background", b"lunaria_logo", b"lunaria_moon")),
+                     "Lunaria artwork renderer links the supplied loading, logo, and moon assets")
         result.check(contains_all(terrain, (b"Downloading terrain", b"Terrain progress is not exposed", b"--%")),
                      "terrain overlay truthfully reports indeterminate Forge terrain progress")
     except (KeyError, IOError, OSError, zipfile.BadZipfile) as error:
