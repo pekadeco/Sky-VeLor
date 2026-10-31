@@ -119,6 +119,12 @@ jobs:
             grep -E '^(FAIL |.*passed [0-9]+, failed [1-9])' "$RUNNER_TEMP/tests.log" | tail -50 | while IFS= read -r line; do
               echo "::error title=LOGIC-TEST::${line}"
             done
+            # Some retained source-layout tests deliberately throw AssertionError rather than keeping a counter.
+            # Mirror the final output lines into annotations too, so restricted Action-log redirects never hide the
+            # failing suite, compiler diagnostic, or assertion stack line.
+            tail -50 "$RUNNER_TEMP/tests.log" | while IFS= read -r line; do
+              echo "::error title=LOGIC-TEST-TAIL::${line}"
+            done
             echo "::error title=LOGIC-TEST::tests/run-tests.sh exited nonzero"
             exit 1
           fi
