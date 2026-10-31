@@ -32,7 +32,7 @@ public final class InlineOptionPreservationTests {
                 "dungeon-auto-chest-close", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
                 "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
                 "esp-miniboss", "esp-mob-labels", "esp-special", "esp-starred",
-                "esp-update-interval", "fishing-festival",
+                "esp-update-interval", "fishing-festival", "font-lunaria-only", "font-scale", "font-settings",
                 "global-scroll", "hide-potions", "hud-inventory", "hud-player-doll", "hurt-camera-shake", "item-animation",
                 "item-lock-badge-color", "item-lock-badge-opacity", "item-lock-cooldown", "item-lock-hotbar", "item-lock-icons",
                 "item-lock-line-color", "item-lock-line-mode", "item-lock-line-opacity", "item-lock-line-width", "item-lock-message",
@@ -51,7 +51,7 @@ public final class InlineOptionPreservationTests {
         addStyleOptions(expected, "esp-enderman");
         addStyleOptions(expected, "door-style");
         Set<String> actual = new HashSet<String>(ReferenceSettingsCatalog.configurableIds());
-        check("settings-catalog inventory keeps only the Dungeon Map master and omits the retired Command Keybind master",
+        check("settings-catalog inventory retains every persisted owner, including Lunaria fonts, without a Command Keybind master",
                 actual.equals(expected));
         check("the option inventory has no duplicate ids", actual.size() == ReferenceSettingsCatalog.configurableIds().size());
     }
