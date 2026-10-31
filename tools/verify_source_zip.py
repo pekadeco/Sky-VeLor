@@ -40,7 +40,12 @@ def forbidden(path):
         return True
     if base == ".env" or base.startswith(".env.") or base.endswith((".pem", ".key")):
         return True
-    return "credential" in base or "secret" in base
+    # Catch files conventionally named as credentials or secrets without rejecting legitimate feature sources such as
+    # DungeonSecretsHud.java. A whole/stem-delimited name signals sensitive material; an arbitrary substring does not.
+    stem = base.rsplit(".", 1)[0]
+    sensitive = ("credential", "credentials", "secret", "secrets")
+    return any(stem == word or stem.startswith(word + "-") or stem.startswith(word + "_")
+               or stem.endswith("-" + word) or stem.endswith("_" + word) for word in sensitive)
 
 
 def main():
