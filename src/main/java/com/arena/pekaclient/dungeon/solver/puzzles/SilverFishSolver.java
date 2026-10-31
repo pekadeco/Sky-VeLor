@@ -93,7 +93,7 @@ public class SilverFishSolver {
                                 }
                             }
                         }
-                    
+
                     ticks = 0;
                 }
             } else if (grid == null) {
@@ -236,7 +236,7 @@ public class SilverFishSolver {
 
         while (!queue.isEmpty()) {
             Point currPos = queue.pollFirst();
-            
+
             for (EnumFacing dir : EnumFacing.HORIZONTALS) {
                 Point nextPos = move(iceCave, iceCaveColors, currPos, dir);
                 if (nextPos != null) {
@@ -244,8 +244,8 @@ public class SilverFishSolver {
                     iceCaveColors[(int) nextPos.getY()][(int) nextPos.getX()] = new Point((int) currPos.getX(), (int) currPos.getY());
                     if (nextPos.getY() == endY && nextPos.getX() == endX) {
                         ArrayList<Point> steps = new ArrayList<>();
-                        
-                        Point tmp = currPos;  
+
+                        Point tmp = currPos;
                         int count = 0;
                         steps.add(nextPos);
                         steps.add(currPos);
@@ -254,7 +254,7 @@ public class SilverFishSolver {
                             tmp = iceCaveColors[(int) tmp.getY()][(int) tmp.getX()];
                             steps.add(tmp);
                         }
-                        
+
                         return steps;
                     }
                 }
@@ -279,10 +279,10 @@ public class SilverFishSolver {
             i++;
         }
 
-        i--;  
+        i--;
 
         if (iceCaveColors[y + i * diffY][x + i * diffX] != null) {
-            
+
             return null;
         }
 

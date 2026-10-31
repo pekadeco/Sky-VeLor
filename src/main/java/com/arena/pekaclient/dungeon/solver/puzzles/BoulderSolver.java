@@ -38,7 +38,7 @@ public class BoulderSolver {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
     public BoulderSolver() {
-        
+
         expectedBoulders.add(Lists.newArrayList(BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.EMPTY));
         variantSteps.add(Lists.newArrayList(new BoulderPush(2, 4, Direction.RIGHT), new BoulderPush(2, 3, Direction.FORWARD), new BoulderPush(3, 3, Direction.RIGHT), new BoulderPush(4, 3, Direction.RIGHT), new BoulderPush(4, 1, Direction.FORWARD), new BoulderPush(5, 1, Direction.RIGHT)));
 
@@ -64,17 +64,17 @@ public class BoulderSolver {
         variantSteps.add(Lists.newArrayList(new BoulderPush(0, 1, Direction.FORWARD)));
 
         ArrayList<BoulderState> newVariantInitial = Lists.newArrayList(
-                
+
                 BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED,
-                
+
                 BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.EMPTY,
-                
+
                 BoulderState.FILLED, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY,
-                
+
                 BoulderState.FILLED, BoulderState.EMPTY, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.FILLED, BoulderState.FILLED, BoulderState.FILLED,
-                
+
                 BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED,
-                
+
                 BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY, BoulderState.FILLED, BoulderState.EMPTY
         );
         expectedBoulders.add(newVariantInitial);
@@ -196,7 +196,7 @@ public class BoulderSolver {
 
                 if (quartzBlocksFound == 8 && barriersFound >= 10) {
                     if (boulderChest == null || boulderFacing == null) {
-                        
+
                         BlockPos northChest = minusMinusQuartz.add(11, +1, 0);
                         BlockPos eastChest = plusPlusQuartz.add(0, +1, -11);
                         BlockPos southChest = plusPlusQuartz.add(-11, +1, 0);

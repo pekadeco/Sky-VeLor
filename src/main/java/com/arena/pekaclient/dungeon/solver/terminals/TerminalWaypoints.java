@@ -34,7 +34,7 @@ public class TerminalWaypoints {
                     AxisAlignedBB bb = getAxisAlignedBB(event, entity, mc);
 
                     GlStateManager.pushMatrix();
-                    
+
                     GlStateManager.disableDepth();
                     GlStateManager.disableTexture2D();
                     GlStateManager.disableLighting();

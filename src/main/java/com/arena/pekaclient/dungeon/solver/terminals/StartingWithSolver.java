@@ -153,7 +153,7 @@ public class StartingWithSolver {
             }
             GlStateManager.popMatrix();
         }
-    
+
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

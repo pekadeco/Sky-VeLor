@@ -186,7 +186,7 @@ public class ClickInOrderSolver {
                 }
             }
         }
-    
+
     }
 
     @SubscribeEvent

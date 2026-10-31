@@ -137,7 +137,7 @@ public class TeleportMazeSolver {
         tessellator.draw();
 
         GlStateManager.color(c.getRed() / 255f * 0.9f, c.getGreen() / 255f * 0.9f, c.getBlue() / 255f * 0.9f, c.getAlpha() / 255f * alphaMultiplier);
-        
+
         worldrenderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
         worldrenderer.pos(aabb.minX, aabb.maxY, aabb.minZ).endVertex();
         worldrenderer.pos(aabb.maxX, aabb.maxY, aabb.minZ).endVertex();

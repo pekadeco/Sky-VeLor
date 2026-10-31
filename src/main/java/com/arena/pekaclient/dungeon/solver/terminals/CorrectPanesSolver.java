@@ -155,7 +155,7 @@ public class CorrectPanesSolver {
                 }
             }
         }
-    
+
     }
 
     @SubscribeEvent

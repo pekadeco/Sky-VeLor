@@ -165,27 +165,27 @@ public class ThreeWeirdos {
         worldRenderer.pos(aabb.maxX, aabb.minY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.minY, aabb.maxZ).endVertex();
         worldRenderer.pos(aabb.minX, aabb.minY, aabb.maxZ).endVertex();
-        
+
         worldRenderer.pos(aabb.minX, aabb.maxY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.maxY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.maxY, aabb.maxZ).endVertex();
         worldRenderer.pos(aabb.minX, aabb.maxY, aabb.maxZ).endVertex();
-        
+
         worldRenderer.pos(aabb.minX, aabb.minY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.minX, aabb.maxY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.minX, aabb.maxY, aabb.maxZ).endVertex();
         worldRenderer.pos(aabb.minX, aabb.minY, aabb.maxZ).endVertex();
-        
+
         worldRenderer.pos(aabb.maxX, aabb.minY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.maxY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.maxY, aabb.maxZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.minY, aabb.maxZ).endVertex();
-        
+
         worldRenderer.pos(aabb.minX, aabb.minY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.minY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.maxY, aabb.minZ).endVertex();
         worldRenderer.pos(aabb.minX, aabb.maxY, aabb.minZ).endVertex();
-        
+
         worldRenderer.pos(aabb.minX, aabb.minY, aabb.maxZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.minY, aabb.maxZ).endVertex();
         worldRenderer.pos(aabb.maxX, aabb.maxY, aabb.maxZ).endVertex();

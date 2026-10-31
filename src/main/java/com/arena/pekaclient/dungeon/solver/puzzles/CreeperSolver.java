@@ -34,22 +34,22 @@ import java.util.Set;
 public class CreeperSolver {
 
     static final int[] CREEPER_COLOURS = {
-            0xFF50EF39,  
-            0xFFC51111,  
-            0xFF132ED1,  
-            0xFF117F2D,  
-            0xFFED54BA,  
-            0xFFEF7D0D,  
-            0xFFF5F557,  
-            0xFFD6E0F0,  
-            0xFF6B2FBB,  
-            0xFF39FEDC   
+            0xFF50EF39,
+            0xFFC51111,
+            0xFF132ED1,
+            0xFF117F2D,
+            0xFFED54BA,
+            0xFFEF7D0D,
+            0xFFF5F557,
+            0xFFD6E0F0,
+            0xFF6B2FBB,
+            0xFF39FEDC
     };
     static boolean drawCreeperLines = false;
     static Vec3 creeperLocation = new Vec3(0, 0, 0);
     static List<Vec3[]> creeperLines = new ArrayList<>();
     private static int ticks = 0;
-    private static final Set<BlockPos> usedEndBlocks = new HashSet<>(); 
+    private static final Set<BlockPos> usedEndBlocks = new HashSet<>();
 
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
@@ -131,7 +131,7 @@ public class CreeperSolver {
         for (BlockPos block : blocks) {
             for (Block blockType : blockTypes) {
                 if (mc.theWorld.getBlockState(block).getBlock() == blockType &&
-                        !usedEndBlocks.contains(block) && 
+                        !usedEndBlocks.contains(block) &&
                         block.distanceSq(pos) < closestBlockDistance) {
                     closestBlock = block;
                     closestBlockDistance = block.distanceSq(pos);

@@ -73,7 +73,7 @@ public final class AppleSettings {
     /** Default-on QoL particle policy; only vanilla block digging/crack particles are filtered at addEffect. */
     public static final boolean DEFAULT_NO_BLOCK_PARTICLES = true;
     public static boolean noBlockParticles = DEFAULT_NO_BLOCK_PARTICLES;
-    
+
     // Item Animation. Percent controls use 100% for untouched vanilla; offsets are hundredths of a
     // first-person render unit. Keeping the bounds here makes loading, exact-value entry and sliders agree.
     public static final int DEFAULT_ITEM_ANIMATION_SIZE = 100;
@@ -132,7 +132,7 @@ public final class AppleSettings {
     public static float guiScrollMultiplier() {
         return effectiveScrollSpeed() / 100.0f;
     }
-    
+
     /** Effective Item Animation size; an off switch is the exact vanilla value. */
     public static int effectiveItemAnimationSize() {
         return itemAnimationSizeOn ? Math.max(ITEM_ANIMATION_SIZE_MIN_PERCENT,
@@ -144,7 +144,7 @@ public final class AppleSettings {
         return itemAnimationSpeedOn ? Math.max(ITEM_ANIMATION_SPEED_MIN_PERCENT,
                 Math.min(ITEM_ANIMATION_SPEED_MAX_PERCENT, itemAnimationSpeed)) : DEFAULT_ITEM_ANIMATION_SPEED;
     }
-    
+
     /** Custom GUI glass opacity in percent (45..100). Higher is more solid, lower shows more of the game. */
     public static int glassOpacity = DEFAULT_GLASS_OPACITY;
     public static boolean animations = true;
@@ -154,7 +154,7 @@ public final class AppleSettings {
     public static boolean adaptive = DEFAULT_ADAPTIVE_QUALITY; // auto-lower detail when FPS drops
     public static int scrollSpeed = 100;      // 50..300 (%), wheel and swipe speed (keys are fixed)
     public static boolean smoothScrolling = DEFAULT_SMOOTH_SCROLLING;
-    
+
     // Item Animation renderer settings. They are read live by the first-person render and equip hooks.
     public static int itemAnimationSize = DEFAULT_ITEM_ANIMATION_SIZE;      // 30..200 (%)
     public static int itemAnimationSpeed = DEFAULT_ITEM_ANIMATION_SPEED;    // 25..400 (%)
@@ -162,7 +162,7 @@ public final class AppleSettings {
     public static int itemAnimationX = DEFAULT_ITEM_ANIMATION_X;
     public static int itemAnimationY = DEFAULT_ITEM_ANIMATION_Y;
     public static int itemAnimationZ = DEFAULT_ITEM_ANIMATION_Z;
-    
+
     /** Dungeon tab: replace the server's Spirit Leap menu with the teammate selector. On by default. */
     public static boolean leapMenu = true;
 
@@ -1109,7 +1109,7 @@ public final class AppleSettings {
         p.setProperty("smoothScrolling", Boolean.toString(smoothScrolling));
         saveMouseSettings(p);
         saveParticleSettings(p);
-        
+
         // Item Animation. Save only the current supported category; old and obsolete keys are deliberately retired.
         saveItemAnimationSettings(p);
         ItemLockSwapSettings.save(p);

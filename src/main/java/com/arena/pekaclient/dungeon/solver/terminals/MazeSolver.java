@@ -167,7 +167,7 @@ public class MazeSolver {
                 playCompletionSound();
             }
         }
-    
+
     }
 
     private void renderCustomGui(ContainerChest container) {

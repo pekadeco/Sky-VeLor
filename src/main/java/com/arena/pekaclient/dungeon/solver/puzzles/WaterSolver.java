@@ -149,7 +149,7 @@ public class WaterSolver {
 
         Color color = Color.green;
         if (offsetY != 0) color = Color.yellow;
-        
+
         for (BlockPos position : boundingBoxPositions) {
             if (world.getBlockState(position).getBlock() != Blocks.lever) continue;
             DungeonSolverRender.drawLeverBoundingBox(
@@ -244,7 +244,7 @@ public class WaterSolver {
                 EnumFacing facing = blockState.getValue(BlockLever.FACING).getFacing();
                 BlockPos behindLever = getBlockBehindLever(pos, facing);
                 if (behindLever == null) continue;
-                
+
                 Block behindBlock = world.getBlockState(behindLever).getBlock();
                 String blockName = Block.blockRegistry.getNameForObject(behindBlock).toString();
 
@@ -270,7 +270,7 @@ public class WaterSolver {
     }
 
     private static BlockPos getBlockPistonHead(BlockPos pos, EnumFacing facing) {
-        
+
         switch (facing) {
             case NORTH:
                 return new BlockPos(pos.getX(), pos.getY(), pos.getZ() - 1);

@@ -97,7 +97,7 @@ public class ClickOnColorsSolver {
         } else {
             handleDefaultGui(chest, targetColor);
         }
-    
+
     }
 
     private void renderCustomGui(GuiChest chest, List<Slot> correctSlots, String targetColor) {

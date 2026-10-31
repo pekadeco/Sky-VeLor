@@ -414,7 +414,7 @@ public final class ReferenceSettingsCatalog {
             card("fonts", "Fonts", "Optional Lunaria text font and external font choices.", false,
                     "Built-in fonts are ready immediately. Add .ttf or .otf files to config/lunaria/fonts; compatible earlier font folders remain readable and are never moved.",
                     masterDropdown("font-settings", "Custom Font", "Use a safe optional font for Lunaria-owned text.",
-                            "font typography external ttf otf", 
+                            "font typography external ttf otf",
                             action("font-selection", "Selected Font", "Cycle built-in and discovered external fonts.",
                                     "font choice external", "Choose Next"),
                             slider("font-scale", "Text Scale", "Set the optional Lunaria font scale.",

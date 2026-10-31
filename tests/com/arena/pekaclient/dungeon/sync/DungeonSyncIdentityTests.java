@@ -78,7 +78,7 @@ public final class DungeonSyncIdentityTests {
                 displayedPartyPlayers, Collections.singletonList("whiteshadow"), "ii8we_", 2);
         List<String> secondClientRoster = DungeonSyncIdentity.buildTabListRoster(fakepixelProfiles,
                 displayedPartyPlayers, Collections.singletonList("whiteshadow"), "whiteshadow", 2);
-        check("two-player party roster uses visible profile rows when class decoration is missing", 
+        check("two-player party roster uses visible profile rows when class decoration is missing",
                 firstClientRoster.equals(Arrays.asList("ii8we_", "whiteshadow")));
         check("both clients derive the same roster regardless of which local class badge is absent",
                 firstClientRoster.equals(secondClientRoster));
