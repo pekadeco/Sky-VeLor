@@ -2,11 +2,16 @@
 setlocal EnableExtensions EnableDelayedExpansion
 for %%I in ("%~dp0..") do set "ROOT=%%~fI"
 set "CLASSES=%ROOT%\build\classes\main"
+set "RESOURCES=%ROOT%\build\resources\main"
 set "CP_FILE=%ROOT%\build\test-classpath.txt"
 set "OUT=%TEMP%\lunaria-tests-%RANDOM%-%RANDOM%"
 
 if not exist "%CLASSES%" (
     echo Main classes not found. Run gradlew.bat build dumpTestClasspath first.
+    exit /b 1
+)
+if not exist "%RESOURCES%" (
+    echo Main resources not found. Run gradlew.bat build dumpTestClasspath first.
     exit /b 1
 )
 if not exist "%CP_FILE%" (
@@ -21,10 +26,10 @@ if not defined TEST_CP (
 mkdir "%OUT%" || exit /b 1
 
 for /r "%ROOT%\tests" %%F in (*.java) do echo "%%F" >> "%OUT%\sources.txt"
-javac -nowarn -encoding UTF-8 -cp "%CLASSES%;%TEST_CP%" -d "%OUT%" @"%OUT%\sources.txt"
+javac -nowarn -encoding UTF-8 -cp "%CLASSES%;%RESOURCES%;%TEST_CP%" -d "%OUT%" @"%OUT%\sources.txt"
 if errorlevel 1 goto fail
 
-set "CP=%OUT%;%CLASSES%;%TEST_CP%"
+set "CP=%OUT%;%CLASSES%;%RESOURCES%;%TEST_CP%"
 set /a COUNT=0
 for /r "%ROOT%\tests" %%F in (*.java) do (
     findstr /C:"public static void main" "%%F" >nul

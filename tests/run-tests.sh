@@ -1,22 +1,27 @@
 #!/bin/sh
 # Compiles and runs every standalone logic/config/layout/migration test. No game is started.
 #
-# Needs a JDK 8, compiled classes (build/classes/main), and either TEST_CP (the complete Forge test classpath)
+# Needs a JDK 8, compiled classes/resources, and either TEST_CP (the complete Forge test classpath)
 # or the MC_JAR, LOG4J_JAR and GSON_JAR paths used by the legacy invocation.
 # Example after `gradle build dumpTestClasspath`:
 #   TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 set -e
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 CLASSES="${CLASSES:-$HERE/build/classes/main}"
+RESOURCES="${RESOURCES:-$HERE/build/resources/main}"
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
+if [ ! -d "$RESOURCES" ]; then
+  echo "Main resources not found. Run gradlew build dumpTestClasspath first." >&2
+  exit 1
+fi
 if [ -n "${TEST_CP:-}" ]; then
-  CP="$CLASSES:$TEST_CP"
+  CP="$CLASSES:$RESOURCES:$TEST_CP"
 else
   : "${MC_JAR:?set MC_JAR to minecraft_merged-1.8.9.jar, or set TEST_CP}"
   : "${LOG4J_JAR:?set LOG4J_JAR to the log4j-api jar, or set TEST_CP}"
   : "${GSON_JAR:?set GSON_JAR to the gson jar, or set TEST_CP}"
-  CP="$CLASSES:$MC_JAR:$LOG4J_JAR:$GSON_JAR"
+  CP="$CLASSES:$RESOURCES:$MC_JAR:$LOG4J_JAR:$GSON_JAR"
 fi
 
 # Compile every test first, including source-layout contracts. This catches a stale retained-test reference before
