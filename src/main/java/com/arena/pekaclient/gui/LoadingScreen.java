@@ -2,6 +2,7 @@ package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.PekaVersion;
 import com.arena.pekaclient.render.Anim;
+import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.startup.StartupTasks;
 import com.arena.pekaclient.widget.AppleButton;
@@ -56,10 +57,10 @@ public final class LoadingScreen extends GuiScreen {
         UIRender.beginFrame();
         try {
             // A quiet dark scrim keeps the full-bleed art visible while preserving readable progress text.
-            UIRender.roundRect(0F, 0F, width, height, 0F, 0x33070B22, 0x66140B33, 1F);
+            UIRender.roundRect(0F, 0F, width, height, 0F, Theme.LOADING_ART_SCRIM_TOP, Theme.LOADING_ART_SCRIM_BOTTOM, 1F);
             UIRender.roundRect(panelX - 3F, panelY - 3F, panelW + 6F, panelH + 6F, 16F,
-                    0x552462C8, 0x664A1E9E, 1F);
-            UIRender.roundRect(panelX, panelY, panelW, panelH, 14F, 0xD91A2048, 0xD91E163D, 1F);
+                    Theme.LOADING_STARTUP_GLOW_TOP, Theme.LOADING_STARTUP_GLOW_BOTTOM, 1F);
+            UIRender.roundRect(panelX, panelY, panelW, panelH, 14F, Theme.LOADING_STARTUP_PANEL_TOP, Theme.LOADING_STARTUP_PANEL_BOTTOM, 1F);
         } finally {
             UIRender.endFrame();
         }
@@ -86,17 +87,17 @@ public final class LoadingScreen extends GuiScreen {
         UIRender.beginFrame();
         try {
             UIRender.text(font, PekaVersion.NAME, centerX - font.getStringWidth(PekaVersion.NAME) * .5F,
-                    panelY + 17F, 0xFFB8C8FF, .9F, false);
+                    panelY + 17F, Theme.LOADING_STARTUP_VERSION, .9F, false);
             UIRender.text(font, status, centerX - font.getStringWidth(status) * .5F, panelY + 43F,
-                    StartupTasks.failed() ? 0xFFFFB3BF : 0xFFF1EEFF, .84F, false);
+                    StartupTasks.failed() ? Theme.LOADING_STARTUP_ERROR : Theme.LOADING_STARTUP_STATUS, .84F, false);
             // Soft blue-to-purple glow, then the readable rounded track and real completed-task fill.
-            UIRender.roundRect(barX - 4F, barY - 4F, barW + 8F, 15F, 7F, 0x303CA8FF, 0x305E45D6, 1F);
-            UIRender.roundRect(barX, barY, barW, 7F, 3.5F, 0x99383C72, 0x99383C72, 1F);
+            UIRender.roundRect(barX - 4F, barY - 4F, barW + 8F, 15F, 7F, Theme.LOADING_PROGRESS_GLOW_START, Theme.LOADING_PROGRESS_GLOW_END, 1F);
+            UIRender.roundRect(barX, barY, barW, 7F, 3.5F, Theme.LOADING_PROGRESS_TRACK, Theme.LOADING_PROGRESS_TRACK, 1F);
             float fill = barW * Math.max(0F, Math.min(1F, progressAnim.get()));
-            if (fill > 0F) UIRender.roundRect(barX, barY, fill, 7F, 3.5F, 0xFF66C7FF, 0xFFA875FF, 1F);
+            if (fill > 0F) UIRender.roundRect(barX, barY, fill, 7F, 3.5F, Theme.LOADING_PROGRESS_START, Theme.LOADING_PROGRESS_END, 1F);
             String detail = total > 0 ? completed + " of " + total + " startup tasks" : "Lunaria Mod for Minecraft 1.8.9";
             UIRender.text(font, detail, centerX - font.getStringWidth(detail) * .5F, barY + 17F,
-                    0xFFBAC0DF, .70F, false);
+                    Theme.LOADING_STARTUP_DETAIL, .70F, false);
         } finally {
             UIRender.endFrame();
         }

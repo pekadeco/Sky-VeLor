@@ -18,6 +18,7 @@ public final class Theme {
 
     /** Shared masks/opaque neutrals for render helpers; these are colour tokens, not ad-hoc caller literals. */
     public static final int RGB_MASK = 0x00FFFFFF;
+    public static final int TRANSPARENT = 0x00000000;
     public static final int OPAQUE_BLACK = 0xFF000000;
     public static final int OPAQUE_WHITE = 0xFFFFFFFF;
     /** Minecraft-native textured-button text values retained for vanilla integration widgets. */
@@ -93,6 +94,42 @@ public final class Theme {
     public static final int LOADING_DIM = TEXT_TERTIARY;
     public static final int LOADING_TRACK = 0x33FFFFFF;
     public static final int LOADING_ERROR = STATUS_CRITICAL;
+    /** Full-bleed supplied-art loading treatment; both screens retain their distinct panel opacity. */
+    public static final int LOADING_ART_SCRIM_TOP = 0x33070B22;
+    public static final int LOADING_ART_SCRIM_BOTTOM = 0x66140B33;
+    public static final int LOADING_STARTUP_GLOW_TOP = 0x552462C8;
+    public static final int LOADING_STARTUP_GLOW_BOTTOM = 0x664A1E9E;
+    public static final int LOADING_STARTUP_PANEL_TOP = 0xD91A2048;
+    public static final int LOADING_STARTUP_PANEL_BOTTOM = 0xD91E163D;
+    public static final int LOADING_TERRAIN_GLOW_TOP = 0x553A78E6;
+    public static final int LOADING_TERRAIN_GLOW_BOTTOM = 0x665B39B0;
+    public static final int LOADING_TERRAIN_PANEL_TOP = 0xDA1A2048;
+    public static final int LOADING_TERRAIN_PANEL_BOTTOM = 0xDA1E163D;
+    public static final int LOADING_PROGRESS_GLOW_START = 0x303CA8FF;
+    public static final int LOADING_PROGRESS_GLOW_END = 0x305E45D6;
+    public static final int LOADING_PROGRESS_TRACK = 0x99383C72;
+    public static final int LOADING_PROGRESS_START = 0xFF66C7FF;
+    public static final int LOADING_PROGRESS_END = 0xFFA875FF;
+    public static final int LOADING_STARTUP_VERSION = 0xFFB8C8FF;
+    public static final int LOADING_STARTUP_STATUS = 0xFFF1EEFF;
+    public static final int LOADING_STARTUP_ERROR = 0xFFFFB3BF;
+    public static final int LOADING_STARTUP_DETAIL = 0xFFBAC0DF;
+    public static final int LOADING_TERRAIN_STATUS = 0xFFF6F1FF;
+    public static final int LOADING_TERRAIN_DETAIL = 0xFFBEC4E3;
+    public static final int CHAT_FIELD_ERROR = 0xFFFF453A;
+    public static final int WINDOW_HINT_BACKGROUND = 0xE6101820;
+    /** Default colours for client-only world outlines; settings can still override each configurable variant. */
+    public static final int HIGHLIGHT_BLOOD_MOB = 0xFF00FF00;
+    public static final int HIGHLIGHT_NORMAL_MOB = 0xFF7CFC8A;
+    public static final int HIGHLIGHT_STARRED_MOB = 0x5C9AFFFF;
+    public static final int HIGHLIGHT_STORMY = 0xADD8E6FF;
+    public static final int HIGHLIGHT_WITHERMANCER = 0xA9A9A9FF;
+    public static final int HIGHLIGHT_ZOMBIE_COMMANDER = 0xFF0000FF;
+    public static final int HIGHLIGHT_SKELETON_MASTER = 0xFF6400FF;
+    private static final int[] MINECRAFT_FORMATTING_PALETTE = {
+            0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA,
+            0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF
+    };
     public static final int LEAP_CARD = 0xFF20242C;
     public static final int LEAP_CARD_HOVER = 0xFF2A313D;
     public static final int LEAP_BORDER = 0xFF465264;
@@ -195,6 +232,11 @@ public final class Theme {
     public static float speed = 1f;
 
     private Theme() {
+    }
+
+    /** Returns an isolated copy of the vanilla chat-format palette used by the optional dynamic-font atlas. */
+    public static int[] minecraftFormattingPalette() {
+        return MINECRAFT_FORMATTING_PALETTE.clone();
     }
 
     /** Applies the restored Apple-glass system while retaining opacity, radius and motion accessibility preferences. */

@@ -52,10 +52,7 @@ public final class GlobalFontManager {
     private static final String MONO_RESOURCE = "/assets/lunaria/fonts/mono-jetbrains-mono.ttf";
     private static final String EXTERNAL_PREFIX = "External:";
     private static final int ATLAS_SIZE = 1024;
-    private static final int[] MC_COLOURS = {
-            0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA,
-            0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF
-    };
+    private static final int[] MC_COLOURS = Theme.minecraftFormattingPalette();
 
     private static FontAtlas atlas;
     private static String loadedName = "";

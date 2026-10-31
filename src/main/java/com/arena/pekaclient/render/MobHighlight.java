@@ -35,12 +35,12 @@ import java.util.Set;
  * Box mode draws the marker-stand bounds; Outline mode re-renders the associated mob model.
  */
 public final class MobHighlight {
-    private static final int NORMAL_COLOR = 0xFF7CFC8A;
-    private static final int DEFAULT_STAR_COLOR = 0x5C9AFFFF;
-    private static final int DEFAULT_STORMY_COLOR = 0xADD8E6FF;
-    private static final int DEFAULT_WITHERMANCER_COLOR = 0xA9A9A9FF;
-    private static final int DEFAULT_ZOMBIE_COMMANDER_COLOR = 0xFF0000FF;
-    private static final int DEFAULT_SKELETON_MASTER_COLOR = 0xFF6400FF;
+    private static final int NORMAL_COLOR = Theme.HIGHLIGHT_NORMAL_MOB;
+    private static final int DEFAULT_STAR_COLOR = Theme.HIGHLIGHT_STARRED_MOB;
+    private static final int DEFAULT_STORMY_COLOR = Theme.HIGHLIGHT_STORMY;
+    private static final int DEFAULT_WITHERMANCER_COLOR = Theme.HIGHLIGHT_WITHERMANCER;
+    private static final int DEFAULT_ZOMBIE_COMMANDER_COLOR = Theme.HIGHLIGHT_ZOMBIE_COMMANDER;
+    private static final int DEFAULT_SKELETON_MASTER_COLOR = Theme.HIGHLIGHT_SKELETON_MASTER;
     /** Refresh entity/name-tag associations at 20 Hz to reduce per-frame world scanning. */
     private static final long CACHE_REFRESH_INTERVAL_MS = 50L;
 
@@ -244,7 +244,7 @@ public final class MobHighlight {
     private void drawFelBoxes(RenderWorldLastEvent event, RenderManager rm) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null || mc.theWorld == null || felStands.isEmpty()) return;
-        int color = StarredMobPolicy.parseColor(AppleSettings.felEspColor, 0xFF00FF00);
+        int color = StarredMobPolicy.parseColor(AppleSettings.felEspColor, Theme.HIGHLIGHT_BLOOD_MOB);
         WorldBox.begin(rm.viewerPosX, rm.viewerPosY, rm.viewerPosZ, true);
         try {
             for (int i = 0; i < felStands.size(); i++) {

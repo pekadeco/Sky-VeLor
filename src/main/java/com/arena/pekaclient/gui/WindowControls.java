@@ -71,8 +71,8 @@ final class WindowControls {
         float x = Math.min(mx + 10f, screenWidth - w - 4f);
         float y = my + 14f;
         UIRender.beginFrame();
-        UIRender.roundRect(x, y, w, 16f, 4f, 0xE6101820, 0xE6101820, 1f);
-        UIRender.text(fr, tip, x + 6f, y + 4f, 0xFFFFFFFF, 1f, false);
+        UIRender.roundRect(x, y, w, 16f, 4f, Theme.WINDOW_HINT_BACKGROUND, Theme.WINDOW_HINT_BACKGROUND, 1f);
+        UIRender.text(fr, tip, x + 6f, y + 4f, Theme.OPAQUE_WHITE, 1f, false);
         UIRender.endFrame();
     }
 
@@ -111,7 +111,7 @@ final class WindowControls {
 
             float hv = hoverAmount[i];
             if (live && hv > 0.001f) {
-                int hover = UIRender.mix(0x00000000, Theme.buttonHover, hv * 0.72f);
+                int hover = UIRender.mix(Theme.TRANSPARENT, Theme.buttonHover, hv * 0.72f);
                 UIRender.roundRect(x - HOVER_HALF, cy - HOVER_HALF, HOVER_HALF * 2f,
                         HOVER_HALF * 2f, 2.5f, hover, hover, 0f);
             }

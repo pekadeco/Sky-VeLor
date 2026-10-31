@@ -33,7 +33,7 @@ public final class BloodMobHighlight {
     private static final double TAG_HORIZONTAL_REACH_SQ = TAG_HORIZONTAL_REACH * TAG_HORIZONTAL_REACH;
     private static final double TAG_MIN_Y_OFFSET = -0.5D;
     private static final double TAG_MAX_Y_OFFSET = 4.5D;
-    private static final int DEFAULT_COLOR = 0xFF00FF00;
+    private static final int DEFAULT_COLOR = Theme.HIGHLIGHT_BLOOD_MOB;
 
     private final List<EntityLivingBase> cachedMobs = new ArrayList<EntityLivingBase>();
     private World cachedWorld;
