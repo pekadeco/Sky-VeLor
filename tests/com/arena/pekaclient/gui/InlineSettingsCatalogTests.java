@@ -180,10 +180,14 @@ public final class InlineSettingsCatalogTests {
                 "com.arena.pekaclient.gui.FeatureSettingsEditorScreen",
                 "com.arena.pekaclient.gui.FeatureSettingsEditors",
                 "com.arena.pekaclient.gui.DungeonEspEditorSpecs",
-                "com.arena.pekaclient.gui.ChatEditorScreen",
                 "com.arena.pekaclient.gui.ModSettingsScreen"
         };
         for (String name : retired) check("retired focused screen is absent: " + name, !classExists(name));
+        ReferenceSettingsCatalog.Setting chatEditor = ReferenceSettingsCatalog.find("chat-editor");
+        check("retained detailed Chat Editor is the named Misc destination", classExists(
+                "com.arena.pekaclient.gui.ChatEditorScreen") && chatEditor != null && chatEditor.isEditor()
+                && "open-chat-editor".equals(chatEditor.editorActionId)
+                && ReferenceSettingsCatalog.ownerOf("chat-editor") == ReferenceSettingsCatalog.Tab.SYSTEM);
     }
 
     private static ReferenceSettingsCatalog.Card cardContainingDirectSetting(String id) {
