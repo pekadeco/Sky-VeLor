@@ -18,3 +18,11 @@ replay_pid*.log
 # workflow may still generate it under ci-evidence/ for use within a single run.
 ci-evidence/mc-*.java
 ci-evidence/gradle-decomp.log
+
+# Local protected/reference archives and prior delivery evidence are inputs only. They are never source-release inputs.
+/AppleGUI-1.8.9 (1).zip
+/Sky-VeLor-1.0.0.zip
+/Sky-VeLor-1.0.00.zip
+/analyze-sky-velor-mod-code.zip
+/.lunaria-integration-staging/
+/dist/
