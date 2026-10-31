@@ -412,7 +412,7 @@ public final class ReferenceSettingsCatalog {
                             toggle("performance-boost", "Performance Boost", "Use lighter interface effects.", "performance beta"),
                             reset("performance-reset"))),
             card("fonts", "Fonts", "Optional Lunaria text font and external font choices.", false,
-                    "Built-in fonts are ready immediately. Add .ttf or .otf files to config/lunaria/fonts; compatible earlier font folders remain readable and are never moved.",
+                    "Add .ttf or .otf files in config/lunaria/fonts.",
                     masterDropdown("font-settings", "Custom Font", "Use a safe optional font for Lunaria-owned text.",
                             "font typography external ttf otf",
                             action("font-selection", "Selected Font", "Cycle built-in and discovered external fonts.",
