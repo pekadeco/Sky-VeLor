@@ -18,8 +18,8 @@ public final class PuzzleRoomDataTests {
     private static int failed;
 
     public static void main(String[] args) throws Exception {
-        InputStream stream = PuzzleRoomDataTests.class.getResourceAsStream("/assets/pekaclient/dungeons/rooms.json");
-        check("rooms.json is bundled", stream != null);
+        InputStream stream = PuzzleRoomDataTests.class.getResourceAsStream("/assets/lunaria/dungeons/rooms.json");
+        check("Lunaria rooms.json is bundled", stream != null);
         if (stream == null) { finish(); return; }
         JsonObject root;
         try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
