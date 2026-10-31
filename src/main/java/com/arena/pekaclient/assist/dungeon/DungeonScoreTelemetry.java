@@ -48,7 +48,7 @@ public final class DungeonScoreTelemetry {
     private int elapsedSeconds = DungeonScoreCalculator.UNKNOWN;
     private int failedPuzzles;
     private int spiritDeathPenaltyReductions;
-    /** Retained for /svdungeon diagnostics; Fakepixel does not award it a score bonus. */
+    /** Retained for /lunaria dungeon diagnostics; Fakepixel does not award it a score bonus. */
     private boolean mimicKilled;
     private boolean bloodDoorOpened;
     private boolean paulActive;

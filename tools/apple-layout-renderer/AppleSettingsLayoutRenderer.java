@@ -163,13 +163,12 @@ public final class AppleSettingsLayoutRenderer {
         // Mirror the runtime's left-aligned product identity without introducing another header action.
         float markX = panel.x + PAD;
         float markY = panel.y + (HEADER_H - 15f) * .5f;
-        fillRound(g, markX, markY, 15f, 15f, 4f, BLUE);
-        setFont(g, 9f, Font.BOLD);
-        text(g, "S", markX + 4f, markY + 11f, Color.WHITE);
+        fillCircle(g, markX + 7.5f, markY + 7.5f, 7.5f, BLUE);
+        fillCircle(g, markX + 10.5f, markY + 5.5f, 6f, WINDOW_TOP);
         float titleX = markX + 20f;
         setFont(g, 12f, Font.BOLD);
-        text(g, "SkyVeLor", titleX, panel.y + 19f, PRIMARY);
-        float sectionX = titleX + g.getFontMetrics().stringWidth("SkyVeLor") + GAP;
+        text(g, "Lunaria", titleX, panel.y + 19f, PRIMARY);
+        float sectionX = titleX + g.getFontMetrics().stringWidth("Lunaria") + GAP;
         if (sectionX < header.dragRight - 12f) {
             setFont(g, 9f, Font.PLAIN);
             text(g, "Settings", sectionX, panel.y + 18f, SECONDARY);
@@ -294,7 +293,7 @@ public final class AppleSettingsLayoutRenderer {
 
     private void drawHome(Graphics2D g, float x, float y, float w) {
         setFont(g, 16f, Font.BOLD);
-        text(g, "Sky VeLor, ready.", x, y + 14f, PRIMARY);
+        text(g, "Lunaria, ready.", x, y + 14f, PRIMARY);
         setFont(g, 10f, Font.PLAIN);
         text(g, "Live local performance and quick controls.", x, y + 29f, SECONDARY);
         float cursor = y + 40f;

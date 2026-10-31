@@ -32,7 +32,7 @@ public final class DungeonRunTracker {
     private DungeonRunTracker() {
     }
 
-    /** Records normal Forge registration for the opt-in /velor self-test report. */
+    /** Records normal Forge registration for the opt-in /lunaria self-test report. */
     public static void markRegistered() {
         registered = true;
     }

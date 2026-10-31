@@ -1,23 +1,19 @@
 package com.arena.pekaclient;
 
 /**
- * The single source of truth for the Sky VeLor version and name.
+ * The single source of truth for The Sky's Lunaria Mod release identity.
  *
- * build.gradle reads NAME from this file, so the jar name, mcmod.info, the GUI title and the
- * version label always match. Change it only when preparing a new release, never on every game
- * launch or build. Current source version: Beta-0.10.9.3.2v.
- *
- * The Java package and the modid stay as they were ({@code com.arena.pekaclient} and
- * {@code pekaclient}). Changing them would move keybinding ids, asset paths and saved files, so only
- * the display name, the version and the jar name use Sky VeLor.
+ * build.gradle reads NAME from this file, so the JAR name, processed mcmod.info metadata and in-game version
+ * label stay aligned. The established Java package remains for binary/source compatibility; public identity and
+ * newly written configuration use Lunaria with transparent migration from older installations.
  */
 public final class PekaVersion {
 
-    /** The version string shown in the GUI and written to mcmod.info. */
-    public static final String NAME = "Beta-0.10.9.3.2v";
+    /** User-facing release version. */
+    public static final String NAME = "Beta-0.10.9.4v";
 
-    /** The client's display name. */
-    public static final String DISPLAY_NAME = "Sky VeLor";
+    /** User-facing client title. */
+    public static final String DISPLAY_NAME = "The Sky's Lunaria Mod";
 
     private PekaVersion() {
     }

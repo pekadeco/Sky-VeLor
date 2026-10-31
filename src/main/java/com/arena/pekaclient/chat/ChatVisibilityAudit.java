@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * Minecraft-free visibility and diagnostic policy for the replacement Default Chat renderer. Closed and open chat
- * both honor the remembered selected tab; the bounded debug history backs /velor chatdebug.
+ * both honor the remembered selected tab; the bounded debug history backs /lunaria chatdebug.
  */
 public final class ChatVisibilityAudit {
 

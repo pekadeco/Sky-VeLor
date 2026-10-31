@@ -24,11 +24,35 @@ import com.arena.pekaclient.command.SvCommand;
 import com.arena.pekaclient.command.SvDungeonCommand;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
+import com.arena.pekaclient.config.KeybindMigration;
 import com.arena.pekaclient.dungeon.DragonKillAlert;
 import com.arena.pekaclient.dungeon.DungeonMapOverlay;
 import com.arena.pekaclient.dungeon.PuzzleRoomDatabase;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.TerminalSolver;
+import com.arena.pekaclient.dungeon.DungeonProgressTracker;
+import com.arena.pekaclient.dungeon.SpiritBowTracer;
+import com.arena.pekaclient.dungeon.WitherDoorHighlight;
+import com.arena.pekaclient.dungeon.solver.devices.FirstDeviceSolver;
+import com.arena.pekaclient.dungeon.solver.devices.ThirdDeviceSolver;
+import com.arena.pekaclient.dungeon.solver.puzzles.BoulderSolver;
+import com.arena.pekaclient.dungeon.solver.puzzles.CreeperSolver;
+import com.arena.pekaclient.dungeon.solver.puzzles.SilverFishSolver;
+import com.arena.pekaclient.dungeon.solver.puzzles.TeleportMazeSolver;
+import com.arena.pekaclient.dungeon.solver.puzzles.ThreeWeirdos;
+import com.arena.pekaclient.dungeon.solver.puzzles.WaterSolver;
+import com.arena.pekaclient.dungeon.solver.terminals.ClickInOrderSolver;
+import com.arena.pekaclient.dungeon.solver.terminals.ClickOnColorsSolver;
+import com.arena.pekaclient.dungeon.solver.terminals.CorrectPanesSolver;
+import com.arena.pekaclient.dungeon.solver.terminals.HideTooltips;
+import com.arena.pekaclient.dungeon.solver.terminals.MazeSolver;
+import com.arena.pekaclient.dungeon.solver.terminals.StartingWithSolver;
+import com.arena.pekaclient.dungeon.solver.terminals.TerminalDebug;
+import com.arena.pekaclient.dungeon.solver.terminals.TerminalDebugCommand;
+import com.arena.pekaclient.dungeon.solver.terminals.TerminalGuiLayer;
+import com.arena.pekaclient.dungeon.solver.terminals.TerminalSimulatorCommand;
+import com.arena.pekaclient.dungeon.solver.terminals.TerminalTracker;
+import com.arena.pekaclient.dungeon.solver.terminals.TerminalWaypoints;
 import com.arena.pekaclient.dungeonesp.DungeonEspController;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.slayer.SlayerTracker;
@@ -37,6 +61,11 @@ import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.feature.LeapUse;
 import com.arena.pekaclient.feature.HotbarScrollPolicy;
 import com.arena.pekaclient.feature.SpiritLeap;
+import com.arena.pekaclient.feature.protection.ItemProtection;
+import com.arena.pekaclient.feature.qol.EntityVisualCleanup;
+import com.arena.pekaclient.feature.qol.EquipmentOverlay;
+import com.arena.pekaclient.feature.qol.RemoveIrritatingMessages;
+import com.arena.pekaclient.events.PacketHandler;
 import com.arena.pekaclient.gui.AppleGuiButton;
 import com.arena.pekaclient.gui.AppleSettingsScreen;
 import com.arena.pekaclient.gui.HudEditorScreen;
@@ -44,18 +73,23 @@ import com.arena.pekaclient.gui.DungeonHudEditorScreen;
 import com.arena.pekaclient.gui.GuiDebugOverlay;
 import com.arena.pekaclient.gui.LeapScreen;
 import com.arena.pekaclient.gui.LoadingScreen;
+import com.arena.pekaclient.gui.LunariaDownloadingTerrainScreen;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapController;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapKeybind;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapOverlay;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
 import com.arena.pekaclient.render.Theme;
+import com.arena.pekaclient.render.BloodMobHighlight;
+import com.arena.pekaclient.render.MobHighlight;
 import com.arena.pekaclient.render.itemanimation.ItemAnimationHookStatus;
 import com.arena.pekaclient.startup.StartupTasks;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.NetworkManager;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.gui.GuiIngameMenu;
+import net.minecraft.client.gui.GuiDownloadTerrain;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.entity.EntityPlayerSP;
@@ -71,17 +105,19 @@ import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent;
+import io.netty.channel.ChannelPipeline;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 
 /**
- * Entry point for Sky VeLor. Client-only. Adds:
+ * Entry point for Lunaria. Client-only. Adds:
  *  - a keybind (default Right Shift) that opens the hub from gameplay,
- *  - a "Sky VeLor" button on the main menu and pause menu,
+ *  - a "Lunaria" button on the main menu and pause menu,
  *  - movable HUD elements (Mining BPS, inventory, player doll) with an editor,
  *  - the Spirit Leap teammate selector, which replaces only the server-opened Spirit Leap menu when enabled,
- *  - a loading screen that runs Sky VeLor's own startup tasks,
+ *  - a loading screen that runs Lunaria's own startup tasks,
  *  - M7 dungeon overlay, boss and dragon hitboxes, and the dragon kill alert,
  *  - all-rarity fishing counters, Festival best, Sea Creature HP and the Lord Jawbus alert,
  *  - an opt-in Default Chat QoL layer with attached All/Party/Reply/custom tabs and inline settings groups.
@@ -96,8 +132,8 @@ import org.lwjgl.input.Keyboard;
         clientSideOnly = true)
 public class PekaClientMod {
 
-    /** The modid stays as it was. It names the asset folder and the keybind ids, so changing it would break them. */
-    public static final String MODID = "pekaclient";
+    /** Public metadata now uses Lunaria; KeybindMigration and AppleSettings retain established Controls/config values. */
+    public static final String MODID = "lunaria";
     public static final String NAME = PekaVersion.DISPLAY_NAME;
     public static final String VERSION = PekaVersion.NAME;
 
@@ -106,37 +142,40 @@ public class PekaClientMod {
 
     /** The keybind id is kept so a binding the player already set still works. Only its category name changed. */
     public static final KeyBinding OPEN_KEY =
-            new KeyBinding("key.pekaclient.open", Keyboard.KEY_RSHIFT, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.open", Keyboard.KEY_RSHIFT, "key.categories.lunaria");
 
     /** Opens the HUD editor directly on Item Animation. It is deliberately unbound on a fresh install. */
     public static final KeyBinding ITEM_ANIMATION_KEY =
-            new KeyBinding("key.pekaclient.itemanimation", Keyboard.KEY_NONE, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.itemanimation", Keyboard.KEY_NONE, "key.categories.lunaria");
 
     /**
      * Use Spirit Leap: default unbound. Pressing it while holding a Spirit Leap item sends the same right-click
      * the game sends. The server still opens its own leap menu first, and only then can the teammate picker show.
      */
     public static final KeyBinding LEAP_KEY =
-            new KeyBinding("key.pekaclient.leap", Keyboard.KEY_NONE, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.leap", Keyboard.KEY_NONE, "key.categories.lunaria");
 
     /** Optional configurable alternative to Ctrl+Tab for cycling visible native chat tabs. */
     public static final KeyBinding CHAT_TAB_KEY =
-            new KeyBinding("key.pekaclient.chatTab", Keyboard.KEY_NONE, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.chatTab", Keyboard.KEY_NONE, "key.categories.lunaria");
 
     /** Optional direct route to Chat Settings; unbound on fresh installs. */
     public static final KeyBinding CHAT_EDITOR_KEY =
-            new KeyBinding("key.pekaclient.chatEditor", Keyboard.KEY_NONE, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.chatEditor", Keyboard.KEY_NONE, "key.categories.lunaria");
 
     /** Default L: release over B to create/remove A↔B; release over an unpaired A to toggle its lock, or a paired A to remove its pair. */
     public static final KeyBinding ITEM_LOCK_SWAP_KEY =
-            new KeyBinding("key.pekaclient.itemLockSwap", Keyboard.KEY_L, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.itemLockSwap", Keyboard.KEY_L, "key.categories.lunaria");
 
     /** Fresh installs and Shortcut reset use W/P; an already-saved Controls or Shortcut value always wins instead. */
     public static final KeyBinding WARDROBE_SHORTCUT_KEY =
-            new KeyBinding("key.pekaclient.wardrobeShortcut", Keyboard.KEY_W, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.wardrobeShortcut", Keyboard.KEY_W, "key.categories.lunaria");
     public static final KeyBinding PETS_SHORTCUT_KEY =
-            new KeyBinding("key.pekaclient.petsShortcut", Keyboard.KEY_P, "key.categories.pekaclient");
+            new KeyBinding("key.lunaria.petsShortcut", Keyboard.KEY_P, "key.categories.lunaria");
     private boolean loadingShown;
+    private volatile NetworkManager pendingPacketBridgeManager;
+    private long packetBridgeWaitStartedAt;
+    private boolean packetBridgeWaitNoticeShown;
     /** The world identity already given the explicit Item Animation launcher/hook diagnosis. */
     private Object itemAnimationReportedWorld;
     private final M7OverlayRenderer m7Overlay = new M7OverlayRenderer();
@@ -163,6 +202,34 @@ public class PekaClientMod {
     private final CommandKeybindController commandKeybindController = new CommandKeybindController();
     private final InventoryAssistController inventoryAssistController = new InventoryAssistController();
 
+    // Friend-base dungeon and visual owners which do not overlap the current retained controllers.
+    private final BloodMobHighlight bloodMobHighlight = new BloodMobHighlight();
+    private final MobHighlight mobHighlight = new MobHighlight();
+    private final WitherDoorHighlight witherDoorHighlight = new WitherDoorHighlight();
+    private final SpiritBowTracer spiritBowTracer = new SpiritBowTracer();
+    private final EquipmentOverlay equipmentOverlay = new EquipmentOverlay();
+    private final EntityVisualCleanup entityVisualCleanup = new EntityVisualCleanup();
+    private final RemoveIrritatingMessages removeIrritatingMessages = new RemoveIrritatingMessages();
+    private final ItemProtection itemProtection = new ItemProtection();
+    private final BoulderSolver boulderSolver = new BoulderSolver();
+    private final CreeperSolver creeperSolver = new CreeperSolver();
+    private final SilverFishSolver silverFishSolver = new SilverFishSolver();
+    private final TeleportMazeSolver teleportMazeSolver = new TeleportMazeSolver();
+    private final ThreeWeirdos threeWeirdosSolver = new ThreeWeirdos();
+    private final WaterSolver waterSolver = new WaterSolver();
+    private final FirstDeviceSolver firstDeviceSolver = new FirstDeviceSolver();
+    private final ThirdDeviceSolver thirdDeviceSolver = new ThirdDeviceSolver();
+    private final ClickInOrderSolver clickInOrderSolver = new ClickInOrderSolver();
+    private final ClickOnColorsSolver clickOnColorsSolver = new ClickOnColorsSolver();
+    private final CorrectPanesSolver correctPanesSolver = new CorrectPanesSolver();
+    private final HideTooltips hideTooltips = new HideTooltips();
+    private final MazeSolver mazeSolver = new MazeSolver();
+    private final StartingWithSolver startingWithSolver = new StartingWithSolver();
+    private final TerminalTracker terminalTracker = new TerminalTracker();
+    private final TerminalDebug terminalDebug = new TerminalDebug();
+    private final TerminalGuiLayer terminalGuiLayer = new TerminalGuiLayer();
+    private final TerminalWaypoints terminalWaypoints = new TerminalWaypoints();
+
     @EventHandler
     public void init(FMLInitializationEvent event) {
         // Settings are read here so the first screen has them. The loading screen runs the rest.
@@ -176,6 +243,21 @@ public class PekaClientMod {
         ClientRegistry.registerKeyBinding(ITEM_LOCK_SWAP_KEY);
         ClientRegistry.registerKeyBinding(WARDROBE_SHORTCUT_KEY);
         ClientRegistry.registerKeyBinding(PETS_SHORTCUT_KEY);
+        // Item Protection is deliberately unbound by default, avoiding a collision with Item Lock and Swap.
+        ClientRegistry.registerKeyBinding(ItemProtection.PROTECT_KEY);
+        // Translation-key renames would otherwise make Minecraft treat existing Controls values as unrelated defaults.
+        KeybindMigration.migrate(new java.io.File(Minecraft.getMinecraft().mcDataDir, "options.txt"),
+                KeybindMigration.binding(OPEN_KEY, "key.lunaria.open", KeybindMigration.historicOpen()),
+                KeybindMigration.binding(ITEM_ANIMATION_KEY, "key.lunaria.itemanimation", "key.pekaclient.itemanimation"),
+                KeybindMigration.binding(LEAP_KEY, "key.lunaria.leap", KeybindMigration.historicLeap()),
+                KeybindMigration.binding(CHAT_TAB_KEY, "key.lunaria.chatTab", "key.pekaclient.chatTab"),
+                KeybindMigration.binding(CHAT_EDITOR_KEY, "key.lunaria.chatEditor", "key.pekaclient.chatEditor"),
+                KeybindMigration.binding(ITEM_LOCK_SWAP_KEY, "key.lunaria.itemLockSwap", "key.pekaclient.itemLockSwap"),
+                KeybindMigration.binding(WARDROBE_SHORTCUT_KEY, "key.lunaria.wardrobeShortcut",
+                        KeybindMigration.friendWardrobe()),
+                KeybindMigration.binding(PETS_SHORTCUT_KEY, "key.lunaria.petsShortcut", KeybindMigration.friendPets()),
+                KeybindMigration.binding(ItemProtection.PROTECT_KEY, "key.lunaria.protectItem",
+                        "key.pekaclient.protectItem"));
         // The Controls screen owns vanilla's options.txt copy; the feature config is authoritative on first load.
         // A saved zero is intentional: it means the player cleared the feature binding in the settings shell.
         if (ItemLockSwapKeybind.validStoredKeyCode(ItemLockSwapSettings.keyCode)) {
@@ -208,6 +290,8 @@ public class PekaClientMod {
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("priceset"));
+        ClientCommandHandler.instance.registerCommand(new TerminalSimulatorCommand());
+        ClientCommandHandler.instance.registerCommand(new TerminalDebugCommand());
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new ChatChannelTabs());
         // Must be registered on the real Forge bus: it observes finished GuiScreen frames without changing input.
@@ -238,6 +322,36 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(wardrobeShortcutController);
         MinecraftForge.EVENT_BUS.register(commandKeybindController);
         MinecraftForge.EVENT_BUS.register(inventoryAssistController);
+
+        // Retained friend-source render/QoL and dungeon solver features. Legacy SlotLocking and its old container
+        // overlay intentionally remain inactive: Item Lock & Swap is the sole owner of the shared L-key gesture.
+        MinecraftForge.EVENT_BUS.register(bloodMobHighlight);
+        MinecraftForge.EVENT_BUS.register(mobHighlight);
+        MinecraftForge.EVENT_BUS.register(witherDoorHighlight);
+        MinecraftForge.EVENT_BUS.register(spiritBowTracer);
+        MinecraftForge.EVENT_BUS.register(equipmentOverlay);
+        MinecraftForge.EVENT_BUS.register(entityVisualCleanup);
+        MinecraftForge.EVENT_BUS.register(removeIrritatingMessages);
+        MinecraftForge.EVENT_BUS.register(itemProtection);
+        MinecraftForge.EVENT_BUS.register(HudManager.DUNGEON_PROGRESS);
+        MinecraftForge.EVENT_BUS.register(boulderSolver);
+        MinecraftForge.EVENT_BUS.register(creeperSolver);
+        MinecraftForge.EVENT_BUS.register(silverFishSolver);
+        MinecraftForge.EVENT_BUS.register(teleportMazeSolver);
+        MinecraftForge.EVENT_BUS.register(threeWeirdosSolver);
+        MinecraftForge.EVENT_BUS.register(waterSolver);
+        MinecraftForge.EVENT_BUS.register(firstDeviceSolver);
+        MinecraftForge.EVENT_BUS.register(thirdDeviceSolver);
+        MinecraftForge.EVENT_BUS.register(clickInOrderSolver);
+        MinecraftForge.EVENT_BUS.register(clickOnColorsSolver);
+        MinecraftForge.EVENT_BUS.register(correctPanesSolver);
+        MinecraftForge.EVENT_BUS.register(hideTooltips);
+        MinecraftForge.EVENT_BUS.register(mazeSolver);
+        MinecraftForge.EVENT_BUS.register(startingWithSolver);
+        MinecraftForge.EVENT_BUS.register(terminalTracker);
+        MinecraftForge.EVENT_BUS.register(terminalDebug);
+        MinecraftForge.EVENT_BUS.register(terminalGuiLayer);
+        MinecraftForge.EVENT_BUS.register(terminalWaypoints);
     }
 
     /**
@@ -307,8 +421,54 @@ public class PekaClientMod {
         return conflict;
     }
 
+    /** Remembers a connection and installs the retained outgoing-packet bridge once Netty exposes packet_handler. */
+    @SubscribeEvent
+    public void onClientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
+        if (event == null || event.manager == null) return;
+        pendingPacketBridgeManager = event.manager;
+        packetBridgeWaitStartedAt = System.currentTimeMillis();
+        packetBridgeWaitNoticeShown = false;
+        installPacketBridgeIfReady();
+    }
+
+    @SubscribeEvent
+    public void onClientDisconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        if (event == null || event.manager == null || pendingPacketBridgeManager == event.manager) {
+            pendingPacketBridgeManager = null;
+        }
+    }
+
+    private void installPacketBridgeIfReady() {
+        NetworkManager manager = pendingPacketBridgeManager;
+        if (manager == null) return;
+        try {
+            if (manager.channel() == null) return;
+            ChannelPipeline pipeline = manager.channel().pipeline();
+            if (pipeline.get("lunaria_packet_handler") != null) {
+                pendingPacketBridgeManager = null;
+                return;
+            }
+            if (pipeline.get("packet_handler") == null) {
+                if (!packetBridgeWaitNoticeShown && System.currentTimeMillis() - packetBridgeWaitStartedAt > 3000L) {
+                    packetBridgeWaitNoticeShown = true;
+                    System.err.println("[Lunaria] Waiting for packet_handler before enabling retained click guards.");
+                }
+                return;
+            }
+            pipeline.addBefore("packet_handler", "lunaria_packet_handler", new PacketHandler());
+            pendingPacketBridgeManager = null;
+            System.out.println("[Lunaria] Outbound packet bridge installed.");
+        } catch (RuntimeException ex) {
+            if (!packetBridgeWaitNoticeShown) {
+                packetBridgeWaitNoticeShown = true;
+                System.err.println("[Lunaria] Packet bridge installation will retry: " + ex.getMessage());
+            }
+        }
+    }
+
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
+        installPacketBridgeIfReady();
         Minecraft mc = Minecraft.getMinecraft();
         if (event.phase == TickEvent.Phase.START) {
             // Controls can rebind this vanilla KeyBinding outside our hub; mirror it into feature config for next launch.
@@ -401,9 +561,9 @@ public class PekaClientMod {
         if (version.endsWith("v")) {
             version = version.substring(0, version.length() - 1);
         }
-        String line = "Sky VeLor " + version + " | Item Animation: /velor itemanimation | "
+        String line = "Lunaria " + version + " | Item Animation: /lunaria itemanimation | "
                 + ItemAnimationHookStatus.getDisplay();
-        System.out.println("[Sky VeLor] " + line);
+        System.out.println("[Lunaria] " + line);
         String color = ItemAnimationHookStatus.isActive() ? "\u00a7a" : "\u00a7c";
         mc.thePlayer.addChatMessage(new ChatComponentText(color + line));
     }
@@ -432,7 +592,7 @@ public class PekaClientMod {
 
     private static void chat(Minecraft mc, String text) {
         if (mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b[Sky VeLor] \u00a7f" + text));
+            mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b[Lunaria] \u00a7f" + text));
         }
     }
 
@@ -496,6 +656,14 @@ public class PekaClientMod {
         }
     }
 
+    /** Keeps vanilla GuiDownloadTerrain lifecycle alive while rendering Lunaria's post-mod terrain artwork over it. */
+    @SubscribeEvent
+    public void onTerrainScreenDraw(GuiScreenEvent.DrawScreenEvent.Post event) {
+        if (event != null && event.gui instanceof GuiDownloadTerrain) {
+            LunariaDownloadingTerrainScreen.draw(event.gui.width, event.gui.height);
+        }
+    }
+
     /**
      * Dungeon tab, Spirit Leap. When the server opens its leap menu and the feature is on, the teammate picker
      * replaces that screen. The server's container is used unchanged, so every click is the server's own window
@@ -504,7 +672,7 @@ public class PekaClientMod {
      */
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent event) {
-        // Earliest screen Sky VeLor controls: the first main menu, shown only while startup work is pending.
+        // Earliest screen Lunaria controls: the first main menu, shown only while startup work is pending.
         // The loading screen returns to that same main menu when its work is finished.
         if (event.gui instanceof GuiMainMenu && !loadingShown && StartupTasks.hasWork()) {
             loadingShown = true;

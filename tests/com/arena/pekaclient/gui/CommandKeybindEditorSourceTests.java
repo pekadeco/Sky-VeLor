@@ -26,8 +26,8 @@ public final class CommandKeybindEditorSourceTests {
         check("focused command entry owns normal spaces and defers outer-only trim until settings persistence", text.contains("Keyboard.KEY_SPACE")
                 && text.contains("commitCommand") && text.contains("focusCommand") && text.contains("All normal")
                 && text.contains("AppleSettings.save"));
-        check("editor visibly warns command, Sky VeLor and Minecraft collisions in the affected row", text.contains("hasOtherEntryWithKey")
-                && text.contains("Sky VeLor") && text.contains("Minecraft ") && text.contains("collisionWarning")
+        check("editor visibly warns command, Lunaria and Minecraft collisions in the affected row", text.contains("hasOtherEntryWithKey")
+                && text.contains("Lunaria") && text.contains("Minecraft ") && text.contains("collisionWarning")
                 && text.contains("Theme.STATUS_CRITICAL"));
         check("editor persists through established settings save", text.contains("AppleSettings.save()")
                 && text.contains("doesGuiPauseGame"));

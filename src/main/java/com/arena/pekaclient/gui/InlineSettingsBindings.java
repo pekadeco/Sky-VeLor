@@ -6,11 +6,13 @@ import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.config.AssistSettings;
 import com.arena.pekaclient.config.ChatQolSettings;
 import com.arena.pekaclient.config.DungeonEspSettings;
+import com.arena.pekaclient.config.FontSettings;
 import com.arena.pekaclient.dungeon.M7OverlayRenderer;
 import com.arena.pekaclient.dungeon.M7Settings;
 import com.arena.pekaclient.fishing.FishingStats;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.itemlockswap.ItemLockSwapSettings;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.slayer.SlayerTracker;
 import com.arena.pekaclient.slayer.SlayerType;
 
@@ -115,6 +117,8 @@ final class InlineSettingsBindings {
         if ("hud-dungeon-run".equals(id)) return HudManager.DUNGEON_RUN.enabled;
         if ("item-animation".equals(id)) return AppleSettings.itemAnimationEnabled;
 
+        if ("font-settings".equals(id)) return FontSettings.enabled;
+        if ("font-lunaria-only".equals(id)) return !FontSettings.applyToEverything;
         if ("appearance-corners-on".equals(id)) return AppleSettings.cornerRadiusOn;
         if ("appearance-opacity-on".equals(id)) return AppleSettings.glassOpacityOn;
         if ("shadows".equals(id)) return AppleSettings.shadows;
@@ -220,6 +224,9 @@ final class InlineSettingsBindings {
         else if ("hud-dungeon-run".equals(id)) HudManager.DUNGEON_RUN.enabled = value;
         else if ("item-animation".equals(id)) AppleSettings.itemAnimationEnabled = value;
 
+        else if ("font-settings".equals(id)) FontSettings.enabled = value;
+        else if ("font-lunaria-only".equals(id)) FontSettings.applyToEverything = !value;
+
         else if ("appearance-corners-on".equals(id)) AppleSettings.cornerRadiusOn = value;
         else if ("appearance-opacity-on".equals(id)) AppleSettings.glassOpacityOn = value;
         else if ("shadows".equals(id)) AppleSettings.shadows = value;
@@ -262,6 +269,7 @@ final class InlineSettingsBindings {
         if ("appearance-corners".equals(id)) return AppleSettings.cornerRadius;
         if ("appearance-opacity".equals(id)) return AppleSettings.glassOpacity;
         if ("animation-speed".equals(id)) return AppleSettings.animSpeed;
+        if ("font-scale".equals(id)) return FontSettings.scale;
         if ("global-scroll".equals(id)) return AppleSettings.effectiveScrollSpeed();
         DungeonEspSettings.Style style = styleForValue(id);
         if (style != null) {
@@ -309,6 +317,8 @@ final class InlineSettingsBindings {
         else if ("global-scroll".equals(id)) {
             AppleSettings.scrollSpeedOn = true;
             AppleSettings.scrollSpeed = clamp(value, 50, 300);
+        } else if ("font-scale".equals(id)) {
+            FontSettings.scale = clamp(value, 70, 140);
         } else {
             DungeonEspSettings.Style style = styleForValue(id);
             if (style != null) {
@@ -358,6 +368,26 @@ final class InlineSettingsBindings {
 
     /** Returns true when a non-screen action was handled. Screen-owned actions are handled by AppleSettingsScreen. */
     static boolean runAction(String id) {
+        if ("font-selection".equals(id)) {
+            String[] fonts = GlobalFontManager.availableFonts();
+            if (fonts.length > 0) {
+                int selected = 0;
+                for (int i = 0; i < fonts.length; i++) if (fonts[i].equals(FontSettings.selected)) { selected = i; break; }
+                FontSettings.selected = FontSettings.normalise(fonts[(selected + 1) % fonts.length]);
+                FontSettings.enabled = !FontSettings.MINECRAFT_DEFAULT.equals(FontSettings.selected);
+                GlobalFontManager.reload();
+            }
+            return true;
+        }
+        if ("font-reload".equals(id)) {
+            GlobalFontManager.reload();
+            return true;
+        }
+        if ("font-reset".equals(id)) {
+            FontSettings.reset();
+            GlobalFontManager.reload();
+            return true;
+        }
         if ("appearance-reset".equals(id)) {
             AppleSettings.settingsTheme = AppleSettings.DEFAULT_SETTINGS_THEME;
             AppleSettings.darkMode = true;

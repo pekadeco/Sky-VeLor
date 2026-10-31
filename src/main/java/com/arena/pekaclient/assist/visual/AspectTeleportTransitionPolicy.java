@@ -1,7 +1,7 @@
 package com.arena.pekaclient.assist.visual;
 
 /**
- * Mapping-free rules for Sky VeLor's render-only Aspect of the End/Void camera transition.
+ * Mapping-free rules for Lunaria's render-only Aspect of the End/Void camera transition.
  *
  * <p>This class intentionally has no player, world, packet, controller, or input dependency. It can only recognize
  * an already-observed local position discontinuity and calculate the progress of a temporary render position; it

@@ -4,7 +4,7 @@ package com.arena.pekaclient.render.itemanimation;
  * Allocation-free, Minecraft-class-free diagnostics shared by the loading plugin, transformer and live hooks.
  *
  * <p>This class deliberately has no client imports. The coremod can record transformer success before a
- * Minecraft class is initialized, while the HUD, join message and {@code /velor itemdebug} can later report the
+ * Minecraft class is initialized, while the HUD, join message and {@code /lunaria itemdebug} can later report the
  * same status. All strings are created only while the class is transformed or a world is joined, never from the
  * per-frame hook.
  */
@@ -33,7 +33,7 @@ public final class ItemAnimationHookStatus {
 
     /** Called by the core plugin only; it must stay safe before Minecraft's classes are available. */
     public static void noteCoremodRegistered() {
-        System.out.println("[Sky VeLor] Item Animation coremod registered: explicit ItemRenderer first-person target.");
+        System.out.println("[Lunaria] Item Animation coremod registered: explicit ItemRenderer first-person target.");
     }
 
     static void noteItemRendererClass(String observedName) {

@@ -134,7 +134,7 @@ public final class DungeonRunReadout {
     public String secretsLine() { return secretsLine; }
     public String deathsLine() { return deathsLine; }
 
-    /** Short diagnostic text used by /velor selftest without exposing any player data. */
+    /** Short diagnostic text used by /lunaria selftest without exposing any player data. */
     public String diagnostic() {
         return hasData() ? floorLine + ", " + secretsLine : "waiting for a visible dungeon sidebar";
     }

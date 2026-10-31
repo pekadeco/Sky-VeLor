@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Finds the server-opened Spirit Leap menu and its teammate slots.
  *
- * Sky VeLor only reads the menu that the server opens. It never sends a command or a packet of its own. A
+ * Lunaria only reads the menu that the server opens. It never sends a command or a packet of its own. A
  * teammate is a player-head item in the menu's own chest slots. Clicks go through the normal window-click path,
  * so the server still validates every one.
  *

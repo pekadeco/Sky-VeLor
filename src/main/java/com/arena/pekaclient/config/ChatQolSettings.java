@@ -46,7 +46,7 @@ public final class ChatQolSettings {
     public static int fadeSeconds;
     /** Default-on formatter-exact consecutive message compaction. */
     public static boolean compactMessages;
-    /** RGB counter colour used by Sky VeLor's renderer; the vanilla cache fallback stays gray. */
+    /** RGB counter colour used by Lunaria's renderer; the vanilla cache fallback stays gray. */
     public static int compactCounterColor;
     public static int hoverColor;
     public static int hoverOpacity;

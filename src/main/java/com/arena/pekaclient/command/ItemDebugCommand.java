@@ -23,7 +23,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandName() {
-        return "velor";
+        return "lunariadebug";
     }
 
     @Override
@@ -33,7 +33,16 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/velor itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|selftest|chateditor|chatdebug|layoutdebug";
+        return "/lunaria itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|selftest|chateditor|chatdebug|layoutdebug";
+    }
+
+    static boolean isFeatureRoute(String route) {
+        if (route == null) return false;
+        return "lockdebug".equalsIgnoreCase(route) || "espdebug".equalsIgnoreCase(route)
+                || "espdump".equalsIgnoreCase(route) || "itemanimation".equalsIgnoreCase(route)
+                || "ia".equalsIgnoreCase(route) || "chateditor".equalsIgnoreCase(route)
+                || "chatdebug".equalsIgnoreCase(route) || "layoutdebug".equalsIgnoreCase(route)
+                || "itemdebug".equalsIgnoreCase(route);
     }
 
     @Override
@@ -82,7 +91,7 @@ public final class ItemDebugCommand extends CommandBase {
             return;
         }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /velor itemanimation (or /velor ia), /velor itemdebug, /velor lockdebug, /velor espdebug, /velor espdump, /velor selftest, /velor chateditor, /velor chatdebug, or /velor layoutdebug");
+            say(sender, "Usage: /lunaria itemanimation (or /lunaria ia), /lunaria itemdebug, /lunaria lockdebug, /lunaria espdebug, /lunaria espdump, /lunaria selftest, /lunaria chateditor, /lunaria chatdebug, or /lunaria layoutdebug");
             return;
         }
 
@@ -102,6 +111,6 @@ public final class ItemDebugCommand extends CommandBase {
     }
 
     private static void say(ICommandSender sender, String text) {
-        sender.addChatMessage(new ChatComponentText("\u00a7b[Sky VeLor] \u00a7f" + text));
+        sender.addChatMessage(new ChatComponentText("\u00a7b[Lunaria] \u00a7f" + text));
     }
 }

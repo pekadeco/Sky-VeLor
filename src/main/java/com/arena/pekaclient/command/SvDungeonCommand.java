@@ -12,11 +12,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Client-only dungeon diagnostics. It is deliberately independent of /sv's hub toggle so a player can paste live
+ * Client-only dungeon diagnostics. It is deliberately independent of the hub toggle so a player can paste live
  * Fakepixel sidebar/tab formatting to support without opening any GUI or sending a server command.
  */
 public final class SvDungeonCommand extends CommandBase {
-    private static final String PREFIX = "\u00a7b[Sky VeLor] \u00a77";
+    private static final String PREFIX = "\u00a7b[Lunaria] \u00a77";
 
     @Override
     public String getCommandName() {
@@ -30,7 +30,7 @@ public final class SvDungeonCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/svdungeon debug";
+        return "/lunaria dungeon debug (legacy: /svdungeon debug)";
     }
 
     @Override
@@ -41,9 +41,14 @@ public final class SvDungeonCommand extends CommandBase {
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
         if (args == null || args.length != 1 || !"debug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /svdungeon debug");
+            say(sender, "Usage: /lunaria dungeon debug (legacy: /svdungeon debug)");
             return;
         }
+        writeDebug(sender);
+    }
+
+    /** Shared by the Lunaria root command so diagnostic output cannot drift between aliases. */
+    static void writeDebug(ICommandSender sender) {
         DungeonScoreTracker.DebugSnapshot snapshot = DungeonScoreTracker.INSTANCE.captureDebugSnapshot(
                 Minecraft.getMinecraft());
         DungeonContext.Result context = snapshot.context;

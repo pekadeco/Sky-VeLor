@@ -13,11 +13,13 @@ import java.util.Properties;
 /**
  * Fishing counters from local catch chat: how many of each sea creature you caught, the Great White
  * Festival count and personal best, and the Lord Jawbus arrival title. Counts are saved to
- * {@code skyvelor-fishing.properties}. Nothing is sent to the server.
+ * {@code lunaria-fishing.properties}. Earlier Lunaria data is read once and rewritten only on a later save.
+ * Nothing is sent to the server.
  */
 public final class FishingStats {
 
-    static final String FILE_NAME = "skyvelor-fishing.properties";
+    static final String FILE_NAME = "lunaria-fishing.properties";
+    static final String PRIOR_RELEASE_LEGACY_FILE_NAME = "skyvelor-fishing.properties";
     /** The same creature announced twice within this window counts once (chat can repeat). */
     static final long DUPLICATE_WINDOW_MS = 750L;
     /** The Jawbus arrival line can repeat; the title shows once per window. */
@@ -159,7 +161,7 @@ public final class FishingStats {
             return;
         }
         loaded = true;
-        Properties p = ConfigFiles.read(new File(dir(), FILE_NAME));
+        Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, PRIOR_RELEASE_LEGACY_FILE_NAME));
         COUNTS.clear();
         for (LegendaryCreature creature : LegendaryCreature.values()) {
             COUNTS.put(creature, parseLong(p.getProperty("count." + creature.name()), 0L));
@@ -174,7 +176,7 @@ public final class FishingStats {
             p.setProperty("count." + creature.name(), Long.toString(count(creature)));
         }
         p.setProperty("festival.best", Long.toString(festivalBest()));
-        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor fishing counters");
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Lunaria fishing counters");
     }
 
     /** Clears every counter and the festival best. */

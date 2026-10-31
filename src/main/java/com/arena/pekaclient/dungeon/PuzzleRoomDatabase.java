@@ -21,10 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Loads the user-provided, four-rotation puzzle templates bundled with Sky VeLor. */
+/** Loads the user-provided, four-rotation puzzle templates bundled with Lunaria. */
 public final class PuzzleRoomDatabase {
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
-    private static final String RESOURCE = "/assets/pekaclient/dungeons/rooms.json";
+    private static final Logger LOG = LogManager.getLogger("Lunaria");
+    private static final String RESOURCE = "/assets/lunaria/dungeons/rooms.json";
     private static volatile List<Room> rooms = Collections.emptyList();
     private static volatile boolean loaded;
 

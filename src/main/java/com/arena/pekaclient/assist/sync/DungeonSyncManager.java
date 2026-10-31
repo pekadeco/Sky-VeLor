@@ -173,10 +173,10 @@ public final class DungeonSyncManager {
 
     private void debug(String line) {
         if (!AssistSettings.dungeonSyncDebug) return;
-        System.out.println("[Sky VeLor][Dungeon Sync] " + line);
+        System.out.println("[Lunaria][Dungeon Sync] " + line);
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new ChatComponentText("\u00a78[\u00a7bSV Sync\u00a78] \u00a77" + line));
+            mc.thePlayer.addChatMessage(new ChatComponentText("\u00a78[\u00a7bLunaria Sync\u00a78] \u00a77" + line));
         }
     }
 

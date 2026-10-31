@@ -314,7 +314,7 @@ public final class UIRender {
     }
 
     /**
-     * The single rounded-rectangle primitive for all Sky VeLor GUI surfaces.
+     * The single rounded-rectangle primitive for all Lunaria GUI surfaces.
      *
      * <p>Every corner can have a distinct radius. Fill and outline are independently optional, radii are clamped by
      * {@link RoundedRectGeometry}, and cached perimeters are reused by dimensions/radii/quality rather than rebuilt

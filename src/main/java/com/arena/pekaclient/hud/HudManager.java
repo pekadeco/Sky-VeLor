@@ -1,6 +1,7 @@
 package com.arena.pekaclient.hud;
 
 import com.arena.pekaclient.config.ConfigFiles;
+import com.arena.pekaclient.dungeon.DungeonProgressTracker;
 import com.arena.pekaclient.feature.MiningTracker;
 import com.arena.pekaclient.fishing.FishingHud;
 import com.arena.pekaclient.fishing.SeaCreatureHud;
@@ -15,8 +16,8 @@ import java.util.Properties;
 
 /**
  * Owns the HUD elements. Draws the enabled ones every frame, and saves and loads their settings to
- * {@code skyvelor-hud.properties} in the game directory. Older builds wrote {@code pekaclient-hud.properties};
- * that file is read once when the new one does not exist yet, and it is never written again.
+ * {@code lunaria-hud.properties} in the game directory. prior-release and earliest legacy HUD files are read in
+ * that order when needed; the next save writes only the Lunaria file.
  */
 public final class HudManager {
 
@@ -26,6 +27,9 @@ public final class HudManager {
     public static final DungeonRunHud DUNGEON_RUN = new DungeonRunHud();
     public static final DungeonScoreHud DUNGEON_SCORE = new DungeonScoreHud();
     public static final RoomClearAlertHud ROOM_CLEAR_ALERT = new RoomClearAlertHud();
+    /** Friend-source dungeon progress reader is an event listener; its HUD stays independently movable. */
+    public static final DungeonProgressTracker DUNGEON_PROGRESS = new DungeonProgressTracker();
+    public static final DungeonSecretsHud DUNGEON_SECRETS = new DungeonSecretsHud();
     public static final InventoryHud INVENTORY = new InventoryHud();
     public static final PlayerDollHud DOLL = new PlayerDollHud();
     public static final FishingHud FISHING = new FishingHud();
@@ -35,13 +39,14 @@ public final class HudManager {
     /** Elements shown in the normal HUD editor, in draw order. Metrics deliberately do not register here: FPS,
      * memory and ping exist only in Settings Home. */
     public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP, DUNGEON_RUN,
-            DUNGEON_SCORE, ROOM_CLEAR_ALERT, INVENTORY, DOLL, FISHING, SEA_HP, SLAYER};
+            DUNGEON_SCORE, ROOM_CLEAR_ALERT, DUNGEON_SECRETS, INVENTORY, DOLL, FISHING, SEA_HP, SLAYER};
 
     /** Targets owned by the dedicated Dungeon HUD Editor; the map keeps its established AppleSettings placement. */
-    public static final HudElement[] DUNGEON_EDITOR_ELEMENTS = {DUNGEON_SCORE, ROOM_CLEAR_ALERT};
+    public static final HudElement[] DUNGEON_EDITOR_ELEMENTS = {DUNGEON_SCORE, ROOM_CLEAR_ALERT, DUNGEON_SECRETS};
 
-    public static final String FILE_NAME = "skyvelor-hud.properties";
-    public static final String LEGACY_FILE_NAME = "pekaclient-hud.properties";
+    public static final String FILE_NAME = "lunaria-hud.properties";
+    public static final String PRIOR_RELEASE_LEGACY_FILE_NAME = "skyvelor-hud.properties";
+    public static final String PEKA_LEGACY_FILE_NAME = "pekaclient-hud.properties";
 
     private static boolean loaded;
 
@@ -58,7 +63,7 @@ public final class HudManager {
     }
 
     public static void load() {
-        Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME));
+        Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, PRIOR_RELEASE_LEGACY_FILE_NAME, PEKA_LEGACY_FILE_NAME));
         // All legacy metric HUD keys, including the former consolidated stats.* group, are intentionally ignored.
         HudConfigCompatibility.ignoreRetiredMetricKeys(p);
         HudConfigCompatibility.ignoreRetiredPlayerDollarsKeys(p);
@@ -70,7 +75,7 @@ public final class HudManager {
     public static void save() {
         Properties p = new Properties();
         for (HudElement e : ELEMENTS) e.save(p);
-        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor HUD settings");
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Lunaria HUD settings");
     }
 
     /** Called once per client tick, before the world moves. */

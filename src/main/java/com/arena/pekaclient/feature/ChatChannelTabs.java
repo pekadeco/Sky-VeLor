@@ -93,7 +93,7 @@ public final class ChatChannelTabs {
         BRIDGE_READY = chatLines != null && drawnLines != null && input != null && click != null;
     }
 
-    /** /velor chatdebug intentionally stays concise while showing enough arrivals to diagnose chronology. */
+    /** /lunaria chatdebug intentionally stays concise while showing enough arrivals to diagnose chronology. */
     static final int CHAT_DEBUG_HISTORY_LIMIT = 10;
 
     private static ChatChannelTabs live;
@@ -130,7 +130,7 @@ public final class ChatChannelTabs {
     private long lastFrameNs;
     private String toast = "";
     private long toastUntil;
-    /** Latest layout metrics used to report closed/open visibility reasons from /velor chatdebug. */
+    /** Latest layout metrics used to report closed/open visibility reasons from /lunaria chatdebug. */
     private int lastVisibleLineLimit;
     private boolean historyLayoutDirty = true;
     private int historyLayoutWidth = -1;
@@ -434,13 +434,13 @@ public final class ChatChannelTabs {
 
     private void printDebug(ICommandSender sender) {
         if (sender == null) return;
-        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fChat QoL="
+        sender.addChatMessage(new ChatComponentText("§b[Lunaria] §fChat QoL="
                 + (ChatQolSettings.isEnabled() ? "§aON" : "§cOFF") + "§f, implementation="
                 + (BRIDGE_READY && !runtimeBridgeFailed ? "Forge default-chat renderer" : "vanilla fail-closed") + "."));
-        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fTab bar drawn=" + (tabBarDrawn ? "yes" : "no")
+        sender.addChatMessage(new ChatComponentText("§b[Lunaria] §fTab bar drawn=" + (tabBarDrawn ? "yes" : "no")
                 + " x=" + Math.round(tabFrameX) + " y=" + Math.round(tabFrameY) + " w="
                 + Math.round(tabFrameW) + " h=" + Math.round(tabFrameH) + ", tabs=" + ChatQolSettings.tabs().size() + "."));
-        sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fMouse group=" + describeGroup(hoveredGroup)
+        sender.addChatMessage(new ChatComponentText("§b[Lunaria] §fMouse group=" + describeGroup(hoveredGroup)
                 + ", menu state=" + copyMenu.describeStored() + "."));
         List<ChatMessageHistory.Entry> newest = messageHistory.newestArrivalFirst();
         int reported = Math.min(CHAT_DEBUG_HISTORY_LIMIT, newest.size());
@@ -463,7 +463,7 @@ public final class ChatChannelTabs {
         }
     }
 
-    /** Produces the exact closed/open reason used by /velor chatdebug without changing renderer state. */
+    /** Produces the exact closed/open reason used by /lunaria chatdebug without changing renderer state. */
     private ChatVisibilityAudit.Decision visibilityDecision(ChatMessageHistory.Entry entry, boolean chatOpen) {
         MessageGroup target = groupForDebug(entry);
         ChatTabs.Tab selected = activeTab();
@@ -935,7 +935,7 @@ public final class ChatChannelTabs {
         bridgeNoticeShown = true;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new ChatComponentText("§e[Sky VeLor] §fChat QoL bridge unavailable; vanilla chat was left unchanged."));
+            mc.thePlayer.addChatMessage(new ChatComponentText("§e[Lunaria] §fChat QoL bridge unavailable; vanilla chat was left unchanged."));
         }
     }
 

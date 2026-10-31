@@ -45,12 +45,12 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 /**
- * Native Minecraft 1.8.9 restoration of Sky VeLor's Apple-style settings shell.
+ * Native Minecraft 1.8.9 restoration of Lunaria's Apple-style settings shell.
  *
  * <p>The shipped Beta-0.10.8.9.5.5v window is the primary visual reference and the supplied Apple GUI project is a
  * secondary primitive/motion reference. This screen keeps the current category rail, global search, flat inline
  * disclosures, Home live performance panel, and one clipped scroll pane while every control reads and writes the
- * existing Sky VeLor configuration owners. It introduces no web dependency or second persistence schema.</p>
+ * existing Lunaria configuration owners. It introduces no web dependency or second persistence schema.</p>
  */
 public class AppleSettingsScreen extends AppleScreen {
 
@@ -417,12 +417,12 @@ public class AppleSettingsScreen extends AppleScreen {
         // Keep product identity in the upper-left, entirely inside the existing drag region. The header intentionally
         // still exposes only the Fullscreen and Close hit targets from SettingsShellLayout.
         float wordmarkX = panel.x + GuiStyle.SPACE_12;
-        float wordmarkY = y + (CHROME_H - 15f) * .5f;
-        UIRender.roundRect(wordmarkX, wordmarkY, 15f, 15f, 4f, Theme.accent, Theme.accent, 0.4f);
-        UIRender.text(fr(), "S", wordmarkX + 4.2f, wordmarkY + 3.3f, Theme.OPAQUE_WHITE, Theme.TYPE_BODY, false);
-        float titleX = wordmarkX + 20f;
+        // The small text initial was replaced with the transparent moon crop from the supplied logo.
+        UIRender.flush();
+        LunariaArtwork.drawMoon(wordmarkX + 9f, y + CHROME_H * .5f, 20f, 1f);
+        float titleX = wordmarkX + 22f;
         float titleRight = shellHeader.dragRight - GuiStyle.SPACE_4;
-        String wordmark = fit(fr(), "SkyVeLor", Math.max(1f, titleRight - titleX) / Theme.TYPE_TITLE);
+        String wordmark = fit(fr(), "Lunaria", Math.max(1f, titleRight - titleX) / Theme.TYPE_TITLE);
         UIRender.text(fr(), wordmark, titleX, centeredTextY(y, CHROME_H, Theme.TYPE_TITLE),
                 Theme.textPrimary, Theme.TYPE_TITLE, false);
         float sectionX = titleX + fr().getStringWidth(wordmark) * Theme.TYPE_TITLE + GuiStyle.SPACE_8;
@@ -1395,10 +1395,16 @@ public class AppleSettingsScreen extends AppleScreen {
      * while this open Home page is drawing, so samples remain capped at one per 500 ms with no render-frame growth.
      */
     private float drawHome(float y, int mouseX, int mouseY) {
-        UIRender.text(fr(), "Sky VeLor, ready.", contentX, y + 1f, Theme.textPrimary, 1.34f, false);
-        UIRender.text(fr(), "Live local performance and quick controls.", contentX, y + 18f,
+        // The full supplied logo is centred above the FPS, memory and ping cards. Nearest filtering in
+        // LunariaArtwork keeps its intended pixel edges crisp at every GUI scale.
+        float logoW = homeLogoWidth();
+        UIRender.flush();
+        LunariaArtwork.drawLogo(contentX + contentW * .5f, y - logoW * .17f, logoW, 1f);
+        y += homeLogoFootprint();
+        String subtitle = "Live local performance and quick controls.";
+        UIRender.text(fr(), subtitle, contentX + (contentW - fr().getStringWidth(subtitle) * .72f) * .5f, y,
                 Theme.textSecondary, .72f, false);
-        y += 37f;
+        y += 18f;
 
         y = drawHomePerformance(y);
         y += GAP;
@@ -1524,10 +1530,20 @@ public class AppleSettingsScreen extends AppleScreen {
         return 22f + HomeMetricsLayout.heightFor(Math.max(1f, contentW - CARD_PAD * 2f)) + CARD_PAD;
     }
 
+    private float homeLogoWidth() {
+        return Math.min(220f, Math.max(126f, contentW * .62f));
+    }
+
+    /** The transparent source image has generous glow padding, so reserve only its visible composition footprint. */
+    private float homeLogoFootprint() {
+        return homeLogoWidth() * .78f;
+    }
+
     private float measureHome() {
         float quickH = narrowRows ? 42f : 39f;
         int quickColumns = SettingsPageLayout.columnsFor(contentW);
-        return 37f + homePerformanceHeight() + GAP + 13f + SettingsPageLayout.gridHeight(HOME_QUICK_IDS.length, quickColumns, quickH)
+        return homeLogoFootprint() + 18f + homePerformanceHeight() + GAP + 13f
+                + SettingsPageLayout.gridHeight(HOME_QUICK_IDS.length, quickColumns, quickH)
                 + GuiStyle.SPACE_12 + 30f + GAP + SettingsShellLayout.FINAL_CARD_PADDING;
     }
 
@@ -1763,19 +1779,19 @@ public class AppleSettingsScreen extends AppleScreen {
         return 0;
     }
 
-    /** Returns a compact persistent warning for a key that overlaps vanilla Controls or another Sky VeLor binding. */
+    /** Returns a compact persistent warning for a key that overlaps vanilla Controls or another Lunaria binding. */
     private String keybindCollisionWarning(String id) {
         int keyCode = keybindValue(id);
         if (keyCode <= 0) return "";
         KeyBinding own = keybindForId(id);
-        KeyBinding[] skyVelor = {PekaClientMod.OPEN_KEY, PekaClientMod.ITEM_ANIMATION_KEY, PekaClientMod.LEAP_KEY,
+        KeyBinding[] lunariaBindings = {PekaClientMod.OPEN_KEY, PekaClientMod.ITEM_ANIMATION_KEY, PekaClientMod.LEAP_KEY,
                 PekaClientMod.CHAT_TAB_KEY, PekaClientMod.CHAT_EDITOR_KEY, PekaClientMod.ITEM_LOCK_SWAP_KEY,
                 PekaClientMod.WARDROBE_SHORTCUT_KEY, PekaClientMod.PETS_SHORTCUT_KEY};
-        String[] skyVelorNames = {"Open Menu", "Item Animation", "Spirit Leap", "Chat Tab", "Chat Settings",
+        String[] lunariaBindingNames = {"Open Menu", "Item Animation", "Spirit Leap", "Chat Tab", "Chat Settings",
                 "Item Lock And Swap", "Wardrobe Shortcut", "Pets Shortcut"};
-        for (int i = 0; i < skyVelor.length; i++) {
-            if (skyVelor[i] != null && skyVelor[i] != own && skyVelor[i].getKeyCode() == keyCode) {
-                return "Key conflict: Sky VeLor " + skyVelorNames[i];
+        for (int i = 0; i < lunariaBindings.length; i++) {
+            if (lunariaBindings[i] != null && lunariaBindings[i] != own && lunariaBindings[i].getKeyCode() == keyCode) {
+                return "Key conflict: Lunaria " + lunariaBindingNames[i];
             }
         }
         Minecraft mc = Minecraft.getMinecraft();
@@ -2120,6 +2136,10 @@ public class AppleSettingsScreen extends AppleScreen {
 
     /** Executes a retained value action; named editor destinations are the only actions that open a child screen. */
     private void performInlineAction(String id) {
+        if ("open-chat-editor".equals(id)) {
+            Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this));
+            return;
+        }
         if ("open-hud-editor".equals(id)) {
             Minecraft.getMinecraft().displayGuiScreen(new HudEditorScreen(this));
             return;
@@ -2154,6 +2174,7 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private String actionToastLabel(String id) {
+        if ("font-selection".equals(id)) return com.arena.pekaclient.config.FontSettings.selected;
         ReferenceSettingsCatalog.Setting setting = ReferenceSettingsCatalog.find(id);
         return setting == null ? "setting" : setting.label;
     }

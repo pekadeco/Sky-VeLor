@@ -1,17 +1,16 @@
-name: Build Sky VeLor
+name: Build Lunaria Mod
 
 # The ForgeGradle 2.1 / Minecraft 1.8.9 toolchain needs a JDK 8 and network access to the Forge
 # Maven and Mojang's servers. This workflow is that environment: it checks out the revision it was
 # triggered by, builds with the project's own Gradle wrapper, runs the standalone tests, verifies
-# that the output really is the reobfuscated Sky VeLor mod jar, and publishes it.
+# that the output really is the reobfuscated Lunaria Mod jar, and publishes branch artifacts.
 #
 # Nothing here hardcodes a version or a revision. The version is read from PekaVersion.NAME, which
-# build.gradle also reads, so the jar name, mcmod.info, the release tag and the verification all
-# follow the source automatically.
+# build.gradle also reads, so the jar name, mcmod.info and verification all follow the source automatically.
 #
 # Compilation/test-only stage commits deliberately do not publish distributables. Publishing requires the explicit
 # [publish-artifacts] commit marker, used only after the release version has been updated and verification passed.
-# The dist/ publish step commits the built jar back to the branch, so this needs write access.
+# The dist/ publish step commits the verified artifacts back to the branch; no GitHub Release is created here.
 permissions:
   contents: write
 
@@ -38,8 +37,7 @@ jobs:
       - name: Checkout the revision this run was triggered by
         uses: actions/checkout@v4
         with:
-          # The release step below has to prove that the tag it is publishing is already on
-          # main, which needs real history rather than a single-commit checkout. 58 commits.
+          # Keep history available for source-archive provenance and branch artifact publication.
           fetch-depth: 0
 
       - name: Set up Java 8 JDK
@@ -73,10 +71,10 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "MCMOD_VERSION=$MCMOD_VERSION" >> "$GITHUB_ENV"
-          echo "JAR_NAME=SkyVeLor-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
-          echo "ZIP_NAME=SkyVeLor-1.8.9-$VERSION.zip" >> "$GITHUB_ENV"
-          echo "SOURCE_ZIP_NAME=SkyVeLor-1.8.9-$VERSION-source.zip" >> "$GITHUB_ENV"
-          echo "SOURCE_ROOT=SkyVeLor-1.8.9-$VERSION-source/" >> "$GITHUB_ENV"
+          echo "JAR_NAME=Lunaria-Mod-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=Lunaria-Mod-1.8.9-$VERSION.zip" >> "$GITHUB_ENV"
+          echo "SOURCE_ZIP_NAME=Lunaria-Mod-1.8.9-$VERSION-source.zip" >> "$GITHUB_ENV"
+          echo "SOURCE_ROOT=Lunaria-Mod-1.8.9-$VERSION-source/" >> "$GITHUB_ENV"
           {
             echo "revision : $(git rev-parse HEAD)"
             echo "branch   : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
@@ -177,7 +175,7 @@ jobs:
           # This explicit allow-list is intentional: git archive never receives dist/, build/, .git/,
           # IDE state, generated artifacts, or any untracked local file. The wrapper JAR is retained
           # because it is required to build the released source tree.
-          git archive --format=zip --prefix="$SOURCE_ROOT" HEAD -- .github .gitignore CHANGELOG.md LICENSE README.md THIRD-PARTY-NOTICES.md build.gradle docs gradle gradlew gradlew.bat settings.gradle src tests tools > "$SOURCE_ZIP"
+          git archive --format=zip --prefix="$SOURCE_ROOT" HEAD -- .github .gitignore BUILD-VERIFICATION.md CHANGELOG.md DIAGNOSTIC_REPORT.md LICENSE NOTICE.md README.md THIRD-PARTY-NOTICES.md VERIFICATION.md privacy.md build.gradle docs gradle gradlew gradlew.bat settings.gradle src tests tools > "$SOURCE_ZIP"
           if ! python3 tools/verify_source_zip.py "$SOURCE_ZIP" --version "$VERSION" > "$RUNNER_TEMP/source-verify.txt" 2>&1; then
             cat "$RUNNER_TEMP/source-verify.txt"
             exit 1
@@ -191,7 +189,7 @@ jobs:
           JAR="build/libs/$JAR_NAME"
           SOURCE_ZIP="build/delivery/$SOURCE_ZIP_NAME"
           {
-            echo "Sky VeLor $VERSION build report"
+            echo "The Sky’s Lunaria Mod $VERSION build report"
             echo "================================"
             cat "$RUNNER_TEMP/revision.txt"
             echo "run      : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
@@ -209,8 +207,8 @@ jobs:
             echo "gradle tasks that produced the jar:"
             grep -E "^:(compileJava|jar|reobfJar|sourceJar|assemble|check|build)" "$RUNNER_TEMP/build.log" || echo "(none listed)"
             echo
-            echo "reobfuscated: yes - tools/verify_release_jar.py confirmed SRG member references"
-            echo "              and no development (MCP) member names left in the packaged classes."
+            echo "reobfuscated: verified as a packaged Lunaria Forge mod by tools/verify_release_jar.py"
+            echo "              with public metadata, required runtime surfaces and supplied artwork present."
             echo
             echo "test suites:"
             grep -E "passed [0-9]+, failed" "$RUNNER_TEMP/tests.log" || true
@@ -279,82 +277,14 @@ jobs:
           fi
           echo "::notice title=DIST::published dist/$JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME"
 
-      - name: Attach the jar to a GitHub release (main only)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-artifacts]')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -e
-          JAR="dist/$JAR_NAME"
-          ZIP="dist/$ZIP_NAME"
-          SOURCE_ZIP="dist/$SOURCE_ZIP_NAME"
-          TAG="SkyVeLor-$VERSION"
-          printf '%s\n' \
-            "Minecraft 1.8.9 Forge mod built by the Build Sky VeLor workflow." \
-            "" \
-            "Built from commit $GITHUB_SHA. The release carries the verified JAR, delivery ZIP and source ZIP." \
-            "" \
-            "Install: put $JAR_NAME in the Minecraft mods folder." \
-            "Requires Minecraft 1.8.9 with Forge 11.15.1.2318 and Java 8." > release-notes.txt
-          cat release-notes.txt
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$JAR" "$ZIP" "$SOURCE_ZIP" --clobber
-          else
-            gh release create "$TAG" "$JAR" "$ZIP" "$SOURCE_ZIP" \
-              --title "Sky VeLor $VERSION" --notes-file release-notes.txt
-          fi
-          echo "::notice title=RELEASE::$TAG published with $JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME"
-
-      # A squash merge into main is performed through the API, and GitHub does not always
-      # schedule a workflow run for it - which leaves the release created but carrying no
-      # assets. This closes that gap from a branch build: if the release tag already exists
-      # and is on main, upload what main carries at that tag.
-      #
-      # The assets come from the tag, not from this branch's rebuild, so a release can never
-      # be populated from unmerged work. The rebuild is only used as a cross-check: if this
-      # branch compiles the same source into different bytes, that is worth failing on.
-      - name: Attach the tagged artifacts to the release (tag already on main)
-        if: github.event_name == 'push' && github.ref != 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-artifacts]')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -e
-          TAG="SkyVeLor-$VERSION"
-          git fetch --no-tags --force origin \
-            '+refs/heads/main:refs/remotes/origin/main' '+refs/tags/*:refs/tags/*'
-          if ! git rev-parse -q --verify "refs/tags/$TAG^{commit}" >/dev/null; then
-            echo "no tag $TAG yet - nothing to attach from $GITHUB_REF_NAME"
-            exit 0
-          fi
-          TAG_SHA=$(git rev-list -n1 "$TAG")
-          if ! git merge-base --is-ancestor "$TAG_SHA" origin/main; then
-            echo "tag $TAG ($TAG_SHA) is not on main - refusing to publish a release from $GITHUB_REF_NAME"
-            exit 0
-          fi
-          mkdir -p release-assets
-          git show "$TAG:dist/$JAR_NAME" > "release-assets/$JAR_NAME"
-          git show "$TAG:dist/$ZIP_NAME" > "release-assets/$ZIP_NAME"
-          git show "$TAG:dist/$SOURCE_ZIP_NAME" > "release-assets/$SOURCE_ZIP_NAME"
-          WANT=$(sha256sum "release-assets/$JAR_NAME" | cut -d' ' -f1)
-          GOT=$(sha256sum "build/libs/$JAR_NAME" | cut -d' ' -f1)
-          echo "jar published on main at $TAG : $WANT"
-          echo "jar rebuilt by this run       : $GOT"
-          if [ "$WANT" != "$GOT" ]; then
-            echo "::error title=RELEASE::$GITHUB_REF_NAME rebuilt a jar that differs from the one on main at $TAG - not attaching anything"
-            exit 1
-          fi
-          echo "identical - attaching main's own artifacts to $TAG"
-          gh release upload "$TAG" "release-assets/$JAR_NAME" "release-assets/$ZIP_NAME" \
-            "release-assets/$SOURCE_ZIP_NAME" --clobber
-          gh release view "$TAG" --json name,tagName,assets \
-            --jq '"release \(.name) (\(.tagName)) carries: " + ([.assets[] | "\(.name) \(.size) bytes"] | join(", "))'
-          echo "::notice title=RELEASE::attached $JAR_NAME, $ZIP_NAME and $SOURCE_ZIP_NAME to $TAG"
+      # Deliberately no GitHub Release step: verified artifacts are published only to this branch
+      # in dist/ when a maintainer explicitly uses the [publish-artifacts] marker.
 
       - name: Upload the verified release artifacts
         if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-artifacts]')
         uses: actions/upload-artifact@v4
         with:
-          name: SkyVeLor-1.8.9-${{ env.VERSION }}
+          name: Lunaria-Mod-1.8.9-${{ env.VERSION }}
           path: |
             build/libs/${{ env.JAR_NAME }}
             build/delivery/${{ env.ZIP_NAME }}

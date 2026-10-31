@@ -1,6 +1,6 @@
 package com.arena.pekaclient.dungeonesp;
 
-/** Stable, allocation-free reason retained with a cached target for /velor espdump diagnostics. */
+/** Stable, allocation-free reason retained with a cached target for /lunaria espdump diagnostics. */
 public enum DungeonEspMatchReason {
     NONE("not matched"),
     STAR_TAG("starred tag"),

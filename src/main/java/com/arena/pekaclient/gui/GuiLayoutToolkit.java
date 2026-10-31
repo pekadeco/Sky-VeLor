@@ -5,7 +5,7 @@ import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 
 /**
- * The only geometry authority for Sky VeLor-owned settings/editor/chat panels. This class intentionally has no
+ * The only geometry authority for Lunaria-owned settings/editor/chat panels. This class intentionally has no
  * Minecraft imports, so widths, clipping, scroll and panel bounds are proven headlessly before the renderer uses
  * them. Coordinates are GUI-scaled pixels.
  */

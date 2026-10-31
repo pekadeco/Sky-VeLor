@@ -8,16 +8,19 @@ import java.io.File;
 import java.util.Properties;
 
 /**
- * Sky VeLor client settings, saved to .minecraft/skyvelor.properties.
+ * Lunaria client settings, saved to .minecraft/lunaria.properties.
  *
- * Older builds used pekaclient.properties. That file is read once when the new file does not exist yet
- * (see {@link ConfigFiles}), and it is never written again.
+ * Existing prior-release and earliest legacy settings are read in that order when the Lunaria file does not yet
+ * exist. They are never changed in place; the next normal save atomically writes the normalized Lunaria file.
  * Plain static fields keep reads allocation-free on the render path.
  */
 public final class AppleSettings {
 
-    public static final String FILE_NAME = "skyvelor.properties";
-    public static final String LEGACY_FILE_NAME = "pekaclient.properties";
+    public static final String FILE_NAME = "lunaria.properties";
+    /** First compatibility fallback; never written after Lunaria has taken over. */
+    public static final String PRIOR_RELEASE_LEGACY_FILE_NAME = "skyvelor.properties";
+    /** Oldest supported fallback, read only if neither current nor prior-release settings exist. */
+    public static final String PEKA_LEGACY_FILE_NAME = "pekaclient.properties";
     /** Schema v4 records additive dungeon HUD preferences without mutating saved choices. */
     static final String CONFIG_VERSION_KEY = "config.version";
     static final int CURRENT_CONFIG_VERSION = 4;
@@ -62,7 +65,7 @@ public final class AppleSettings {
     public static final boolean DEFAULT_ADAPTIVE_QUALITY = false;
     public static final boolean DEFAULT_PERFORMANCE_BOOST_BETA = true;
     public static final int DEFAULT_SCROLL_SPEED = 100;
-    /** One global animation policy for all Sky VeLor-owned scroll viewports, including chat. */
+    /** One global animation policy for all Lunaria-owned scroll viewports, including chat. */
     public static final boolean DEFAULT_SMOOTH_SCROLLING = true;
     /** Opt-in gameplay mouse policy; GUI wheel scrolling and numeric hotbar keys are never affected. */
     public static final boolean DEFAULT_DISABLE_HOTBAR_SCROLLING = false;
@@ -163,7 +166,7 @@ public final class AppleSettings {
     /** Dungeon tab: replace the server's Spirit Leap menu with the teammate selector. On by default. */
     public static boolean leapMenu = true;
 
-    // Live dungeon-map overlay imported from the newest SkyVeLor source. Position uses the established HUD
+    // Live dungeon-map overlay imported from the newest Lunaria source. Position uses the established HUD
     // anchors but deliberately remains unclamped, so an editor reset can always recover a map moved off-screen.
     public static boolean dungeonMap = true;
     public static boolean dungeonMapRotate = true;
@@ -210,7 +213,7 @@ public final class AppleSettings {
             HudPlacement.Anchor.START, 12, HudPlacement.Anchor.START, 12);
     private static boolean dungeonMapPlacementInitialized = true;
 
-    // Dungeon HUD settings. The HUD elements themselves persist position/scale/enable state in skyvelor-hud.properties;
+    // Dungeon HUD settings. The HUD elements themselves persist position/scale/enable state in the prior-release HUD file;
     // these additive keys retain only their visible-line and alert behaviour choices in the established main file.
     public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_SCORE = true;
     public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS = true;
@@ -230,7 +233,7 @@ public final class AppleSettings {
     public static final boolean DEFAULT_DUNGEON_AUTO_CHEST_CLOSE = false;
     public static boolean dungeonAutoChestClose = DEFAULT_DUNGEON_AUTO_CHEST_CLOSE;
     /**
-     * Performance Boost Beta. Enabled on a fresh install. Selects lower-cost Sky VeLor GUI/HUD work:
+     * Performance Boost Beta. Enabled on a fresh install. Selects lower-cost Lunaria GUI/HUD work:
      * fewer curve segments and no shadows in the hub and editor, slower HUD scans, and cached HUD text.
      * It never touches entity rendering, world rendering or JVM flags.
      */
@@ -238,7 +241,7 @@ public final class AppleSettings {
     public static boolean slayerTracker = true;        // track Slayer drops from chat
     public static boolean slayerBossTimer = true;      // boss spawn to quest complete timer
     public static boolean slayerPricing = true;        // profit and /setprice
-    public static boolean svCommand = true;            // /sv opens the hub
+    public static boolean svCommand = true;            // /lunaria opens the hub
     public static boolean qnCommand = true;            // /qn opens quick notes
     public static boolean leapKey = true;              // Spirit Leap key works when bound
     public static boolean fishingCounter = true;       // count sea-creature pulls
@@ -248,8 +251,126 @@ public final class AppleSettings {
     public static final boolean DEFAULT_FISHING_NEARBY_ENCOUNTER_ALERT = false;
     public static boolean fishingNearbyEncounterAlert = DEFAULT_FISHING_NEARBY_ENCOUNTER_ALERT;
 
+    // Retained friend-source feature preferences. These stay in the established main settings file so a
+    // prior-release configuration remains readable, while current isolated settings owners retain priority on overlap.
+    // The fields are intentionally public because the lightweight render/event hooks read them without allocations.
+    public static final int DEFAULT_FIRST_PERSON_ITEM_SCALE = 100;
+    public static final int DEFAULT_FIRST_PERSON_ANIM_SPEED = 100;
+    public static final int FIRST_PERSON_MIN = 50;
+    public static final int FIRST_PERSON_MAX = 200;
+    /** Compatibility mirrors for the retired first-person surface; current Item Animation remains authoritative. */
+    public static boolean firstPersonItemScaleOn = true;
+    public static int firstPersonItemScale = DEFAULT_FIRST_PERSON_ITEM_SCALE;
+    public static boolean firstPersonAnimSpeedOn = true;
+    public static int firstPersonAnimSpeed = DEFAULT_FIRST_PERSON_ANIM_SPEED;
+
+    public static boolean mobHighlights;
+    public static int starredMobDisplayMode;
+    public static boolean starredMobHighlights = true;
+    public static boolean starredMobEsp = true;
+    public static final String DEFAULT_STARRED_MOB_COLOR = "0:92:154:255:255";
+    public static final String DEFAULT_STARRED_MOB_STORMY_COLOR = "0:173:216:230:255";
+    public static final String DEFAULT_STARRED_MOB_WITHERMANCER_COLOR = "0:169:169:169:255";
+    public static final String DEFAULT_STARRED_MOB_ZOMBIE_COMMANDER_COLOR = "0:255:0:0:255";
+    public static final String DEFAULT_STARRED_MOB_SKELETON_MASTER_COLOR = "0:255:100:0:255";
+    public static String starredMobColor = DEFAULT_STARRED_MOB_COLOR;
+    public static String starredMobStormyColor = DEFAULT_STARRED_MOB_STORMY_COLOR;
+    public static String starredMobWithermancerColor = DEFAULT_STARRED_MOB_WITHERMANCER_COLOR;
+    public static String starredMobZombieCommanderColor = DEFAULT_STARRED_MOB_ZOMBIE_COMMANDER_COLOR;
+    public static String starredMobSkeletonMasterColor = DEFAULT_STARRED_MOB_SKELETON_MASTER_COLOR;
+    public static boolean felEsp;
+    public static String felEspColor = "0:255:0:255:0";
+    public static boolean bloodMobHighlight;
+    public static String bloodMobHighlightColor = "0:255:0:255:0";
+
+    public static boolean removeIrritatingMessagesEnabled = true;
+    public static boolean muteDungeonBossCrowdMessages = true;
+    public static boolean dungeonAutoCloseSecretChests = true;
+    public static boolean dungeonWitherDoorsHighlight = true;
+    public static boolean dungeonHideUnableToLocateSign = true;
+    public static boolean dungeonSpiritBowTracer = true;
+    public static boolean dungeonSPlusReminder = true;
+    public static boolean dungeonSNotifier = true;
+    public static boolean dungeonSPlusPartyMessage = true;
+    public static String dungeonSPlusCustomMessage = "";
+    public static boolean dungeonScoreSimple = true;
+    public static boolean dungeonPaulBonus;
+    public static boolean dungeonBloodReadyTitle = true;
+    public static boolean equipmentOverlayEnabled = true;
+    public static boolean showCurrentPet = true;
+
+    public static boolean itemProtectionEnabled = true;
+    public static boolean itemProtectionNotifications = true;
+    /** Dormant legacy Slot Lock controls: retained for persistence but not registered beside Item Lock & Swap. */
+    public static boolean slotLockingEnabled = true;
+    public static boolean slotBindingEnabled = true;
+    public static boolean slotLockNotifications = true;
+    public static boolean inventorySearchEnabled = true;
+    public static boolean hideInventoryPotionEffects = true;
+    public static boolean autoSprintEnabled = true;
+    public static boolean romanNumeralsInTooltips = true;
+    public static boolean scrollableTooltipsEnabled = true;
+    public static boolean chatDisableWatchdogInfo = true;
+    public static boolean chatDisableFriendJoin;
+    public static boolean chatDisableZombieRareDrops = true;
+    public static boolean chatDisableSellingRanks;
+    public static boolean chatDisableServerAnnouncements = true;
+    public static boolean chatDisableGameInvites = true;
+    public static boolean itemRarityBordersEnabled = true;
+    public static boolean chatLengthEnabled = true;
+    public static boolean chatCopyEnabled = true;
+    public static int chatFilterMode;
+    public static boolean chatMessageAnimation = true;
+    public static int chatMessageSpeed = 50;
+    public static boolean chatBackgroundAnimation = true;
+    public static int chatBackgroundDuration = 400;
+    public static boolean chatScrollAnimation = true;
+    public static int chatScrollDuration = 150;
+    public static boolean chatRemoveScrollBar = true;
+    public static boolean noHurtCamEnabled = true;
+    /** Compatibility mirror for the dedicated particle preference. */
+    public static boolean hideBlockBreakingParticles = true;
+    /** Compatibility mirror for the dedicated dead-mob preference. */
+    public static boolean hideDeadMobs = true;
+    public static boolean hideFlamingFists = true;
+    public static boolean wardrobeShortcutEnabled;
+    public static boolean petsShortcutEnabled;
+    public static boolean miningAbilityNotifier;
+    public static boolean miningPuzzlerSolver;
+
+    public static boolean solverThreeWeirdos = true;
+    public static boolean solverCreeper = true;
+    public static boolean solverBoulder = true;
+    public static boolean solverSilverfish = true;
+    public static boolean solverWater = true;
+    public static boolean solverTeleportMaze = true;
+    public static boolean terminalTracker = true;
+    public static float terminalTrackerScale = 1.0F;
+    public static String terminalTrackerColor = "0:255:0:100:255";
+    public static int terminalTrackerX = 10;
+    public static int terminalTrackerY = 10;
+    public static boolean terminalCustomClickIn = true;
+    public static boolean terminalCustomColors = true;
+    public static boolean terminalCustomMaze = true;
+    public static boolean terminalCustomStartsWith = true;
+    public static boolean terminalCustomPanes = true;
+    public static float terminalGuiScale = 3.0F;
+    public static boolean terminalStartsWithSolver = true;
+    public static boolean terminalColorsSolver = true;
+    public static boolean terminalClickInOrderSolver = true;
+    public static boolean terminalMazeSolver = true;
+    public static boolean terminalCorrectPanesSolver = true;
+    public static boolean terminalHideIncorrect = true;
+    public static boolean terminalPreventMissclicks = true;
+    public static boolean terminalHideTooltips = true;
+    public static boolean solverFirstDevice = true;
+    public static boolean solverThirdDevice = true;
+    public static String solverCorrectColor = "0:255:0:255:0";
+    public static String solverAlternativeColor = "0:255:255:255:0";
+    public static boolean terminalWaypoints = true;
+
     // Chat QoL has its own compact, Minecraft-free settings model. It is loaded/saved through this established
-    // config file so old HUD positions and all other Sky VeLor settings remain untouched.
+    // config file so old HUD positions and all other Lunaria settings remain untouched.
 
     /** Set while a legacy firstPerson* key was read; load immediately writes its Item Animation replacement. */
     private static boolean itemAnimationMigrationPending;
@@ -430,16 +551,20 @@ public final class AppleSettings {
         qnCommand = readBool(p, "cmd.qn", qnCommand);
         loadFishingSettings(p);
         loadChatSettings(p);
+        FontSettings.load(p);
+        // Friend-source keys are read after current owners so their historic values can only fill a missing current key.
+        loadFriendFeatureSettings(p);
         // Editor navigation is presentation state only; it never changes existing feature schemas or defaults.
         FeatureUiPreferences.load(p);
         applyConfigurationVersionUpgrade(p);
-        // Retired fonts.* and chat.qol.*font* keys deliberately have no reader. Unknown Properties are harmless,
-        // and the next save writes only supported settings, preserving the vanilla Minecraft font path.
+        // The supported fonts.* schema is loaded above; FontSettings consumes its retired chat.qol.*font* inputs
+        // without changing source files, and the next save writes the one current font schema.
         M7Settings.load(p);
         // A legacy config is not merely read: persist the clean Item Animation category immediately. The
         // atomic writer preserves a valid file even if the client is interrupted while migrating.
         if (itemAnimationMigrationPending || globalScrollMigrationPending || configVersionMigrationPending
-                || settingsWindowLayoutMigrationPending || ChatQolSettings.isMigrationPending()) {
+                || settingsWindowLayoutMigrationPending || ChatQolSettings.isMigrationPending()
+                || FontSettings.isMigrationPending()) {
             save();
         }
     }
@@ -615,6 +740,329 @@ public final class AppleSettings {
     }
 
     /**
+     * Reads retained friend-source feature keys. Newer isolated owners load first; this method only maps a historic
+     * value into such an owner when that owner's current key is absent, so a deliberate modern choice always wins.
+     */
+    static void loadFriendFeatureSettings(Properties settings) {
+        Properties p = settings == null ? new Properties() : settings;
+
+        // Current Item Animation keys win; dotted prior-release keys are a read-only compatibility input.
+        if (!p.containsKey("itemAnimation.sizeOn") && !p.containsKey("firstPersonItemScaleOn")) {
+            if (p.containsKey("firstPerson.itemScaleOn")) itemAnimationMigrationPending = true;
+            itemAnimationSizeOn = readBool(p, "firstPerson.itemScaleOn", itemAnimationSizeOn);
+        }
+        if (!p.containsKey("itemAnimation.speedOn") && !p.containsKey("firstPersonAnimSpeedOn")) {
+            if (p.containsKey("firstPerson.animationSpeedOn")) itemAnimationMigrationPending = true;
+            itemAnimationSpeedOn = readBool(p, "firstPerson.animationSpeedOn", itemAnimationSpeedOn);
+        }
+        if (!p.containsKey("itemAnimation.size") && !p.containsKey("firstPersonItemScale")) {
+            if (p.containsKey("firstPerson.itemScale")) itemAnimationMigrationPending = true;
+            itemAnimationSize = readInt(p, "firstPerson.itemScale", itemAnimationSize,
+                    ITEM_ANIMATION_SIZE_MIN_PERCENT, ITEM_ANIMATION_SIZE_MAX_PERCENT);
+        }
+        if (!p.containsKey("itemAnimation.speed") && !p.containsKey("firstPersonAnimSpeed")) {
+            if (p.containsKey("firstPerson.animationSpeed")) itemAnimationMigrationPending = true;
+            itemAnimationSpeed = readInt(p, "firstPerson.animationSpeed", itemAnimationSpeed,
+                    ITEM_ANIMATION_SPEED_MIN_PERCENT, ITEM_ANIMATION_SPEED_MAX_PERCENT);
+        }
+        firstPersonItemScaleOn = itemAnimationSizeOn;
+        firstPersonItemScale = Math.max(FIRST_PERSON_MIN, Math.min(FIRST_PERSON_MAX, itemAnimationSize));
+        firstPersonAnimSpeedOn = itemAnimationSpeedOn;
+        firstPersonAnimSpeed = Math.max(FIRST_PERSON_MIN, Math.min(FIRST_PERSON_MAX, itemAnimationSpeed));
+
+        mobHighlights = readBool(p, "mobHighlights", mobHighlights);
+        boolean legacyStarredEnabled = readBool(p, "starredMobHighlights", starredMobHighlights);
+        starredMobDisplayMode = readInt(p, "dungeon.starredMobDisplayMode",
+                legacyStarredEnabled ? 0 : 2, 0, 2);
+        starredMobHighlights = starredMobDisplayMode != 2;
+        starredMobEsp = readBool(p, "dungeon.starredMobEsp", starredMobEsp);
+        starredMobColor = readColor(p.getProperty("dungeon.starredMobColor"), DEFAULT_STARRED_MOB_COLOR);
+        starredMobStormyColor = readColor(p.getProperty("dungeon.starredMobStormyColor"), DEFAULT_STARRED_MOB_STORMY_COLOR);
+        starredMobWithermancerColor = readColor(p.getProperty("dungeon.starredMobWithermancerColor"),
+                DEFAULT_STARRED_MOB_WITHERMANCER_COLOR);
+        starredMobZombieCommanderColor = readColor(p.getProperty("dungeon.starredMobZombieCommanderColor"),
+                DEFAULT_STARRED_MOB_ZOMBIE_COMMANDER_COLOR);
+        starredMobSkeletonMasterColor = readColor(p.getProperty("dungeon.starredMobSkeletonMasterColor"),
+                DEFAULT_STARRED_MOB_SKELETON_MASTER_COLOR);
+        felEsp = readBool(p, "dungeon.felEsp", felEsp);
+        felEspColor = readColor(p.getProperty("dungeon.felEspColor"), felEspColor);
+        bloodMobHighlight = readBool(p, "dungeon.bloodMobHighlight", bloodMobHighlight);
+        bloodMobHighlightColor = readColor(p.getProperty("dungeon.bloodMobHighlightColor"), bloodMobHighlightColor);
+
+        removeIrritatingMessagesEnabled = readBool(p, "qol.removeIrritatingMessages", removeIrritatingMessagesEnabled);
+        muteDungeonBossCrowdMessages = readBool(p, "dungeon.muteBossCrowdMessages", muteDungeonBossCrowdMessages);
+        dungeonAutoCloseSecretChests = readBool(p, "dungeon.autoCloseSecretChests", dungeonAutoCloseSecretChests);
+        if (!p.containsKey("dungeonHud.autoChestClose") && p.containsKey("dungeon.autoCloseSecretChests")) {
+            dungeonAutoChestClose = dungeonAutoCloseSecretChests;
+        }
+        dungeonWitherDoorsHighlight = readBool(p, "dungeon.witherDoorsHighlight", dungeonWitherDoorsHighlight);
+        dungeonHideUnableToLocateSign = readBool(p, "dungeon.hideUnableToLocateSign", dungeonHideUnableToLocateSign);
+        dungeonSpiritBowTracer = readBool(p, "dungeon.spiritBowTracer", dungeonSpiritBowTracer);
+        dungeonSPlusReminder = readBool(p, "dungeon.sPlusReminder", dungeonSPlusReminder);
+        dungeonSNotifier = readBool(p, "dungeon.sNotifier", dungeonSNotifier);
+        dungeonSPlusPartyMessage = readBool(p, "dungeon.sPlusPartyMessage", dungeonSPlusPartyMessage);
+        dungeonSPlusCustomMessage = text(p, "dungeon.sPlusCustomMessage", dungeonSPlusCustomMessage, 100);
+        dungeonScoreSimple = readBool(p, "dungeon.scoreSimple", dungeonScoreSimple);
+        dungeonPaulBonus = readBool(p, "dungeon.paulBonus", dungeonPaulBonus);
+        dungeonBloodReadyTitle = readBool(p, "dungeon.bloodReadyTitle", dungeonBloodReadyTitle);
+        equipmentOverlayEnabled = readBool(p, "qol.equipmentOverlay", equipmentOverlayEnabled);
+        showCurrentPet = readBool(p, "qol.showCurrentPet", showCurrentPet);
+
+        itemProtectionEnabled = readBool(p, "itemProtection.enabled", itemProtectionEnabled);
+        itemProtectionNotifications = readBool(p, "itemProtection.notifications", itemProtectionNotifications);
+        slotLockingEnabled = readBool(p, "slotLocking.enabled", slotLockingEnabled);
+        slotBindingEnabled = readBool(p, "slotLocking.binding", slotBindingEnabled);
+        slotLockNotifications = readBool(p, "slotLocking.notifications", slotLockNotifications);
+        inventorySearchEnabled = readBool(p, "qol.inventorySearch", inventorySearchEnabled);
+        hideInventoryPotionEffects = readBool(p, "qol.hideInventoryPotionEffects", hideInventoryPotionEffects);
+        autoSprintEnabled = readBool(p, "movement.autoSprint", autoSprintEnabled);
+        romanNumeralsInTooltips = readBool(p, "qol.romanNumerals", romanNumeralsInTooltips);
+        scrollableTooltipsEnabled = readBool(p, "qol.scrollableTooltips", scrollableTooltipsEnabled);
+        chatDisableWatchdogInfo = readBool(p, "qol.chatDisableWatchdogInfo", chatDisableWatchdogInfo);
+        chatDisableFriendJoin = readBool(p, "qol.chatDisableFriendJoin", chatDisableFriendJoin);
+        chatDisableZombieRareDrops = readBool(p, "qol.chatDisableZombieRareDrops", chatDisableZombieRareDrops);
+        chatDisableSellingRanks = readBool(p, "qol.chatDisableSellingRanks", chatDisableSellingRanks);
+        chatDisableServerAnnouncements = readBool(p, "qol.chatDisableServerAnnouncements", chatDisableServerAnnouncements);
+        chatDisableGameInvites = readBool(p, "qol.chatDisableGameInvites", chatDisableGameInvites);
+        itemRarityBordersEnabled = readBool(p, "qol.itemRarityBorders", itemRarityBordersEnabled);
+        chatLengthEnabled = readBool(p, "chat.lengthEnabled", chatLengthEnabled);
+        chatCopyEnabled = readBool(p, "qol.chatCopy", chatCopyEnabled);
+        chatFilterMode = readChatTabMode(p);
+        chatMessageAnimation = readBool(p, "chat.animation.messages", chatMessageAnimation);
+        chatMessageSpeed = readInt(p, "chat.animation.messageSpeed", chatMessageSpeed, 0, 100);
+        chatBackgroundAnimation = readBool(p, "chat.animation.background", chatBackgroundAnimation);
+        chatBackgroundDuration = readInt(p, "chat.animation.backgroundDuration", chatBackgroundDuration, 50, 1000);
+        chatScrollAnimation = readBool(p, "chat.animation.scrolling", chatScrollAnimation);
+        chatScrollDuration = readInt(p, "chat.animation.scrollDuration", chatScrollDuration, 0, 1000);
+        chatRemoveScrollBar = readBool(p, "chat.animation.removeScrollBar", chatRemoveScrollBar);
+        noHurtCamEnabled = readBool(p, "qol.noHurtCam", noHurtCamEnabled);
+        if (!p.containsKey(AssistSettings.PREFIX + "visual.hurtCameraShake")
+                && !p.containsKey("noHurtCamEnabled") && p.containsKey("qol.noHurtCam")) {
+            AssistSettings.hurtCameraShake = noHurtCamEnabled ? 0 : 100;
+        } else {
+            noHurtCamEnabled = AssistSettings.hurtCameraShake == 0;
+        }
+        hideBlockBreakingParticles = readBool(p, "qol.hideBlockBreakingParticles", hideBlockBreakingParticles);
+        if (!p.containsKey("particles.noBlockParticles") && p.containsKey("qol.hideBlockBreakingParticles")) {
+            noBlockParticles = hideBlockBreakingParticles;
+        } else {
+            hideBlockBreakingParticles = noBlockParticles;
+        }
+        hideDeadMobs = readBool(p, "qol.hideDeadMobs", hideDeadMobs);
+        if (!p.containsKey(AssistSettings.PREFIX + "comfort.hideDeadMobs") && p.containsKey("qol.hideDeadMobs")) {
+            AssistSettings.hideDeadMobs = hideDeadMobs;
+        } else {
+            hideDeadMobs = AssistSettings.hideDeadMobs;
+        }
+        hideFlamingFists = readBool(p, "qol.hideFlamingFists", hideFlamingFists);
+        wardrobeShortcutEnabled = readBool(p, "qol.wardrobeShortcut", wardrobeShortcutEnabled);
+        petsShortcutEnabled = readBool(p, "qol.petsShortcut", petsShortcutEnabled);
+        miningAbilityNotifier = readBool(p, "mining.abilityNotifier", miningAbilityNotifier);
+        miningPuzzlerSolver = readBool(p, "mining.puzzlerSolver", miningPuzzlerSolver);
+
+        solverThreeWeirdos = readBool(p, "dungeon.solver.threeWeirdos", solverThreeWeirdos);
+        solverCreeper = readBool(p, "dungeon.solver.creeper", solverCreeper);
+        solverBoulder = readBool(p, "dungeon.solver.boulder", solverBoulder);
+        solverSilverfish = readBool(p, "dungeon.solver.silverfish", solverSilverfish);
+        solverWater = readBool(p, "dungeon.solver.water", solverWater);
+        solverTeleportMaze = readBool(p, "dungeon.solver.teleportMaze", solverTeleportMaze);
+        terminalTracker = readBool(p, "dungeon.terminal.tracker", terminalTracker);
+        terminalTrackerScale = readFloat(p, "dungeon.terminal.trackerScale", terminalTrackerScale, 0.5F, 3.0F);
+        terminalTrackerColor = readColor(p.getProperty("dungeon.terminal.trackerColor"), terminalTrackerColor);
+        terminalTrackerX = readInt(p, "dungeon.terminal.trackerX", terminalTrackerX, -1000, 4000);
+        terminalTrackerY = readInt(p, "dungeon.terminal.trackerY", terminalTrackerY, -1000, 4000);
+        terminalCustomClickIn = readBool(p, "dungeon.terminal.customClickIn", terminalCustomClickIn);
+        terminalCustomColors = readBool(p, "dungeon.terminal.customColors", terminalCustomColors);
+        terminalCustomMaze = readBool(p, "dungeon.terminal.customMaze", terminalCustomMaze);
+        terminalCustomStartsWith = readBool(p, "dungeon.terminal.customStartsWith", terminalCustomStartsWith);
+        terminalCustomPanes = readBool(p, "dungeon.terminal.customPanes", terminalCustomPanes);
+        terminalGuiScale = readFloat(p, "dungeon.terminal.guiScale", terminalGuiScale, 1.0F, 5.0F);
+        terminalStartsWithSolver = readBool(p, "dungeon.terminal.startsWith", terminalStartsWithSolver);
+        terminalColorsSolver = readBool(p, "dungeon.terminal.colors", terminalColorsSolver);
+        terminalClickInOrderSolver = readBool(p, "dungeon.terminal.clickInOrder", terminalClickInOrderSolver);
+        terminalMazeSolver = readBool(p, "dungeon.terminal.maze", terminalMazeSolver);
+        terminalCorrectPanesSolver = readBool(p, "dungeon.terminal.correctPanes", terminalCorrectPanesSolver);
+        terminalHideIncorrect = readBool(p, "dungeon.terminal.hideIncorrect", terminalHideIncorrect);
+        terminalPreventMissclicks = readBool(p, "dungeon.terminal.preventMissclicks", terminalPreventMissclicks);
+        terminalHideTooltips = readBool(p, "dungeon.terminal.hideTooltips", terminalHideTooltips);
+        solverFirstDevice = readBool(p, "dungeon.device.first", solverFirstDevice);
+        solverThirdDevice = readBool(p, "dungeon.device.third", solverThirdDevice);
+        solverCorrectColor = readColor(p.getProperty("dungeon.solver.correctColor"), solverCorrectColor);
+        solverAlternativeColor = readColor(p.getProperty("dungeon.solver.alternativeColor"), solverAlternativeColor);
+        terminalWaypoints = readBool(p, "dungeon.terminal.waypoints", terminalWaypoints);
+    }
+
+    /** Writes retained friend-only settings and compatibility inputs without replacing modern feature owner keys. */
+    static void saveFriendFeatureSettings(Properties p) {
+        if (p == null) return;
+        starredMobDisplayMode = Math.max(0, Math.min(2, starredMobDisplayMode));
+        starredMobHighlights = starredMobDisplayMode != 2;
+        terminalTrackerScale = clampFloat(terminalTrackerScale, 0.5F, 3.0F);
+        terminalGuiScale = clampFloat(terminalGuiScale, 1.0F, 5.0F);
+        terminalTrackerX = Math.max(-1000, Math.min(4000, terminalTrackerX));
+        terminalTrackerY = Math.max(-1000, Math.min(4000, terminalTrackerY));
+        dungeonSPlusCustomMessage = text(dungeonSPlusCustomMessage, "", 100);
+        // Current owners are canonical on the three intentional overlap paths.
+        dungeonAutoCloseSecretChests = dungeonAutoChestClose;
+        hideBlockBreakingParticles = noBlockParticles;
+        hideDeadMobs = AssistSettings.hideDeadMobs;
+        noHurtCamEnabled = AssistSettings.hurtCameraShake == 0;
+
+        p.setProperty("mobHighlights", Boolean.toString(mobHighlights));
+        p.setProperty("starredMobHighlights", Boolean.toString(starredMobHighlights));
+        p.setProperty("dungeon.starredMobDisplayMode", Integer.toString(starredMobDisplayMode));
+        p.setProperty("dungeon.starredMobEsp", Boolean.toString(starredMobEsp));
+        p.setProperty("dungeon.starredMobColor", starredMobColor);
+        p.setProperty("dungeon.starredMobStormyColor", starredMobStormyColor);
+        p.setProperty("dungeon.starredMobWithermancerColor", starredMobWithermancerColor);
+        p.setProperty("dungeon.starredMobZombieCommanderColor", starredMobZombieCommanderColor);
+        p.setProperty("dungeon.starredMobSkeletonMasterColor", starredMobSkeletonMasterColor);
+        p.setProperty("dungeon.felEsp", Boolean.toString(felEsp));
+        p.setProperty("dungeon.felEspColor", felEspColor);
+        p.setProperty("dungeon.bloodMobHighlight", Boolean.toString(bloodMobHighlight));
+        p.setProperty("dungeon.bloodMobHighlightColor", bloodMobHighlightColor);
+        p.setProperty("qol.removeIrritatingMessages", Boolean.toString(removeIrritatingMessagesEnabled));
+        p.setProperty("dungeon.muteBossCrowdMessages", Boolean.toString(muteDungeonBossCrowdMessages));
+        p.setProperty("dungeon.witherDoorsHighlight", Boolean.toString(dungeonWitherDoorsHighlight));
+        p.setProperty("dungeon.hideUnableToLocateSign", Boolean.toString(dungeonHideUnableToLocateSign));
+        p.setProperty("dungeon.spiritBowTracer", Boolean.toString(dungeonSpiritBowTracer));
+        p.setProperty("dungeon.sPlusReminder", Boolean.toString(dungeonSPlusReminder));
+        p.setProperty("dungeon.sNotifier", Boolean.toString(dungeonSNotifier));
+        p.setProperty("dungeon.sPlusPartyMessage", Boolean.toString(dungeonSPlusPartyMessage));
+        p.setProperty("dungeon.sPlusCustomMessage", dungeonSPlusCustomMessage);
+        p.setProperty("dungeon.scoreSimple", Boolean.toString(dungeonScoreSimple));
+        p.setProperty("dungeon.paulBonus", Boolean.toString(dungeonPaulBonus));
+        p.setProperty("dungeon.bloodReadyTitle", Boolean.toString(dungeonBloodReadyTitle));
+        p.setProperty("qol.equipmentOverlay", Boolean.toString(equipmentOverlayEnabled));
+        p.setProperty("qol.showCurrentPet", Boolean.toString(showCurrentPet));
+        p.setProperty("itemProtection.enabled", Boolean.toString(itemProtectionEnabled));
+        p.setProperty("itemProtection.notifications", Boolean.toString(itemProtectionNotifications));
+        p.setProperty("slotLocking.enabled", Boolean.toString(slotLockingEnabled));
+        p.setProperty("slotLocking.binding", Boolean.toString(slotBindingEnabled));
+        p.setProperty("slotLocking.notifications", Boolean.toString(slotLockNotifications));
+        p.setProperty("qol.inventorySearch", Boolean.toString(inventorySearchEnabled));
+        p.setProperty("qol.hideInventoryPotionEffects", Boolean.toString(hideInventoryPotionEffects));
+        p.setProperty("movement.autoSprint", Boolean.toString(autoSprintEnabled));
+        p.setProperty("qol.romanNumerals", Boolean.toString(romanNumeralsInTooltips));
+        p.setProperty("qol.scrollableTooltips", Boolean.toString(scrollableTooltipsEnabled));
+        p.setProperty("qol.chatDisableWatchdogInfo", Boolean.toString(chatDisableWatchdogInfo));
+        p.setProperty("qol.chatDisableFriendJoin", Boolean.toString(chatDisableFriendJoin));
+        p.setProperty("qol.chatDisableZombieRareDrops", Boolean.toString(chatDisableZombieRareDrops));
+        p.setProperty("qol.chatDisableSellingRanks", Boolean.toString(chatDisableSellingRanks));
+        p.setProperty("qol.chatDisableServerAnnouncements", Boolean.toString(chatDisableServerAnnouncements));
+        p.setProperty("qol.chatDisableGameInvites", Boolean.toString(chatDisableGameInvites));
+        p.setProperty("qol.itemRarityBorders", Boolean.toString(itemRarityBordersEnabled));
+        p.setProperty("chat.lengthEnabled", Boolean.toString(chatLengthEnabled));
+        p.setProperty("qol.chatCopy", Boolean.toString(chatCopyEnabled));
+        p.setProperty("chat.tabMode", Integer.toString(Math.max(0, Math.min(4, chatFilterMode))));
+        p.setProperty("chat.animation.messages", Boolean.toString(chatMessageAnimation));
+        p.setProperty("chat.animation.messageSpeed", Integer.toString(Math.max(0, Math.min(100, chatMessageSpeed))));
+        p.setProperty("chat.animation.background", Boolean.toString(chatBackgroundAnimation));
+        p.setProperty("chat.animation.backgroundDuration", Integer.toString(Math.max(50, Math.min(1000, chatBackgroundDuration))));
+        p.setProperty("chat.animation.scrolling", Boolean.toString(chatScrollAnimation));
+        p.setProperty("chat.animation.scrollDuration", Integer.toString(Math.max(0, Math.min(1000, chatScrollDuration))));
+        p.setProperty("chat.animation.removeScrollBar", Boolean.toString(chatRemoveScrollBar));
+        p.setProperty("qol.hideFlamingFists", Boolean.toString(hideFlamingFists));
+        p.setProperty("qol.wardrobeShortcut", Boolean.toString(wardrobeShortcutEnabled));
+        p.setProperty("qol.petsShortcut", Boolean.toString(petsShortcutEnabled));
+        p.setProperty("mining.abilityNotifier", Boolean.toString(miningAbilityNotifier));
+        p.setProperty("mining.puzzlerSolver", Boolean.toString(miningPuzzlerSolver));
+        p.setProperty("dungeon.solver.threeWeirdos", Boolean.toString(solverThreeWeirdos));
+        p.setProperty("dungeon.solver.creeper", Boolean.toString(solverCreeper));
+        p.setProperty("dungeon.solver.boulder", Boolean.toString(solverBoulder));
+        p.setProperty("dungeon.solver.silverfish", Boolean.toString(solverSilverfish));
+        p.setProperty("dungeon.solver.water", Boolean.toString(solverWater));
+        p.setProperty("dungeon.solver.teleportMaze", Boolean.toString(solverTeleportMaze));
+        p.setProperty("dungeon.terminal.tracker", Boolean.toString(terminalTracker));
+        p.setProperty("dungeon.terminal.trackerScale", Float.toString(terminalTrackerScale));
+        p.setProperty("dungeon.terminal.trackerColor", terminalTrackerColor);
+        p.setProperty("dungeon.terminal.trackerX", Integer.toString(terminalTrackerX));
+        p.setProperty("dungeon.terminal.trackerY", Integer.toString(terminalTrackerY));
+        p.setProperty("dungeon.terminal.customClickIn", Boolean.toString(terminalCustomClickIn));
+        p.setProperty("dungeon.terminal.customColors", Boolean.toString(terminalCustomColors));
+        p.setProperty("dungeon.terminal.customMaze", Boolean.toString(terminalCustomMaze));
+        p.setProperty("dungeon.terminal.customStartsWith", Boolean.toString(terminalCustomStartsWith));
+        p.setProperty("dungeon.terminal.customPanes", Boolean.toString(terminalCustomPanes));
+        p.setProperty("dungeon.terminal.guiScale", Float.toString(terminalGuiScale));
+        p.setProperty("dungeon.terminal.startsWith", Boolean.toString(terminalStartsWithSolver));
+        p.setProperty("dungeon.terminal.colors", Boolean.toString(terminalColorsSolver));
+        p.setProperty("dungeon.terminal.clickInOrder", Boolean.toString(terminalClickInOrderSolver));
+        p.setProperty("dungeon.terminal.maze", Boolean.toString(terminalMazeSolver));
+        p.setProperty("dungeon.terminal.correctPanes", Boolean.toString(terminalCorrectPanesSolver));
+        p.setProperty("dungeon.terminal.hideIncorrect", Boolean.toString(terminalHideIncorrect));
+        p.setProperty("dungeon.terminal.preventMissclicks", Boolean.toString(terminalPreventMissclicks));
+        p.setProperty("dungeon.terminal.hideTooltips", Boolean.toString(terminalHideTooltips));
+        p.setProperty("dungeon.device.first", Boolean.toString(solverFirstDevice));
+        p.setProperty("dungeon.device.third", Boolean.toString(solverThirdDevice));
+        p.setProperty("dungeon.solver.correctColor", solverCorrectColor);
+        p.setProperty("dungeon.solver.alternativeColor", solverAlternativeColor);
+        p.setProperty("dungeon.terminal.waypoints", Boolean.toString(terminalWaypoints));
+    }
+
+    /** Current Item Animation values are the only source for the old visual bridge. */
+    public static int effectiveFirstPersonItemScale() {
+        return firstPersonItemScaleOn ? Math.max(FIRST_PERSON_MIN, Math.min(FIRST_PERSON_MAX, firstPersonItemScale))
+                : DEFAULT_FIRST_PERSON_ITEM_SCALE;
+    }
+
+    /** Current Item Animation values are the only source for the old visual bridge. */
+    public static int effectiveFirstPersonAnimSpeed() {
+        return firstPersonAnimSpeedOn ? Math.max(FIRST_PERSON_MIN, Math.min(FIRST_PERSON_MAX, firstPersonAnimSpeed))
+                : DEFAULT_FIRST_PERSON_ANIM_SPEED;
+    }
+
+    public static void setStarredMobDisplayMode(int mode) {
+        starredMobDisplayMode = Math.max(0, Math.min(2, mode));
+        starredMobHighlights = starredMobDisplayMode != 2;
+        save();
+    }
+
+    static int readChatTabMode(Properties p) {
+        if (p != null && p.containsKey("chat.tabMode")) return readInt(p, "chat.tabMode", 0, 0, 4);
+        int legacy = readInt(p == null ? new Properties() : p, "chat.filterMode", 0, 0, 2);
+        return legacy == 2 ? 4 : legacy;
+    }
+
+    private static float readFloat(Properties p, String key, float def, float min, float max) {
+        try {
+            float value = Float.parseFloat(p.getProperty(key, Float.toString(def)).trim());
+            return Float.isNaN(value) || Float.isInfinite(value) ? def : clampFloat(value, min, max);
+        } catch (RuntimeException ignored) {
+            return def;
+        }
+    }
+
+    private static float clampFloat(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /** Validates the saved chroma-speed:alpha:red:green:blue form before a render hook consumes it. */
+    private static String readColor(String value, String def) {
+        if (value == null) return def;
+        String[] parts = value.trim().split(":");
+        if (parts.length != 5) return def;
+        try {
+            Integer.parseInt(parts[0]);
+            for (int i = 1; i < parts.length; i++) {
+                int channel = Integer.parseInt(parts[i]);
+                if (channel < 0 || channel > 255) return def;
+            }
+            return value.trim();
+        } catch (RuntimeException ignored) {
+            return def;
+        }
+    }
+
+    private static String text(Properties p, String key, String fallback, int maxLength) {
+        return text(p == null ? fallback : p.getProperty(key, fallback), fallback, maxLength);
+    }
+
+    private static String text(String value, String fallback, int maxLength) {
+        String safe = value == null ? (fallback == null ? "" : fallback) : value;
+        return safe.length() > maxLength ? safe.substring(0, maxLength) : safe;
+    }
+
+    /**
      * Delegates native Chat QoL loading and legacy migration to its Minecraft-free settings model. This preserves
      * the existing public hook used by the compatibility suite while retiring the external animation bridge keys.
      */
@@ -703,10 +1151,12 @@ public final class AppleSettings {
         p.setProperty("cmd.qn", Boolean.toString(qnCommand));
         saveFishingSettings(p);
         saveChatSettings(p);
+        FontSettings.save(p);
+        saveFriendFeatureSettings(p);
         M7Settings.save(p);
         // Add only ui.feature.* presentation keys; every gameplay/config key above stays owned by its prior schema.
         FeatureUiPreferences.save(p);
-        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Sky VeLor settings");
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Lunaria settings");
     }
 
     /** Scale value in use, matching the regular HUD scale switch. */
@@ -832,7 +1282,7 @@ public final class AppleSettings {
     }
 
     private static File readFile() {
-        return ConfigFiles.resolveRead(dir(), FILE_NAME, LEGACY_FILE_NAME);
+        return ConfigFiles.resolveRead(dir(), FILE_NAME, PRIOR_RELEASE_LEGACY_FILE_NAME, PEKA_LEGACY_FILE_NAME);
     }
 
     /** Legacy Item Animation background controls never affected the renderer and are now actively rewritten away. */

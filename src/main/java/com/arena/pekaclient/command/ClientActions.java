@@ -2,6 +2,7 @@ package com.arena.pekaclient.command;
 
 import com.arena.pekaclient.gui.AppleSettingsScreen;
 import com.arena.pekaclient.gui.ItemAnimationEditorScreen;
+import com.arena.pekaclient.gui.ChatEditorScreen;
 import com.arena.pekaclient.notes.QuickNoteScreen;
 import com.arena.pekaclient.notes.QuickNotes;
 import net.minecraft.client.Minecraft;
@@ -17,6 +18,7 @@ public final class ClientActions {
     private static boolean notesPending;
     private static boolean itemAnimationPending;
     private static boolean chatEditorPending;
+    private static boolean terminalSimulatorPending;
 
     private ClientActions() {
     }
@@ -34,9 +36,14 @@ public final class ClientActions {
         itemAnimationPending = true;
     }
 
-    /** Opens the persisted inline Chat Settings owner after GuiChat has closed. */
+    /** Opens the retained detailed Chat QoL editor after GuiChat has closed. */
     public static void requestChatEditor() {
         chatEditorPending = true;
+    }
+
+    /** Opens the retained local terminal practice screen after GuiChat has closed. */
+    public static void requestTerminalSimulator() {
+        terminalSimulatorPending = true;
     }
 
     /** Called once per client tick, after the chat screen has closed. */
@@ -52,7 +59,12 @@ public final class ClientActions {
         } else if (chatEditorPending) {
             chatEditorPending = false;
             hubPending = false;
-            mc.displayGuiScreen(AppleSettingsScreen.openChatSettings(null));
+            mc.displayGuiScreen(new ChatEditorScreen(null));
+        } else if (terminalSimulatorPending) {
+            terminalSimulatorPending = false;
+            hubPending = false;
+            chatEditorPending = false;
+            mc.displayGuiScreen(new com.arena.pekaclient.dungeon.solver.terminals.TerminalSimulator());
         } else if (hubPending) {
             hubPending = false;
             mc.displayGuiScreen(new AppleSettingsScreen(null));

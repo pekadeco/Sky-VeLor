@@ -2,7 +2,7 @@ package com.arena.pekaclient.render.blockparticles;
 
 /**
  * Minecraft-class-free diagnostics for the narrowly targeted EffectRenderer hook. The loading plugin and transformer
- * can update it before client classes are initialized; /velor selftest exposes the same fail-closed state later.
+ * can update it before client classes are initialized; /lunaria selftest exposes the same fail-closed state later.
  */
 public final class BlockParticleHookStatus {
 
@@ -17,7 +17,7 @@ public final class BlockParticleHookStatus {
     }
 
     public static void noteCoremodRegistered() {
-        System.out.println("[Sky VeLor] No block particles coremod registered: explicit EffectRenderer addEffect target.");
+        System.out.println("[Lunaria] No block particles coremod registered: explicit EffectRenderer addEffect target.");
     }
 
     static void noteEffectRendererClass(String observedName) {

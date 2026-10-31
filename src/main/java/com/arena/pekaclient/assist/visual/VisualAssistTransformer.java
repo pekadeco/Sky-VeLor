@@ -63,7 +63,7 @@ public final class VisualAssistTransformer implements IClassTransformer {
     }
 
     /**
-     * Forge's reobfuscation can rewrite a literal used as an ASM method name even though this is a Sky VeLor hook,
+     * Forge's reobfuscation can rewrite a literal used as an ASM method name even though this is a Lunaria hook,
      * so construct each local hook name at runtime. The transformer itself runs once at class load, making these tiny
      * allocations irrelevant while preserving the public hook names in the production jar.
      */

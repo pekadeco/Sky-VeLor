@@ -459,8 +459,8 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         if (CommandKeybindSettings.hasOtherEntryWithKey(index, keyCode)) {
             return "Warning: another Command Keybind uses this key";
         }
-        String skyVelor = skyVelorKeyName(keyCode);
-        if (skyVelor != null) return "Warning: conflicts with Sky VeLor " + skyVelor;
+        String lunariaBinding = lunariaKeyName(keyCode);
+        if (lunariaBinding != null) return "Warning: conflicts with Lunaria " + lunariaBinding;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.gameSettings != null && mc.gameSettings.keyBindings != null) {
             KeyBinding[] bindings = mc.gameSettings.keyBindings;
@@ -474,7 +474,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         return "";
     }
 
-    private static String skyVelorKeyName(int keyCode) {
+    private static String lunariaKeyName(int keyCode) {
         if (keyCode == PekaClientMod.OPEN_KEY.getKeyCode()) return "Open Menu";
         if (keyCode == PekaClientMod.ITEM_ANIMATION_KEY.getKeyCode()) return "Item Animation";
         if (keyCode == PekaClientMod.LEAP_KEY.getKeyCode()) return "Spirit Leap";

@@ -24,7 +24,7 @@ public final class ItemLockSwapHookStatus {
     }
 
     public static void noteCoremodRegistered() {
-        System.out.println("[Sky VeLor] Item Lock/Swap coremod registered: click/drop guards and GuiContainer foreground overlay.");
+        System.out.println("[Lunaria] Item Lock/Swap coremod registered: click/drop guards and GuiContainer foreground overlay.");
     }
 
     static void noteControllerClass(String name) {

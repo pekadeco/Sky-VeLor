@@ -1,70 +1,48 @@
-# Sky VeLor — Beta-0.10.9.3.2v
+# The Sky's Lunaria Mod — Beta-0.10.9.4v
 
-Sky VeLor is a client-side Forge mod for Minecraft 1.8.9. It provides a configurable HUD,
-dungeon utilities, Spirit Leap helpers, fishing and Slayer trackers, quick notes, Chat QoL,
-Item Lock / Swap, Shortcut, and Item Animation for Minecraft's first-person hand renderer.
+**The Sky's Lunaria Mod** is a client-side Forge mod for Minecraft 1.8.9. It combines the retained Lunaria feature set with the reliable Arena implementation: configurable HUDs, dungeon tools, map player heads, safe inventory rules, shortcut keys, Chat QoL, Item Animation, fishing, Slayer, mining, and privacy-conscious party sync.
 
-## Beta-0.10.9.3.2v — source-aware dungeon score correction and direct HUD canvas
+## Highlights
 
-- Fixes the score calculator’s two concrete parity errors: it previously invented a `+2` Mimic bonus that the
-  Fakepixel-visible formula does not award, and it omitted the visible Blood Door `+9%` clear adjustment. Mimic chat
-  remains debug-only; bonus is now capped Crypts plus confirmed Paul only.
-- Replaces the sidebar-only collection gate with corroborated sidebar **and public tab-list** detection. The parser now
-  reads Catacombs/floor and `Dungeon Cleared` from the sidebar; `Dungeon:`, `Secrets Found:`, `Time:`, `Deaths:`, and
-  `Crypts:` from public tab rows; and puzzle, Spirit Pet, Blood Door, and official recap events from dungeon chat.
-  A confirmed dungeon keeps Score/Stats visible while fields arrive, rendering unavailable values as `--` and never
-  promoting a live projection to `S+`.
-- Expands **`/svdungeon debug`** with raw sidebar/tab lines, detector evidence, raw and Blood-Door-adjusted clear,
-  parsed chat flags, calculated components, and official-recap components for pasteback. Room Clear Alert explicitly
-  continues to consume the raw sidebar clear percentage, never the score-only Blood Door adjustment.
-- Replaces the rejected solid picker/editor panels with a lightly dimmed transparent direct canvas. Click any sample
-  **Score**, **Alert**, or **Map** element to select it, drag it to place it, and use its lower-right corner handle to
-  resize. Slim top-centre chips provide **Reset selected**, **Reset all**, and **Done** without occupying launcher
-  MOUSE/GUI space; one collapsible, scrollable dock uses existing small toggles/sliders and moves away from the
-  selected element. Narrow Pojav layouts use a shallow touchable dock.
-- Groups Dungeon Map controls under **Display**, **Players**, **Colors**, and **Background**, retains all saved map
-  keys, and preserves Minecraft 1.8.9 Forge compatibility, Shortcut keys, Item Lock And Swap, Dungeon ESP/map heads,
-  Auto Chest Close, generic HUD Editor, Item Animation editor, and Chat QoL.
-
-### Validation boundary
-
-- Java 8 Forge build, standalone logic/layout tests, package verification, and source-archive checks do not launch
-+  Minecraft. A real Fakepixel run and pasted `/svdungeon debug` output are still needed before live official-score
-+  parity can be claimed for every server presentation variant.
-
-
-The full presentation inventory, retained routes, old-config boundary, and test boundary are in
-[`docs/FEATURE-SETTINGS-EDITOR.md`](docs/FEATURE-SETTINGS-EDITOR.md).
-
-> Player screenshots supplied the settings-shell blur/corner and sleeping-Fel outline evidence. Automated build, test,
-> renderer, and archive verification still do not start Minecraft, so the corrected behavior needs a fresh visual/input
-> pass in a real 1.8.9 Forge client.
-
-## Features
-
-- Native settings shell and movable HUD editor with an Apple-inspired graphite-glass visual system and blue accent.
-- Dungeon map with room/puzzle templates, party labels, cached Starred Mobs/Door ESP, Floor VII overlays,
-  dragon alerts, Spirit Leap helpers, an optional read-only Click in Order helper, opt-in local Spirit Bow/sidebar
-  readouts, and dungeon-only visible-data score, room-alert, and safe chest-close tools.
-- Item Animation: live first-person X/Y/Z, scale, hit/slash controls, bounded persistence,
-  reset actions, and a renderer-only Preview Swing.
-- Item Lock and Item Swap: persistent player-inventory locks, safe paired-slot swaps, configurable
-  badges/cooldown/lines, and packet-before-send protection for GUI clicks and Q/Ctrl+Q drops.
-- Chat QoL: retained-message history, rounded message background, captured context menu, scrolling,
-  and attached All/Party/Reply/custom filter tabs without split chat windows.
-- Existing mining, inventory, visual-safety, movement, terminal, boss-HUD, waypoint, fishing,
-  Slayer, and privacy-conscious Dungeon Sync helpers. Input/gameplay assists remain explicit opt-ins.
+- **Settings and HUD:** native Lunaria settings shell, Home performance cards, direct-canvas Dungeon HUD Editor, normal HUD Editor, movable Dungeon Score/Stats, Room Clear Alert, Dungeon Run, secrets, boss, fishing, mining, and inventory surfaces.
+- **Dungeon tools:** map and interpolated player heads, terminal hints, puzzle/terminal support, Spirit Leap helper, score calculator and diagnostics, Room Clear Alert, exact-title Auto Chest Close, Spirit Bow locator, Floor VII support, and client-side ESP.
+- **Safe gameplay QoL:** Shortcut keys, Item Lock & Swap rules, protected inventory gestures, Auto Sprint, Hide Dead Mobs, Smooth Aspect Teleport, quiet block particles, and held-item animation. Client visual helpers do not send movement or combat packets.
+- **Chat and fonts:** detailed Chat Editor, chat tabs, history, compact messages, click menu, optional bundled/external Lunaria fonts, and a clear native-font fallback.
+- **Compatibility:** canonical `/lunaria` commands plus `/sv` and `/velor` aliases; current settings are written under Lunaria names while prior files remain read-only fallbacks.
 
 ## Requirements
 
-- Minecraft 1.8.9 with Forge `11.15.1.2318`.
-- JDK 8 for compiling and Java 8 for the legacy Forge runtime.
-- Internet access on the first build so Gradle and ForgeGradle can download dependencies.
+- Minecraft **1.8.9** with Forge **11.15.1.2318**.
+- Java 8 for the Forge runtime and JDK 8 for builds.
+- Internet access for the first ForgeGradle dependency resolution.
 
-This project deliberately retains ForgeGradle 2.1 / Gradle 2.14.1. Newer JDKs and Gradle releases
-are not drop-in replacements for this legacy toolchain.
+ForgeGradle 2.1 and Gradle 2.14.1 are intentionally retained for this legacy Minecraft target.
 
-## Build
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `/lunaria` | Open Lunaria settings. |
+| `/lunaria dungeon debug` | Print local dungeon-score diagnostics for support. |
+| `/lunaria itemanimation` | Open the Item Animation editor. |
+| `/lunaria chateditor` | Open the retained detailed Chat Editor. |
+| `/lunaria selftest` | Report local hook status. |
+| `/sv`, `/velor` | Compatibility aliases for `/lunaria`. |
+| `/svdungeon debug` | Compatibility direct alias for dungeon diagnostics. |
+
+All commands are client-side. They do not send slash commands to a server.
+
+## Settings routes
+
+- **QoL → Inventory And Chat:** Item Lock And Swap, Inventory Assist, and Chat QoL.
+- **QoL → Shortcut:** Wardrobe, Pets, and custom slash-command keybinds.
+- **Dungeons:** map/player-head controls, terminals, score, Room Clear Alert, Auto Chest Close, Floor VII, and ESP.
+- **HUD & Visuals:** direct HUD editors and Item Animation.
+- **Misc → Fonts:** optional font enable, discovery/selection, scale, reload, and the detailed Chat Editor. Place new `.ttf` or `.otf` files in `config/lunaria/fonts`.
+
+Read [`docs/FEATURE-SETTINGS-EDITOR.md`](docs/FEATURE-SETTINGS-EDITOR.md) for behavior and safety boundaries, [`docs/CONFIGURATION-MIGRATION.md`](docs/CONFIGURATION-MIGRATION.md) for migration details, and [`docs/LOADING-SCREEN.md`](docs/LOADING-SCREEN.md) for loading-screen behavior.
+
+## Build and test
 
 ### Windows
 
@@ -74,119 +52,43 @@ set /p TEST_CP=<build\test-classpath.txt
 tests\run-tests.bat
 ```
 
-### Linux or Git Bash
+### Linux / Git Bash
 
 ```sh
 ./gradlew clean build dumpTestClasspath
 TEST_CP="$(cat build/test-classpath.txt)" sh tests/run-tests.sh
 ```
 
-The distributable JAR is:
+The standalone runner compiles every test and runs each test class with a `main` method. It does not start Minecraft.
+
+Expected release files:
 
 ```text
-build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3.2v.jar
+Lunaria-Mod-1.8.9-Beta-0.10.9.4v.jar
+Lunaria-Mod-1.8.9-Beta-0.10.9.4v-source.zip
+Lunaria-Mod-1.8.9-Beta-0.10.9.4v.zip
 ```
 
-`reobfJar` is essential: it rewrites Minecraft development (MCP) references to the SRG names a
-Forge runtime needs. Never distribute `build/tmp/deobfMcMCP/deobfed.jar`; it is a ForgeGradle
-intermediate rather than Sky VeLor.
-
-Verify the JAR before publishing:
+Verify a built JAR with:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/SkyVeLor-1.8.9-Beta-0.10.9.3.2v.jar \
-  --version Beta-0.10.9.3.2v --mcmod-version 0.10.9.3.2
+  build/libs/Lunaria-Mod-1.8.9-Beta-0.10.9.4v.jar \
+  --version Beta-0.10.9.4v --mcmod-version 0.10.9.4
 ```
 
-The verifier confirms version metadata, expected/retired class boundaries, reobfuscation, runtime
-owners, and archive hygiene. The source archive is generated from a curated `git archive` list:
-
-```sh
-python3 tools/verify_source_zip.py \
-  SkyVeLor-1.8.9-Beta-0.10.9.3.2v-source.zip \
-  --version Beta-0.10.9.3.2v
-```
-
-A release delivery contains exactly three files: the JAR, a delivery ZIP containing the JAR and build
-report, and the clean source ZIP. Generated `build/`, `.gradle/`, prior delivery files, Git state,
-and unrelated archives do not belong in the source ZIP. In particular, the root reference archives
-`Sky-VeLor-1.0.0.zip` and `AppleGUI-1.8.9 (1).zip` are explicitly excluded and the verifier checks both names.
+CI builds, tests, verifies the JAR/source archive, and publishes the three verified files to `dist/` only when a branch commit explicitly includes `[publish-artifacts]`. It does **not** create a GitHub Release.
 
 ## Installation
 
-1. Start Minecraft 1.8.9 with Forge `11.15.1.2318` once.
-2. Put `SkyVeLor-1.8.9-Beta-0.10.9.3.2v.jar` in the Minecraft `mods` folder.
-3. Launch the Forge profile.
+1. Install Forge `11.15.1.2318` for Minecraft 1.8.9.
+2. Put `Lunaria-Mod-1.8.9-Beta-0.10.9.4v.jar` in the Minecraft `mods` folder.
+3. Launch the Forge profile and open `/lunaria`.
 
-## Settings routes
+## Repository note
 
-- **QoL → Inventory And Chat → Item Lock And Swap** contains a visible current-key capsule, cooldown, badge,
-  line, clear, and reset controls. Click its key row to capture a new key; Escape cancels and Backspace clears to
-  `NONE`. A new pair must include a hotbar slot; illegal legacy saved pairs are dropped safely. Shared endpoints
-  retain every legal pair and completed manual swaps cycle those targets in creation order.
-- **QoL → Shortcut** is a standalone card for Wardrobe, Pets, and Command Keybind. Existing Keybind Cut and older
-  shortcut settings load compatibly and save under `assist.shortcut.*`. **Wardrobe Shortcut** and **Pets Shortcut**
-  each have an enable toggle plus visible click-capture key: Escape cancels and Backspace clears to `NONE`. Fresh
-  defaults and Shortcut reset are `W` for Wardrobe and `P` for Pets without replacing an existing saved key. Each key
-  row displays a small red collision warning when it matches Minecraft or another Sky VeLor binding. **Wardrobe Number
-  Keys** defaults on and maps `1`–`9` to slots `36`–`44` only inside a recognized Wardrobe menu; turn it off to leave
-  those digits untouched. **Command Keybind** exposes only **Open Command Keybind Editor**; a valid key-plus-slash
-  command uses a direct physical press while no chat, GUI, or editor is open and visibly warns about collisions.
-- **Dungeons → Run Tools → Dungeon Map** has no border/frame, preserves its `100%` default zoom while allowing `50%`–
-  `500%`, and includes default-on **Player Heads** plus **Player Head Size**. During confirmed dungeon rendering, ready
-  local/party tab-list skin faces and hats replace their matching map arrows, stay inside the map bounds, and move with
-  partial-tick interpolation. Turning Player Heads off restores the normal native map arrows.
-- **Dungeons → Dungeon HUD → Open Dungeon HUD Editor** opens a centered solid, dedicated placement editor. Its
-  **Score / Stats**, **Room Alert**, and **Dungeon Map** picker preserves each target's saved placement/scale, offers
-  per-target enable, move, resize, and reset controls, and only shows its map preview while editing.
-- **Dungeons → Dungeon HUD → Dungeon Score/Stats HUD** is dungeon-only and borderless. It can independently show
-  Score/rank, Crypts, Deaths, and Run Time. The calculator reads no API and observes only visible Fakepixel sidebar,
-  public tab-list, and chat data; it includes room/secret progress, deaths/Spirit reductions, failed puzzles, crypts,
-  runtime, mimic, and Paul. Its live rank is deliberately capped below `S+`; `S+` requires a visible end recap.
-- **Dungeons → Dungeon HUD → Room Clear Alert** is dungeon-only and movable in the dedicated editor. It accepts only
-  narrow normal room-clear chat, deduplicates room keys, rejects blood/fairy/entrance/already-cleared cases, and has
-  a bounded duration plus optional local sound.
-- **Dungeons → Dungeon HUD → Auto Chest Close** is off by default. In a confirmed dungeon it may close only an exact
-  normal `Chest` or `Large Chest` container after it opens; reward chests, terminals, and every other title are
-  rejected.
-- **Dungeons → Run Tools → Terminal Helper** has independent opt-in controls; there is no synthetic
-  master switch. Auto click stays off by default.
-- **Dungeons → Run Tools → Spirit Bow Locator** defaults off and uses
-  `assist.dungeon.spiritBowLocator`. It only draws a client-side locator for the nearest nearby named marker in a
-  confirmed dungeon; it has no keybind, command, click, movement, packet, or controller path.
-- **Dungeons → Dungeon ESP → Starred Mobs** owns Starred Mob, Miniboss, Special Starred Mob, and Enderman styles.
-  Skeletor uses the normal Starred Mob style when a nearby star tag selects it; player-shaped dungeon NPCs remain
-  eligible, while the local player is excluded in both scan and render paths. Recognized Enderman/Fel skull markers
-  remain direct Enderman targets without a separate tag or height gate.
-- **QoL → Comfort → Hide Dead Mobs** defaults on and client-side suppresses dead/dying normal mobs and server NPC
-  fake mobs—including their standard nameplates—when `isDead`, `deathTime > 0`, or zero health is observed. It keeps
-  the local player and ordinary listed remote players visible, and never removes an entity or changes server state.
-- **QoL → Comfort → Smooth Aspect Teleport** defaults on and arms only after a local Aspect use. At RenderTick START,
-  after vanilla accepts a plausible completed jump, it eases only the rendered world/camera origin for `125 ms`; it
-  never initiates movement, changes player/camera entity coordinates, or sends packets.
-- **Slayer → Slayer Tracker** owns the existing Slayer tracker route. The visible channel changed, not the tracker
-  configuration keys or values.
-- **HUD & Visuals → HUD → Dungeon Run HUD** defaults off and is movable through **Open HUD Editor**. It reads only the
-  visible dungeon sidebar at a bounded interval and displays observed floor, elapsed time, cleared percentage, secrets,
-  and deaths; it does not estimate score, inspect the tab list, react to chat, or close secret chests.
-- **HUD & Visuals → HUD → Open HUD Editor** opens the allowed editor for HUD and map placement.
-- **HUD & Visuals → Item Animation → Open Item Animation Editor** opens the standalone left-edge renderer panel. Its live
-  values affect only Minecraft's first-person hand path; it neither sends packets nor changes attack,
-  mining, server timing, or movement.
-- **Misc → Appearance** owns the optional custom GUI-transparency toggle and opacity slider; disabling
-  the custom toggle keeps the established default glass value without deleting the saved slider choice.
+This codebase keeps its existing GitHub repository identity by design. Renaming the repository is a manual maintainer follow-up: use GitHub **Settings → General → Repository name**, then update clones, remote URLs, links, badges, and any deployment/webhook integrations. No automated build step renames the repository.
 
-## Compatibility and testing limits
+## Validation boundary
 
-The project targets desktop Java 8. Android/Pojav compatibility is a goal but is not verified.
-Automated tests cover logic, settings, old-property compatibility, catalog routing, disclosure state,
-layout contracts, and release archives. They do not launch Minecraft. A human Minecraft 1.8.9 Forge
-pass is still needed before claiming runtime validation; this release is **NOT tested in-game**.
-
-## License and credits
-
-`LICENSE` records the project license. Verify the applicable license for every reused component before
-redistributing. Parts of the project were ported from RNG Carried Bald; existing attribution remains
-with the relevant code. The independently implemented Wardrobe and dungeon-score behavioral references and their
-LGPL-3.0-or-later attribution are recorded in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+The Java 8 build, standalone tests, archive verifiers, and source inspection validate code and packaged resources. They do not perform a live Forge/Fakepixel/Pojav playthrough. Test real in-game input, rendering, server presentation variants, and third-party endpoint availability before making live-server guarantees.

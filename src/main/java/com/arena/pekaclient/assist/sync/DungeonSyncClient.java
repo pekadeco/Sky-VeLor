@@ -52,7 +52,7 @@ public final class DungeonSyncClient implements Closeable {
         if (stopped.get() || (connectionThread != null && connectionThread.isAlive())) return;
         connectionThread = new Thread(new Runnable() {
             @Override public void run() { connectLoop(); }
-        }, "SkyVeLor-DungeonSync");
+        }, "Lunaria-DungeonSync");
         connectionThread.setDaemon(true);
         connectionThread.start();
     }
@@ -82,7 +82,7 @@ public final class DungeonSyncClient implements Closeable {
                 final SSLSocket writerSocket = socket;
                 Thread writer = new Thread(new Runnable() {
                     @Override public void run() { writerLoop(writerSocket); }
-                }, "SkyVeLor-DungeonSync-Send");
+                }, "Lunaria-DungeonSync-Send");
                 writer.setDaemon(true);
                 writer.start();
                 readLoop(socket);

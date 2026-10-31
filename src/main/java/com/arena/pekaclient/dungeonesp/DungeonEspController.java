@@ -45,7 +45,7 @@ public final class DungeonEspController {
 
     private static final int DOOR_SCAN_INTERVAL_TICKS = 20;
     private static final int ESP_DUMP_LIMIT = 64;
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
+    private static final Logger LOG = LogManager.getLogger("Lunaria");
     private static DungeonEspController activeInstance;
 
     private final DungeonEspTracker tracker = new DungeonEspTracker();
@@ -127,7 +127,7 @@ public final class DungeonEspController {
         lastRenderNanos = System.nanoTime() - started;
     }
 
-    /** Exact command surface for /velor espdebug; all figures come from the live tick/render cache, not config guesses. */
+    /** Exact command surface for /lunaria espdebug; all figures come from the live tick/render cache, not config guesses. */
     public static String debugStatus() {
         DungeonEspController controller = activeInstance;
         if (controller == null) {

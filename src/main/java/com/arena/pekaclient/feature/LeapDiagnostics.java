@@ -6,11 +6,12 @@ import org.apache.logging.log4j.Logger;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Opt-in, transition-only Spirit Leap diagnostics; disabled unless -Dskyvelor.debug.leap=true is set. */
+/** Opt-in, transition-only Spirit Leap diagnostics; enabled by -Dlunaria.debug.leap=true (with legacy fallback). */
 public final class LeapDiagnostics {
 
-    private static final boolean ENABLED = Boolean.getBoolean("skyvelor.debug.leap");
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
+    private static final boolean ENABLED = Boolean.getBoolean("lunaria.debug.leap")
+            || Boolean.getBoolean("skyvelor.debug.leap");
+    private static final Logger LOG = LogManager.getLogger("Lunaria");
     private static final Map<String, String> LAST_STATE = new ConcurrentHashMap<String, String>();
 
     private LeapDiagnostics() {

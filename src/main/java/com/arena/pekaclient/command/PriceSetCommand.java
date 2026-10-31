@@ -43,7 +43,7 @@ public final class PriceSetCommand extends CommandBase {
     }
 
     private static void say(ICommandSender sender, String text) {
-        sender.addChatMessage(new ChatComponentText("\u00a7b[Sky VeLor] \u00a7f" + text));
+        sender.addChatMessage(new ChatComponentText("\u00a7b[Lunaria] \u00a7f" + text));
     }
 
     @Override

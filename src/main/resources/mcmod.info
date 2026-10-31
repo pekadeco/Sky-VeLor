@@ -1,12 +1,16 @@
 [
   {
-    "modid": "pekaclient",
-    "name": "Sky VeLor",
-    "description": "Sky VeLor Beta-0.10.9.3.2v (${version}): client-side HUD, Chat QoL, Item Animation, cached Starred Mobs ESP, assists, and fishing utilities for Minecraft 1.8.9.",
+    "modid": "lunaria",
+    "name": "The Sky's Lunaria Mod",
+    "description": "The Sky's Lunaria Mod ${displayVersion}: client-side HUD, settings, dungeon, fishing and gameplay utilities for Minecraft 1.8.9.",
     "version": "${version}",
     "mcversion": "${mcversion}",
-    "authorList": ["Sky VeLor contributors"],
-    "credits": "Built for Minecraft 1.8.9 with Forge.",
+    "authorList": [
+      "ii8we",
+      "whiteshadow",
+      "pekadeco"
+    ],
+    "credits": "Developed by ii8we, whiteshadow, and pekadeco.",
     "clientSideOnly": true,
     "useDependencyInformation": false
   }

@@ -6,7 +6,7 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.lang.reflect.Method;
 
-/** Clipboard chain used by every Sky VeLor chat window. Text is only reported copied after a read-back match. */
+/** Clipboard chain used by every Lunaria chat window. Text is only reported copied after a read-back match. */
 public final class ChatClipboard {
     public static final String COPY_TO_CLIPBOARD="Copy to clipboard";
     public static final String COPY_TO_CHAT_BOX="Copy to chat box";

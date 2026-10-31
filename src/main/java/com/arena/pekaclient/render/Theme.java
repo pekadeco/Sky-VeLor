@@ -3,7 +3,7 @@ package com.arena.pekaclient.render;
 import com.arena.pekaclient.config.AppleSettings;
 
 /**
- * The one design-token authority for Sky VeLor GUI surfaces.
+ * The one design-token authority for Lunaria GUI surfaces.
  *
  * <p>The settings shell deliberately uses the original Apple-inspired glass system: a graphite gradient window,
  * translucent white cards, thin low-contrast dividers, and one familiar macOS blue interaction accent. Existing

@@ -49,7 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * VeLor hub layout is not used.
  *
  * Every click is the server's own window click on the teammate's slot, the same as a left click in the vanilla
- * menu. Sky VeLor sends no packet and no command of its own. After a pick the screen waits for the server, so a
+ * menu. Lunaria sends no packet and no command of its own. After a pick the screen waits for the server, so a
  * double click or a held Enter cannot send a second leap.
  *
  * Heads use the matching tab-list skin or an asynchronous profile-texture lookup. A useful letter fallback is

@@ -22,7 +22,7 @@ import org.lwjgl.input.Mouse;
  */
 public final class ItemLockSwapController {
 
-    private static final String PREFIX = "\u00a7b[Sky VeLor] \u00a7f";
+    private static final String PREFIX = "\u00a7b[Lunaria] \u00a7f";
     private static ItemLockSwapController live;
 
     private final ItemLockSwapInputState input = new ItemLockSwapInputState();

@@ -15,7 +15,7 @@ import java.util.Map;
  * Lock / Swap packet guards and its one GuiContainer foreground draw callback. None replaces a vanilla renderer,
  * container, inventory, or network handler.
  */
-@IFMLLoadingPlugin.Name("Sky VeLor Visual Hooks")
+@IFMLLoadingPlugin.Name("Lunaria Visual Hooks")
 @IFMLLoadingPlugin.MCVersion("1.8.9")
 @IFMLLoadingPlugin.SortingIndex(1001)
 @IFMLLoadingPlugin.TransformerExclusions({"com.arena.pekaclient.render.itemanimation",

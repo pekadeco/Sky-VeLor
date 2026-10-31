@@ -112,7 +112,7 @@ public final class DungeonContext {
 
     /**
      * Evaluates a just-captured set of rows and updates the shared cache. The score tracker uses this overload so
-     * /svdungeon debug, detection, and parser ingestion all describe exactly the same visible snapshot.
+     * /lunaria dungeon debug, detection, and parser ingestion all describe exactly the same visible snapshot.
      */
     public static Result evaluateNow(Minecraft mc, String rawSidebarTitle, Iterable<String> rawSidebarLines,
                                      Iterable<String> rawTabLines) {

@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * Collects only dungeon values already visible to the player, then feeds the native score calculator. Sidebar and
  * public tab-list rows are sampled at most twice per second; chat is observation-only and is never cancelled or sent
- * by this tracker. It retains the exact latest visible rows for the /svdungeon debug paste-back command.
+ * by this tracker. It retains the exact latest visible rows for the /lunaria dungeon debug paste-back command.
  */
 public final class DungeonScoreTracker {
     private static final int SCAN_INTERVAL_TICKS = 10;
@@ -163,7 +163,7 @@ public final class DungeonScoreTracker {
             if (info == null) continue;
             IChatComponent display = info.getDisplayName();
             if (display != null) {
-                // Keep vanilla's visible formatting for /svdungeon debug; telemetry itself strips it safely.
+                // Keep vanilla's visible formatting for /lunaria dungeon debug; telemetry itself strips it safely.
                 result.add(display.getFormattedText());
                 continue;
             }

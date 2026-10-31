@@ -1,4 +1,4 @@
-Sky VeLor chat-feature third-party notices
+The Sky's Lunaria Mod chat-feature third-party notices
 ==========================================
 
 Skytils chat-tab behaviour
@@ -15,7 +15,7 @@ open-source ChatTabs feature as its reference.
 
 Chatting animation bridge
 -------------------------
-Sky VeLor contains an optional reflection bridge for the public configuration surface of a separately
+The Sky's Lunaria Mod contains an optional reflection bridge for the public configuration surface of a separately
 installed compatible Chatting runtime. No Chatting runtime classes or binaries are bundled in this JAR.
 When enabled by the player, the bridge limits that external runtime to its animation controls so Sky
 VeLor's own optional channel tabs remain authoritative.

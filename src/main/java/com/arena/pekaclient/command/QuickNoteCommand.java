@@ -37,7 +37,7 @@ public final class QuickNoteCommand extends CommandBase {
         Minecraft mc = Minecraft.getMinecraft();
         if (!AppleSettings.qnCommand) {
             mc.thePlayer.addChatMessage(new ChatComponentText(
-                    "\u00a7b[Sky VeLor] \u00a7f/qn is off. Turn it on in Settings, System, Diagnostics, Client command routes."));
+                    "\u00a7b[Lunaria] \u00a7f/qn is off. Turn it on in Settings, System, Diagnostics, Client command routes."));
             return;
         }
         ClientActions.requestQuickNotes();

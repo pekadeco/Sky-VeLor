@@ -48,8 +48,16 @@ public final class QuickNoteStore {
     private final List<NotePage> pages = new ArrayList<NotePage>();
 
     public QuickNoteStore(File file) {
+        this(file, file);
+    }
+
+    /**
+     * Reads old content from {@code source} but always remembers {@code file} as the Lunaria save target.
+     * This permits one-way filename migration without mutating a legacy notes file during startup.
+     */
+    QuickNoteStore(File file, File source) {
         this.file = file;
-        load();
+        load(source == null ? file : source);
     }
 
     File getFile() {
@@ -173,14 +181,18 @@ public final class QuickNoteStore {
     }
 
     void load() {
+        load(file);
+    }
+
+    private void load(File source) {
         pages.clear();
-        if (file == null || !file.isFile()) {
+        if (source == null || !source.isFile()) {
             pages.add(new NotePage());
             return;
         }
         BufferedReader reader = null;
         try {
-            reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(source), "UTF-8"));
             NotePage page = new NotePage();
             String line;
             while ((line = reader.readLine()) != null) {

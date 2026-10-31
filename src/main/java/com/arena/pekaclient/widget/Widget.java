@@ -135,7 +135,7 @@ public abstract class Widget {
         return Minecraft.getMinecraft().fontRendererObj;
     }
 
-    /** Width in Minecraft's native font, matching the renderer used by all Sky VeLor controls. */
+    /** Width in Minecraft's native font, matching the renderer used by all Lunaria controls. */
     protected static float textWidth(String value) {
         return font().getStringWidth(value == null ? "" : value);
     }

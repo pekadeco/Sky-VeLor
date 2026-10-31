@@ -10,29 +10,37 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Finds and reads Sky VeLor config files, with a safe migration from the Peka Client names.
+ * Finds and reads Lunaria configuration files without destroying older installations.
  *
- * Beta-0.3v (and 0.2v) write {@code skyvelor*.properties}. If that file does not exist yet but the older
- * {@code pekaclient*.properties} file does, the old file is read once. Nothing is ever written to the
- * old file, so a downgrade or a failed save leaves the previous settings untouched.
+ * <p>The current name is always preferred. When it does not exist, callers may supply any number of historic
+ * names in priority order (for Lunaria: the prior release, then the earliest legacy release). Reads never rename or delete an older file;
+ * a caller deliberately migrates by writing its normalized state to the current name via {@link #writeAtomic}.</p>
  */
 public final class ConfigFiles {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
+    private static final Logger LOG = LogManager.getLogger("Lunaria");
 
     private ConfigFiles() {
     }
 
-    /** The file to read: the current name if it exists, else the legacy name if it exists, else the current name. */
-    public static File resolveRead(File dir, String currentName, String legacyName) {
+    /**
+     * Resolves the file to read: current name first, then historic names in the supplied order, else current name.
+     * Blank historic names are ignored so feature-specific callers can build their fallback list safely.
+     */
+    public static File resolveRead(File dir, String currentName, String... historicNames) {
         File current = new File(dir, currentName);
         if (current.isFile()) {
             return current;
         }
-        File legacy = new File(dir, legacyName);
-        if (legacy.isFile()) {
-            LOG.info("Migrating settings from " + legacy.getName() + " to " + currentName);
-            return legacy;
+        if (historicNames != null) {
+            for (String historicName : historicNames) {
+                if (historicName == null || historicName.trim().length() == 0) continue;
+                File historic = new File(dir, historicName);
+                if (historic.isFile()) {
+                    LOG.info("Reading legacy settings from " + historic.getName() + "; next save writes " + currentName);
+                    return historic;
+                }
+            }
         }
         return current;
     }

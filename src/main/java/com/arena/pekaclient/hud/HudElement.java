@@ -13,13 +13,13 @@ import java.util.Properties;
 /**
  * One movable, resizable on-screen element (mining rate, inventory, player doll).
  *
- * Position is a PekaClient {@link HudPlacement}. Every element shares the same style controls:
+ * Position is a Lunaria {@link HudPlacement}. Every element shares the same style controls:
  * scale, opacity, corner radius, text size, background, border and accent colour. Module-specific
  * options are added by subclasses through the loadExtra, saveExtra and resetExtra hooks.
  */
 public abstract class HudElement {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
+    private static final Logger LOG = LogManager.getLogger("Lunaria");
 
     public static final int[] TEXT_SCALE_PERCENT = {80, 100, 130};
     public static final String[] TEXT_SIZE_NAMES = {"S", "M", "L"};

@@ -8,7 +8,7 @@ import java.util.Properties;
 
 /**
  * Switches for the Floor VII (M7) dungeon features: the world overlay, boss and dragon hitboxes,
- * statue kill areas, and the dragon kill alert. Saved in the main Sky VeLor settings file, under
+ * statue kill areas, and the dragon kill alert. Saved in the main Lunaria settings file, under
  * {@code dungeon.m7.*} keys.
  */
 public final class M7Settings {

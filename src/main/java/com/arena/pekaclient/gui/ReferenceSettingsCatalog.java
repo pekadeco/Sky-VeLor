@@ -140,7 +140,7 @@ public final class ReferenceSettingsCatalog {
             "dungeon-score-hud", "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay",
             "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
             "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation",
-            "system-appearance", "system-performance", "system-general", "system-commands"
+            "system-appearance", "system-performance", "font-settings", "system-general", "system-commands"
     };
 
     /** Native destination order. Farming is deliberately empty until a real owner exists. */
@@ -411,17 +411,32 @@ public final class ReferenceSettingsCatalog {
                             toggle("adaptive-quality", "Adaptive Quality", "Lower detail when FPS drops.", "adaptive quality"),
                             toggle("performance-boost", "Performance Boost", "Use lighter interface effects.", "performance beta"),
                             reset("performance-reset"))),
+            card("fonts", "Fonts", "Optional Lunaria text font and external font choices.", false,
+                    "Built-in fonts are ready immediately. Add .ttf or .otf files to config/lunaria/fonts; compatible earlier font folders remain readable and are never moved.",
+                    masterDropdown("font-settings", "Custom Font", "Use a safe optional font for Lunaria-owned text.",
+                            "font typography external ttf otf", 
+                            action("font-selection", "Selected Font", "Cycle built-in and discovered external fonts.",
+                                    "font choice external", "Choose Next"),
+                            slider("font-scale", "Text Scale", "Set the optional Lunaria font scale.",
+                                    "font size", 70, 140, 5, "%"),
+                            toggle("font-lunaria-only", "Lunaria Text Only", "Keep vanilla Minecraft text unchanged.",
+                                    "font minecraft compatibility"),
+                            action("font-reload", "Reload Font", "Reload the selected font without moving files.",
+                                    "font reload", "Reload"),
+                            reset("font-reset")),
+                    editor("chat-editor", "Chat Editor", "Open the detailed Chat QoL editor with tab controls.",
+                            "chat tabs background messages editor", false, "Open Chat Editor", "open-chat-editor")),
             card("general", "General", "Scrolling and commands.", false, "",
                     dropdown("system-general", "Interface", "Adjust scrolling preferences.", "scroll settings",
                             slider("global-scroll", "Scroll Speed", "Set settings scroll speed.", "scroll speed", 50, 300, 25, "%"),
                             toggle("smooth-scrolling", "Smooth Scrolling", "Use smooth settings scrolling.", "smooth scrolling"),
                             reset("system-general-reset")),
                     dropdown("system-commands", "Commands", "Chat commands and diagnostics.", "commands selftest debug",
-                            toggle("sv-command", "/sv", "Open settings from chat.", "sv command"),
+                            toggle("sv-command", "/lunaria", "Open settings from chat.", "lunaria command"),
                             toggle("qn-command", "/qn", "Open notes from chat.", "qn command"),
-                            info("command-itemdebug", "/velor itemdebug", "Show held-item values.", "item debug"),
-                            info("command-lockdebug", "/velor lockdebug", "Show lock and swap details.", "lock debug"),
-                            info("command-selftest", "/velor selftest", "Show feature details.", "selftest"),
+                            info("command-itemdebug", "/lunaria itemdebug", "Show held-item values.", "item debug"),
+                            info("command-lockdebug", "/lunaria lockdebug", "Show lock and swap details.", "lock debug"),
+                            info("command-selftest", "/lunaria selftest", "Show feature details.", "selftest"),
                             reset("commands-reset")))
     );
 

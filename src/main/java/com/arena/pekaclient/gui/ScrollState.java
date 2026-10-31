@@ -2,7 +2,7 @@ package com.arena.pekaclient.gui;
 
 /**
  * Compatibility facade for the older hub/editor call sites. Its real position and wheel target are the shared
- * {@link GuiLayoutToolkit.Scroll}, so every Sky VeLor settings surface now uses the same clamp, Shift fine-scroll
+ * {@link GuiLayoutToolkit.Scroll}, so every Lunaria settings surface now uses the same clamp, Shift fine-scroll
  * and smoothing semantics. Fling remains here because touch dragging is specific to the two legacy screens.
  */
 final class ScrollState {

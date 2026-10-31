@@ -1,45 +1,62 @@
-// ForgeGradle 2.1 build for Minecraft 1.8.9 (Forge 11.15.1.2318-1.8.9, MCP stable_22).
-// Requires JDK 8 and Gradle 2.14.1 (the version used for release builds).
-//
-// ForgeGradle 2.1-SNAPSHOT is resolved from the public Forge Maven repository; no local install is required.
+// ForgeGradle 2.1 build for Minecraft 1.8.9 (Forge 11.15.1.2318, MCP stable_22).
+// The release toolchain intentionally remains Java 8 compatible.
 buildscript {
     repositories {
         mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://repo.spongepowered.org/maven/' }
         mavenLocal()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.1-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
     }
 }
 
 apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
 
 repositories {
     maven { url = 'https://maven.minecraftforge.net/' }
+    maven { url = 'https://repo.spongepowered.org/maven/' }
     mavenCentral()
     mavenLocal()
 }
 
-// Version: read from PekaVersion.NAME so there is exactly one source of release version metadata.
-// Beta-0.10.9.3.2v is the release contract for this branch; fail early if the source and build surfaces drift.
-def releaseDisplayVersion = "Beta-0.10.9.3.2v"
-def pekaVersionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java').text
-def pekaVersionMatch = (pekaVersionSource =~ /NAME\s*=\s*"([^"]+)"/)
-if (!pekaVersionMatch.find()) {
-    throw new GradleException('Could not read PekaVersion.NAME from PekaVersion.java')
+// Refuse release packaging without the retained upstream license and attribution surface.
+def lunariaLicense = file('LICENSE')
+if (!lunariaLicense.isFile()) throw new GradleException('Required LICENSE file is missing.')
+def licenseText = lunariaLicense.getText('UTF-8')
+['GNU LESSER GENERAL PUBLIC LICENSE', 'LGPL-3.0-or-later',
+ 'https://github.com/im2pb/NotEnoughFakepixel'].each { marker ->
+    if (!licenseText.contains(marker)) throw new GradleException('LICENSE is missing required attribution: ' + marker)
 }
-version = pekaVersionMatch.group(1)
-if (version != releaseDisplayVersion) {
-    throw new GradleException("PekaVersion.NAME must match releaseDisplayVersion " + releaseDisplayVersion)
-}
-// Forge's mod metadata convention is numeric even though the user-facing release/JAR keeps Beta-...v.
-// Releases may carry up to three optional patch components (for example 0.10.9.1.5).
-def mcmodVersionMatch = (version =~ /(?:Beta-)?([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+){0,3})(?:v)?/)
-def mcmodVersion = mcmodVersionMatch.find() ? mcmodVersionMatch.group(1) : version
-group = "com.arena.pekaclient"
-archivesBaseName = "SkyVeLor-1.8.9"
 
+configurations {
+    mixinEmbed
+    compile.extendsFrom(mixinEmbed)
+}
+
+dependencies {
+    // Mixin is embedded because Minecraft Forge 1.8.9 does not supply this runtime itself.
+    mixinEmbed('org.spongepowered:mixin:0.7.11-SNAPSHOT') { transitive = false }
+}
+
+// PekaVersion is deliberately the one source of release metadata.
+def versionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java')
+def versionMatch = (versionSource.getText('UTF-8') =~ /NAME\s*=\s*"([^"]+)"/)
+if (!versionMatch.find()) throw new GradleException('Could not read PekaVersion.NAME.')
+version = versionMatch.group(1)
+def releaseDisplayVersion = 'Beta-0.10.9.4v'
+if (version != releaseDisplayVersion) {
+    throw new GradleException('PekaVersion.NAME must match the Beta-0.10.9.4v release contract.')
+}
+def numericVersionMatch = (version =~ /(?:Beta-)?([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+){0,3})v?$/)
+def mcmodVersion = numericVersionMatch.find() ? numericVersionMatch.group(1) : null
+if (mcmodVersion == null) throw new GradleException('Release version must contain a numeric Forge metadata version.')
+
+group = 'com.arena.pekaclient' // package compatibility; public identity and release metadata use Lunaria.
+archivesBaseName = 'Lunaria-Mod-1.8.9'
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
@@ -47,19 +64,60 @@ compileJava {
 }
 
 minecraft {
-    version = "1.8.9-11.15.1.2318-1.8.9"
-    runDir = "run"
-    mappings = "stable_22"
+    version = '1.8.9-11.15.1.2318-1.8.9'
+    runDir = 'run'
+    mappings = 'stable_22'
 }
 
-// Exposes the exact Forge/Minecraft compile and runtime jars for the standalone logic-test suite.
+mixin {
+    defaultObfuscationEnv = 'searge'
+    add sourceSets.main, 'mixins.lunaria.refmap.json'
+}
+
+processResources {
+    inputs.property 'version', mcmodVersion
+    inputs.property 'displayVersion', project.version
+    inputs.property 'mcversion', project.minecraft.version
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': mcmodVersion, 'displayVersion': project.version, 'mcversion': project.minecraft.version
+    }
+    from(sourceSets.main.resources.srcDirs) { exclude 'mcmod.info' }
+}
+
+jar {
+    // Embed the required Mixin runtime without allowing nested signed metadata into the release JAR.
+    from({ configurations.mixinEmbed.collect { dependency -> zipTree(dependency) } }) {
+        exclude 'META-INF/MANIFEST.MF'
+        exclude 'META-INF/*.SF'
+        exclude 'META-INF/*.DSA'
+        exclude 'META-INF/*.RSA'
+        eachFile { details ->
+            if (details.path == 'LICENSE' || details.path == 'LICENSE.txt') {
+                details.path = 'META-INF/licenses/mixin/' + details.name
+            }
+        }
+    }
+    manifest {
+        attributes(
+                'Implementation-Title': "The Sky's Lunaria Mod",
+                'Implementation-Version': project.version,
+                'FMLCorePlugin': 'com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin',
+                'FMLCorePluginContainsFMLMod': 'true',
+                'ForceLoadAsMod': 'true',
+                'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
+                'MixinConfigs': 'mixins.lunaria.json',
+                'TweakOrder': '0'
+        )
+    }
+}
+
+// Exposes the exact Forge/Minecraft compile and runtime jars for the standalone test suite.
 task dumpTestClasspath {
     dependsOn 'classes'
     doLast {
         def files = (sourceSets.main.runtimeClasspath.files + sourceSets.main.compileClasspath.files)
-                .findAll { it != null }
-                .collect { it.absolutePath }
-                .unique()
+                .findAll { it != null }.collect { it.absolutePath }.unique()
         def outputFile = file("$buildDir/test-classpath.txt")
         outputFile.parentFile.mkdirs()
         outputFile.text = files.join(File.pathSeparator)
@@ -67,29 +125,30 @@ task dumpTestClasspath {
     }
 }
 
-processResources {
-    inputs.property "version", project.version
-    inputs.property "displayVersion", project.version
-    inputs.property "mcmodVersion", mcmodVersion
-    inputs.property "mcversion", project.minecraft.version
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        expand 'version': mcmodVersion, 'displayVersion': project.version, 'mcversion': project.minecraft.version
-    }
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+/** Small source-layout gate; artifact and source archives receive stricter independent Python verification in CI. */
+task verifyLunariaLayout {
+    group = 'verification'
+    description = 'Checks release identity, supplied artwork, and core user-facing feature surfaces.'
+    doLast {
+        def required = [
+                'src/main/resources/assets/lunaria/textures/gui/lunaria_loading_background.jpg',
+                'src/main/resources/assets/lunaria/textures/gui/lunaria_logo.png',
+                'src/main/resources/assets/lunaria/textures/gui/lunaria_moon.png',
+                'src/main/java/com/arena/pekaclient/gui/LunariaArtwork.java',
+                'src/main/java/com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.java',
+                'src/main/java/com/arena/pekaclient/gui/DungeonHudEditorScreen.java',
+                'src/main/java/com/arena/pekaclient/itemlockswap/ItemLockSwapController.java',
+                'src/main/java/com/arena/pekaclient/dungeon/DungeonMapOverlay.java',
+                'src/main/java/com/arena/pekaclient/assist/dungeon/DungeonScoreTracker.java',
+                'src/main/java/com/arena/pekaclient/assist/visual/DeadMobRenderFilter.java'
+        ]
+        def missing = required.findAll { !file(it).isFile() }
+        if (!missing.isEmpty()) throw new GradleException('Missing required Lunaria sources/resources: ' + missing.join(', '))
+        def entry = file('src/main/java/com/arena/pekaclient/PekaClientMod.java').getText('UTF-8')
+        ['DungeonHudEditorScreen', 'DungeonScoreTracker', 'DungeonChestCloser', 'LunariaDownloadingTerrainScreen',
+         'mobHighlight', 'removeIrritatingMessages'].each { token ->
+            if (!entry.contains(token)) throw new GradleException('Entrypoint is missing retained feature wiring: ' + token)
+        }
     }
 }
-
-// Item Animation must hook the authoritative 1.8.9 hand/equip methods before the regular mod starts.
-// These standard Forge manifest attributes register the narrowly scoped coremod without packaging Minecraft.
-jar {
-    manifest {
-        attributes(
-                'Implementation-Title': 'Sky VeLor',
-                'Implementation-Version': project.version,
-                'FMLCorePlugin': 'com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin',
-                'FMLCorePluginContainsFMLMod': 'true'
-        )
-    }
-}
+check.dependsOn verifyLunariaLayout

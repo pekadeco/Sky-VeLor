@@ -1,9 +1,9 @@
 @echo off
-setlocal EnableExtensions
-set "ROOT=%~dp0.."
+setlocal EnableExtensions EnableDelayedExpansion
+for %%I in ("%~dp0..") do set "ROOT=%%~fI"
 set "CLASSES=%ROOT%\build\classes\main"
 set "CP_FILE=%ROOT%\build\test-classpath.txt"
-set "OUT=%TEMP%\skyvelor-tests-%RANDOM%-%RANDOM%"
+set "OUT=%TEMP%\lunaria-tests-%RANDOM%-%RANDOM%"
 
 if not exist "%CLASSES%" (
     echo Main classes not found. Run gradlew.bat build dumpTestClasspath first.
@@ -25,115 +25,25 @@ javac -nowarn -encoding UTF-8 -cp "%CLASSES%;%TEST_CP%" -d "%OUT%" @"%OUT%\sourc
 if errorlevel 1 goto fail
 
 set "CP=%OUT%;%CLASSES%;%TEST_CP%"
-call :run com.arena.pekaclient.gui.PureLogicTests || goto fail
-call :run com.arena.pekaclient.gui.GuiLayoutToolkitTests || goto fail
-call :run com.arena.pekaclient.gui.ReferenceSettingsWindowLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.SettingsShellLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.AppleLayoutRendererSourceTests || goto fail
-call :run com.arena.pekaclient.gui.HomeMetricsLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.HomeMetricHistoryTests || goto fail
-call :run com.arena.pekaclient.gui.SettingsSpacingLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.SettingsControlLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.HardcodedGuiColorTests || goto fail
-call :run com.arena.pekaclient.gui.HudEditorSelectionPolicyTests || goto fail
-call :run com.arena.pekaclient.gui.DungeonHudEditorContractTests || goto fail
-call :run com.arena.pekaclient.gui.InlineSettingsCatalogTests || goto fail
-call :run com.arena.pekaclient.gui.FlatDropdownContractTests || goto fail
-call :run com.arena.pekaclient.gui.PlayerFacingTextTests || goto fail
-call :run com.arena.pekaclient.gui.FarmingNavigationTests || goto fail
-call :run com.arena.pekaclient.gui.ReleaseClaimsTests || goto fail
-call :run com.arena.pekaclient.chat.ClipboardChainTests || goto fail
-call :run com.arena.pekaclient.chat.ChatPlayerNameTests || goto fail
-call :run com.arena.pekaclient.chat.ChatCompactMessagesTests || goto fail
-call :run com.arena.pekaclient.chat.ChatMessageHistoryTests || goto fail
-call :run com.arena.pekaclient.chat.ChatMenuInputRouterTests || goto fail
-call :run com.arena.pekaclient.chat.ChatVisibilityAuditTests || goto fail
-if errorlevel 1 goto fail
-call :run com.arena.pekaclient.hud.ConfigTests || goto fail
-call :run com.arena.pekaclient.compat.RemovedFeatureSurfaceTests || goto fail
-call :run com.arena.pekaclient.feature.LeapTextTests || goto fail
-call :run com.arena.pekaclient.feature.LeapIdentityTests || goto fail
-call :run com.arena.pekaclient.feature.LeapClassCacheTests || goto fail
-call :run com.arena.pekaclient.config.ConfigFilesTests || goto fail
-call :run com.arena.pekaclient.config.AppleSettingsTests || goto fail
-call :run com.arena.pekaclient.config.ChatQolSettingsTests || goto fail
-call :run com.arena.pekaclient.config.DungeonEspSettingsTests || goto fail
-call :run com.arena.pekaclient.config.AssistSettingsTests || goto fail
-call :run com.arena.pekaclient.assist.AssistFeatureTests || goto fail
-call :run com.arena.pekaclient.assist.CommandKeybindSettingsTests || goto fail
-call :run com.arena.pekaclient.assist.WardrobeShortcutPolicyTests || goto fail
-call :run com.arena.pekaclient.assist.WardrobeShortcutControllerSourceTests || goto fail
-call :run com.arena.pekaclient.assist.ShortcutControllerSourceTests || goto fail
-call :run com.arena.pekaclient.gui.CommandKeybindEditorLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.CommandKeybindEditorSourceTests || goto fail
-call :run com.arena.pekaclient.assist.dungeon.DungeonRunReadoutTests || goto fail
-call :run com.arena.pekaclient.assist.dungeon.DungeonScoreCalculatorTests || goto fail
-call :run com.arena.pekaclient.assist.dungeon.DungeonScoreTelemetryTests || goto fail
-call :run com.arena.pekaclient.assist.dungeon.DungeonSafetyPolicyTests || goto fail
-call :run com.arena.pekaclient.assist.dungeon.SpiritBowLocatorTests || goto fail
-call :run com.arena.pekaclient.assist.dungeon.TerminalParsePolicyTests || goto fail
-call :run com.arena.pekaclient.dungeonesp.DungeonEspTrackerTests || goto fail
-call :run com.arena.pekaclient.dungeonesp.DungeonEspMarkerBoundsTests || goto fail
-call :run com.arena.pekaclient.dungeonesp.DungeonEspMobDisplayTests || goto fail
-call :run com.arena.pekaclient.dungeonesp.WitherDoorCacheTests || goto fail
-call :run com.arena.pekaclient.gui.InlineEspCatalogTests || goto fail
-call :run com.arena.pekaclient.gui.InlineSettingsBindingsTests || goto fail
-call :run com.arena.pekaclient.gui.FlatCatalogBindingAuditTests || goto fail
-call :run com.arena.pekaclient.gui.InlineOptionPreservationTests || goto fail
-call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSettingsTests || goto fail
-call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSlotMapperTests || goto fail
-call :run com.arena.pekaclient.itemlockswap.ItemLockSwapProtectionPolicyTests || goto fail
-call :run com.arena.pekaclient.itemlockswap.ItemLockSwapInputStateTests || goto fail
-call :run com.arena.pekaclient.itemlockswap.ItemLockSwapLineGeometryTests || goto fail
-call :run com.arena.pekaclient.itemlockswap.ItemLockSwapSwapPolicyTests || goto fail
-call :run com.arena.pekaclient.itemlockswap.ItemLockSwapTransformerTests || goto fail
-call :run com.arena.pekaclient.render.ThemeTests || goto fail
-call :run com.arena.pekaclient.render.RoundedRectGeometryTests || goto fail
-call :run com.arena.pekaclient.hud.DollConfigTests || goto fail
-call :run com.arena.pekaclient.feature.LeapClassTests || goto fail
-call :run com.arena.pekaclient.feature.SpiritLeapTests || goto fail
-call :run com.arena.pekaclient.feature.DungeonContextTests || goto fail
-call :run com.arena.pekaclient.feature.HotbarScrollPolicyTests || goto fail
-call :run com.arena.pekaclient.feature.BlockParticlePolicyTests || goto fail
-call :run com.arena.pekaclient.render.blockparticles.BlockParticleTransformerTests || goto fail
-call :run com.arena.pekaclient.assist.visual.VisualAssistTransformerTests || goto fail
-call :run com.arena.pekaclient.assist.visual.AspectTeleportTransitionPolicyTests || goto fail
-call :run com.arena.pekaclient.assist.visual.AspectTeleportTransitionObservationTests || goto fail
-call :run com.arena.pekaclient.assist.visual.DeadMobRenderPolicyTests || goto fail
-call :run com.arena.pekaclient.feature.ItemAnimationTests || goto fail
-call :run com.arena.pekaclient.feature.VisualSwingStateMachineTests || goto fail
-call :run com.arena.pekaclient.feature.SwingEasingTests || goto fail
-call :run com.arena.pekaclient.feature.ChatTabsTests || goto fail
-call :run com.arena.pekaclient.feature.ChatTabClosePolicyTests || goto fail
-call :run com.arena.pekaclient.feature.ChatInteractionModelTests || goto fail
-call :run com.arena.pekaclient.gui.InlineDropdownLayoutTests || goto fail
-call :run com.arena.pekaclient.notes.QuickNoteLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.InlineOwnerBindingsTests || goto fail
-call :run com.arena.pekaclient.gui.ItemAnimationReachabilityTests || goto fail
-call :run com.arena.pekaclient.gui.LeapLayoutTests || goto fail
-call :run com.arena.pekaclient.gui.LeapPaletteTests || goto fail
-call :run com.arena.pekaclient.hud.ClientMetricsTests || goto fail
-call :run com.arena.pekaclient.hud.ClientMetricTextTests || goto fail
-call :run com.arena.pekaclient.startup.StartupTimingTests || goto fail
-call :run com.arena.pekaclient.fishing.FishingTests || goto fail
-call :run com.arena.pekaclient.dungeon.DragonKillTests || goto fail
-call :run com.arena.pekaclient.dungeon.DungeonMapPlayerHeadMotionTests || goto fail
-call :run com.arena.pekaclient.dungeon.M7SettingsTests || goto fail
-call :run com.arena.pekaclient.dungeon.PuzzleRoomMemoryTests || goto fail
-call :run com.arena.pekaclient.slayer.SlayerTests || goto fail
-call :run com.arena.pekaclient.widget.SearchFieldTests || goto fail
-call :run com.arena.pekaclient.widget.WidgetInteractionTests || goto fail
+set /a COUNT=0
+for /r "%ROOT%\tests" %%F in (*.java) do (
+    findstr /C:"public static void main" "%%F" >nul
+    if not errorlevel 1 (
+        set "REL=%%~fF"
+        set "REL=!REL:%ROOT%\tests\=!"
+        set "CLASS=!REL:.java=!"
+        set "CLASS=!CLASS:\=.!"
+        echo === !CLASS! ===
+        java -cp "%CP%" !CLASS!
+        if errorlevel 1 goto fail
+        set /a COUNT+=1
+    )
+)
 
-echo All Sky VeLor tests passed.
+echo All Lunaria standalone tests passed (!COUNT! suites).
 rmdir /s /q "%OUT%"
 exit /b 0
 
-:run
- echo === %~1 ===
- java -cp "%CP%" %~1
- if errorlevel 1 exit /b 1
- exit /b 0
-
 :fail
- echo Tests failed. Temporary output kept at "%OUT%" for diagnosis.
- exit /b 1
+echo Tests failed. Temporary output kept at "%OUT%" for diagnosis.
+exit /b 1

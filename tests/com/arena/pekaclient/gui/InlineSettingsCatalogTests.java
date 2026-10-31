@@ -56,7 +56,7 @@ public final class InlineSettingsCatalogTests {
         }
         check("HUD, Dungeon HUD, Item Animation, and Command Keybind editor routes are explicit",
                 new java.util.HashSet<String>(dedicatedEditorActionIds()).equals(new java.util.HashSet<String>(Arrays.asList(
-                        "open-command-keybind-editor", "open-hud-editor", "open-dungeon-hud-editor", "item-animation-open-editor"))));
+                        "open-command-keybind-editor", "open-hud-editor", "open-dungeon-hud-editor", "item-animation-open-editor", "open-chat-editor"))));
         check("maintenance actions never reopen a feature screen", noRetiredOpenActionLabels());
     }
 

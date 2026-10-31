@@ -1,7 +1,7 @@
 package com.arena.pekaclient.hud;
 
 /**
- * Where a HUD element sits on screen, owned by PekaClient.
+ * Where a HUD element sits on screen, owned by Lunaria.
  *
  * Each axis stores an anchor (START, CENTER or END) and an offset in GUI pixels. Positions
  * therefore keep their relation to the screen edges when the window or GUI scale changes.

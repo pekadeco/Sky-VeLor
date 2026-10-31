@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Opt-in layout instrumentation for Sky VeLor-owned GUI screens.
+ * Opt-in layout instrumentation for Lunaria-owned GUI screens.
  *
  * The collector is deliberately passive: UI code registers the same screen-space bounds it uses for drawing/input,
  * then this listener paints them only after the screen has finished rendering.  It never changes a control's
@@ -67,8 +67,8 @@ public final class GuiDebugOverlay {
         lastOverlapSignature = "";
         lastOverlapReport = 0L;
         if (sender != null) {
-            sender.addChatMessage(new ChatComponentText("§b[Sky VeLor] §fLayout debug "
-                    + (enabled ? "§aON§f — thin red bounds are drawn for Sky VeLor labels, rows and controls."
+            sender.addChatMessage(new ChatComponentText("§b[Lunaria] §fLayout debug "
+                    + (enabled ? "§aON§f — thin red bounds are drawn for Lunaria labels, rows and controls."
                     : "§cOFF§f.")));
         }
         return enabled;
@@ -195,7 +195,7 @@ public final class GuiDebugOverlay {
         if (OVERLAPS.isEmpty()) return;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null || mc.thePlayer == null) return;
-        mc.thePlayer.addChatMessage(new ChatComponentText("§c[Sky VeLor] §fLayout overlap"
+        mc.thePlayer.addChatMessage(new ChatComponentText("§c[Lunaria] §fLayout overlap"
                 + (OVERLAPS.size() == 1 ? "" : "s") + " (" + OVERLAPS.size() + "):"));
         int shown = Math.min(8, OVERLAPS.size());
         for (int i = 0; i < shown; i++) {
