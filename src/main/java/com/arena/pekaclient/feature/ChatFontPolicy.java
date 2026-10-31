@@ -1,6 +1,6 @@
 package com.arena.pekaclient.feature;
 
-import com.arena.pekaclient.config.ChatQolSettings;
+import com.arena.pekaclient.config.FontSettings;
 
 /**
  * Compatibility adapter for saved pre-0.10.8.4 Chat QoL font names. New code uses the global font settings and
@@ -9,11 +9,11 @@ import com.arena.pekaclient.config.ChatQolSettings;
  */
 public final class ChatFontPolicy {
 
-    public static final String MINECRAFT = ChatQolSettings.FONT_MINECRAFT_DEFAULT;
+    public static final String MINECRAFT = FontSettings.MINECRAFT_DEFAULT;
     public static final String UNICODE = "Unicode"; // historic value: migrated to Minecraft Default
     public static final String COMPACT = "Compact"; // historic value: migrated to Smooth
-    public static final String SMOOTH = ChatQolSettings.FONT_SMOOTH;
-    public static final String DOODLE = ChatQolSettings.FONT_DOODLE;
+    public static final String SMOOTH = FontSettings.SMOOTH;
+    public static final String DOODLE = FontSettings.DOODLE;
 
     private ChatFontPolicy() {
     }

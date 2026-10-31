@@ -63,6 +63,8 @@ public final class ChatChannelTabs {
     private static final Field DRAWN_LINES;
     private static final Field INPUT_FIELD;
     private static final Method HANDLE_COMPONENT_CLICK;
+    /** Optional native tooltip bridge; a mapping miss must not disable the whole replacement renderer. */
+    private static final Method HANDLE_COMPONENT_HOVER;
     private static final boolean BRIDGE_READY;
 
     static {
@@ -70,6 +72,7 @@ public final class ChatChannelTabs {
         Field drawnLines = null;
         Field input = null;
         Method click = null;
+        Method hover = null;
         try {
             chatLines = ReflectionHelper.findField(GuiNewChat.class, "chatLines", "field_146252_h", "h");
             drawnLines = ReflectionHelper.findField(GuiNewChat.class, "drawnChatLines", "field_146253_i", "i");
@@ -86,10 +89,19 @@ public final class ChatChannelTabs {
             input = null;
             click = null;
         }
+        try {
+            hover = ReflectionHelper.findMethod(GuiScreen.class, null,
+                    new String[]{"handleComponentHover", "func_175272_a", "a"},
+                    IChatComponent.class, int.class, int.class);
+            hover.setAccessible(true);
+        } catch (RuntimeException | LinkageError ignored) {
+            hover = null;
+        }
         CHAT_LINES = chatLines;
         DRAWN_LINES = drawnLines;
         INPUT_FIELD = input;
         HANDLE_COMPONENT_CLICK = click;
+        HANDLE_COMPONENT_HOVER = hover;
         BRIDGE_READY = chatLines != null && drawnLines != null && input != null && click != null;
     }
 
@@ -396,6 +408,34 @@ public final class ChatChannelTabs {
             unreadTabs.clear();
             compactMessages.reset();
         }
+    }
+
+    /**
+     * Captures local client feedback before EntityPlayerSP writes it directly to GuiNewChat. Such messages do not emit
+     * ClientChatReceivedEvent, so the replacement renderer retains them here only while it actually owns the overlay.
+     */
+    public static void captureClientSideMessage(IChatComponent component) {
+        ChatChannelTabs active = live;
+        if (component == null || active == null || !ownsDefaultChat()) return;
+        active.messageHistory.record(0, component, cleanComponent(component), 1, System.currentTimeMillis());
+        active.historyLayoutDirty = true;
+    }
+
+    /** True only while this renderer owns chat; fallback handlers may resume when it fails open. */
+    public static boolean isNativeRendererActive() {
+        return ownsDefaultChat();
+    }
+
+    /**
+     * Lets the GuiChat tail hook replay vanilla hover semantics against the replacement renderer's logical row.
+     * Hover reflection is optional, making a mapping/payload issue fail closed without affecting normal chat drawing.
+     */
+    public static void renderHoverAtMouse(GuiChat chat, int mouseX, int mouseY) {
+        ChatChannelTabs active = live;
+        if (active == null || chat == null || !ownsDefaultChat() || active.copyMenu.visible()) return;
+        RenderRow row = active.rowAt(mouseX, mouseY);
+        IChatComponent component = active.componentAt(row, mouseX);
+        if (component != null) active.invokeComponentHover(chat, component, mouseX, mouseY);
     }
 
     /** Used by the Hub when the master or tab switch is disabled. Normal cache lines are untouched; only a naturally fading compact counter may remain. */
@@ -828,6 +868,15 @@ public final class ChatChannelTabs {
             return result instanceof Boolean && ((Boolean) result).booleanValue();
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             return false;
+        }
+    }
+
+    private void invokeComponentHover(GuiChat chat, IChatComponent component, int mouseX, int mouseY) {
+        if (HANDLE_COMPONENT_HOVER == null || chat == null || component == null) return;
+        try {
+            HANDLE_COMPONENT_HOVER.invoke(chat, component, Integer.valueOf(mouseX), Integer.valueOf(mouseY));
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            // A malformed hover payload must not crash the chat screen or disable the next GUI's rendering.
         }
     }
 

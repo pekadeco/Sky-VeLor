@@ -83,6 +83,14 @@ public final class DungeonContext {
         return cached.inDungeon;
     }
 
+    /**
+     * Performs the same conservative visible-data scan immediately for screen/chat decisions that cannot wait for the
+     * regular tick cache. Kept as a compatibility entry point for the Chat QoL integration.
+     */
+    public static boolean isInDungeonNow() {
+        return evaluateNow(Minecraft.getMinecraft()).inDungeon;
+    }
+
     /** True only when the cached visible dungeon evidence identifies Floor VII or Master Mode VII. */
     public static boolean inF7OrM7() {
         return cached.inDungeon && cached.f7OrM7;
