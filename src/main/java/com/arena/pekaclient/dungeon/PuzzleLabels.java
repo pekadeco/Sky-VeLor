@@ -56,6 +56,43 @@ final class PuzzleLabels {
         }
     }
 
+    /** Splits multi-word map labels into two balanced lines without breaking words. */
+    static String[] wrap(String value) {
+        String normalized = value == null ? "" : value.trim().replaceAll("\\s+", " ");
+        if (normalized.isEmpty()) return new String[] { "Puzzle" };
+        String[] words = normalized.split(" ");
+        if (words.length < 2) return new String[] { normalized };
+
+        int bestSplit = 1;
+        int bestDifference = Integer.MAX_VALUE;
+        for (int split = 1; split < words.length; split++) {
+            int firstLength = joinedLength(words, 0, split);
+            int secondLength = joinedLength(words, split, words.length);
+            int difference = Math.abs(firstLength - secondLength);
+            // Prefer the later split on ties so three-word names keep the first two words together.
+            if (difference <= bestDifference) {
+                bestDifference = difference;
+                bestSplit = split;
+            }
+        }
+        return new String[] { join(words, 0, bestSplit), join(words, bestSplit, words.length) };
+    }
+
+    private static int joinedLength(String[] words, int start, int end) {
+        int length = Math.max(0, end - start - 1);
+        for (int i = start; i < end; i++) length += words[i].length();
+        return length;
+    }
+
+    private static String join(String[] words, int start, int end) {
+        StringBuilder value = new StringBuilder();
+        for (int i = start; i < end; i++) {
+            if (value.length() > 0) value.append(' ');
+            value.append(words[i]);
+        }
+        return value.toString();
+    }
+
     private static String titleCase(String value) {
         StringBuilder out = new StringBuilder();
         for (String word : value.split(" ")) {

@@ -12,7 +12,9 @@ import java.util.regex.Pattern;
 /** Builds the dungeon-party roster from scoreboard party rows, not from the whole tab list. */
 final class DungeonMapPartyRoster {
     private static final Pattern CLASS_TOKEN = Pattern.compile(
-            "\\[(B|A|H|M|T|Archer|Berserk|Healer|Mage|Tank)]", Pattern.CASE_INSENSITIVE);
+            "\\[(B|A|H|M|T|Archer|Berserk(?:er)?|Healer|Mage|Tank)]", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CLASS_WORD = Pattern.compile(
+            "(?i)\\b(Archer|Berserk(?:er)?|Healer|Mage|Tank)\\b");
     private static final Pattern ROLE_SUFFIX = Pattern.compile(
             "\\((Archer|Berserk|Healer|Mage|Tank)\\b(?:\\s+[^()]*)?\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern FIRST_NAME = Pattern.compile(
@@ -21,6 +23,26 @@ final class DungeonMapPartyRoster {
     private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
 
     private DungeonMapPartyRoster() {
+    }
+
+    /** Resolves short or full class tags from a visible dungeon roster line for map labels and diagnostics. */
+    static String classFromLine(String raw) {
+        String line = visible(raw);
+        Matcher marker = CLASS_TOKEN.matcher(line);
+        if (marker.find()) return normalizeClassToken(marker.group(1));
+        Matcher word = CLASS_WORD.matcher(line);
+        if (word.find()) return normalizeClassToken(word.group(1));
+        return "UNKNOWN";
+    }
+
+    private static String normalizeClassToken(String rawClass) {
+        String value = rawClass == null ? "" : rawClass.trim().toUpperCase(Locale.ROOT);
+        if ("A".equals(value) || value.startsWith("ARCHER")) return "ARCHER";
+        if ("B".equals(value) || value.startsWith("BERSERK")) return "BERSERK";
+        if ("H".equals(value) || value.startsWith("HEALER")) return "HEALER";
+        if ("M".equals(value) || value.startsWith("MAGE")) return "MAGE";
+        if ("T".equals(value) || value.startsWith("TANK")) return "TANK";
+        return "UNKNOWN";
     }
 
     static List<String> build(List<String> scoreboardLines, List<String> tabNames, String selfName) {
@@ -106,14 +128,8 @@ final class DungeonMapPartyRoster {
     private static String canonicalUsername(String value) {
         String normalized = visible(value);
         if (!USERNAME.matcher(normalized).matches()) return null;
-        boolean hasLetter = false;
-        for (int i = 0; i < normalized.length(); i++) {
-            if (Character.isLetter(normalized.charAt(i))) {
-                hasLetter = true;
-                break;
-            }
-        }
-        return hasLetter ? normalized : null;
+        // Mojang usernames may be numeric-only; class-row evidence still keeps arbitrary tab-list NPCs out.
+        return normalized;
     }
 
     private static void addUsername(List<String> destination, String value) {
