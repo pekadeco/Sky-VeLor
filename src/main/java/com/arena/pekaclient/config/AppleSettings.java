@@ -671,11 +671,12 @@ public final class AppleSettings {
         // New category names win when both names exist; old firstPerson* keys are read once and then rewritten.
         // Beta-0.10.8v's itemAnimation.autoFixHitSlash key is intentionally ignored: the corrected visual timeline
         // is permanent and no replacement setting is retained.
-        itemAnimationEnabled = readItemAnimationBool(p, "itemAnimation.enabled", "firstPersonItemAnimation", true);
-        itemAnimationSizeOn = readItemAnimationBool(p, "itemAnimation.sizeOn", "firstPersonItemScaleOn",
-                itemAnimationSizeOn);
-        itemAnimationSpeedOn = readItemAnimationBool(p, "itemAnimation.speedOn", "firstPersonAnimSpeedOn",
-                itemAnimationSpeedOn);
+        itemAnimationEnabled = readItemAnimationBool(p, "itemAnimation.enabled", true, "firstPersonItemAnimation");
+        // The dotted prior-release names predate the camel-case aliases; both are read without overriding a modern key.
+        itemAnimationSizeOn = readItemAnimationBool(p, "itemAnimation.sizeOn", itemAnimationSizeOn,
+                "firstPerson.itemScaleOn", "firstPersonItemScaleOn");
+        itemAnimationSpeedOn = readItemAnimationBool(p, "itemAnimation.speedOn", itemAnimationSpeedOn,
+                "firstPerson.animationSpeedOn", "firstPersonAnimSpeedOn");
         itemAnimationRemoveHasteEffect = readBool(p, "itemAnimation.removeHasteEffect",
                 itemAnimationRemoveHasteEffect);
         itemAnimationHitSlashStyle = readInt(p, "itemAnimation.hitSlashStyle", itemAnimationHitSlashStyle, 0,
@@ -683,16 +684,18 @@ public final class AppleSettings {
         itemAnimationSmoothSwing = readBool(p, "itemAnimation.smoothSwing", DEFAULT_ITEM_ANIMATION_SMOOTH_SWING);
         itemAnimationSmoothness = readInt(p, "itemAnimation.smoothness", DEFAULT_ITEM_ANIMATION_SMOOTHNESS,
                 ITEM_ANIMATION_SMOOTHNESS_MIN_PERCENT, ITEM_ANIMATION_SMOOTHNESS_MAX_PERCENT);
-        itemAnimationSize = readItemAnimationInt(p, "itemAnimation.size", "firstPersonItemScale",
-                itemAnimationSize, ITEM_ANIMATION_SIZE_MIN_PERCENT, ITEM_ANIMATION_SIZE_MAX_PERCENT);
-        itemAnimationSpeed = readItemAnimationInt(p, "itemAnimation.speed", "firstPersonAnimSpeed",
-                itemAnimationSpeed, ITEM_ANIMATION_SPEED_MIN_PERCENT, ITEM_ANIMATION_SPEED_MAX_PERCENT);
-        itemAnimationX = readItemAnimationInt(p, "itemAnimation.x", "firstPersonItemX",
-                itemAnimationX, ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX);
-        itemAnimationY = readItemAnimationInt(p, "itemAnimation.y", "firstPersonItemY",
-                itemAnimationY, ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX);
-        itemAnimationZ = readItemAnimationInt(p, "itemAnimation.z", "firstPersonItemZ",
-                itemAnimationZ, ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX);
+        itemAnimationSize = readItemAnimationInt(p, "itemAnimation.size", itemAnimationSize,
+                ITEM_ANIMATION_SIZE_MIN_PERCENT, ITEM_ANIMATION_SIZE_MAX_PERCENT,
+                "firstPerson.itemScale", "firstPersonItemScale");
+        itemAnimationSpeed = readItemAnimationInt(p, "itemAnimation.speed", itemAnimationSpeed,
+                ITEM_ANIMATION_SPEED_MIN_PERCENT, ITEM_ANIMATION_SPEED_MAX_PERCENT,
+                "firstPerson.animationSpeed", "firstPersonAnimSpeed");
+        itemAnimationX = readItemAnimationInt(p, "itemAnimation.x", itemAnimationX,
+                ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX, "firstPersonItemX");
+        itemAnimationY = readItemAnimationInt(p, "itemAnimation.y", itemAnimationY,
+                ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX, "firstPersonItemY");
+        itemAnimationZ = readItemAnimationInt(p, "itemAnimation.z", itemAnimationZ,
+                ITEM_ANIMATION_OFFSET_MIN, ITEM_ANIMATION_OFFSET_MAX, "firstPersonItemZ");
     }
 
     /** Writes exactly the supported Item Animation keys; obsolete keys are never carried forward. */
@@ -1306,20 +1309,33 @@ public final class AppleSettings {
         p.remove("itemAnimation.autoFixHitSlash");
     }
 
-    private static boolean readItemAnimationBool(Properties p, String key, String legacyKey, boolean def) {
-        if (p.containsKey(legacyKey)) {
-            itemAnimationMigrationPending = true;
+    /** Reads a modern Item Animation key first, then the ordered historic aliases without changing their values. */
+    private static boolean readItemAnimationBool(Properties p, String key, boolean def, String... legacyKeys) {
+        if (p.containsKey(key)) return readBool(p, key, def);
+        if (legacyKeys != null) {
+            for (String legacyKey : legacyKeys) {
+                if (legacyKey != null && p.containsKey(legacyKey)) {
+                    itemAnimationMigrationPending = true;
+                    return readBool(p, legacyKey, def);
+                }
+            }
         }
-        return p.containsKey(key) ? readBool(p, key, def) : readBool(p, legacyKey, def);
+        return def;
     }
 
-    private static int readItemAnimationInt(Properties p, String key, String legacyKey,
-                                            int def, int min, int max) {
-        if (p.containsKey(legacyKey)) {
-            itemAnimationMigrationPending = true;
+    /** Reads a modern Item Animation number first, then the ordered historic aliases with the same safe bounds. */
+    private static int readItemAnimationInt(Properties p, String key, int def, int min, int max,
+                                            String... legacyKeys) {
+        if (p.containsKey(key)) return readInt(p, key, def, min, max);
+        if (legacyKeys != null) {
+            for (String legacyKey : legacyKeys) {
+                if (legacyKey != null && p.containsKey(legacyKey)) {
+                    itemAnimationMigrationPending = true;
+                    return readInt(p, legacyKey, def, min, max);
+                }
+            }
         }
-        return p.containsKey(key) ? readInt(p, key, def, min, max)
-                : readInt(p, legacyKey, def, min, max);
+        return Math.max(min, Math.min(max, def));
     }
 
     private static int readInt(Properties p, String key, int def, int min, int max) {
