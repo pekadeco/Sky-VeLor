@@ -1,7 +1,6 @@
 package com.arena.pekaclient.mixin;
 
 import com.arena.pekaclient.dungeon.solver.terminals.TerminalGuiLayer;
-import com.arena.pekaclient.feature.inventory.SlotLocking;
 import com.arena.pekaclient.feature.qol.EquipmentOverlay;
 import com.arena.pekaclient.feature.qol.InventoryQoL;
 import net.minecraft.client.gui.inventory.GuiContainer;
@@ -24,19 +23,6 @@ public abstract class MixinGuiContainer {
     private void lunaria$replaceVanillaTerminalDraw(int mouseX, int mouseY, float partialTicks,
                                                      CallbackInfo callback) {
         if (TerminalGuiLayer.renderCustomTerminal((GuiContainer) (Object) this, mouseX, mouseY, partialTicks)) {
-            callback.cancel();
-        }
-    }
-
-    @Inject(
-            method = "handleMouseClick",
-            at = @At("HEAD"),
-            cancellable = true,
-            require = 1
-    )
-    private void lunaria$activateSlotBinding(Slot slot, int slotId, int clickedButton, int clickType,
-                                              CallbackInfo callback) {
-        if (SlotLocking.handleBoundSlotClick((GuiContainer) (Object) this, slot, clickedButton, clickType)) {
             callback.cancel();
         }
     }
