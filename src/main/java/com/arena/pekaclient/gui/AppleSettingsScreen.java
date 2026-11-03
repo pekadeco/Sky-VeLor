@@ -420,8 +420,8 @@ public class AppleSettingsScreen extends AppleScreen {
         // Shape-drawn initial: no texture or additional asset is needed for the header mark.
         float logoY = y + (CHROME_H - 18f) * .5f;
         UIRender.roundRect(wordmarkX, logoY, 18f, 18f, 4f, Theme.accent, Theme.accent, 0f);
-        UIRender.rect(wordmarkX + 5f, logoY + 4f, 2f, 10f, 0xFFFFFFFF);
-        UIRender.rect(wordmarkX + 5f, logoY + 12f, 8f, 2f, 0xFFFFFFFF);
+        UIRender.rect(wordmarkX + 5f, logoY + 4f, 2f, 10f, Theme.textPrimary);
+        UIRender.rect(wordmarkX + 5f, logoY + 12f, 8f, 2f, Theme.textPrimary);
         float titleX = wordmarkX + 22f;
         float titleRight = shellHeader.dragRight - GuiStyle.SPACE_4;
         String wordmark = fit(fr(), "Lunaria", Math.max(1f, titleRight - titleX) / Theme.TYPE_TITLE);
