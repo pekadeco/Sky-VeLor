@@ -7,9 +7,8 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
 
 /**
- * Shared base for every Apple-style screen (the settings hub and the HUD editor). The window buttons
- * are in {@link WindowDots}.
- * It holds the helpers both screens need, so the design system lives in one place.
+ * Shared base for every native settings/editor screen. It holds the helpers those screens need, so the design system
+ * stays in one place.
  */
 public abstract class AppleScreen extends GuiScreen {
 
@@ -28,11 +27,10 @@ public abstract class AppleScreen extends GuiScreen {
         if (s == null) {
             return "";
         }
-        int mw = (int) maxW;
-        if (fr.getStringWidth(s) <= mw) {
-            return s;
-        }
-        return fr.trimStringToWidth(s, Math.max(0, mw - 6)) + "...";
+        return GuiLayoutToolkit.ellipsize(s, maxW, new GuiLayoutToolkit.TextMetrics() {
+            public float width(String value) { return fr.getStringWidth(value); }
+            public float height() { return fr.FONT_HEIGHT; }
+        });
     }
 
     /** The standard secondary button used by settings rows. */

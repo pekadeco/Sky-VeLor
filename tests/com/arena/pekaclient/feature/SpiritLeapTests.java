@@ -7,7 +7,7 @@ public final class SpiritLeapTests {
     private static int failed;
 
     public static void main(String[] args) {
-        titleAlwaysCounts();
+        titleNeedsDungeon();
         fallbackNeedsEveryCondition();
         itemNames();
         System.out.println();
@@ -26,9 +26,9 @@ public final class SpiritLeapTests {
         }
     }
 
-    private static void titleAlwaysCounts() {
-        check("title alone", SpiritLeap.decide(true, false, false, 0), "");
-        check("title with no heads", SpiritLeap.decide(true, false, true, 0), "");
+    private static void titleNeedsDungeon() {
+        check("title outside dungeon remains vanilla", !SpiritLeap.decide(true, false, false, 0), "");
+        check("title with positive dungeon result opens", SpiritLeap.decide(true, false, true, 0), "");
     }
 
     private static void fallbackNeedsEveryCondition() {

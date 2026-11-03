@@ -1,7 +1,9 @@
 package com.arena.pekaclient.render;
 
+import com.arena.pekaclient.gui.GuiDebugOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -12,26 +14,17 @@ import org.lwjgl.opengl.GL11;
  * Low-level 2D primitives built on Minecraft's own Tessellator / WorldRenderer.
  *
  * Only fixed-function GL 1.x features are used (blend, texture enable, alpha test,
- * scissor). No shaders, FBOs, VBOs, stencil or extensions, so it runs on desktop GL
- * and on Android launchers such as PojavLauncher (GL4ES).
+ * scissor). No shaders, FBOs, VBOs or extensions are required. The settings shell additionally uses the
+ * core stencil buffer when Minecraft exposes one, with a bounded rectangular fallback, so its rounded outer shape
+ * can clip every child surface on desktop GL and Android launchers such as PojavLauncher (GL4ES).
  *
- * Rounded shapes are triangle fans with a 1-px analytic feather for anti-aliasing.
- * All scratch buffers are static, so drawing does not allocate.
+ * Rounded shapes use cached triangle-fan perimeters with a one-GUI-pixel analytic feather for anti-aliasing.
+ * Geometry is allocated only on a bounded cache miss, never in a warmed render loop.
  */
 public final class UIRender {
 
-    public static final int MAX_SEG = 8;
-    private static final int MAX_POINTS = 4 * (MAX_SEG + 1);
-
-    /** Unit-circle vectors per corner, precomputed for every segment count. */
-    private static final float[][] UX = new float[MAX_SEG + 1][];
-    private static final float[][] UY = new float[MAX_SEG + 1][];
-
-    private static final float[] PX = new float[MAX_POINTS];
-    private static final float[] PY = new float[MAX_POINTS];
-    private static final float[] QX = new float[MAX_POINTS];
-    private static final float[] QY = new float[MAX_POINTS];
-    private static final int[] PC = new int[MAX_POINTS];
+    /** Compatibility quality ceiling; cached rounded geometry owns the actual precomputed arc points. */
+    public static final int MAX_SEG = RoundedRectGeometry.MAX_SEGMENTS;
 
     /** Global opacity multiplier for everything drawn (used for fades). */
     public static float alphaMul = 1f;
@@ -42,53 +35,130 @@ public final class UIRender {
 
     private static boolean batchMode;
     private static boolean batchOpen;
-
-    static {
-        for (int s = 1; s <= MAX_SEG; s++) {
-            int n = 4 * (s + 1);
-            UX[s] = new float[n];
-            UY[s] = new float[n];
-            for (int g = 0; g < 4; g++) {
-                for (int i = 0; i <= s; i++) {
-                    double a = Math.toRadians(180.0 + 90.0 * g + 90.0 * i / s);
-                    UX[s][g * (s + 1) + i] = (float) Math.cos(a);
-                    UY[s][g * (s + 1) + i] = (float) Math.sin(a);
-                }
-            }
-        }
-    }
+    /** Resolved once at each frame boundary so every bitmap-text scale/origin shares one physical GUI grid. */
+    private static int guiScaleFactor = 1;
+    /** Nested frames are unusual but legal; inner frames restore the outer 2D contract instead of leaking item/model state. */
+    private static int frameDepth;
+    private static final float[] SAVED_ALPHA = new float[8];
+    private static final boolean[] SAVED_BATCH_MODE = new boolean[8];
+    /** Nested shell clips share one stencil mask; their caller still owns the matching end call. */
+    private static int roundedClipDepth;
+    private static boolean roundedClipStencilActive;
+    private static boolean stencilChecked;
+    private static boolean stencilAvailable;
+    /** GUI-coordinate scissor stack keeps a shell fallback and its scroll viewport intersected correctly. */
+    private static int scissorDepth;
+    private static final float[] SCISSOR_X = new float[8];
+    private static final float[] SCISSOR_Y = new float[8];
+    private static final float[] SCISSOR_W = new float[8];
+    private static final float[] SCISSOR_H = new float[8];
+    private static final float[] SCISSOR_SCALE = new float[8];
 
     private UIRender() {
     }
 
     // ------------------------------------------------------------------ frame state
 
-    /** Saves/sets GL state for a block of custom drawing. Pair with {@link #endFrame()}. */
+    /**
+     * Saves/sets the known 2D state for a block of custom drawing. Always pair it with {@link #endFrame()} in a
+     * {@code finally} block: HUD editor previews mix item/entity renderers with primitive drawing, and one skipped
+     * cleanup used to leave later GUI screens tinted or depth-tested.
+     */
     public static void beginFrame() {
+        // Resolve only once at the frame boundary. A text call must not independently query a mutable GUI scale.
+        guiScaleFactor = resolveGuiScaleFactor();
+        // A nested frame cannot inherit an open Tessellator batch because it may call vanilla's item/entity renderer.
+        flush();
+        int slot = Math.min(frameDepth, SAVED_ALPHA.length - 1);
+        SAVED_ALPHA[slot] = alphaMul;
+        SAVED_BATCH_MODE[slot] = batchMode;
+        frameDepth++;
         batchMode = false;
         batchOpen = false;
         alphaMul = 1f;
         GlStateManager.pushMatrix();
+        restoreFrameState();
+    }
+
+    /**
+     * Reapplies the active Apple GUI's 2D state after an embedded preview used immediate-mode/world-style OpenGL.
+     * It deliberately does not touch the matrix stack, scissor state, batch mode, or alpha multiplier, so callers
+     * can safely use it inside a clipped preview viewport and then continue drawing ordinary widgets.
+     */
+    public static void restoreFrameState() {
+        flush();
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         GlStateManager.disableTexture2D();
         GlStateManager.disableAlpha();
+        GlStateManager.disableLighting();
+        GlStateManager.disableRescaleNormal();
         // UI is 2D: depth testing off, so the world's depth values can never hide a shape.
         GlStateManager.disableDepth();
+        GlStateManager.depthMask(true);
         // Shapes wind either way (rounded ones and rectangles differ). Culling would hide the rounded ones.
         GlStateManager.disableCull();
         GlStateManager.color(1f, 1f, 1f, 1f);
     }
 
-    /** Restores the state vanilla GUI code expects. */
-    public static void endFrame() {
+    /**
+     * Restores the stable state used by vanilla GUI code after a top-level custom frame. This is intentionally a
+     * known baseline rather than a partial cleanup: direct item/entity renderers can change lighting, depth, blend,
+     * texture, tint and scissor state independently. It is also safe to call when an editor is closing.
+     */
+    public static void restoreVanillaGuiState() {
         flush();
+        batchOpen = false;
         alphaMul = 1f;
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
+        GL11.glStencilMask(0xFF);
+        roundedClipDepth = 0;
+        roundedClipStencilActive = false;
+        scissorDepth = 0;
         GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.disableLighting();
+        GlStateManager.disableRescaleNormal();
         GlStateManager.enableAlpha();
         GlStateManager.enableTexture2D();
         GlStateManager.disableBlend();
-        GlStateManager.popMatrix();
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableCull();
+    }
+
+    /** Restores the prior nested 2D frame or the stable vanilla GUI baseline at the outermost frame. */
+    public static void endFrame() {
+        try {
+            flush();
+        } finally {
+            int slot = Math.max(0, Math.min(frameDepth - 1, SAVED_ALPHA.length - 1));
+            if (frameDepth > 0) frameDepth--;
+            GlStateManager.popMatrix();
+            batchOpen = false;
+            if (frameDepth > 0) {
+                alphaMul = SAVED_ALPHA[slot];
+                batchMode = SAVED_BATCH_MODE[slot];
+                restoreFrameState();
+            } else {
+                batchMode = false;
+                restoreVanillaGuiState();
+            }
+        }
+    }
+
+    /**
+     * Obtains the physical GUI scale without making tests or early lifecycle calls depend on a fully initialized
+     * world. A fallback of one is still a valid pixel grid.
+     */
+    private static int resolveGuiScaleFactor() {
+        try {
+            Minecraft minecraft = Minecraft.getMinecraft();
+            if (minecraft != null) return GuiPixelGrid.factor(new ScaledResolution(minecraft).getScaleFactor());
+        } catch (RuntimeException ignored) {
+            // Minecraft can be unavailable while a loading/error screen is constructing; scale one stays crisp.
+        }
+        return 1;
     }
 
     /** Draws any pending batched triangles. */
@@ -152,7 +222,7 @@ public final class UIRender {
             return c;
         }
         int a = (int) (((c >>> 24) & 0xFF) * alphaMul);
-        return (a << 24) | (c & 0xFFFFFF);
+        return (a << 24) | (c & Theme.RGB_MASK);
     }
 
     public static int mix(int a, int b, float t) {
@@ -167,7 +237,7 @@ public final class UIRender {
     }
 
     public static int withAlpha(int c, float a) {
-        return (Math.round(clamp01(a) * 255f) << 24) | (c & 0xFFFFFF);
+        return (Math.round(clamp01(a) * 255f) << 24) | (c & Theme.RGB_MASK);
     }
 
     public static float clamp01(float v) {
@@ -194,132 +264,218 @@ public final class UIRender {
         close();
     }
 
+    /** Draws a vertical gradient without allocating a quad or colour array in a GUI frame. */
+    public static void verticalGradient(float x, float y, float w, float h, int top, int bottom) {
+        if (w <= 0f || h <= 0f) return;
+        int topColor = col(top);
+        int bottomColor = col(bottom);
+        if (((topColor | bottomColor) >>> 24) == 0) return;
+        WorldRenderer wr = open();
+        vtx(wr, x, y, topColor);
+        vtx(wr, x, y + h, bottomColor);
+        vtx(wr, x + w, y + h, bottomColor);
+        vtx(wr, x, y, topColor);
+        vtx(wr, x + w, y + h, bottomColor);
+        vtx(wr, x + w, y, topColor);
+        close();
+    }
+
     /**
-     * Anti-aliased rounded rectangle with a vertical gradient (top to bottom).
-     * @param feather width in pixels of the soft edge; 0 for hard edges. Also used for shadows.
+     * Flat octagonal panel with diagonal cut corners. This is intentionally separate from {@link #roundRect}: status
+     * cards use the crisp, pixel-style corners from the original display rather than a rounded approximation.
+     */
+    public static void bevelRect(float x, float y, float w, float h, float cut, int color) {
+        if (w <= 0f || h <= 0f) return;
+        int c = col(color);
+        if ((c >>> 24) == 0) return;
+        float edge = Math.max(0f, Math.min(Math.min(w, h) * .5f, cut));
+        float left = x, top = y, right = x + w, bottom = y + h;
+        float centerX = x + w * .5f, centerY = y + h * .5f;
+        WorldRenderer wr = open();
+        // Clockwise octagon fan; explicit vertices avoid allocating a per-frame point array.
+        vtx(wr, centerX, centerY, c); vtx(wr, left + edge, top, c); vtx(wr, right - edge, top, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right - edge, top, c); vtx(wr, right, top + edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right, top + edge, c); vtx(wr, right, bottom - edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right, bottom - edge, c); vtx(wr, right - edge, bottom, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, right - edge, bottom, c); vtx(wr, left + edge, bottom, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, left + edge, bottom, c); vtx(wr, left, bottom - edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, left, bottom - edge, c); vtx(wr, left, top + edge, c);
+        vtx(wr, centerX, centerY, c); vtx(wr, left, top + edge, c); vtx(wr, left + edge, top, c);
+        close();
+    }
+
+    /**
+     * Compatibility facade for a uniformly rounded, vertically shaded surface. The shared renderer always applies
+     * the one-GUI-pixel fringe to non-square corners; a larger caller feather remains useful for shadows.
      */
     public static void roundRect(float x, float y, float w, float h, float r,
                                  int top, int bottom, float feather) {
-        if (w <= 0f || h <= 0f) {
-            return;
-        }
-        int t = col(top);
-        int b = col(bottom);
-        if (((t | b) >>> 24) == 0) {
-            return;
-        }
-        float maxR = Math.min(w, h) * 0.5f;
-        if (r > maxR) {
-            r = maxR;
-        }
-        if (r < 0f) {
-            r = 0f;
-        }
-        int s = segmentsFor(r);
-        int per = s + 1;
-        int m = 4 * per;
-        float[] ux = UX[s];
-        float[] uy = UY[s];
-        float invH = 1f / h;
-        boolean f = feather > 0f;
-
-        for (int k = 0; k < m; k++) {
-            int g = k / per;
-            float ccx = (g == 0 || g == 3) ? x + r : x + w - r;
-            float ccy = (g < 2) ? y + r : y + h - r;
-            float px = ccx + r * ux[k];
-            float py = ccy + r * uy[k];
-            PX[k] = px;
-            PY[k] = py;
-            PC[k] = mix(t, b, (py - y) * invH);
-            if (f) {
-                float rr = r + feather;
-                QX[k] = ccx + rr * ux[k];
-                QY[k] = ccy + rr * uy[k];
-            }
-        }
-
-        float cx = x + w * 0.5f;
-        float cy = y + h * 0.5f;
-        int cc = mix(t, b, 0.5f);
-        WorldRenderer wr = open();
-        for (int k = 0; k < m; k++) {
-            int k2 = (k + 1) % m;
-            vtx(wr, cx, cy, cc);
-            vtx(wr, PX[k], PY[k], PC[k]);
-            vtx(wr, PX[k2], PY[k2], PC[k2]);
-        }
-        if (f) {
-            for (int k = 0; k < m; k++) {
-                int k2 = (k + 1) % m;
-                int z0 = PC[k] & 0x00FFFFFF;
-                int z2 = PC[k2] & 0x00FFFFFF;
-                vtx(wr, PX[k], PY[k], PC[k]);
-                vtx(wr, PX[k2], PY[k2], PC[k2]);
-                vtx(wr, QX[k2], QY[k2], z2);
-                vtx(wr, PX[k], PY[k], PC[k]);
-                vtx(wr, QX[k2], QY[k2], z2);
-                vtx(wr, QX[k], QY[k], z0);
-            }
-        }
-        close();
+        roundedRectInternal(x, y, w, h, r, r, r, r, top, bottom, 0, 0f, true, false, feather);
     }
-
-    /** Rounded rectangle with a 1-px border colour. */
-    public static void roundRectBorder(float x, float y, float w, float h, float r,
-                                       int top, int bottom, int border) {
-        roundRect(x, y, w, h, r, border, border, 1f);
-        roundRect(x + 1f, y + 1f, w - 2f, h - 2f, Math.max(0f, r - 1f), top, bottom, 1f);
-    }
-
-    private static final float[] RING_OX = new float[4 * (MAX_SEG + 1)];
-    private static final float[] RING_OY = new float[4 * (MAX_SEG + 1)];
-    private static final float[] RING_IX = new float[4 * (MAX_SEG + 1)];
-    private static final float[] RING_IY = new float[4 * (MAX_SEG + 1)];
 
     /**
-     * Rounded outline of thickness {@code t}, drawn inside the rectangle (x, y, w, h).
-     * Unlike {@link #roundRectBorder}, this does not fill the interior, so it works with a transparent
-     * background. Built as quads between an outer and an inner perimeter. Does not allocate.
+     * The single rounded-rectangle primitive for all Lunaria GUI surfaces.
+     *
+     * <p>Every corner can have a distinct radius. Fill and outline are independently optional, radii are clamped by
+     * {@link RoundedRectGeometry}, and cached perimeters are reused by dimensions/radii/quality rather than rebuilt
+     * in the render loop. Coordinates are logical Minecraft GUI pixels, so the GUI transform naturally preserves
+     * the thin anti-alias fringe at GUI scales 1 through 4.</p>
      */
-    public static void roundRectRing(float x, float y, float w, float h, float r, float t, int color) {
-        int c = col(color);
-        if ((c >>> 24) == 0 || w <= t * 2f || h <= t * 2f) {
-            return;
-        }
-        float maxR = Math.min(w, h) * 0.5f;
-        if (r > maxR) {
-            r = maxR;
-        }
-        if (r < 0f) {
-            r = 0f;
-        }
-        float ri = Math.max(0f, r - t);
-        int s = segmentsFor(r);
-        int per = s + 1;
-        int m = 4 * per;
-        float[] ux = UX[s];
-        float[] uy = UY[s];
-        for (int k = 0; k < m; k++) {
-            int g = k / per;
-            float ccx = (g == 0 || g == 3) ? x + r : x + w - r;
-            float ccy = (g < 2) ? y + r : y + h - r;
-            RING_OX[k] = ccx + r * ux[k];
-            RING_OY[k] = ccy + r * uy[k];
-            RING_IX[k] = ccx + ri * ux[k];
-            RING_IY[k] = ccy + ri * uy[k];
-        }
+    public static void roundedRect(float x, float y, float w, float h,
+                                   float topLeft, float topRight, float bottomRight, float bottomLeft,
+                                   int topFill, int bottomFill, int outline, float outlineWidth,
+                                   boolean drawFill, boolean drawOutline) {
+        roundedRectInternal(x, y, w, h, topLeft, topRight, bottomRight, bottomLeft,
+                topFill, bottomFill, outline, outlineWidth, drawFill, drawOutline, GuiStyle.AA_FRINGE);
+    }
+
+    /** Rounded rectangle with a one-GUI-pixel outline, rendered by {@link #roundedRect}. */
+    public static void roundRectBorder(float x, float y, float w, float h, float r,
+                                       int top, int bottom, int border) {
+        roundedRect(x, y, w, h, r, r, r, r, top, bottom, border, GuiStyle.OUTLINE, true, true);
+    }
+
+    /** Rounded outline rendered by the shared primitive; it has no opaque interior. */
+    public static void roundRectRing(float x, float y, float w, float h, float r, float thickness, int color) {
+        roundedRect(x, y, w, h, r, r, r, r, 0, 0, color, thickness, false, true);
+    }
+
+    private static void roundedRectInternal(float x, float y, float w, float h,
+                                            float topLeft, float topRight, float bottomRight, float bottomLeft,
+                                            int topFill, int bottomFill, int outline, float outlineWidth,
+                                            boolean requestedFill, boolean requestedOutline, float requestedFringe) {
+        if (w <= 0f || h <= 0f) return;
+        int fillTop = col(topFill);
+        int fillBottom = col(bottomFill);
+        int outlineColor = col(outline);
+        boolean drawFill = requestedFill && ((fillTop | fillBottom) >>> 24) != 0;
+        boolean drawOutline = requestedOutline && (outlineColor >>> 24) != 0 && outlineWidth > 0f;
+        if (!drawFill && !drawOutline) return;
+
+        float largest = Math.max(Math.max(Math.max(0f, topLeft), Math.max(0f, topRight)),
+                Math.max(Math.max(0f, bottomRight), Math.max(0f, bottomLeft)));
+        int segments = RoundedRectGeometry.segmentsFor(largest, segCap);
+        RoundedRectGeometry.Geometry outer = RoundedRectGeometry.get(w, h, topLeft, topRight, bottomRight,
+                bottomLeft, segments);
         WorldRenderer wr = open();
-        for (int k = 0; k < m; k++) {
-            int k2 = (k + 1) % m;
-            vtx(wr, RING_OX[k], RING_OY[k], c);
-            vtx(wr, RING_OX[k2], RING_OY[k2], c);
-            vtx(wr, RING_IX[k2], RING_IY[k2], c);
-            vtx(wr, RING_OX[k], RING_OY[k], c);
-            vtx(wr, RING_IX[k2], RING_IY[k2], c);
-            vtx(wr, RING_IX[k], RING_IY[k], c);
+        if (drawFill) {
+            drawGradientFill(wr, outer, x, y, h, fillTop, fillBottom);
+        }
+
+        float inset = Math.min(Math.max(0f, outlineWidth), Math.min(w, h) * .5f);
+        RoundedRectGeometry.Geometry inner = null;
+        if (drawOutline) {
+            if (inset >= Math.min(w, h) * .5f) {
+                // A tiny box cannot have a transparent middle. Its outline is its whole visible surface.
+                drawSolidFill(wr, outer, x, y, outlineColor);
+            } else {
+                inner = RoundedRectGeometry.get(w - inset * 2f, h - inset * 2f,
+                        Math.max(0f, outer.topLeft - inset), Math.max(0f, outer.topRight - inset),
+                        Math.max(0f, outer.bottomRight - inset), Math.max(0f, outer.bottomLeft - inset), segments);
+                drawSolidRing(wr, outer, x, y, inner, x + inset, y + inset, outlineColor);
+            }
+        }
+
+        boolean hasCurve = outer.topLeft > 0f || outer.topRight > 0f || outer.bottomRight > 0f || outer.bottomLeft > 0f;
+        float fringe = hasCurve ? Math.max(GuiStyle.AA_FRINGE, requestedFringe) : Math.max(0f, requestedFringe);
+        if (fringe > 0f) {
+            RoundedRectGeometry.Geometry fringeOuter = RoundedRectGeometry.get(w + fringe * 2f, h + fringe * 2f,
+                    outer.topLeft + fringe, outer.topRight + fringe, outer.bottomRight + fringe,
+                    outer.bottomLeft + fringe, segments);
+            if (drawOutline) {
+                drawSolidFeather(wr, outer, x, y, fringeOuter, x - fringe, y - fringe, outlineColor);
+            } else {
+                drawGradientFeather(wr, outer, x, y, fringeOuter, x - fringe, y - fringe, h, fillTop, fillBottom);
+            }
+            // Transparent-outline interiors also need a soft inner edge; filled cards already transition to fill.
+            if (!drawFill && inner != null && inner.width > fringe * 2f && inner.height > fringe * 2f) {
+                RoundedRectGeometry.Geometry innerFade = RoundedRectGeometry.get(inner.width - fringe * 2f,
+                        inner.height - fringe * 2f, Math.max(0f, inner.topLeft - fringe),
+                        Math.max(0f, inner.topRight - fringe), Math.max(0f, inner.bottomRight - fringe),
+                        Math.max(0f, inner.bottomLeft - fringe), segments);
+                drawSolidFeather(wr, inner, x + inset, y + inset, innerFade,
+                        x + inset + fringe, y + inset + fringe, outlineColor);
+            }
         }
         close();
+    }
+
+    private static void drawGradientFill(WorldRenderer wr, RoundedRectGeometry.Geometry shape, float x, float y,
+                                         float height, int top, int bottom) {
+        float cx = x + shape.width * .5f;
+        float cy = y + shape.height * .5f;
+        int center = mix(top, bottom, .5f);
+        for (int point = 0; point < shape.pointCount; point++) {
+            int next = (point + 1) % shape.pointCount;
+            int a = gradientAt(top, bottom, shape.y(point), height);
+            int b = gradientAt(top, bottom, shape.y(next), height);
+            vtx(wr, cx, cy, center);
+            vtx(wr, x + shape.x(point), y + shape.y(point), a);
+            vtx(wr, x + shape.x(next), y + shape.y(next), b);
+        }
+    }
+
+    private static void drawSolidFill(WorldRenderer wr, RoundedRectGeometry.Geometry shape, float x, float y, int color) {
+        float cx = x + shape.width * .5f;
+        float cy = y + shape.height * .5f;
+        for (int point = 0; point < shape.pointCount; point++) {
+            int next = (point + 1) % shape.pointCount;
+            vtx(wr, cx, cy, color);
+            vtx(wr, x + shape.x(point), y + shape.y(point), color);
+            vtx(wr, x + shape.x(next), y + shape.y(next), color);
+        }
+    }
+
+    private static void drawSolidRing(WorldRenderer wr, RoundedRectGeometry.Geometry outer, float outerX, float outerY,
+                                      RoundedRectGeometry.Geometry inner, float innerX, float innerY, int color) {
+        for (int point = 0; point < outer.pointCount; point++) {
+            int next = (point + 1) % outer.pointCount;
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), color);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), color);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), color);
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), color);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), color);
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), color);
+        }
+    }
+
+    private static void drawGradientFeather(WorldRenderer wr, RoundedRectGeometry.Geometry inner, float innerX,
+                                            float innerY, RoundedRectGeometry.Geometry outer, float outerX,
+                                            float outerY, float gradientHeight, int top, int bottom) {
+        for (int point = 0; point < inner.pointCount; point++) {
+            int next = (point + 1) % inner.pointCount;
+            int i0 = gradientAt(top, bottom, inner.y(point), gradientHeight);
+            int i1 = gradientAt(top, bottom, inner.y(next), gradientHeight);
+            int o1 = gradientAt(top, bottom, outer.y(next) - (outer.height - gradientHeight) * .5f,
+                    gradientHeight) & Theme.RGB_MASK;
+            int o0 = gradientAt(top, bottom, outer.y(point) - (outer.height - gradientHeight) * .5f,
+                    gradientHeight) & Theme.RGB_MASK;
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), i0);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), i1);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), o1);
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), i0);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), o1);
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), o0);
+        }
+    }
+
+    private static void drawSolidFeather(WorldRenderer wr, RoundedRectGeometry.Geometry inner, float innerX,
+                                         float innerY, RoundedRectGeometry.Geometry outer, float outerX, float outerY,
+                                         int color) {
+        int transparent = color & Theme.RGB_MASK;
+        for (int point = 0; point < inner.pointCount; point++) {
+            int next = (point + 1) % inner.pointCount;
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), color);
+            vtx(wr, innerX + inner.x(next), innerY + inner.y(next), color);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), transparent);
+            vtx(wr, innerX + inner.x(point), innerY + inner.y(point), color);
+            vtx(wr, outerX + outer.x(next), outerY + outer.y(next), transparent);
+            vtx(wr, outerX + outer.x(point), outerY + outer.y(point), transparent);
+        }
+    }
+
+    private static int gradientAt(int top, int bottom, float y, float height) {
+        return mix(top, bottom, clamp01(y / Math.max(.0001f, height)));
     }
 
     /** Soft, cheap drop shadow: one feathered rounded rect offset downwards. */
@@ -327,7 +483,7 @@ public final class UIRender {
         if (!shadows) {
             return;
         }
-        roundRect(x - 2f, y + 3f, w + 4f, h + 4f, r + 2f, 0x40000000, 0x40000000, 9f);
+        roundRect(x - 2f, y + 3f, w + 4f, h + 4f, r + 2f, Theme.SHADOW, Theme.SHADOW, 9f);
     }
 
     public static void circle(float cx, float cy, float r, int color) {
@@ -394,40 +550,50 @@ public final class UIRender {
         close();
     }
 
-    private static int segmentsFor(float r) {
-        int s = Math.round(r * 0.6f);
-        if (s < 1) {
-            s = 1;
-        }
-        if (s > segCap) {
-            s = segCap;
-        }
-        return s;
-    }
-
     // ------------------------------------------------------------------ text
 
-    /**
-     * Draws vanilla font text. Positions are rounded for crisp pixels at scale 1.
-     * Non-1 scales are applied with a matrix push/pop so the font's own quads stay sharp.
-     */
+    /** Draws in the default Lunaria UI area, with the native font as the safe fallback. */
     public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow) {
-        if (s == null || s.isEmpty()) {
+        text(fr, s, x, y, color, scale, shadow, GlobalFontManager.Area.UI);
+    }
+
+    /**
+     * Draws text for one Lunaria-owned area. A selected custom font is given the same snapped origin as native text;
+     * any unavailable atlas or renderer error falls through to Minecraft's bitmap font rather than breaking a GUI.
+     */
+    public static void text(FontRenderer fr, String s, float x, float y, int color, float scale, boolean shadow,
+                            GlobalFontManager.Area area) {
+        if (fr == null || s == null || s.isEmpty()) {
             return;
         }
         int c = col(color);
         if ((c >>> 24) == 0) {
             return;
         }
+        float effectiveScale = GuiPixelGrid.textScale(scale, guiScaleFactor);
+        float snappedX = GuiPixelGrid.coordinate(x, guiScaleFactor);
+        float snappedY = GuiPixelGrid.coordinate(y, guiScaleFactor);
+        GuiDebugOverlay.recordLabel(s, snappedX, snappedY, fr.getStringWidth(s) * effectiveScale,
+                Math.max(1f, fr.FONT_HEIGHT * effectiveScale));
         flush();
+        try {
+            if (GlobalFontManager.draw(s, snappedX, snappedY, c, effectiveScale, shadow,
+                    area == null ? GlobalFontManager.Area.UI : area)) {
+                GlStateManager.disableAlpha();
+                GlStateManager.disableTexture2D();
+                return;
+            }
+        } catch (Throwable ignored) {
+            // Dynamic custom fonts are optional. Preserve the normal Minecraft fallback on unusual launchers.
+        }
         GlStateManager.enableTexture2D();
         GlStateManager.enableAlpha();
-        if (scale == 1f) {
-            fr.drawString(s, (float) Math.round(x), (float) Math.round(y), c, shadow);
+        if (effectiveScale == 1f) {
+            fr.drawString(s, snappedX, snappedY, c, shadow);
         } else {
             GlStateManager.pushMatrix();
-            GlStateManager.translate(x, y, 0f);
-            GlStateManager.scale(scale, scale, 1f);
+            GlStateManager.translate(snappedX, snappedY, 0f);
+            GlStateManager.scale(effectiveScale, effectiveScale, 1f);
             fr.drawString(s, 0f, 0f, c, shadow);
             GlStateManager.popMatrix();
         }
@@ -437,20 +603,147 @@ public final class UIRender {
 
     // ------------------------------------------------------------------ clipping
 
-    /** Clips subsequent drawing to a rectangle given in GUI (scaled) coordinates. */
+    /**
+     * Starts a stencil-backed rounded clip in GUI coordinates. The mask uses the same cached perimeter as visible
+     * rounded panels, so the shell's four corners and its child clip cannot drift apart. A framebuffer without a
+     * stencil attachment still keeps ordinary rectangular clipping callers safe; Minecraft's normal framebuffer is
+     * upgraded once when it exposes the standard enableStencil hook.
+     *
+     * @return whether a rounded stencil mask is active
+     */
+    public static boolean roundedClipBegin(float x, float y, float w, float h, float radius, float scaleFactor) {
+        flush();
+        if (roundedClipDepth > 0) {
+            roundedClipDepth++;
+            // A compatible framebuffer shares its one rounded mask. The rectangular fallback still needs every
+            // nested bound so a viewport inside an older framebuffer remains an actual intersection.
+            if (!roundedClipStencilActive) scissorBegin(x, y, w, h, scaleFactor);
+            return roundedClipStencilActive;
+        }
+        roundedClipDepth = 1;
+        roundedClipStencilActive = ensureStencil();
+        if (!roundedClipStencilActive) {
+            // The safe fallback still bounds every child to the one outer window; compatible framebuffers get the
+            // exact rounded mask above, while a very old framebuffer never leaks content outside the app rectangle.
+            scissorBegin(x, y, w, h, scaleFactor);
+            return false;
+        }
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClearStencil(0);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+        GL11.glStencilMask(0xFF);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+        GL11.glColorMask(false, false, false, false);
+        GL11.glDepthMask(false);
+        drawRoundedClipMask(x, y, w, h, radius);
+        flush();
+        GL11.glColorMask(true, true, true, true);
+        GL11.glDepthMask(true);
+        GL11.glStencilMask(0x00);
+        GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+        return true;
+    }
+
+    /** Ends the matching rounded shell clip and restores stencil writes for the next independent frame. */
+    public static void roundedClipEnd() {
+        if (roundedClipDepth <= 0) return;
+        flush();
+        boolean usedStencil = roundedClipStencilActive;
+        roundedClipDepth--;
+        if (!usedStencil) scissorEnd();
+        if (roundedClipDepth == 0) {
+            if (usedStencil) {
+                GL11.glStencilMask(0xFF);
+                GL11.glDisable(GL11.GL_STENCIL_TEST);
+            }
+            roundedClipStencilActive = false;
+        }
+    }
+
+    private static boolean ensureStencil() {
+        if (stencilChecked) return stencilAvailable;
+        stencilChecked = true;
+        try {
+            Object framebuffer = Minecraft.getMinecraft().getFramebuffer();
+            if (framebuffer != null) {
+                java.lang.reflect.Method enable = framebuffer.getClass().getMethod("enableStencil");
+                enable.invoke(framebuffer);
+            }
+        } catch (ReflectiveOperationException ignored) {
+            // Vanilla/Forge versions without this optional hook fall back safely instead of failing the GUI.
+        } catch (RuntimeException ignored) {
+            // A transient framebuffer/context failure must never leave the settings screen half-rendered.
+        }
+        stencilAvailable = GL11.glGetInteger(GL11.GL_STENCIL_BITS) > 0;
+        return stencilAvailable;
+    }
+
+    /** Writes an exact, no-feather rounded perimeter into the active stencil mask. */
+    private static void drawRoundedClipMask(float x, float y, float w, float h, float radius) {
+        if (w <= 0f || h <= 0f) return;
+        int segments = RoundedRectGeometry.segmentsFor(Math.max(0f, radius), segCap);
+        RoundedRectGeometry.Geometry shape = RoundedRectGeometry.get(w, h, radius, radius, radius, radius, segments);
+        WorldRenderer wr = open();
+        float centerX = x + shape.width * .5f;
+        float centerY = y + shape.height * .5f;
+        for (int point = 0; point < shape.pointCount; point++) {
+            int next = (point + 1) % shape.pointCount;
+            vtx(wr, centerX, centerY, Theme.OPAQUE_WHITE);
+            vtx(wr, x + shape.x(point), y + shape.y(point), Theme.OPAQUE_WHITE);
+            vtx(wr, x + shape.x(next), y + shape.y(next), Theme.OPAQUE_WHITE);
+        }
+        close();
+    }
+
+    /** Clips subsequent drawing to a rectangle given in GUI (scaled) coordinates. Nested clips intersect. */
     public static void scissorBegin(float x, float y, float w, float h, float scaleFactor) {
         flush();
-        Minecraft mc = Minecraft.getMinecraft();
-        int px = Math.round(x * scaleFactor);
-        int py = Math.round(mc.displayHeight - (y + h) * scaleFactor);
-        int pw = Math.max(0, Math.round(w * scaleFactor));
-        int ph = Math.max(0, Math.round(h * scaleFactor));
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(px, py, pw, ph);
+        int slot = Math.min(scissorDepth, SCISSOR_X.length - 1);
+        float left = x;
+        float top = y;
+        float right = x + Math.max(0f, w);
+        float bottom = y + Math.max(0f, h);
+        if (scissorDepth > 0) {
+            int parent = Math.min(scissorDepth - 1, SCISSOR_X.length - 1);
+            left = Math.max(left, SCISSOR_X[parent]);
+            top = Math.max(top, SCISSOR_Y[parent]);
+            right = Math.min(right, SCISSOR_X[parent] + SCISSOR_W[parent]);
+            bottom = Math.min(bottom, SCISSOR_Y[parent] + SCISSOR_H[parent]);
+        }
+        SCISSOR_X[slot] = left;
+        SCISSOR_Y[slot] = top;
+        SCISSOR_W[slot] = Math.max(0f, right - left);
+        SCISSOR_H[slot] = Math.max(0f, bottom - top);
+        SCISSOR_SCALE[slot] = Math.max(.01f, scaleFactor);
+        scissorDepth++;
+        applyScissor(slot);
     }
 
     public static void scissorEnd() {
         flush();
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        if (scissorDepth <= 0) {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            return;
+        }
+        scissorDepth--;
+        if (scissorDepth == 0) {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        } else {
+            applyScissor(Math.min(scissorDepth - 1, SCISSOR_X.length - 1));
+        }
+    }
+
+    private static void applyScissor(int slot) {
+        Minecraft mc = Minecraft.getMinecraft();
+        float scale = SCISSOR_SCALE[Math.max(0, Math.min(slot, SCISSOR_SCALE.length - 1))];
+        int safe = Math.max(0, Math.min(slot, SCISSOR_X.length - 1));
+        int px = Math.round(SCISSOR_X[safe] * scale);
+        int py = Math.round(mc.displayHeight - (SCISSOR_Y[safe] + SCISSOR_H[safe]) * scale);
+        int pw = Math.max(0, Math.round(SCISSOR_W[safe] * scale));
+        int ph = Math.max(0, Math.round(SCISSOR_H[safe] * scale));
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(px, py, pw, ph);
     }
 }

@@ -1,9 +1,13 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
+import org.lwjgl.input.Keyboard;
 
 import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
@@ -14,7 +18,15 @@ public final class AppleSlider extends Widget {
     private final String suffix;
     private final IntSupplier getter;
     private final IntConsumer setter;
+    private IntFunction<String> labelFormatter;
     private Supplier<Boolean> gate;
+    /** Holding Shift uses this smaller step; unchanged sliders retain their ordinary step. */
+    private int fineStep;
+    /** Optional per-control reset action, invoked by a double-click/tap. */
+    private Runnable doubleClickAction;
+    /** Compact composite rows supply their own number box, so they can suppress this slider's value label. */
+    private boolean showValue = true;
+    private long lastPressNanos;
     private float displayedFraction;
     private boolean fractionInitialized;
     /** Brief knob/value acknowledgement while the player changes the setting. */
@@ -29,6 +41,31 @@ public final class AppleSlider extends Widget {
         this.suffix = suffix == null ? "" : suffix;
         this.getter = getter;
         this.setter = setter;
+        this.fineStep = this.step;
+    }
+
+    /** Lets a fast slider become one-unit precise while either Shift key is held. */
+    public AppleSlider fineStep(int value) {
+        this.fineStep = Math.max(1, value);
+        return this;
+    }
+
+    /** Lets a setting return to its own default without opening a separate reset dialog. */
+    public AppleSlider onDoubleClick(Runnable action) {
+        this.doubleClickAction = action;
+        return this;
+    }
+
+    /** Formats the visible value without changing the integer setting; useful for the explicit `Off` zero state. */
+    public AppleSlider valueLabel(IntFunction<String> formatter) {
+        this.labelFormatter = formatter;
+        return this;
+    }
+
+    /** Hides the built-in value label when a compact row provides a separate exact-value field. */
+    public AppleSlider hideValue() {
+        this.showValue = false;
+        return this;
     }
 
     public AppleSlider gate(Supplier<Boolean> enabledWhen) {
@@ -56,9 +93,10 @@ public final class AppleSlider extends Widget {
             displayedFraction = target;
             fractionInitialized = true;
         } else {
-            displayedFraction = approach(displayedFraction, target, dt, pressed ? 42f : 18f);
+            displayedFraction = ease(displayedFraction, target, dt,
+                    pressed ? GuiMotion.PRESS_SETTLE_MS : GuiMotion.SLIDER_SETTLE_MS);
         }
-        valuePulse = approach(valuePulse, 0f, dt, 9f);
+        valuePulse = ease(valuePulse, 0f, dt, GuiMotion.PULSE_SETTLE_MS);
     }
 
     private void setFromX(float px) {
@@ -69,7 +107,10 @@ public final class AppleSlider extends Widget {
         float trackWidth = Math.max(1f, w - 14f);
         float f = clamp((px - trackLeft) / trackWidth, 0f, 1f);
         int raw = min + Math.round(f * (max - min));
-        int stepped = min + Math.round((raw - min) / (float) step) * step;
+        boolean shiftFine = Keyboard.isCreated() && (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)
+                || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
+        int activeStep = shiftFine ? fineStep : step;
+        int stepped = min + Math.round((raw - min) / (float) activeStep) * activeStep;
         stepped = Math.max(min, Math.min(max, stepped));
         if (stepped != value()) {
             setter.accept(stepped);
@@ -92,22 +133,28 @@ public final class AppleSlider extends Widget {
         UIRender.roundRect(trackLeft, cy - radius, Math.max(0f, end - trackLeft), radius * 2f, radius,
                 active ? Theme.accent : Theme.textTertiary,
                 active ? Theme.accent : Theme.textTertiary, 0.4f);
-        float animatedHover = Theme.animations && active ? hoverAmount : 0f;
-        float animatedValue = Theme.animations ? valuePulse : 0f;
+        float animatedHover = animationsActive() && active ? hoverAmount : 0f;
+        float animatedValue = animationsActive() ? valuePulse : 0f;
         float knobR = 4f + animatedHover * 0.35f + animatedValue * 0.45f;
-        if (active && Theme.animations && valuePulse > 0.015f) {
+        if (active && animationsActive() && valuePulse > 0.015f) {
             float outer = knobR + 1.1f + (1f - valuePulse) * 1.1f;
             UIRender.ring(end, cy, outer, Math.max(knobR + 0.4f, outer - 0.9f),
                     UIRender.withAlpha(Theme.accent, valuePulse * 0.24f));
         }
-        UIRender.circle(end, cy, knobR, active ? 0xFFFFFFFF : Theme.textTertiary);
+        UIRender.circle(end, cy, knobR, active ? Theme.CONTROL_KNOB : Theme.textTertiary);
         UIRender.circle(end, cy, knobR - 1.2f, active ? Theme.accent : Theme.track);
-        String text = value() + suffix;
-        int color = active ? UIRender.mix(Theme.textSecondary, Theme.accent, valuePulse * 0.5f)
-                : Theme.textTertiary;
-        UIRender.text(font(), text, x + w - font().getStringWidth(text), y + 1f, color, 0.8f, false);
+        if (showValue) {
+            String text = labelFormatter == null ? value() + suffix : labelFormatter.apply(value());
+            if (text == null) text = "";
+            int color = active ? UIRender.mix(Theme.textSecondary, Theme.accent, valuePulse * 0.5f)
+                    : Theme.textTertiary;
+            String shown = fitText(text, Math.max(0f, (w - 4f) / .8f));
+            UIRender.text(font(), shown, x + Math.max(0f, w - textWidth(shown) * .8f),
+                    y + Math.max(0f, (h - textHeight() * .8f) * .15f), color, 0.8f, false);
+        }
         if (!active) {
-            UIRender.roundRect(x, y, w, h, 4f, 0x24000000, 0x24000000, 0f);
+            UIRender.roundRect(x, y, w, h,
+                    GuiStyle.radius(GuiStyle.RADIUS_SMALL, Theme.radius, w, h), Theme.SURFACE_DISABLED, Theme.SURFACE_DISABLED, 0f);
         }
         endAnimatedDraw();
     }
@@ -116,6 +163,14 @@ public final class AppleSlider extends Widget {
     public void onPress(int mouseX, int mouseY) {
         super.onPress(mouseX, mouseY);
         if (pressed && allowed()) {
+            long now = System.nanoTime();
+            if (doubleClickAction != null && lastPressNanos != 0L && now - lastPressNanos <= 340000000L) {
+                lastPressNanos = 0L;
+                doubleClickAction.run();
+                valuePulse = 1f;
+                return;
+            }
+            lastPressNanos = now;
             setFromX(mouseX);
         }
     }

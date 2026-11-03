@@ -99,16 +99,11 @@ public final class PlayerPreview {
             GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
             GlStateManager.disableTexture2D();
             GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
-
-            // Back to the custom-drawing state that UIRender.beginFrame sets.
             GlStateManager.disableColorMaterial();
-            // UI drawing is 2D and runs with depth testing off (see UIRender.beginFrame).
-            GlStateManager.disableDepth();
-            GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-            GlStateManager.disableTexture2D();
-            GlStateManager.disableAlpha();
-            GlStateManager.color(1f, 1f, 1f, 1f);
+
+            // Re-establish every shared 2D switch (including tint, culling and lighting) instead of relying on
+            // partial vanilla cleanup. This keeps a doll preview from recolouring the HUD editor or its parent.
+            UIRender.restoreFrameState();
         }
     }
 

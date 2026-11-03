@@ -62,23 +62,26 @@ public final class InventoryHud extends HudElement {
         float w = width();
         float h = height();
         float prevAlpha = UIRender.alphaMul;
-        if (transparent) {
-            UIRender.alphaMul = prevAlpha * (1f - transparency / 100f);
-        }
-        drawPanel(w, h);
-
         int gx = PAD + armorOffset();
-        for (int row = 0; row < MAIN_ROWS; row++) {
-            for (int col = 0; col < MAIN_COLUMNS; col++) {
-                slotShape(gx + col * CELL, PAD + row * CELL);
+        try {
+            if (transparent) {
+                UIRender.alphaMul = prevAlpha * (1f - transparency / 100f);
             }
-        }
-        if (showArmor) {
-            for (int i = 0; i < ARMOR_SLOTS; i++) {
-                slotShape(PAD, PAD + i * CELL);
+            drawPanel(w, h);
+
+            for (int row = 0; row < MAIN_ROWS; row++) {
+                for (int col = 0; col < MAIN_COLUMNS; col++) {
+                    slotShape(gx + col * CELL, PAD + row * CELL);
+                }
             }
+            if (showArmor) {
+                for (int i = 0; i < ARMOR_SLOTS; i++) {
+                    slotShape(PAD, PAD + i * CELL);
+                }
+            }
+        } finally {
+            UIRender.alphaMul = prevAlpha;
         }
-        UIRender.alphaMul = prevAlpha;
 
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.thePlayer.inventory == null) {
@@ -86,21 +89,24 @@ public final class InventoryHud extends HudElement {
         }
         InventoryPlayer inv = mc.thePlayer.inventory;
         RenderItem renderItem = mc.getRenderItem();
-        ItemSlots.beginItems();
-        for (int row = 0; row < MAIN_ROWS; row++) {
-            for (int col = 0; col < MAIN_COLUMNS; col++) {
-                ItemStack stack = inv.mainInventory[9 + row * MAIN_COLUMNS + col];
-                ItemSlots.drawStack(renderItem, fr(), stack, gx + col * CELL, PAD + row * CELL);
+        try {
+            ItemSlots.beginItems();
+            for (int row = 0; row < MAIN_ROWS; row++) {
+                for (int col = 0; col < MAIN_COLUMNS; col++) {
+                    ItemStack stack = inv.mainInventory[9 + row * MAIN_COLUMNS + col];
+                    ItemSlots.drawStack(renderItem, fr(), stack, gx + col * CELL, PAD + row * CELL);
+                }
             }
-        }
-        if (showArmor) {
-            // armorInventory: 0 boots, 1 leggings, 2 chestplate, 3 helmet. Draw helmet first.
-            for (int i = 0; i < ARMOR_SLOTS; i++) {
-                ItemStack stack = inv.armorInventory[ARMOR_SLOTS - 1 - i];
-                ItemSlots.drawStack(renderItem, fr(), stack, PAD, PAD + i * CELL);
+            if (showArmor) {
+                // armorInventory: 0 boots, 1 leggings, 2 chestplate, 3 helmet. Draw helmet first.
+                for (int i = 0; i < ARMOR_SLOTS; i++) {
+                    ItemStack stack = inv.armorInventory[ARMOR_SLOTS - 1 - i];
+                    ItemSlots.drawStack(renderItem, fr(), stack, PAD, PAD + i * CELL);
+                }
             }
+        } finally {
+            ItemSlots.endItems();
         }
-        ItemSlots.endItems();
     }
 
     private void slotShape(float x, float y) {

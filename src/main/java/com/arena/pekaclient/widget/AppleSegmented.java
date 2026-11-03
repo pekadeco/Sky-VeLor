@@ -1,5 +1,7 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -39,14 +41,14 @@ public final class AppleSegmented extends Widget {
             displayedIndex = target;
             indexInitialized = true;
         } else {
-            displayedIndex = approach(displayedIndex, target, dt, 20f);
+            displayedIndex = ease(displayedIndex, target, dt, GuiMotion.TAB_SETTLE_MS);
         }
     }
 
     @Override
     public void draw(int mouseX, int mouseY) {
         beginAnimatedDraw(0.02f, 0.035f, 0.018f);
-        float radius = Math.min(Theme.radius * 0.6f, h * 0.5f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, Theme.buttonFill, Theme.buttonFill, 0.4f);
         if (options.length == 0) {
             drawBorder(radius, Theme.border);
@@ -61,14 +63,12 @@ public final class AppleSegmented extends Widget {
 
         for (int i = 0; i < options.length; i++) {
             String label = options[i] == null ? "" : options[i];
-            int maxTextW = Math.max(0, (int) segmentW - 8);
-            if (font().getStringWidth(label) > maxTextW) {
-                label = font().trimStringToWidth(label, Math.max(0, maxTextW - 4)) + "…";
-            }
+            float maxTextW = Math.max(0f, segmentW - 8f);
+            label = fitText(label, maxTextW);
             float selectedWeight = Math.max(0f, 1f - Math.min(1f, Math.abs(index - i)));
             int color = UIRender.mix(Theme.textSecondary, Theme.textPrimary, selectedWeight);
-            UIRender.text(font(), label, x + segmentW * i + (segmentW - font().getStringWidth(label)) * 0.5f,
-                    y + (h - 8f) * 0.5f + 1f, color, 1f, false);
+            UIRender.text(font(), label, x + segmentW * i + (segmentW - textWidth(label)) * 0.5f,
+                    y + (h - textHeight()) * 0.5f, color, 1f, false);
         }
         drawBorder(radius, Theme.border);
         endAnimatedDraw();

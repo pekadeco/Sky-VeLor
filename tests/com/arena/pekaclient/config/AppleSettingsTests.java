@@ -12,6 +12,9 @@ public final class AppleSettingsTests {
         check("fresh adaptive quality defaults off", !AppleSettings.adaptive);
         check("fresh Performance Boost Beta defaults on", AppleSettings.experimentalPerformance);
         check("fresh panel opacity is slightly transparent", AppleSettings.DEFAULT_GLASS_OPACITY == 88);
+        check("fresh curve quality opens Smooth with a rounded fast floor", AppleSettings.curveQuality
+                == AppleSettings.DEFAULT_CURVE_QUALITY && AppleSettings.CURVE_SEGMENTS[0] >= 16
+                && AppleSettings.CURVE_SEGMENTS[2] >= 8);
 
         AppleSettings.adaptive = AppleSettings.DEFAULT_ADAPTIVE_QUALITY;
         AppleSettings.experimentalPerformance = AppleSettings.DEFAULT_PERFORMANCE_BOOST_BETA;
@@ -32,10 +35,347 @@ public final class AppleSettingsTests {
         check("missing keys do not overwrite effective performance choice",
                 !AppleSettings.experimentalPerformance);
 
+        Properties beta0108 = new Properties();
+        beta0108.setProperty("itemAnimation.enabled", "false");
+        beta0108.setProperty("itemAnimation.size", "145");
+        beta0108.setProperty("itemAnimation.speed", "175");
+        beta0108.setProperty("itemAnimation.x", "-75");
+        beta0108.setProperty("itemAnimation.y", "25");
+        beta0108.setProperty("itemAnimation.z", "50");
+        beta0108.setProperty("itemAnimation.autoFixHitSlash", "false");
+        beta0108.setProperty("itemAnimation.smoothSwing", "false");
+        beta0108.setProperty("itemAnimation.smoothness", "82");
+        beta0108.setProperty("itemAnimation.swingBlur", "true");
+        beta0108.setProperty("itemAnimation.swingBlurIntensity", "75");
+        beta0108.setProperty("itemAnimation.backgroundTransparency", "12");
+        beta0108.setProperty("itemAnimation.backgroundOpacity", "95");
+        AppleSettings.loadItemAnimationSettings(beta0108);
+        check("0.10.8v config with obsolete Auto Fix/background keys loads cleanly",
+                !AppleSettings.itemAnimationEnabled && AppleSettings.itemAnimationSize == 145
+                        && AppleSettings.itemAnimationSpeed == 175 && AppleSettings.itemAnimationX == -75
+                        && AppleSettings.itemAnimationY == 25 && AppleSettings.itemAnimationZ == 50
+                        && !AppleSettings.itemAnimationSmoothSwing && AppleSettings.itemAnimationSmoothness == 82);
+        Properties migrated = new Properties();
+        migrated.putAll(beta0108);
+        AppleSettings.saveItemAnimationSettings(migrated);
+        check("obsolete Item Animation keys are not written back",
+                !migrated.containsKey("itemAnimation.autoFixHitSlash")
+                        && !migrated.containsKey("itemAnimation.backgroundTransparency")
+                        && !migrated.containsKey("itemAnimation.backgroundOpacity")
+                        && !migrated.containsKey("itemAnimation.swingBlur")
+                        && !migrated.containsKey("itemAnimation.swingBlurIntensity"));
+
+        fishingSettingsCompatibility();
+        chatSettingsCompatibility();
+        globalScrollCompatibility();
+        mouseSettingsCompatibility();
+        particleSettingsCompatibility();
+        settingsThemePersistence();
+        settingsWindowLayoutPersistence();
+        guiTransparencyLegacyCompatibility();
+        configurationVersionMigration();
+        dungeonMapHeadAndZoomBounds();
+        dungeonHudPreferencePersistence();
+
         System.out.println();
         System.out.println("apple settings: passed " + passed + ", failed " + failed);
         if (failed > 0) {
             System.exit(1);
+        }
+    }
+
+    private static void fishingSettingsCompatibility() {
+        AppleSettings.fishingNearbyEncounterAlert = true;
+        AppleSettings.loadFishingSettings(new Properties());
+        check("old fishing config keeps nearby encounter titles opt-in", !AppleSettings.fishingNearbyEncounterAlert);
+
+        Properties saved = new Properties();
+        saved.setProperty("fishing.counter", "false");
+        saved.setProperty("fishing.festival", "false");
+        saved.setProperty("fishing.jawbusAlert", "true");
+        saved.setProperty("fishing.nearbyEncounterAlert", "true");
+        AppleSettings.loadFishingSettings(saved);
+        check("nearby encounter title choice loads", !AppleSettings.fishingCounter
+                && !AppleSettings.fishingFestival && AppleSettings.fishingJawbusAlert
+                && AppleSettings.fishingNearbyEncounterAlert);
+
+        Properties rewritten = new Properties();
+        AppleSettings.saveFishingSettings(rewritten);
+        check("nearby encounter title has one stable config key",
+                "true".equals(rewritten.getProperty("fishing.nearbyEncounterAlert"))
+                        && rewritten.size() == 4);
+    }
+
+    private static void chatSettingsCompatibility() {
+        AppleSettings.loadChatSettings(new Properties());
+        check("new installs keep Chat QoL master opt-in", !ChatQolSettings.enabled);
+        check("new installs compact consecutive chat messages", ChatQolSettings.compactMessages);
+
+        Properties oldFriendChat = new Properties();
+        oldFriendChat.setProperty("chat.tabMode", "3");
+        oldFriendChat.setProperty("chat.animation.messages", "true");
+        AppleSettings.loadChatSettings(oldFriendChat);
+        check("legacy tab key is ignored instead of enabling a renderer", !ChatQolSettings.enabled
+                && "all".equals(ChatQolSettings.selectedTabId()));
+        check("legacy animation profile is ignored safely", ChatQolSettings.smoothMessages);
+
+        AppleSettings.saveChatSettings(oldFriendChat);
+        check("chat rewrite keeps only stable one-default keys", "false".equals(oldFriendChat.getProperty("chat.qol.enabled"))
+                && "all".equals(oldFriendChat.getProperty("chat.qol.tabs.selectedId"))
+                && !oldFriendChat.containsKey("chat.animation.enabled") && !oldFriendChat.containsKey("chat.tabMode"));
+    }
+
+    private static void globalScrollCompatibility() {
+        Properties retired = new Properties();
+        retired.setProperty("chat.qol.target.default.scroll.speed", "225");
+        retired.setProperty("chat.qol.target.default.scroll.smooth", "false");
+        retired.setProperty("chat.qol.target.chat2.scroll.speed", "175");
+        AppleSettings.loadGlobalScrollSettings(retired);
+        check("retired split-chat scroll keys are ignored", AppleSettings.scrollSpeed == AppleSettings.DEFAULT_SCROLL_SPEED
+                && AppleSettings.smoothScrolling == AppleSettings.DEFAULT_SMOOTH_SCROLLING);
+
+        Properties nativeGlobal = new Properties();
+        nativeGlobal.setProperty("scrollSpeed", "150");
+        nativeGlobal.setProperty("smoothScrolling", "true");
+        nativeGlobal.setProperty("chat.qol.target.default.scroll.speed", "300");
+        nativeGlobal.setProperty("chat.qol.target.default.scroll.smooth", "false");
+        AppleSettings.loadGlobalScrollSettings(nativeGlobal);
+        check("native global scroll values remain authoritative", AppleSettings.scrollSpeed == 150
+                && AppleSettings.smoothScrolling);
+    }
+
+    private static void mouseSettingsCompatibility() {
+        AppleSettings.disableHotbarScrolling = true;
+        AppleSettings.loadMouseSettings(new Properties());
+        check("old config keeps hotbar wheel scrolling enabled", !AppleSettings.disableHotbarScrolling);
+
+        Properties stored = new Properties();
+        stored.setProperty("mouse.disableHotbarScrolling", "true");
+        AppleSettings.loadMouseSettings(stored);
+        check("hotbar wheel choice loads", AppleSettings.disableHotbarScrolling);
+        Properties saved = new Properties();
+        AppleSettings.saveMouseSettings(saved);
+        check("hotbar wheel choice has one stable key",
+                "true".equals(saved.getProperty("mouse.disableHotbarScrolling")) && saved.size() == 1);
+    }
+
+    private static void particleSettingsCompatibility() {
+        AppleSettings.noBlockParticles = false;
+        AppleSettings.loadParticleSettings(new Properties());
+        check("fresh config hides block particles", AppleSettings.noBlockParticles);
+
+        Properties stored = new Properties();
+        stored.setProperty("particles.noBlockParticles", "true");
+        AppleSettings.loadParticleSettings(stored);
+        check("no-block-particles choice loads", AppleSettings.noBlockParticles);
+        Properties saved = new Properties();
+        AppleSettings.saveParticleSettings(saved);
+        check("no-block-particles has one stable key",
+                "true".equals(saved.getProperty("particles.noBlockParticles")) && saved.size() == 1);
+        Properties establishedWithoutParticleChoice = new Properties();
+        establishedWithoutParticleChoice.setProperty("config.version", "2");
+        AppleSettings.loadParticleSettings(establishedWithoutParticleChoice);
+        check("missing visual key in established config keeps vanilla particles", !AppleSettings.noBlockParticles);
+    }
+
+    /** Additive palette choice must survive save/load while old configs retain the existing forest/cyan shell. */
+    private static void settingsThemePersistence() {
+        AppleSettings.settingsTheme = AppleSettings.SETTINGS_THEME_BLACK_BLUE;
+        AppleSettings.loadSettingsTheme(new Properties());
+        check("missing legacy theme key keeps the established Forest and Cyan shell",
+                AppleSettings.settingsTheme == AppleSettings.DEFAULT_SETTINGS_THEME && !AppleSettings.isBlackBlueTheme());
+
+        Properties stored = new Properties();
+        stored.setProperty("appearance.settingsTheme", "1");
+        AppleSettings.loadSettingsTheme(stored);
+        check("Black and Blue selection loads", AppleSettings.settingsTheme == AppleSettings.SETTINGS_THEME_BLACK_BLUE
+                && AppleSettings.isBlackBlueTheme());
+
+        Properties written = new Properties();
+        AppleSettings.saveSettingsTheme(written);
+        check("Black and Blue selection has one stable persisted key",
+                "1".equals(written.getProperty("appearance.settingsTheme")) && written.size() == 1);
+
+        Properties invalid = new Properties();
+        invalid.setProperty("appearance.settingsTheme", "99");
+        AppleSettings.loadSettingsTheme(invalid);
+        check("theme selection is bounded", AppleSettings.settingsTheme == AppleSettings.SETTINGS_THEME_BLACK_BLUE);
+        AppleSettings.settingsTheme = AppleSettings.DEFAULT_SETTINGS_THEME;
+    }
+
+    /** The compact/fullscreen shell choice is additive and leaves old properties safe by default. */
+    private static void settingsWindowLayoutPersistence() {
+        AppleSettings.settingsWindowFullscreen = true;
+        AppleSettings.loadSettingsWindowLayout(new Properties());
+        check("missing shell layout key opens the compact responsive window", !AppleSettings.settingsWindowFullscreen);
+        Properties stored = new Properties();
+        stored.setProperty("settings.window.fullscreen", "true");
+        AppleSettings.loadSettingsWindowLayout(stored);
+        check("old fullscreen choice migrates once to compact", !AppleSettings.settingsWindowFullscreen);
+        Properties saved = new Properties();
+        AppleSettings.saveSettingsWindowLayout(saved);
+        check("compact migration persists a versioned shell choice",
+                "false".equals(saved.getProperty("settings.window.fullscreen"))
+                        && Integer.toString(AppleSettings.CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION).equals(
+                                saved.getProperty(AppleSettings.SETTINGS_WINDOW_LAYOUT_VERSION_KEY)) && saved.size() == 2);
+        Properties explicitFullscreen = new Properties();
+        explicitFullscreen.setProperty(AppleSettings.SETTINGS_WINDOW_LAYOUT_VERSION_KEY,
+                Integer.toString(AppleSettings.CURRENT_SETTINGS_WINDOW_LAYOUT_VERSION));
+        explicitFullscreen.setProperty("settings.window.fullscreen", "true");
+        AppleSettings.loadSettingsWindowLayout(explicitFullscreen);
+        check("post-migration explicit fullscreen choice still loads", AppleSettings.settingsWindowFullscreen);
+        AppleSettings.settingsWindowFullscreen = AppleSettings.DEFAULT_SETTINGS_WINDOW_FULLSCREEN;
+    }
+
+    /** The refreshed UI must retain the existing optional glass keys and honor old saved values. */
+    private static void guiTransparencyLegacyCompatibility() {
+        Properties legacy = new Properties();
+        legacy.setProperty("glassOpacityOn", "false");
+        legacy.setProperty("glassOpacity", "60");
+        AppleSettings.glassOpacityOn = true;
+        AppleSettings.glassOpacity = AppleSettings.DEFAULT_GLASS_OPACITY;
+        AppleSettings.loadAppearanceSettings(legacy);
+        check("legacy GUI opacity toggle and value load through their original keys",
+                !AppleSettings.glassOpacityOn && AppleSettings.glassOpacity == 60);
+
+        Properties refreshed = new Properties();
+        refreshed.setProperty("glassOpacityOn", "true");
+        refreshed.setProperty("glassOpacity", "45");
+        AppleSettings.loadAppearanceSettings(refreshed);
+        check("refreshed custom transparency accepts the useful lower glass bound",
+                AppleSettings.glassOpacityOn && AppleSettings.glassOpacity == AppleSettings.MIN_GLASS_OPACITY);
+
+        Properties written = new Properties();
+        AppleSettings.saveAppearanceSettings(written);
+        check("custom GUI transparency saves its established key pair",
+                "true".equals(written.getProperty("glassOpacityOn"))
+                        && "45".equals(written.getProperty("glassOpacity")));
+        AppleSettings.glassOpacityOn = true;
+        AppleSettings.glassOpacity = AppleSettings.DEFAULT_GLASS_OPACITY;
+    }
+
+    /** Exercises the same order used by AppleSettings.load without requiring a Minecraft data directory. */
+    private static void configurationVersionMigration() {
+        Properties oldSavedConfig = new Properties();
+        oldSavedConfig.setProperty("chat.qol.messages.compact", "false");
+        oldSavedConfig.setProperty("particles.noBlockParticles", "false");
+        AppleSettings.loadParticleSettings(oldSavedConfig);
+        AppleSettings.loadChatSettings(oldSavedConfig);
+        check("old explicit values load before schema marker", !AppleSettings.noBlockParticles
+                && !ChatQolSettings.compactMessages);
+        check("older schema is marked without promoting saved choices",
+                AppleSettings.applyConfigurationVersionUpgrade(oldSavedConfig)
+                        && !AppleSettings.noBlockParticles && !ChatQolSettings.compactMessages);
+
+        Properties migrated = new Properties();
+        AppleSettings.saveConfigurationVersion(migrated);
+        AppleSettings.saveParticleSettings(migrated);
+        AppleSettings.saveChatSettings(migrated);
+        check("migration save records schema and retains explicit values",
+                Integer.toString(AppleSettings.CURRENT_CONFIG_VERSION).equals(
+                        migrated.getProperty(AppleSettings.CONFIG_VERSION_KEY))
+                        && "false".equals(migrated.getProperty("particles.noBlockParticles"))
+                        && "false".equals(migrated.getProperty("chat.qol.messages.compact")));
+
+        AppleSettings.loadParticleSettings(migrated);
+        AppleSettings.loadChatSettings(migrated);
+        check("current schema does not reapply the migration", !AppleSettings.applyConfigurationVersionUpgrade(migrated));
+        check("saved OFF choices survive a restart", !AppleSettings.noBlockParticles
+                && !ChatQolSettings.compactMessages);
+    }
+
+    /** Existing 200% saves remain valid while the new UI/runtime accepts up to 500%. */
+    private static void dungeonMapHeadAndZoomBounds() {
+        int oldZoom = AppleSettings.dungeonMapZoom;
+        int oldHeadSize = AppleSettings.dungeonMapPlayerHeadSize;
+        boolean oldHeads = AppleSettings.dungeonMapPlayerHeads;
+        int oldBackgroundOpacity = AppleSettings.dungeonMapBackgroundOpacity;
+        int oldBackgroundColor = AppleSettings.dungeonMapBackgroundColor;
+        int oldRoomColor = AppleSettings.dungeonMapRoomNameColor;
+        int oldSecretsColor = AppleSettings.dungeonMapSecretsColor;
+        try {
+            AppleSettings.dungeonMapZoom = 200;
+            check("existing 200 percent dungeon-map zoom remains valid", AppleSettings.effectiveDungeonMapZoom() == 200);
+            AppleSettings.dungeonMapZoom = 500;
+            check("dungeon-map zoom now accepts 500 percent", AppleSettings.DUNGEON_MAP_ZOOM_MAX == 500
+                    && AppleSettings.effectiveDungeonMapZoom() == 500 && AppleSettings.dungeonMapZoomFactor() == 5.0F);
+            AppleSettings.dungeonMapZoom = 999;
+            check("invalid high dungeon-map zoom still clamps safely", AppleSettings.effectiveDungeonMapZoom() == 500);
+            AppleSettings.dungeonMapPlayerHeads = true;
+            AppleSettings.dungeonMapPlayerHeadSize = 8;
+            check("Player Heads default-on settings expose the native default size", AppleSettings.dungeonMapPlayerHeads
+                    && AppleSettings.effectiveDungeonMapPlayerHeadSize() == 8);
+            AppleSettings.dungeonMapPlayerHeadSize = 99;
+            check("Player Head Size clamps to its supported maximum", AppleSettings.effectiveDungeonMapPlayerHeadSize()
+                    == AppleSettings.DUNGEON_MAP_PLAYER_HEAD_SIZE_MAX);
+            AppleSettings.dungeonMapBackgroundOpacity = 999;
+            AppleSettings.dungeonMapBackgroundColor = -2;
+            AppleSettings.dungeonMapRoomNameColor = 999;
+            AppleSettings.dungeonMapSecretsColor = 1;
+            check("map backing opacity and palette choices clamp safely", AppleSettings.effectiveDungeonMapBackgroundOpacity()
+                    == AppleSettings.DUNGEON_MAP_BACKGROUND_OPACITY_MAX
+                    && AppleSettings.effectiveDungeonMapBackgroundColor() == AppleSettings.DUNGEON_MAP_BACKGROUND_COLORS[0]
+                    && AppleSettings.effectiveDungeonMapRoomNameColor()
+                    == AppleSettings.effectiveDungeonMapLabelColor(AppleSettings.DUNGEON_MAP_LABEL_COLORS.length - 1)
+                    && AppleSettings.effectiveDungeonMapSecretsColor() == AppleSettings.DUNGEON_MAP_LABEL_COLORS[1]);
+        } finally {
+            AppleSettings.dungeonMapZoom = oldZoom;
+            AppleSettings.dungeonMapPlayerHeadSize = oldHeadSize;
+            AppleSettings.dungeonMapPlayerHeads = oldHeads;
+            AppleSettings.dungeonMapBackgroundOpacity = oldBackgroundOpacity;
+            AppleSettings.dungeonMapBackgroundColor = oldBackgroundColor;
+            AppleSettings.dungeonMapRoomNameColor = oldRoomColor;
+            AppleSettings.dungeonMapSecretsColor = oldSecretsColor;
+        }
+    }
+
+    private static void dungeonHudPreferencePersistence() {
+        boolean oldScore = AppleSettings.dungeonScoreShowScore;
+        boolean oldCrypts = AppleSettings.dungeonScoreShowCrypts;
+        boolean oldDeaths = AppleSettings.dungeonScoreShowDeaths;
+        boolean oldTime = AppleSettings.dungeonScoreShowRunTime;
+        boolean oldSound = AppleSettings.dungeonRoomClearSound;
+        int oldDuration = AppleSettings.dungeonRoomClearDurationMillis;
+        boolean oldClose = AppleSettings.dungeonAutoChestClose;
+        try {
+            Properties values = new Properties();
+            values.setProperty("dungeonHud.score", "false");
+            values.setProperty("dungeonHud.crypts", "false");
+            values.setProperty("dungeonHud.deaths", "true");
+            values.setProperty("dungeonHud.runTime", "true");
+            values.setProperty("dungeonHud.roomClearSound", "true");
+            values.setProperty("dungeonHud.roomClearDurationMillis", "99999");
+            values.setProperty("dungeonHud.autoChestClose", "true");
+            AppleSettings.loadDungeonHudSettings(values);
+            check("Dungeon HUD line and sound choices load from additive keys", !AppleSettings.dungeonScoreShowScore
+                    && !AppleSettings.dungeonScoreShowCrypts && AppleSettings.dungeonScoreShowDeaths
+                    && AppleSettings.dungeonScoreShowRunTime && AppleSettings.dungeonRoomClearSound);
+            check("Dungeon room-clear duration is bounded on load", AppleSettings.dungeonRoomClearDurationMillis
+                    == AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS);
+            check("Auto Chest Close explicit saved opt-in loads", AppleSettings.dungeonAutoChestClose);
+            AppleSettings.dungeonRoomClearDurationMillis = -10;
+            check("direct invalid room-clear duration is bounded at use", AppleSettings.effectiveDungeonRoomClearDurationMillis()
+                    == AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS);
+            Properties saved = new Properties();
+            AppleSettings.saveDungeonHudSettings(saved);
+            check("Dungeon HUD keys save without a map/HUD placement rewrite", saved.size() == 7
+                    && "false".equals(saved.getProperty("dungeonHud.score"))
+                    && "500".equals(saved.getProperty("dungeonHud.roomClearDurationMillis"))
+                    && "true".equals(saved.getProperty("dungeonHud.autoChestClose")));
+            AppleSettings.loadDungeonHudSettings(new Properties());
+            check("missing Dungeon HUD keys restore documented safe defaults", AppleSettings.dungeonScoreShowScore
+                    && AppleSettings.dungeonScoreShowCrypts && AppleSettings.dungeonScoreShowDeaths
+                    && AppleSettings.dungeonScoreShowRunTime && !AppleSettings.dungeonRoomClearSound
+                    && AppleSettings.dungeonRoomClearDurationMillis == AppleSettings.DEFAULT_DUNGEON_ROOM_CLEAR_DURATION_MILLIS
+                    && !AppleSettings.dungeonAutoChestClose);
+        } finally {
+            AppleSettings.dungeonScoreShowScore = oldScore;
+            AppleSettings.dungeonScoreShowCrypts = oldCrypts;
+            AppleSettings.dungeonScoreShowDeaths = oldDeaths;
+            AppleSettings.dungeonScoreShowRunTime = oldTime;
+            AppleSettings.dungeonRoomClearSound = oldSound;
+            AppleSettings.dungeonRoomClearDurationMillis = oldDuration;
+            AppleSettings.dungeonAutoChestClose = oldClose;
         }
     }
 

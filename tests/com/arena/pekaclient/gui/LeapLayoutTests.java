@@ -10,7 +10,7 @@ public final class LeapLayoutTests {
         referenceProportions();
         twoColumnGridFitsAcrossResolutions();
         headAndTextStayInsideCards();
-        rowsFitWithPreviewInset();
+        rowsFitWithReservedTopInset();
         completeNamesFitWithoutClipping();
         roundedCardHitTesting();
         textSizesAreProminentAndOrdered();
@@ -92,7 +92,7 @@ public final class LeapLayoutTests {
         }
     }
 
-    private static void rowsFitWithPreviewInset() {
+    private static void rowsFitWithReservedTopInset() {
         for (int width = 320; width <= 1920; width += 160) {
             for (int height = 180; height <= 1080; height += 60) {
                 for (int rows = 1; rows <= 4; rows++) {

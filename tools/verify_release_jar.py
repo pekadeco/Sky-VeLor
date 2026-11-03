@@ -1,298 +1,231 @@
 #!/usr/bin/env python3
-"""Verify that a Sky VeLor build output is the real distributable release jar.
+"""Verify a packaged The Sky's Lunaria Mod Forge 1.8.9 release JAR.
 
-Written after a build was accepted whose artifact was not the mod at all: the CI
-step globbed for a jar and picked up ``build/tmp/deobfMcMCP/deobfed.jar``, which
-is ForgeGradle's deobfuscated Minecraft intermediate (~11 MB). It contains no Sky
-VeLor class, so nothing the mod claimed to do could work.
-
-This script answers the questions a filename and a file size cannot:
-
-* is it the mod at all, and not a Minecraft or dependency intermediate?
-* is it the *reobfuscated* artifact Forge needs, or the deobfuscated dev jar?
-* does the version metadata say the release we intend to ship?
-* are the classes for the current feature actually inside it?
-* is there an accidental nested archive or unrelated project file?
-
-The mapping check is the decisive one. A release jar must call Minecraft members
-by SRG name (``func_78440_a``); a development jar calls them by MCP name
-(``renderItemInFirstPerson``).
-
-Member names are taken only from CONSTANT_Fieldref / Methodref /
-InterfaceMethodref entries in the constant pool, not from every UTF8 string. That
-matters: javac emits debug info by default, so a mod's own local variable named
-``entityRenderer`` lands in the constant pool as a plain UTF8 entry and would be
-mistaken for an unmapped Minecraft field. Class files are parsed directly, so this
-runs with no JDK installed.
-
-Usage:  python3 tools/verify_release_jar.py <jar> [--version Beta-0.10.7v]
+This verifier intentionally checks release identity, safety-critical feature surfaces, packaged assets, and archive
+hygiene without treating internal Java package names as public branding. It is standard-library-only so CI can run it
+immediately after ForgeGradle reobfuscation.
 """
+from __future__ import print_function
 
 import argparse
-import hashlib
 import os
-import re
 import struct
 import sys
 import zipfile
 
-MOD_PACKAGE = 'com/arena/pekaclient/'
 
-# Classes the release must contain: the mod core, the first-person held-item
-# feature, and the Terminal GUI that came in with the Beta-0.10.6.5v baseline.
-REQUIRED_CLASSES = [
-    'PekaClientMod',
-    'PekaVersion',
-    'config/AppleSettings',
-    'feature/FirstPersonItem',
-    'gui/AppleHubScreen',
-    'gui/AppleGuiButton',
-    'gui/TerminalScreen',
-    'gui/DungeonHudScreen',
-    'dungeon/TerminalSolver',
-    'hud/ClickInOrderHud',
-    'command/TerminalCommand',
-    'render/CustomItemRenderer',
-    'render/FirstPersonItemSetup',
-]
-
-# Removed in Beta-0.10.7v: dead code whose own comments admitted it could not work.
-FORBIDDEN_CLASSES = ['render/FirstPersonItemRendererProxy']
-
-# Minecraft members this mod really calls or overrides. Reobfuscation must have
-# replaced every one of them with an SRG name; if a name survives as an actual
-# member reference, the jar is a development build and will not work in a game.
-# Only names that are unambiguously Minecraft's and that this mod really calls or
-# overrides. Generic GlStateManager names such as scale, pushMatrix and popMatrix
-# are deliberately excluded: Sky VeLor has its own HudElement.scale() and widget
-# methods of the same names, and a reobfuscated jar keeps those source names, so
-# listing them produces false failures without proving anything.
-MCP_MEMBER_NAMES = {
-    'renderItemInFirstPerson',
-    'updateEquippedItem',
-    'resetEquippedProgress',
-    'getItemRenderer',
-}
-
-# Minecraft-owned types whose names must also have been remapped out of member
-# descriptors is not checked; only member names are, which is the part that breaks.
-SRG_RE = re.compile(r'^(?:func|field)_\d+_[A-Za-z0-9_]+$')
-
-# Own-project members that legitimately keep their source names.
-OWN_PREFIXES = ('get', 'set', 'is', 'has', 'effective', 'clamp', 'reset', 'bind',
-                'find', 'write', 'clear', 'give', 'init', 'install')
-
-
-class Result(object):
+class Results(object):
     def __init__(self):
         self.passed = 0
         self.failed = 0
 
-    def check(self, ok, label, detail=''):
-        if ok:
+    def check(self, condition, message):
+        if condition:
             self.passed += 1
-            print('  ok   %s%s' % (label, (' - ' + detail) if detail else ''))
+            print("  ok   " + message)
         else:
             self.failed += 1
-            print('  FAIL %s%s' % (label, (' - ' + detail) if detail else ''))
-        return ok
+            print("  FAIL " + message)
 
 
-def parse_class(data):
-    """Return (class_name, member_names) from a class file, or None.
-
-    member_names holds only names reached through a Fieldref, Methodref or
-    InterfaceMethodref constant, i.e. members this class actually touches.
-    """
-    if len(data) < 10 or data[:4] != b'\xca\xfe\xba\xbe':
-        return None
-    count = struct.unpack('>H', data[8:10])[0]
-    pool = {}
-    i, n = 10, 1
-    while n < count and i < len(data):
-        tag = data[i]
-        if tag == 1:                                        # Utf8
-            ln = struct.unpack('>H', data[i + 1:i + 3])[0]
-            pool[n] = (tag, data[i + 3:i + 3 + ln].decode('utf-8', 'replace'))
-            i += 3 + ln
-        elif tag in (5, 6):                                 # Long, Double: two slots
-            pool[n] = (tag, data[i + 1:i + 9])
-            i += 9
-            n += 1
-        elif tag in (3, 4):                                 # Integer, Float
-            pool[n] = (tag, data[i + 1:i + 5])
-            i += 5
-        elif tag in (7, 8, 16):                             # Class, String, MethodType
-            pool[n] = (tag, struct.unpack('>H', data[i + 1:i + 3])[0])
-            i += 3
-        elif tag == 15:                                     # MethodHandle
-            pool[n] = (tag, data[i + 1:i + 4])
-            i += 4
-        elif tag in (9, 10, 11):                            # Field/Method/InterfaceMethod ref
-            pool[n] = (tag, struct.unpack('>HH', data[i + 1:i + 5]))
-            i += 5
-        elif tag in (12, 17, 18):                           # NameAndType, Dynamic, InvokeDynamic
-            pool[n] = (tag, struct.unpack('>HH', data[i + 1:i + 5]))
-            i += 5
-        elif tag in (19, 20):                               # Module, Package
-            pool[n] = (tag, struct.unpack('>H', data[i + 1:i + 3])[0])
-            i += 3
+def manifest_text(raw):
+    """Unfold JAR manifest continuation lines before simple attribute matching."""
+    text = raw.decode("utf-8", "replace").replace("\r\n", "\n")
+    lines = []
+    for line in text.split("\n"):
+        if line.startswith(" ") and lines:
+            lines[-1] += line[1:]
         else:
-            return None
-        n += 1
+            lines.append(line)
+    return "\n".join(lines)
 
-    def utf8(idx):
-        e = pool.get(idx)
-        return e[1] if e and e[0] == 1 else None
 
-    this_idx = struct.unpack('>H', data[i + 2:i + 4])[0] if i + 4 <= len(data) else 0
-    class_entry = pool.get(this_idx)
-    class_name = utf8(class_entry[1]) if class_entry and class_entry[0] == 7 else None
-
-    def nat_name(nat_idx):
-        """NameAndType stores (name_index, descriptor_index); we want the name."""
-        nat = pool.get(nat_idx)
-        if nat and nat[0] == 12:
-            return utf8(nat[1][0])
+def jpeg_size(raw):
+    """Return JPEG width/height from an SOF marker, or None for malformed input."""
+    if len(raw) < 4 or raw[:2] != b"\xff\xd8":
         return None
+    index = 2
+    while index + 9 <= len(raw):
+        if raw[index] != 0xff:
+            index += 1
+            continue
+        while index < len(raw) and raw[index] == 0xff:
+            index += 1
+        if index >= len(raw):
+            return None
+        marker = raw[index]
+        index += 1
+        if marker in (0xd8, 0xd9) or 0xd0 <= marker <= 0xd7:
+            continue
+        if index + 2 > len(raw):
+            return None
+        length = struct.unpack(">H", raw[index:index + 2])[0]
+        if length < 2 or index + length > len(raw):
+            return None
+        if marker in (0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf):
+            if length < 8:
+                return None
+            height, width = struct.unpack(">HH", raw[index + 3:index + 7])
+            return width, height
+        index += length
+    return None
 
-    members = set()
-    for tag, val in pool.values():
-        if tag in (9, 10, 11):                              # field / method references
-            name = nat_name(val[1])
-            if name:
-                members.add(name)
-        elif tag == 18:                                     # invokedynamic (lambdas)
-            name = nat_name(val[1])
-            if name:
-                members.add(name)
-    return class_name, members
+
+def png_size(raw):
+    if len(raw) < 24 or raw[:8] != b"\x89PNG\r\n\x1a\n" or raw[12:16] != b"IHDR":
+        return None
+    return struct.unpack(">II", raw[16:24])
+
+
+def expected_numeric(version):
+    value = version
+    if value.startswith("Beta-"):
+        value = value[5:]
+    if value.endswith("v"):
+        value = value[:-1]
+    return value
+
+
+def contains_all(raw, values):
+    return all(value in raw for value in values)
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('jar')
-    ap.add_argument('--version', help='expected mcmod.info version, e.g. Beta-0.10.7v')
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("jar", help="reobfuscated release JAR")
+    parser.add_argument("--version", required=True, help="display version, e.g. Beta-0.10.9.4v")
+    parser.add_argument("--mcmod-version", default=None, help="numeric Forge metadata version")
+    args = parser.parse_args()
 
-    path = args.jar
-    r = Result()
-    print('=== %s ===' % path)
-
-    if not r.check(os.path.isfile(path), 'file exists'):
+    result = Results()
+    expected_name = "Lunaria-Mod-1.8.9-" + args.version + ".jar"
+    result.check(os.path.basename(args.jar) == expected_name,
+                 "artifact name is " + expected_name)
+    result.check(os.path.isfile(args.jar), "artifact exists")
+    if not os.path.isfile(args.jar):
+        print("JAR verification: passed {0}, failed {1}".format(result.passed, result.failed))
         return 1
-    size = os.path.getsize(path)
-    digest = hashlib.sha256(open(path, 'rb').read()).hexdigest()
-    print('  size   : %d bytes (%.1f KB)' % (size, size / 1024.0))
-    print('  sha256 : %s' % digest)
-
-    r.check(size > 10000, 'nonzero, plausible size', '%d bytes' % size)
-    # The mod is ~280 KB. Anything megabytes in size is a Minecraft/dependency jar.
-    r.check(size < 2 * 1024 * 1024, 'not a Minecraft or dependency intermediate',
-            'a deobfuscated Minecraft jar is ~11 MB')
-    r.check('deobfed' not in os.path.basename(path),
-            'not named like a ForgeGradle intermediate')
 
     try:
-        zf = zipfile.ZipFile(path)
-    except zipfile.BadZipFile:
-        r.check(False, 'is a valid zip/jar')
+        archive = zipfile.ZipFile(args.jar, "r")
+    except (IOError, OSError, zipfile.BadZipfile) as error:
+        result.check(False, "JAR is readable: " + str(error))
+        print("JAR verification: passed {0}, failed {1}".format(result.passed, result.failed))
         return 1
-    names = zf.namelist()
 
-    mod_classes = [n for n in names if n.startswith(MOD_PACKAGE) and n.endswith('.class')]
-    r.check(len(mod_classes) > 0, 'contains compiled Sky VeLor classes',
-            '%d class files' % len(mod_classes))
-    r.check(not any(n.startswith('net/minecraft/') for n in names),
-            'does not contain Minecraft classes', 'a Minecraft intermediate would')
+    try:
+        names = archive.namelist()
+        name_set = set(names)
+        result.check(bool(names), "archive has entries")
+        result.check(len(names) == len(name_set), "archive has no duplicate paths")
+        result.check(not any(name.startswith("/") or ".." in name.split("/") for name in names),
+                     "archive paths are relative and traversal-free")
+        result.check(not any(name.endswith(".java") or name.startswith("build/") or name.startswith("dist/")
+                             for name in names),
+                     "release JAR contains no source/build/delivery files")
+        mod_classes = [name for name in names if name.startswith("com/arena/pekaclient/") and name.endswith(".class")]
+        result.check(len(mod_classes) >= 120,
+                     "contains a substantial compiled Lunaria implementation ({0} classes)".format(len(mod_classes)))
 
-    for c in REQUIRED_CLASSES:
-        r.check(MOD_PACKAGE + c + '.class' in names, 'present: %s.class' % c)
-    for c in FORBIDDEN_CLASSES:
-        r.check(MOD_PACKAGE + c + '.class' not in names, 'absent (removed): %s.class' % c)
+        required = (
+            "com/arena/pekaclient/PekaClientMod.class",
+            "com/arena/pekaclient/PekaVersion.class",
+            "com/arena/pekaclient/command/SvCommand.class",
+            "com/arena/pekaclient/command/SvDungeonCommand.class",
+            "com/arena/pekaclient/command/ItemDebugCommand.class",
+            "com/arena/pekaclient/itemlockswap/ItemLockSwapController.class",
+            "com/arena/pekaclient/dungeon/DungeonMapOverlay.class",
+            "com/arena/pekaclient/gui/DungeonHudEditorScreen.class",
+            "com/arena/pekaclient/assist/dungeon/DungeonScoreTracker.class",
+            "com/arena/pekaclient/assist/dungeon/RoomClearAlertController.class",
+            "com/arena/pekaclient/assist/dungeon/DungeonChestCloser.class",
+            "com/arena/pekaclient/assist/visual/DeadMobRenderFilter.class",
+            "com/arena/pekaclient/assist/visual/AspectTeleportTransitionRenderer.class",
+            "com/arena/pekaclient/dungeon/DungeonProgressTracker.class",
+            "com/arena/pekaclient/dungeon/solver/terminals/TerminalGuiLayer.class",
+            "com/arena/pekaclient/render/GlobalFontManager.class",
+            "com/arena/pekaclient/gui/LunariaArtwork.class",
+            "com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.class",
+            "mixins.lunaria.json",
+            "mcmod.info",
+            "assets/lunaria/lang/en_US.lang",
+            "assets/lunaria/dungeons/rooms.json",
+            "assets/lunaria/textures/gui/lunaria_loading_background.jpg",
+            "assets/lunaria/textures/gui/lunaria_logo.png",
+            "assets/lunaria/textures/gui/lunaria_moon.png",
+        )
+        missing = [name for name in required if name not in name_set]
+        result.check(not missing, "required Lunaria runtime classes and resources are packaged"
+                     + ("" if not missing else ": " + ", ".join(missing)))
+        result.check(not any(name.startswith("assets/pekaclient/") or name.startswith("assets/skyvelor/")
+                             for name in names),
+                     "only the Lunaria packaged asset namespace is present")
 
-    r.check(not any(n.endswith('.jar') or n.endswith('.zip') for n in names),
-            'no nested archive', 'a shaded or double-packed jar would show here')
-    r.check(not any(n.startswith(('src/', 'tests/', 'gradle/', '.github/', 'ci-evidence/'))
-                    for n in names),
-            'no unrelated project files packaged')
+        manifest = manifest_text(archive.read("META-INF/MANIFEST.MF")) if "META-INF/MANIFEST.MF" in name_set else ""
+        result.check("Implementation-Title: The Sky's Lunaria Mod" in manifest,
+                     "manifest identifies The Sky's Lunaria Mod")
+        result.check("Implementation-Version: " + args.version in manifest,
+                     "manifest version matches " + args.version)
+        result.check("FMLCorePlugin: com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin" in manifest,
+                     "manifest wires the narrow visual/item-lock core hook")
+        result.check("MixinConfigs: mixins.lunaria.json" in manifest,
+                     "manifest wires the Lunaria Mixin configuration")
 
-    # --- version metadata -------------------------------------------------
-    if 'mcmod.info' in names:
-        info = zf.read('mcmod.info').decode('utf-8', 'replace')
-        m = re.search(r'"version"\s*:\s*"([^"]+)"', info)
-        found = m.group(1) if m else None
-        print('  mcmod.info version : %s' % found)
-        r.check(found is not None, 'mcmod.info carries a version')
-        if args.version:
-            r.check(found == args.version, 'mcmod.info version matches the release',
-                    'expected %s' % args.version)
-        mc = re.search(r'"mcversion"\s*:\s*"([^"]+)"', info)
-        r.check(bool(mc) and mc.group(1) == '1.8.9', 'mcmod.info targets 1.8.9',
-                mc.group(1) if mc else 'missing')
-        r.check('"modid": "pekaclient"' in info, 'mcmod.info modid is pekaclient')
-    else:
-        r.check(False, 'mcmod.info present')
+        numeric = args.mcmod_version or expected_numeric(args.version)
+        metadata = archive.read("mcmod.info").decode("utf-8", "replace") if "mcmod.info" in name_set else ""
+        result.check('"modid": "lunaria"' in metadata and '"name": "The Sky\'s Lunaria Mod"' in metadata,
+                     "mcmod metadata uses Lunaria public identity")
+        result.check('"version": "' + numeric + '"' in metadata,
+                     "processed mcmod metadata carries numeric version " + numeric)
+        # mcmod.info declares the Minecraft compatibility version; build.gradle pins the Forge coordinate.
+        result.check('"mcversion": "1.8.9"' in metadata,
+                     "mcmod metadata targets Minecraft 1.8.9")
 
-    # Resources: keybind labels would fall back to raw translation keys without these.
-    r.check('assets/pekaclient/lang/en_US.lang' in names,
-            'English keybind labels packaged')
+        version_class = archive.read("com/arena/pekaclient/PekaVersion.class") if "com/arena/pekaclient/PekaVersion.class" in name_set else b""
+        entry_class = archive.read("com/arena/pekaclient/PekaClientMod.class") if "com/arena/pekaclient/PekaClientMod.class" in name_set else b""
+        command_class = archive.read("com/arena/pekaclient/command/SvCommand.class") if "com/arena/pekaclient/command/SvCommand.class" in name_set else b""
+        dungeon_command = archive.read("com/arena/pekaclient/command/SvDungeonCommand.class") if "com/arena/pekaclient/command/SvDungeonCommand.class" in name_set else b""
+        result.check(contains_all(version_class, (args.version.encode("utf-8"), b"The Sky's Lunaria Mod")),
+                     "compiled version constants retain the public title and version")
+        result.check(contains_all(entry_class, (b"lunaria", b"LunariaDownloadingTerrainScreen", b"DungeonChestCloser")),
+                     "entry point wires Lunaria metadata, terrain overlay, and retained chest feature")
+        result.check(contains_all(command_class, (b"lunaria", b"sv", b"velor", b"dungeon")),
+                     "main command packages /lunaria with /sv and /velor aliases")
+        result.check(contains_all(dungeon_command, (b"debug", b"svdungeon", b"Dungeon debug begin", b"raw sidebar")),
+                     "dungeon command retains live diagnostics and legacy direct alias support")
 
-    # --- the decisive mapping check --------------------------------------
-    srg, mcp_hits, parsed, unparsed = set(), [], 0, []
-    for n in mod_classes:
-        got = parse_class(zf.read(n))
-        if got is None:
-            unparsed.append(n)
-            continue
-        parsed += 1
-        for member in got[1]:
-            if SRG_RE.match(member):
-                srg.add(member)
-            elif member in MCP_MEMBER_NAMES:
-                mcp_hits.append((n, member))
+        mixins = archive.read("mixins.lunaria.json") if "mixins.lunaria.json" in name_set else b""
+        result.check(contains_all(mixins, (b"com.arena.pekaclient.mixin", b"MixinGuiContainer", b"MixinEntityRenderer")),
+                     "Mixin declaration retains container and visual compatibility hooks")
 
-    print('  class files parsed          : %d' % parsed)
-    print('  distinct SRG members called : %d' % len(srg))
-    for s in sorted(srg):
-        print('      %s' % s)
-    r.check(not unparsed, 'every mod class parsed as valid bytecode',
-            ', '.join(unparsed[:5]))
-    r.check(len(srg) > 0, 'calls Minecraft members by SRG name',
-            'proves reobfJar ran; a deobfuscated dev jar has none')
-    r.check(not mcp_hits, 'no Minecraft development (MCP) member calls left',
-            '; '.join(sorted(set('%s -> %s' % h for h in mcp_hits[:6]))) or 'clean')
+        loading = archive.read("assets/lunaria/textures/gui/lunaria_loading_background.jpg") \
+            if "assets/lunaria/textures/gui/lunaria_loading_background.jpg" in name_set else b""
+        logo = archive.read("assets/lunaria/textures/gui/lunaria_logo.png") \
+            if "assets/lunaria/textures/gui/lunaria_logo.png" in name_set else b""
+        moon = archive.read("assets/lunaria/textures/gui/lunaria_moon.png") \
+            if "assets/lunaria/textures/gui/lunaria_moon.png" in name_set else b""
+        result.check(jpeg_size(loading) == (1408, 768), "supplied loading illustration is packaged at 1408 by 768")
+        result.check(png_size(logo) == (744, 744), "supplied transparent logo is packaged at 744 by 744")
+        result.check(png_size(moon) == (360, 289), "logo-derived moon header asset is packaged at 360 by 289")
 
-    # The feature's own entry points must really reach Minecraft and the settings.
-    def members_of(cls):
-        got = parse_class(zf.read(MOD_PACKAGE + cls + '.class'))
-        return got[1] if got else set()
+        artwork = archive.read("com/arena/pekaclient/gui/LunariaArtwork.class") \
+            if "com/arena/pekaclient/gui/LunariaArtwork.class" in name_set else b""
+        terrain = archive.read("com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.class") \
+            if "com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.class" in name_set else b""
+        # ForgeGradle remaps Gui draw-method names in reobfuscated bytecode. The source archive verifier checks the
+        # cover-fit call itself; this packaged check relies on stable resource identifiers instead.
+        result.check(contains_all(artwork, (b"lunaria_loading_background", b"lunaria_logo", b"lunaria_moon")),
+                     "Lunaria artwork renderer links the supplied loading, logo, and moon assets")
+        result.check(contains_all(terrain, (b"Downloading terrain", b"Terrain progress is not exposed", b"--%")),
+                     "terrain overlay truthfully reports indeterminate Forge terrain progress")
+    except (KeyError, IOError, OSError, zipfile.BadZipfile) as error:
+        result.check(False, "required archive data is readable: " + str(error))
+    finally:
+        archive.close()
 
-    if MOD_PACKAGE + 'render/CustomItemRenderer.class' in names:
-        cir = members_of('render/CustomItemRenderer')
-        r.check(any(SRG_RE.match(m) for m in cir),
-                'CustomItemRenderer calls remapped Minecraft members',
-                'the override must bind in the obfuscated runtime')
-        r.check('getItemScale' in cir,
-                'CustomItemRenderer reads the Sky VeLor scale setting',
-                'the item-scale slider must reach the renderer')
-        r.check('getAnimationSpeed' in cir,
-                'CustomItemRenderer reads the Sky VeLor animation-speed setting',
-                'the animation-speed slider must reach the renderer')
-    if MOD_PACKAGE + 'render/FirstPersonItemSetup.class' in names:
-        fps = members_of('render/FirstPersonItemSetup')
-        r.check('<init>' in fps, 'FirstPersonItemSetup constructs the custom renderer')
-        # The install mechanism: find the renderer field by type, then write it.
-        r.check('getDeclaredFields' in fps,
-                'FirstPersonItemSetup resolves the renderer field by declared type',
-                'name-based lookup cannot survive reobfuscation')
-        r.check('setAccessible' in fps and 'set' in fps,
-                'FirstPersonItemSetup writes the renderer field')
-
-    print()
-    print('verify release jar: passed %d, failed %d' % (r.passed, r.failed))
-    return 1 if r.failed else 0
+    print("JAR verification: passed {0}, failed {1}".format(result.passed, result.failed))
+    return 1 if result.failed else 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

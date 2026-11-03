@@ -19,9 +19,13 @@ public final class ConfigTests {
 
     public static void main(String[] args) throws IOException {
         validValuesLoad();
+        dungeonRunHudIsMovableAndOptIn();
+        dungeonScoreAndRoomAlertStayBorderlessAndPersistent();
         invalidValuesFallBack();
         outOfRangeIsClamped();
-        legacyFileLoads();
+        legacyPlacementLoadsForActiveHud();
+        retiredHotbarIsNotRegistered();
+        retiredMetricAndDollarsKeysAreIgnoredWithoutAnyMetricHudRegistration();
         saveLoadRoundTrip();
 
         System.out.println();
@@ -60,6 +64,54 @@ public final class ConfigTests {
         check("mining window", m.windowSeconds() == 10 && m.decimals == 1 && m.label == 2, "window/decimals/label");
     }
 
+    private static void dungeonRunHudIsMovableAndOptIn() throws IOException {
+        DungeonRunHud hud = new DungeonRunHud();
+        check("Dungeon Run HUD defaults off", !hud.enabled, "enabled=" + hud.enabled);
+        check("Dungeon Run HUD has a stable movable id", "dungeonRun".equals(hud.id)
+                && hud.place.anchorX == Anchor.END && hud.place.anchorY == Anchor.START, hud.place.toString());
+        hud.load(parse("dungeonRun.enabled=true\ndungeonRun.ax=CENTER\ndungeonRun.ox=20\n"));
+        check("Dungeon Run HUD loads normal shared HUD placement", hud.enabled
+                && hud.place.anchorX == Anchor.CENTER && hud.place.offsetX == 20, hud.place.toString());
+        boolean registered = false;
+        for (HudElement element : HudManager.ELEMENTS) if (element == HudManager.DUNGEON_RUN) registered = true;
+        check("Dungeon Run HUD is registered with the existing HUD editor", registered, "registered=" + registered);
+    }
+
+    private static void dungeonScoreAndRoomAlertStayBorderlessAndPersistent() throws IOException {
+        DungeonScoreHud score = new DungeonScoreHud();
+        RoomClearAlertHud alert = new RoomClearAlertHud();
+        check("Dungeon Score HUD defaults on so a detected dungeon cannot start with a missing readout", score.enabled,
+                "enabled=" + score.enabled);
+        DungeonScoreHud migratedScore = new DungeonScoreHud();
+        migratedScore.load(parse("dungeonScore.enabled=false\n"));
+        check("old accidental score-HUD default is migrated on once", migratedScore.enabled,
+                "enabled=" + migratedScore.enabled);
+        DungeonScoreHud explicitOffScore = new DungeonScoreHud();
+        explicitOffScore.load(parse("dungeonScore.enabled=false\ndungeonScore.visibleDefaultV2=true\n"));
+        check("post-migration explicit score-HUD off choice is preserved", !explicitOffScore.enabled,
+                "enabled=" + explicitOffScore.enabled);
+        check("Room Clear Alert defaults off", !alert.enabled, "enabled=" + alert.enabled);
+        score.load(parse("dungeonScore.enabled=true\ndungeonScore.visibleDefaultV2=true\ndungeonScore.bg=true\ndungeonScore.border=true\n"
+                + "dungeonScore.ax=CENTER\ndungeonScore.ox=12\n"));
+        alert.load(parse("roomClearAlert.enabled=true\nroomClearAlert.bg=true\nroomClearAlert.border=true\n"
+                + "roomClearAlert.scale=130\n"));
+        check("Dungeon Score HUD persists normal placement and enable state", score.enabled
+                && score.place.anchorX == Anchor.CENTER && score.place.offsetX == 12, score.place.toString());
+        check("Dungeon Score HUD forces no background or border", !score.background && !score.border,
+                "bg=" + score.background + " border=" + score.border);
+        check("Room Clear Alert keeps size while forcing no background or border", alert.enabled
+                && Math.abs(alert.scale - 1.3F) < 1e-6 && !alert.background && !alert.border,
+                "scale=" + alert.scale + " bg=" + alert.background + " border=" + alert.border);
+        boolean scoreRegistered = false;
+        boolean alertRegistered = false;
+        for (HudElement element : HudManager.DUNGEON_EDITOR_ELEMENTS) {
+            if (element == HudManager.DUNGEON_SCORE) scoreRegistered = true;
+            if (element == HudManager.ROOM_CLEAR_ALERT) alertRegistered = true;
+        }
+        check("dedicated Dungeon HUD Editor owns score and alert targets", scoreRegistered && alertRegistered,
+                "score=" + scoreRegistered + " alert=" + alertRegistered);
+    }
+
     private static void invalidValuesFallBack() throws IOException {
         MiningHud m = new MiningHud();
         HudPlacement def = m.place.copy();
@@ -91,12 +143,41 @@ public final class ConfigTests {
         check("large offset clamped to MAX", m.place.offsetX == HudPlacement.MAX_OFFSET, "offset " + m.place.offsetX);
     }
 
-    private static void legacyFileLoads() throws IOException {
-        // Written by an earlier build: raw x and y with centre flags.
-        DollarsHud d = new DollarsHud();
-        d.load(parse("dollars.x=-6\ndollars.y=6\ndollars.cx=false\ndollars.cy=false\n"));
-        check("legacy right edge", d.place.anchorX == Anchor.END && d.place.offsetX == 6, d.place.toString());
-        check("legacy top", d.place.anchorY == Anchor.START && d.place.offsetY == 6, d.place.toString());
+    private static void legacyPlacementLoadsForActiveHud() throws IOException {
+        // Raw x/y with centre flags remain supported for active HUD elements that were not retired.
+        MiningHud mining = new MiningHud();
+        mining.load(parse("mining.x=-6\nmining.y=6\nmining.cx=false\nmining.cy=false\n"));
+        check("legacy right edge", mining.place.anchorX == Anchor.END && mining.place.offsetX == 6, mining.place.toString());
+        check("legacy top", mining.place.anchorY == Anchor.START && mining.place.offsetY == 6, mining.place.toString());
+    }
+
+    private static void retiredHotbarIsNotRegistered() {
+        boolean registered = false;
+        for (HudElement element : HudManager.ELEMENTS) if ("hotbar".equals(element.id)) registered = true;
+        check("retired hotbar HUD is not registered", !registered, "registered=" + registered);
+    }
+
+    private static void retiredMetricAndDollarsKeysAreIgnoredWithoutAnyMetricHudRegistration() throws IOException {
+        boolean hasMetricHud = false;
+        boolean hasDollars = false;
+        for (HudElement element : HudManager.ELEMENTS) {
+            if ("fps-display".equals(element.id) || "ping-display".equals(element.id)
+                    || "memory-display".equals(element.id) || "stats".equals(element.id)) hasMetricHud = true;
+            if ("dollars".equals(element.id)) hasDollars = true;
+        }
+        check("no in-game metric HUD element is registered", !hasMetricHud, "registered=" + hasMetricHud);
+        check("Player Dollars is no longer registered", !hasDollars, "registered=" + hasDollars);
+        Properties old = parse("fps-display.enabled=true\nping-display.enabled=true\nmemory-display.enabled=true\n"
+                + "stats.enabled=true\nstats.x=99\ndollars.enabled=true\nbalance.source=manual\nbalance.manual=42\n"
+                + "mining.enabled=false\n");
+        HudConfigCompatibility.ignoreRetiredMetricKeys(old);
+        HudConfigCompatibility.ignoreRetiredPlayerDollarsKeys(old);
+        check("legacy FPS memory ping and stats keys are safely ignored", !old.containsKey("fps-display.enabled")
+                && !old.containsKey("ping-display.enabled") && !old.containsKey("memory-display.enabled")
+                && !old.containsKey("stats.enabled") && !old.containsKey("stats.x"), old.toString());
+        check("retired Player Dollars keys ignored", !old.containsKey("dollars.enabled")
+                && !old.containsKey("balance.source") && !old.containsKey("balance.manual"), old.toString());
+        check("unrelated active HUD key remains loadable", "false".equals(old.getProperty("mining.enabled")), old.toString());
     }
 
     private static void saveLoadRoundTrip() throws IOException {

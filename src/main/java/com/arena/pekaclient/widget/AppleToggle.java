@@ -1,5 +1,7 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -29,7 +31,7 @@ public final class AppleToggle extends Widget {
             animatedOn = target;
             initialized = true;
         } else {
-            animatedOn = approach(animatedOn, target, dt, pressed ? 28f : 18f);
+            animatedOn = ease(animatedOn, target, dt, GuiMotion.TOGGLE_SETTLE_MS);
         }
     }
 
@@ -39,12 +41,12 @@ public final class AppleToggle extends Widget {
         float state = initialized ? animatedOn : (value() ? 1f : 0f);
         int fill = UIRender.mix(Theme.track, Theme.accent, state);
         if (contains(mouseX, mouseY) && enabled) {
-            fill = UIRender.mix(fill, 0xFFFFFFFF, hoverAmount * 0.16f);
+            fill = UIRender.mix(fill, Theme.OPAQUE_WHITE, hoverAmount * 0.16f);
         }
         if (!enabled) {
             fill = UIRender.mix(fill, Theme.windowBottom, 0.45f);
         }
-        float radius = h * 0.5f;
+        float radius = GuiStyle.pillRadius(Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.5f);
         float pad = 2f;
         float knob = h - pad * 2f;
@@ -54,13 +56,17 @@ public final class AppleToggle extends Widget {
         if (pressed && contains(mouseX, mouseY)) {
             kx = clamp(mouseX - knob * 0.5f, left, right);
         }
-        if (Theme.animations && clickPulse > 0.015f && enabled) {
+        if (animationsActive() && clickPulse > 0.015f && enabled) {
             float outer = knob * 0.5f + 2f + (1f - clickPulse) * 1.2f;
             UIRender.ring(kx + knob * 0.5f, y + h * 0.5f, outer, outer - 0.9f,
                     UIRender.withAlpha(Theme.accent, clickPulse * 0.25f));
         }
+        // The original Apple control used a quiet one-pixel knob shadow; retain it without changing the hitbox or
+        // the existing eased/accessible interaction model.
+        UIRender.circle(kx + knob * 0.5f, y + h * 0.5f + 1f, knob * 0.5f,
+                UIRender.withAlpha(Theme.SHADOW, .70f));
         UIRender.circle(kx + knob * 0.5f, y + h * 0.5f, knob * 0.5f,
-                enabled ? 0xFFFFFFFF : 0xFFB4B4B8);
+                enabled ? Theme.OPAQUE_WHITE : Theme.TEXT_DISABLED);
         endAnimatedDraw();
     }
 

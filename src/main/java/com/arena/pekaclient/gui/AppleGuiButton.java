@@ -35,12 +35,14 @@ public final class AppleGuiButton extends GuiButton {
             hoverAmount = target;
             clickPulse = 0f;
         } else {
-            float speed = 1f - (float) Math.exp(-dt * 22f * Math.max(0.1f, Theme.speed));
+            float hoverRate = 1000f / Theme.MOTION_HOVER_MS;
+            float speed = 1f - (float) Math.exp(-dt * hoverRate * Math.max(0.1f, Theme.speed));
             hoverAmount += (target - hoverAmount) * speed;
             if (Math.abs(target - hoverAmount) < 0.0015f) {
                 hoverAmount = target;
             }
-            float pulseRate = 1f - (float) Math.exp(-dt * 13f * Math.max(0.1f, Theme.speed));
+            float pulseRate = 1f - (float) Math.exp(-dt * (1000f / Theme.MOTION_PRESS_MS)
+                    * Math.max(0.1f, Theme.speed));
             clickPulse += (0f - clickPulse) * pulseRate;
             if (clickPulse < 0.0015f) {
                 clickPulse = 0f;
@@ -65,9 +67,9 @@ public final class AppleGuiButton extends GuiButton {
 
         int color;
         if (!enabled) {
-            color = 10526880;
+            color = Theme.VANILLA_BUTTON_DISABLED_TEXT;
         } else {
-            color = mixRgb(14737632, 16777120, hoverAmount);
+            color = mixRgb(Theme.VANILLA_BUTTON_TEXT, Theme.VANILLA_BUTTON_HOVER_TEXT, hoverAmount);
         }
         drawCenteredString(mc.fontRendererObj, displayString, xPosition + width / 2,
                 yPosition + (height - 8) / 2, color);

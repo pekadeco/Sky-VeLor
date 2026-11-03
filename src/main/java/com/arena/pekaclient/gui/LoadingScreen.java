@@ -14,55 +14,24 @@ import org.lwjgl.input.Keyboard;
 import java.io.IOException;
 
 /**
- * Sky VeLor loading screen: a black-to-deep-blue gradient, the wordmark, the version, a small spinner, and a
- * progress bar that shows the real count of finished startup tasks.
- *
- * The screen is shown only while {@link StartupTasks} has work to run. It runs one task per game tick, and
- * closes itself when the last task has finished. If a task fails, the error is shown in red and the screen
- * stays until the player presses Continue. A failure is never shown as a finished startup.
- *
- * Limitation: this replaces only Sky VeLor's own startup work. The Mojang and Forge splash shown before
- * Minecraft's own loading starts is drawn before any mod loads, so a mod cannot replace it without a
- * core hook. That splash is not changed.
+ * Lunaria's post-mod startup screen. The supplied illustration is cover-fit behind a truthful task-progress bar.
+ * Forge's pre-mod splash has already run before this class can exist; this screen owns only Lunaria startup work.
  */
 public final class LoadingScreen extends GuiScreen {
-
-    private static final int BLACK = 0xFF000000;
-    /** Bottom of the gradient. Deep blue, the Sky VeLor brand colour. */
-    private static final int DEEP_BLUE = 0xFF0B2350;
-    private static final int DOTS = 12;
-    private static final float BAR_W = 180f;
-
+    private static final float BAR_MAX_W = 260F;
     private final GuiScreen returnTo;
-    private final Anim fade = new Anim(0f);
-    private final AppleButton continueBtn = new AppleButton("Continue", 110f, 26f, true, this::finish);
-    private long startNs;
+    private final Anim progressAnim = new Anim(0F);
+    private final AppleButton continueBtn = new AppleButton("Continue", 110F, 26F, true, this::finish);
 
     public LoadingScreen(GuiScreen returnTo) {
         this.returnTo = returnTo;
-        fade.to(1f);
-    }
-
-    @Override
-    public void initGui() {
-        super.initGui();
-        if (startNs == 0L) {
-            startNs = System.nanoTime();
-        }
     }
 
     @Override
     public void updateScreen() {
         super.updateScreen();
-        fade.update(1f / 20f, 6f);
-        continueBtn.update(1f / 20f);
-        if (StartupTasks.hasWork()) {
-            // One real task per tick. Its result is only counted when it has completed.
-            StartupTasks.runNext();
-        }
-        if (!StartupTasks.hasWork() && !StartupTasks.failed()) {
-            finish();
-        }
+        if (StartupTasks.hasWork()) StartupTasks.runNext();
+        if (!StartupTasks.hasWork() && !StartupTasks.failed()) finish();
     }
 
     private void finish() {
@@ -75,89 +44,83 @@ public final class LoadingScreen extends GuiScreen {
     }
 
     @Override
-    public void drawScreen(int mx, int my, float partialTicks) {
-        FontRenderer fr = Minecraft.getMinecraft().fontRendererObj;
-        float a = fade.get();
-        float cx = width * 0.5f;
-        float cy = height * 0.5f;
+    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        FontRenderer font = Minecraft.getMinecraft().fontRendererObj;
+        float centerX = width * .5F;
+        float panelW = Math.min(BAR_MAX_W + 44F, Math.max(220F, width - 32F));
+        float panelH = 124F;
+        float panelX = centerX - panelW * .5F;
+        float panelY = Math.max(22F, height * .61F - panelH * .5F);
 
+        // Cover-fit from the center: no distortion on narrow Pojav or ultrawide screens.
+        LunariaArtwork.drawLoadingCover(0, 0, width, height, 1F);
         UIRender.beginFrame();
-        UIRender.alphaMul = 1f;
-        // Vertical gradient: black at the top, deep blue at the bottom.
-        UIRender.roundRect(0f, 0f, width, height, 0f, BLACK, DEEP_BLUE, 1f);
-
-        // Wordmark, centred, with the version under it.
-        String name = PekaVersion.DISPLAY_NAME;
-        float wordW = fr.getStringWidth(name) * 3f;
-        UIRender.text(fr, name, cx - wordW * 0.5f, cy - 40f, UIRender.withAlpha(0xFFFFFFFF, a), 3f, false);
-        String ver = PekaVersion.NAME;
-        UIRender.text(fr, ver, cx - fr.getStringWidth(ver) * 0.5f, cy - 16f,
-                UIRender.withAlpha(0xFF9CC3FF, a), 1f, false);
-
-        // Spinner: twelve dots on a ring, with a moving bright head. Motion only, no progress meaning.
-        float t = (System.nanoTime() - startNs) / 1.0e9f;
-        int head = (int) (t * DOTS * 1.2f) % DOTS;
-        float ring = 14f;
-        for (int i = 0; i < DOTS; i++) {
-            double ang = Math.PI * 2.0 * i / DOTS;
-            float dx = cx + ring * (float) Math.cos(ang);
-            float dy = cy + 12f + ring * (float) Math.sin(ang);
-            int age = (head - i + DOTS) % DOTS;
-            float alpha = (1f - age / (float) DOTS) * a;
-            UIRender.circle(dx, dy, 1.8f, UIRender.withAlpha(0xFFFFFFFF, Math.max(0.12f, alpha)));
-        }
-
-        // Progress: the real count of finished tasks.
-        int total = StartupTasks.total();
-        int done = StartupTasks.completed();
-        float barY = cy + 50f;
-        UIRender.roundRect(cx - BAR_W * 0.5f, barY, BAR_W, 3f, 1.5f, 0x33FFFFFF, 0x33FFFFFF, 0.5f);
-        if (total > 0) {
-            float frac = Math.min(1f, done / (float) total);
-            UIRender.roundRect(cx - BAR_W * 0.5f, barY, BAR_W * frac, 3f, 1.5f, Theme.accent, Theme.accent, 0.5f);
-        }
-
-        String status;
-        int statusCol;
-        if (StartupTasks.failed()) {
-            status = StartupTasks.failureMessage();
-            statusCol = 0xFFFF7A70;
-        } else if (StartupTasks.hasWork()) {
-            status = StartupTasks.currentLabel() + " (" + (done + 1) + " of " + total + ")";
-            statusCol = 0xFFA1A1A8;
-        } else {
-            status = "Ready";
-            statusCol = 0xFFA1A1A8;
-        }
-        float maxW = Math.max(120f, width - 24f);
-        String shown = fr.trimStringToWidth(status, (int) maxW);
-        UIRender.text(fr, shown, cx - fr.getStringWidth(shown) * 0.5f, barY + 12f, statusCol, 1f, false);
-
-        String foot = "Forge client for Minecraft 1.8.9";
-        UIRender.text(fr, foot, cx - fr.getStringWidth(foot) * 0.5f, height - 22f, 0xFF8E8E93, 1f, false);
-        UIRender.endFrame();
-
-        if (StartupTasks.failed()) {
-            continueBtn.x = cx - continueBtn.w * 0.5f;
-            continueBtn.y = barY + 34f;
-            UIRender.beginFrame();
-            continueBtn.draw(mx, my);
+        try {
+            // A quiet dark scrim keeps the full-bleed art visible while preserving readable progress text.
+            UIRender.roundRect(0F, 0F, width, height, 0F, Theme.LOADING_ART_SCRIM_TOP, Theme.LOADING_ART_SCRIM_BOTTOM, 1F);
+            UIRender.roundRect(panelX - 3F, panelY - 3F, panelW + 6F, panelH + 6F, 16F,
+                    Theme.LOADING_STARTUP_GLOW_TOP, Theme.LOADING_STARTUP_GLOW_BOTTOM, 1F);
+            UIRender.roundRect(panelX, panelY, panelW, panelH, 14F, Theme.LOADING_STARTUP_PANEL_TOP, Theme.LOADING_STARTUP_PANEL_BOTTOM, 1F);
+        } finally {
             UIRender.endFrame();
         }
-    }
 
-    @Override
-    protected void mouseClicked(int mx, int my, int button) throws IOException {
-        if (button == 0 && StartupTasks.failed() && continueBtn.contains(mx, my)) {
-            finish();
+        float logoW = Math.min(206F, Math.max(132F, width * .34F));
+        LunariaArtwork.drawLogo(centerX, panelY - Math.min(132F, height * .20F), logoW, 1F);
+
+        int total = StartupTasks.total();
+        int completed = StartupTasks.completed();
+        float exactProgress = total <= 0 ? (StartupTasks.hasWork() ? 0F : 1F)
+                : Math.max(0F, Math.min(1F, completed / (float) total));
+        progressAnim.to(exactProgress);
+        progressAnim.update(1F / 60F, 10F);
+        int percent = Math.round(exactProgress * 100F);
+        String step = StartupTasks.failed() ? StartupTasks.failureMessage()
+                : StartupTasks.hasWork() ? StartupTasks.currentLabel() : "Ready";
+        if (step == null || step.length() == 0) step = "Starting";
+        String shown = font.trimStringToWidth(step, Math.max(80, (int) panelW - 34));
+        String status = shown + " \u2022 " + percent + "%";
+
+        float barX = panelX + 18F;
+        float barY = panelY + 73F;
+        float barW = panelW - 36F;
+        UIRender.beginFrame();
+        try {
+            UIRender.text(font, PekaVersion.NAME, centerX - font.getStringWidth(PekaVersion.NAME) * .5F,
+                    panelY + 17F, Theme.LOADING_STARTUP_VERSION, .9F, false);
+            UIRender.text(font, status, centerX - font.getStringWidth(status) * .5F, panelY + 43F,
+                    StartupTasks.failed() ? Theme.LOADING_STARTUP_ERROR : Theme.LOADING_STARTUP_STATUS, .84F, false);
+            // Soft blue-to-purple glow, then the readable rounded track and real completed-task fill.
+            UIRender.roundRect(barX - 4F, barY - 4F, barW + 8F, 15F, 7F, Theme.LOADING_PROGRESS_GLOW_START, Theme.LOADING_PROGRESS_GLOW_END, 1F);
+            UIRender.roundRect(barX, barY, barW, 7F, 3.5F, Theme.LOADING_PROGRESS_TRACK, Theme.LOADING_PROGRESS_TRACK, 1F);
+            float fill = barW * Math.max(0F, Math.min(1F, progressAnim.get()));
+            if (fill > 0F) UIRender.roundRect(barX, barY, fill, 7F, 3.5F, Theme.LOADING_PROGRESS_START, Theme.LOADING_PROGRESS_END, 1F);
+            String detail = total > 0 ? completed + " of " + total + " startup tasks" : "Lunaria Mod for Minecraft 1.8.9";
+            UIRender.text(font, detail, centerX - font.getStringWidth(detail) * .5F, barY + 17F,
+                    Theme.LOADING_STARTUP_DETAIL, .70F, false);
+        } finally {
+            UIRender.endFrame();
+        }
+
+        if (StartupTasks.failed()) {
+            continueBtn.x = centerX - continueBtn.w * .5F;
+            continueBtn.y = panelY + 96F;
+            UIRender.beginFrame();
+            try {
+                continueBtn.draw(mouseX, mouseY);
+            } finally {
+                UIRender.endFrame();
+            }
         }
     }
 
     @Override
-    protected void keyTyped(char c, int code) throws IOException {
-        // Escape only leaves the screen once a failure is on display. Otherwise startup work keeps running.
-        if (code == Keyboard.KEY_ESCAPE && StartupTasks.failed()) {
-            finish();
-        }
+    protected void mouseClicked(int mouseX, int mouseY, int button) throws IOException {
+        if (button == 0 && StartupTasks.failed() && continueBtn.contains(mouseX, mouseY)) finish();
+    }
+
+    @Override
+    protected void keyTyped(char character, int keyCode) throws IOException {
+        if (keyCode == Keyboard.KEY_ESCAPE && StartupTasks.failed()) finish();
     }
 }

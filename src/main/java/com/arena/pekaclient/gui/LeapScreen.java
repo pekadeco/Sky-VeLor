@@ -7,6 +7,7 @@ import com.arena.pekaclient.feature.LeapIdentity;
 import com.arena.pekaclient.feature.LeapText;
 import com.arena.pekaclient.feature.SpiritLeap;
 import com.arena.pekaclient.render.SkinHead;
+import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
@@ -48,7 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * VeLor hub layout is not used.
  *
  * Every click is the server's own window click on the teammate's slot, the same as a left click in the vanilla
- * menu. Sky VeLor sends no packet and no command of its own. After a pick the screen waits for the server, so a
+ * menu. Lunaria sends no packet and no command of its own. After a pick the screen waits for the server, so a
  * double click or a held Enter cannot send a second leap.
  *
  * Heads use the matching tab-list skin or an asynchronous profile-texture lookup. A useful letter fallback is
@@ -66,7 +67,6 @@ public final class LeapScreen extends GuiScreen {
     /** A failed profile lookup is eligible for a retry after this delay. */
     private static final long SKIN_RETRY_MS = 15000L;
 
-    private static final int TEST_LABEL_HEIGHT = 18;
     static final float NAME_SCALE = 2.6f;
     static final float CLASS_SCALE = 1.9f;
     private static final int FONT_LINE_HEIGHT = 9;
@@ -80,9 +80,9 @@ public final class LeapScreen extends GuiScreen {
     private static final int CARD_HOVER = LeapPalette.CARD_HOVER_BACKGROUND;
     private static final int CARD_EDGE = LeapPalette.CARD_BORDER;
     private static final int CARD_SELECT_EDGE = LeapPalette.CARD_HOVER_BORDER;
-    private static final int HEAD_LETTER = 0xFF2C3E5C;
-    private static final int TEXT = 0xFFFFFFFF;
-    private static final int TEXT_DIM = 0xFFE0E0E0;
+    private static final int HEAD_LETTER = Theme.LEAP_HEAD_LETTER;
+    private static final int TEXT = Theme.TEXT_PRIMARY;
+    private static final int TEXT_DIM = Theme.LEAP_TEXT_DIM;
 
     /** Head states: unavailable skins immediately use a named fallback tile; ready skins use the real texture. */
     private static final int SKIN_UNAVAILABLE = 0;
@@ -115,7 +115,7 @@ public final class LeapScreen extends GuiScreen {
         }
     }
 
-    /** One teammate, kept by slot number between refreshes. Live and preview cards use the same renderer. */
+    /** One teammate, kept by slot number between refreshes and drawn from the live server container. */
     private static final class Card {
         final int slot;
         ItemStack stack;
@@ -146,15 +146,12 @@ public final class LeapScreen extends GuiScreen {
     }
 
     private final Container container;
-    private final boolean preview;
-    private final GuiScreen previewParent;
     private final LeapClassCache classCache = new LeapClassCache();
     private final List<Card> previous = new ArrayList<Card>();
     private final List<Card> cards = new ArrayList<Card>();
     private final List<Slot> slotBuffer = new ArrayList<Slot>();
 
     private int highlight;
-    private int previewOffset;
     private int cols = LeapLayout.COLS;
     /** Responsive card geometry for the current scaled Minecraft viewport. */
     private int cardW;
@@ -165,70 +162,24 @@ public final class LeapScreen extends GuiScreen {
     private int gridY;
     private long pendingUntilNs;
     private long lastRefreshNs;
+    private final GuiLayoutToolkit.Rect cardBounds = new GuiLayoutToolkit.Rect();
 
     public LeapScreen(Container container) {
         if (container == null) {
             throw new IllegalArgumentException("Live Spirit Leap screen requires the server container");
         }
         this.container = container;
-        this.preview = false;
-        this.previewParent = null;
-    }
-
-    private LeapScreen(GuiScreen parent) {
-        this.container = null;
-        this.preview = true;
-        this.previewParent = parent;
-        addPreviewCards();
-    }
-
-    /** Opens this real screen in isolated local preview mode; no container or gameplay action is available. */
-    public static LeapScreen createPreview(GuiScreen parent) {
-        return new LeapScreen(parent);
-    }
-
-    private void addPreviewCards() {
-        cards.clear();
-        for (int slot = 0; slot < LeapPreviewData.CARD_COUNT; slot++) {
-            int sample = LeapPreviewData.sampleIndex(previewOffset, slot);
-            addPreviewCard(slot, LeapPreviewData.displayName(sample), LeapPreviewData.username(sample),
-                    LeapPreviewData.playerClass(sample));
-        }
-        highlight = Math.min(highlight, Math.max(0, cards.size() - 1));
-    }
-
-    private void cyclePreviewSamples(int direction) {
-        if (!preview) {
-            return;
-        }
-        previewOffset = Math.floorMod(previewOffset + direction, LeapPreviewData.SAMPLE_COUNT);
-        addPreviewCards();
-    }
-
-    private void addPreviewCard(int slot, String displayName, String username, LeapClass cls) {
-        Card card = new Card(slot);
-        card.name = displayName;
-        card.owner = username;
-        card.identityKey = "preview:" + slot;
-        card.cls = cls;
-        card.clsText = cls.label();
-        card.clsColor = cls.color();
-        // The normal unavailable-skin renderer draws a legible initial tile; preview never requests or caches skins.
-        card.skinState = SKIN_UNAVAILABLE;
-        cards.add(card);
     }
 
     @Override
     public void initGui() {
         super.initGui();
         Keyboard.enableRepeatEvents(true);
-        if (!preview) {
-            // The chest the server opened was swapped before its own initGui ran, so make this container the
-            // player's open container here. Otherwise the server's window updates would not reach this menu.
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc.thePlayer != null) {
-                mc.thePlayer.openContainer = container;
-            }
+        // The chest the server opened was swapped before its own initGui ran, so make this container the
+        // player's open container here. Otherwise the server's window updates would not reach this menu.
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != null) {
+            mc.thePlayer.openContainer = container;
         }
     }
 
@@ -236,19 +187,14 @@ public final class LeapScreen extends GuiScreen {
     public void onGuiClosed() {
         super.onGuiClosed();
         Keyboard.enableRepeatEvents(false);
-        if (!preview) {
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc.thePlayer != null) {
-                container.onContainerClosed(mc.thePlayer);
-            }
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != null) {
+            container.onContainerClosed(mc.thePlayer);
         }
     }
 
-    /** True while the server still has this live menu open; local preview screens are independent of containers. */
+    /** True while the server still has this live menu open. */
     private boolean stillOpen() {
-        if (preview) {
-            return true;
-        }
         EntityPlayerSP p = Minecraft.getMinecraft().thePlayer;
         return p != null && p.openContainer == container;
     }
@@ -256,7 +202,7 @@ public final class LeapScreen extends GuiScreen {
     @Override
     public void updateScreen() {
         super.updateScreen();
-        if (!preview && !stillOpen()) {
+        if (!stillOpen()) {
             Minecraft.getMinecraft().displayGuiScreen(null);
             return;
         }
@@ -268,9 +214,6 @@ public final class LeapScreen extends GuiScreen {
      * run per render frame; skin callbacks and input remain non-blocking.
      */
     private void refreshIfNeeded() {
-        if (preview) {
-            return;
-        }
         long now = System.nanoTime();
         if (lastRefreshNs != 0L && now - lastRefreshNs < REFRESH_INTERVAL_NS) {
             return;
@@ -711,11 +654,6 @@ public final class LeapScreen extends GuiScreen {
             String none = "No teammates in this menu";
             fr.drawStringWithShadow(none, (width - fr.getStringWidth(none)) / 2, height / 2 - 4, TEXT_DIM);
         }
-        if (preview) {
-            String hint = "TEST DATA - N/P cycles sample classes - Esc returns";
-            hint = fr.trimStringToWidth(hint, Math.max(0, width - 12));
-            fr.drawStringWithShadow(hint, (width - fr.getStringWidth(hint)) / 2, 4, TEXT_DIM);
-        }
         super.drawScreen(mx, my, partialTicks);
     }
 
@@ -723,7 +661,7 @@ public final class LeapScreen extends GuiScreen {
         int n = cards.size();
         cols = LeapLayout.COLS;
         int rows = LeapLayout.rows(n);
-        int topInset = preview ? TEST_LABEL_HEIGHT : 0;
+        int topInset = 0;
         cardW = LeapLayout.cardWidth(width, height);
         cardH = LeapLayout.cardHeight(width, height, rows, topInset);
         headSize = LeapLayout.headSize(cardW, cardH);
@@ -741,8 +679,9 @@ public final class LeapScreen extends GuiScreen {
             int rowWidth = LeapLayout.gridWidth(cardW, cardsInRow, gapX);
             int rowX = (width - rowWidth) / 2;
             int column = i - firstInRow;
-            c.x = rowX + column * (cardW + gapX);
-            c.y = gridY + row * (cardH + gapY);
+            GuiLayoutToolkit.clampPanel(cardBounds, rowX + column * (cardW + gapX), gridY + row * (cardH + gapY), cardW, cardH, width, height);
+            c.x = Math.round(cardBounds.x);
+            c.y = Math.round(cardBounds.y);
         }
     }
 
@@ -915,14 +854,6 @@ public final class LeapScreen extends GuiScreen {
             closeMenu();
             return;
         }
-        if (preview && code == Keyboard.KEY_N) {
-            cyclePreviewSamples(1);
-            return;
-        }
-        if (preview && code == Keyboard.KEY_P) {
-            cyclePreviewSamples(-1);
-            return;
-        }
         if (cards.isEmpty()) {
             return;
         }
@@ -954,7 +885,7 @@ public final class LeapScreen extends GuiScreen {
      * waits for the server (pending), so a double click or a repeated Enter cannot send a second leap.
      */
     private void pick(int index) {
-        if (preview || index < 0 || index >= cards.size()) {
+        if (index < 0 || index >= cards.size()) {
             return;
         }
         long now = System.nanoTime();
@@ -973,15 +904,9 @@ public final class LeapScreen extends GuiScreen {
         mc.playerController.windowClick(container.windowId, cards.get(index).slot, 0, 0, mc.thePlayer);
     }
 
-    /** Live menus close through vanilla; preview menus simply return to the GUI that opened them. */
+    /** Live menus close through vanilla. */
     private void closeMenu() {
         Minecraft mc = Minecraft.getMinecraft();
-        if (preview) {
-            if (mc.currentScreen == this) {
-                mc.displayGuiScreen(previewParent);
-            }
-            return;
-        }
         EntityPlayerSP p = mc.thePlayer;
         if (p != null && p.openContainer == container) {
             p.closeScreen();

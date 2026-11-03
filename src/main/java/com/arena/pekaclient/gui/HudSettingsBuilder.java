@@ -1,12 +1,9 @@
 package com.arena.pekaclient.gui;
 
-import com.arena.pekaclient.hud.BalanceSource;
-import com.arena.pekaclient.hud.DollarsHud;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.InventoryHud;
 import com.arena.pekaclient.hud.MiningHud;
 import com.arena.pekaclient.hud.PlayerDollHud;
-import com.arena.pekaclient.hud.StatsHud;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleSegmented;
@@ -22,7 +19,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 /**
- * Builds the settings controls for one HUD element. The HUD tab of the hub and the HUD editor's
+ * Builds the settings controls for one HUD element. The HUD Hub Editor category and the HUD editor's
  * inspector both use this, so the two always offer the same options.
  *
  * Each item is a label and a control. A null label means the control is a full-width action.
@@ -51,38 +48,26 @@ final class HudSettingsBuilder {
     }
 
     /**
-     * @param element      the element to edit
-     * @param amountField  the text field used for a typed balance (only the balance element uses it)
-     * @param changed      called after any value changes (the editor marks the layout dirty; the hub passes a no-op)
-     * @param applyBalance called when "Set balance" is pressed
-     * @param withShow     whether to include a Show toggle at the top
+     * @param element  the element to edit
+     * @param changed  called after any value changes (the editor marks the layout dirty; the hub passes a no-op)
+     * @param withShow whether to include a Show toggle at the top
      */
-    static List<Item> build(HudElement element, Widget amountField, Runnable changed,
-                            Runnable applyBalance, boolean withShow) {
+    static List<Item> build(HudElement element, Runnable changed, boolean withShow) {
         HudSettingsBuilder b = new HudSettingsBuilder(changed);
         if (withShow) {
             b.toggle("Show", () -> element.enabled, v -> element.enabled = v);
         }
-        b.specific(element, amountField, applyBalance);
+        b.specific(element);
         b.common(element);
         return b.items;
     }
 
-    private void specific(HudElement element, Widget amountField, Runnable applyBalance) {
+    private void specific(HudElement element) {
         if (element instanceof MiningHud) {
             final MiningHud m = (MiningHud) element;
             dropdown("Label", MiningHud.LABELS, null, () -> m.label, v -> m.label = v);
             segmented("Window", MiningHud.WINDOW_NAMES, () -> m.windowIndex, v -> m.windowIndex = v);
             segmented("Decimals", MiningHud.DECIMAL_NAMES, () -> m.decimals, v -> m.decimals = v);
-        } else if (element instanceof DollarsHud) {
-            final DollarsHud d = (DollarsHud) element;
-            dropdown("Label", DollarsHud.LABELS, null, () -> d.label, v -> d.label = v);
-            dropdown("Format", DollarsHud.FORMATS, null, () -> d.format, v -> d.format = v);
-            toggle("Coin icon", () -> d.coinIcon, v -> d.coinIcon = v);
-            segmented("Source", new String[]{"Auto", "Manual"},
-                    () -> BalanceSource.manualMode ? 1 : 0, v -> BalanceSource.manualMode = v == 1);
-            items.add(new Item("Amount", amountField));
-            items.add(new Item(null, new AppleButton("Set balance", CONTROL_W, CONTROL_H, true, applyBalance)));
         } else if (element instanceof InventoryHud) {
             final InventoryHud inv = (InventoryHud) element;
             toggle("Armour slots", () -> inv.showArmor, v -> inv.showArmor = v);
@@ -102,6 +87,7 @@ final class HudSettingsBuilder {
         } else if (element instanceof com.arena.pekaclient.fishing.FishingHud) {
             final com.arena.pekaclient.fishing.FishingHud f = (com.arena.pekaclient.fishing.FishingHud) element;
             toggle("Catches", () -> f.showCatches, v -> f.showCatches = v);
+            toggle("Common Creature (CC)", () -> f.showCommonCreature, v -> f.showCommonCreature = v);
             toggle("Festival", () -> f.showFestival, v -> f.showFestival = v);
         } else if (element instanceof com.arena.pekaclient.fishing.SeaCreatureHud) {
             final com.arena.pekaclient.fishing.SeaCreatureHud s = (com.arena.pekaclient.fishing.SeaCreatureHud) element;
@@ -115,10 +101,6 @@ final class HudSettingsBuilder {
             gatedSlider("Drops", 1, 4, 1, "", () -> sl.drops, v -> sl.drops = v, () -> sl.limitDrops);
             toggle("Profit", () -> sl.showProfit, v -> sl.showProfit = v);
             toggle("Boss timer", () -> sl.showBossTimer, v -> sl.showBossTimer = v);
-        } else if (element instanceof StatsHud) {
-            final StatsHud st = (StatsHud) element;
-            toggle("Show FPS", () -> st.showFps, v -> st.showFps = v);
-            toggle("Show ping", () -> st.showPing, v -> st.showPing = v);
         }
     }
 

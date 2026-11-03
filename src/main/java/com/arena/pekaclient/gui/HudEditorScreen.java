@@ -1,7 +1,6 @@
 package com.arena.pekaclient.gui;
 
 import com.arena.pekaclient.config.AppleSettings;
-import com.arena.pekaclient.hud.BalanceSource;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudManager;
 import com.arena.pekaclient.hud.HudPlacement;
@@ -11,7 +10,7 @@ import com.arena.pekaclient.render.UIRender;
 import com.arena.pekaclient.widget.AppleButton;
 import com.arena.pekaclient.widget.AppleDropdown;
 import com.arena.pekaclient.widget.AppleSlider;
-import com.arena.pekaclient.widget.SearchField;
+import com.arena.pekaclient.widget.AppleToggle;
 import com.arena.pekaclient.widget.Widget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -25,9 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * HUD editor. Drag an element to move it. It snaps to the screen centre and edges, and it can never be
- * dragged off screen. Pick an element with a tap or the chooser, then adjust it in the inspector card.
- * Every change is saved when the editor closes.
+ * HUD editor. Click an on-screen HUD element to select it, then drag it to move it; disabled elements remain
+ * dimmed, selectable placeholders. Dungeon Map owns its separate Dungeon HUD Editor; Item Animation
+ * is opened in its separate renderer-only panel. Every change is saved when the editor closes.
  *
  * Works with mouse and touch (PojavLauncher): a tap is a click, a drag moves an element or scrolls
  * the card, and a swipe never activates a control.
@@ -36,32 +35,30 @@ public final class HudEditorScreen extends AppleScreen {
 
     private static final float BAR_H = 30f;
     private static final float BAR_TOP = 8f;
-    private static final float CARD_W = 248f;
-    private static final float CARD_PAD = 10f;
-    private static final float ROW_H = 26f;
-    private static final float ROW_GAP = 6f;
+    private static final float CARD_PAD = HudEditorLayout.CARD_PADDING;
     private static final float CONTROL_W = HudSettingsBuilder.CONTROL_W;
+    private static final float CONTROL_H = HudSettingsBuilder.CONTROL_H;
     private static final float SNAP = 4f;
     private static final float TOUCH_MIN = 28f;
 
-    /** Element names for the chooser, taken from the element list so a new element shows up automatically. */
-    private static String[] chooserNames() {
-        String[] out = new String[HudManager.ELEMENTS.length];
-        for (int i = 0; i < out.length; i++) {
-            out[i] = HudManager.ELEMENTS[i].name;
-        }
-        return out;
-    }
-
-    /** One inspector row: an optional label and the control on the right. */
+    /** One inspector row, laid out by the shared fixed-height left-label/right-control grid. */
     private static final class Entry {
         final String label;
         final Widget control;
-        float cy;
+        final boolean fullWidth;
+        final boolean stretchControl;
+        final HudEditorLayout.Bounds bounds = new HudEditorLayout.Bounds();
 
         Entry(String label, Widget control) {
+            this(label, control, label == null, control instanceof AppleSlider || control instanceof AppleDropdown
+                    || control instanceof HorizontalDragWidget);
+        }
+
+        Entry(String label, Widget control, boolean fullWidth, boolean stretchControl) {
             this.label = label;
             this.control = control;
+            this.fullWidth = fullWidth;
+            this.stretchControl = stretchControl;
         }
     }
 
@@ -69,13 +66,13 @@ public final class HudEditorScreen extends AppleScreen {
     private final Anim openAnim = new Anim(0f);
     private final List<Entry> entries = new ArrayList<Entry>();
     private final List<Widget> bar = new ArrayList<Widget>();
-    private final SearchField manualField = new SearchField("Enter amount");
-    private final AppleDropdown chooser;
     private final AppleButton resetAllBtn;
     private final AppleButton doneBtn;
-    private final AppleButton dungeonBtn;
     private final ScrollState scroll = new ScrollState();
     private final Gesture gesture = new Gesture();
+    private final HudEditorLayout.Metrics inspectorLayout = new HudEditorLayout.Metrics();
+    /** Shared clamp authority for the editor shell; every nested inspector is then measured from this safe rect. */
+    private final GuiLayoutToolkit.Rect editorPanel = new GuiLayoutToolkit.Rect();
 
     private HudElement selected = HudManager.MINING;
     private long lastNs;
@@ -99,9 +96,11 @@ public final class HudEditorScreen extends AppleScreen {
     private float cardDy;
     private boolean cardHidden;
     private boolean draggingCard;
+    private boolean draggingScrollbar;
+    private float scrollbarGrabOffset;
     private float cardGrabX;
     private float cardGrabY;
-    private static final float HEAD_H = 26f;
+    private static final float HEAD_H = HudEditorLayout.HEADER_HEIGHT;
     private float visibleTop;
     private float visibleBottom;
     private float maxScroll;
@@ -116,33 +115,32 @@ public final class HudEditorScreen extends AppleScreen {
     private int guides;
     private boolean dirty;
 
-    /** Opens the Dungeon HUD screen, which shows only the Click in order panel. Done returns here. */
-    private void openDungeonHud() {
-        Minecraft.getMinecraft().displayGuiScreen(new DungeonHudScreen(this));
-    }
-
     public HudEditorScreen(GuiScreen parent) {
         this.parent = parent;
-        this.chooser = new AppleDropdown(chooserNames(), null, CONTROL_W, 22f,
-                () -> indexOf(selected), v -> select(HudManager.ELEMENTS[v]));
         this.resetAllBtn = new AppleButton("Reset all", 74f, 22f, false, this::resetAll);
         this.doneBtn = new AppleButton("Done", 56f, 22f, true, this::close);
-        this.dungeonBtn = new AppleButton("Dungeon HUD", 92f, 22f, false, this::openDungeonHud);
-        this.manualField.w = CONTROL_W;
-        this.manualField.h = 22f;
         bar.add(doneBtn);
         bar.add(resetAllBtn);
-        bar.add(dungeonBtn);
         openAnim.to(1f);
     }
 
-    private static int indexOf(HudElement e) {
-        for (int i = 0; i < HudManager.ELEMENTS.length; i++) {
-            if (HudManager.ELEMENTS[i] == e) {
-                return i;
-            }
+    /** Compatibility route: Item Animation now owns a standalone panel rather than a HUD-editor target. */
+    public static GuiScreen openItemAnimation(GuiScreen parent) {
+        return new ItemAnimationEditorScreen(parent);
+    }
+
+    /** Opens the standard editor on one ordinary HUD element, keeping its existing saved placement untouched. */
+    public static HudEditorScreen openElement(GuiScreen parent, HudElement element) {
+        HudEditorScreen editor = new HudEditorScreen(parent);
+        if (element != null) {
+            editor.selected = element;
         }
-        return 0;
+        return editor;
+    }
+
+    /** The Dungeon Map now has its dedicated picker/options editor instead of a hidden generic-editor target. */
+    public static GuiScreen openDungeonMap(GuiScreen parent) {
+        return new DungeonHudEditorScreen(parent);
     }
 
     @Override
@@ -153,22 +151,34 @@ public final class HudEditorScreen extends AppleScreen {
         rebuild();
     }
 
+    /** Keep the first-person render/tick path live behind the editor so slider changes are immediately visible. */
+    @Override
+    public boolean doesGuiPauseGame() {
+        return false;
+    }
+
     @Override
     public void onGuiClosed() {
         super.onGuiClosed();
         Keyboard.enableRepeatEvents(false);
         HudManager.save();
+        AppleSettings.save();
+        // The editor combines HUD primitives and entity rendering. Always leave a neutral
+        // GUI baseline behind; an AppleSettingsScreen parent reapplies its fixed Theme on init/draw.
+        UIRender.restoreVanillaGuiState();
     }
 
     // ------------------------------------------------------------------ inspector
 
-    private void select(HudElement e) {
-        if (e == selected) {
-            return;
-        }
-        selected = e;
+    private void select(HudElement element) {
+        if (element == selected && !cardHidden) return;
+        selected = element;
+        cardHidden = false;
+        resetInspector();
+    }
+
+    private void resetInspector() {
         openDropdown = null;
-        manualField.setFocused(false);
         scroll.reset();
         rebuild();
     }
@@ -177,25 +187,13 @@ public final class HudEditorScreen extends AppleScreen {
         dirty = true;
     }
 
-    /** Rebuilds the inspector rows for the selected element, from the same builder the hub uses. */
+    /** Rebuilds the inspector for an ordinary HUD element. Dungeon Map options live in Dungeon HUD Editor. */
     private void rebuild() {
         entries.clear();
-        entries.add(new Entry(null, chooser));
-        List<HudSettingsBuilder.Item> items = HudSettingsBuilder.build(
-                selected, manualField, this::changed, this::applyManual, true);
-        for (HudSettingsBuilder.Item it : items) {
-            entries.add(new Entry(it.label, it.control));
+        List<HudSettingsBuilder.Item> items = HudSettingsBuilder.build(selected, this::changed, true);
+        for (HudSettingsBuilder.Item item : items) {
+            entries.add(new Entry(item.label, item.control));
         }
-    }
-
-    private void applyManual() {
-        if (!BalanceSource.applyTyped(manualField.text())) {
-            return;
-        }
-        manualField.clear();
-        manualField.setFocused(false);
-        changed();
-        HudManager.save();
     }
 
     private void resetAll() {
@@ -203,65 +201,55 @@ public final class HudEditorScreen extends AppleScreen {
         openDropdown = null;
         rebuild();
         HudManager.save();
+        AppleSettings.save();
     }
 
     private void close() {
         HudManager.save();
+        AppleSettings.save();
         Minecraft.getMinecraft().displayGuiScreen(parent);
     }
 
     // ------------------------------------------------------------------ layout
 
     private void layout() {
-        wx = 6f;
-        wy = 6f;
-        ww = Math.max(120f, width - 12f);
-        wh = Math.max(120f, height - 12f);
+        GuiLayoutToolkit.clampPanel(editorPanel, 6f, 6f, Math.max(1f, width - 12f),
+                Math.max(1f, height - 12f), width, height);
+        wx = editorPanel.x;
+        wy = editorPanel.y;
+        ww = editorPanel.w;
+        wh = editorPanel.h;
 
-        barW = Math.min(ww - 16f, 380f);
+        barW = Math.max(1f, Math.min(ww - 16f, 520f));
         barX = wx + (ww - barW) * 0.5f;
         barY = wy + BAR_TOP;
         doneBtn.x = barX + barW - 8f - doneBtn.w;
         doneBtn.y = barY + (BAR_H - doneBtn.h) * 0.5f;
         resetAllBtn.x = doneBtn.x - 6f - resetAllBtn.w;
         resetAllBtn.y = barY + (BAR_H - resetAllBtn.h) * 0.5f;
-        dungeonBtn.x = resetAllBtn.x - 6f - dungeonBtn.w;
-        dungeonBtn.y = barY + (BAR_H - dungeonBtn.h) * 0.5f;
 
-        // The inspector card sits bottom-left, so the default HUD corners stay clear of it.
-        cardW = Math.min(CARD_W, ww - 20f);
-        float contentH = entries.isEmpty() ? 0f : entries.size() * (ROW_H + ROW_GAP) - ROW_GAP;
-        float top = barY + BAR_H + 10f;
-        float available = wy + wh - 10f - top;
-        float bodyH = cardHidden ? 0f : Math.max(60f, Math.min(available - HEAD_H, contentH + CARD_PAD * 2f));
-        cardH = HEAD_H + bodyH;
-        float baseX = wx + 10f;
-        float baseY = wy + wh - 10f - cardH;
-        cardX = Math.max(wx, Math.min(wx + ww - cardW, baseX + cardDx));
-        cardY = Math.max(wy, Math.min(wy + wh - cardH, baseY + cardDy));
-        if (cardHidden) {
-            visibleTop = cardY + HEAD_H;
-            visibleBottom = visibleTop;
-        } else {
-            visibleTop = cardY + HEAD_H + CARD_PAD;
-            visibleBottom = cardY + cardH - CARD_PAD;
-        }
+        HudEditorLayout.update(inspectorLayout, wx, wy, ww, wh, barY + BAR_H + 8f, entries.size(),
+                scroll.value(), cardHidden, cardDx, cardDy);
+        scroll.setMax(inspectorLayout.maxScroll);
+        // setMax may clamp a prior scroll position after a group collapsed, so use the final value for rows.
+        HudEditorLayout.update(inspectorLayout, wx, wy, ww, wh, barY + BAR_H + 8f, entries.size(),
+                scroll.value(), cardHidden, cardDx, cardDy);
+        cardX = inspectorLayout.cardX;
+        cardY = inspectorLayout.cardY;
+        cardW = inspectorLayout.cardW;
+        cardH = inspectorLayout.cardH;
+        visibleTop = inspectorLayout.visibleTop;
+        visibleBottom = inspectorLayout.visibleBottom;
+        maxScroll = inspectorLayout.maxScroll;
 
-        float viewH = visibleBottom - visibleTop;
-        maxScroll = Math.max(0f, contentH - viewH);
-        scroll.setMax(maxScroll);
-
-        float innerW = cardW - CARD_PAD * 2f;
-        float offset = scroll.value();
         for (int i = 0; i < entries.size(); i++) {
-            Entry e = entries.get(i);
-            e.cy = i * (ROW_H + ROW_GAP);
-            Widget c = e.control;
-            if (c == chooser) {
-                c.w = innerW;
-            }
-            c.x = cardX + cardW - CARD_PAD - c.w;
-            c.y = visibleTop + e.cy - offset + (ROW_H - c.h) * 0.5f;
+            Entry entry = entries.get(i);
+            Widget control = entry.control;
+            HudEditorLayout.row(inspectorLayout, i, entry.fullWidth, control.w, entry.stretchControl,
+                    control.h, entry.bounds);
+            control.x = entry.bounds.controlX;
+            control.y = entry.bounds.controlY;
+            control.w = entry.bounds.controlW;
         }
     }
 
@@ -271,6 +259,19 @@ public final class HudEditorScreen extends AppleScreen {
 
     private float hideY() {
         return cardY + (HEAD_H - 16f) * 0.5f;
+    }
+
+    private boolean inScrollbar(float mx, float my) {
+        return maxScroll > 0f && inside(mx, my, inspectorLayout.scrollbarX - 4f, visibleTop,
+                inspectorLayout.scrollbarW + 8f, inspectorLayout.viewportH);
+    }
+
+    private void setScrollbarFromY(float my) {
+        float travel = Math.max(0f, inspectorLayout.viewportH - inspectorLayout.scrollbarH);
+        float thumbTop = Math.max(visibleTop, Math.min(visibleTop + travel, my - scrollbarGrabOffset));
+        float fraction = travel <= 0f ? 0f : (thumbTop - visibleTop) / travel;
+        scroll.setImmediate(fraction * maxScroll);
+        layout();
     }
 
     private boolean inCardHeader(float mx, float my) {
@@ -289,10 +290,21 @@ public final class HudEditorScreen extends AppleScreen {
         layout();
     }
 
+    /** Uses the feature names shown in the hub where a HUD implementation uses a shorter internal caption. */
+    private String selectedSettingsTitle() {
+        if (selected == null) return "HUD Settings";
+        if ("doll".equals(selected.id)) return "Player Doll Settings";
+        if ("inventory".equals(selected.id)) return "Inventory HUD Settings";
+        if ("fishing".equals(selected.id)) return "Fishing HUD Settings";
+        if ("slayer".equals(selected.id)) return "Slayer HUD Settings";
+        return selected.name + " Settings";
+    }
+
     /** Title on the left, Hide or Show on the right. Drag the header to move the card. */
     private void drawCardHeader(int mx, int my) {
         FontRenderer fr = fr();
-        String title = selected == null ? "Settings" : selected.name;
+        String title = selectedSettingsTitle();
+        title = fit(fr, title, Math.max(0f, hideX() - cardX - CARD_PAD - 8f));
         UIRender.text(fr, title, cardX + CARD_PAD, cardY + (HEAD_H - 9f) * 0.5f + 1f,
                 Theme.textPrimary, 1f, false);
         boolean hot = inHideButton(mx, my);
@@ -308,37 +320,56 @@ public final class HudEditorScreen extends AppleScreen {
         return inside(mx, my, cardX, visibleTop, cardW, visibleBottom - visibleTop);
     }
 
-    /** The widget under the pointer. Bar buttons first, then visible inspector controls. */
-    private Widget widgetAt(int mx, int my) {
-        for (Widget b : bar) {
-            if (b.contains(mx, my)) {
-                return b;
-            }
-        }
-        if (!inCardView(mx, my)) {
-            return null;
-        }
-        for (Entry e : entries) {
-            if (e.control.contains(mx, my)) {
-                return e.control;
-            }
+    private Widget barWidgetAt(int mx, int my) {
+        for (Widget button : bar) {
+            if (button.contains(mx, my)) return button;
         }
         return null;
     }
 
-    /** The element under the pointer. Each target is at least TOUCH_MIN px so it is easy to hit by touch. */
+    /** The inspector widget under the pointer. HUD elements are selected directly on the canvas instead. */
+    private Widget widgetAt(int mx, int my) {
+        if (!inCardView(mx, my)) return null;
+        for (Entry e : entries) {
+            if (e.control.contains(mx, my)) return e.control;
+        }
+        return null;
+    }
+
+    private void beginWidgetGesture(Widget widget, int mx, int my) {
+        active = widget;
+        sliderEngaged = false;
+        gestureActive = true;
+        gesture.begin(widget, mx, my, scroll.value());
+        if (!(widget instanceof AppleSlider) && !(widget instanceof HorizontalDragWidget)) {
+            widget.onPress(mx, my);
+        }
+    }
+
+    /**
+     * Finds an on-screen element, including every disabled dimmed placeholder. Each target is at least TOUCH_MIN px
+     * for touch use; repeated clicks cycle overlapping elements so the former list is never needed for reachability.
+     */
     private HudElement hitElement(int mx, int my) {
-        for (int i = HudManager.ELEMENTS.length - 1; i >= 0; i--) {
+        boolean[] hits = new boolean[HudManager.ELEMENTS.length];
+        for (int i = 0; i < HudManager.ELEMENTS.length; i++) {
             HudElement h = HudManager.ELEMENTS[i];
             float w = h.pixelWidth();
             float hh = h.pixelHeight();
             float padX = Math.max(6f, (TOUCH_MIN - w) * 0.5f);
             float padY = Math.max(6f, (TOUCH_MIN - hh) * 0.5f);
-            if (inside(mx, my, h.leftFor(width) - padX, h.topFor(height) - padY, w + padX * 2f, hh + padY * 2f)) {
-                return h;
-            }
+            hits[i] = inside(mx, my, h.leftFor(width) - padX, h.topFor(height) - padY,
+                    w + padX * 2f, hh + padY * 2f);
         }
-        return null;
+        int index = HudEditorSelectionPolicy.nextIndex(selectedElementIndex(), hits);
+        return index < 0 ? null : HudManager.ELEMENTS[index];
+    }
+
+    private int selectedElementIndex() {
+        for (int i = 0; i < HudManager.ELEMENTS.length; i++) {
+            if (HudManager.ELEMENTS[i] == selected) return i;
+        }
+        return -1;
     }
 
     /**
@@ -363,11 +394,11 @@ public final class HudEditorScreen extends AppleScreen {
             e.control.update(dt);
         }
         scroll.update(dt, gestureActive && gesture.kind == Gesture.SCROLL,
-                Theme.animations, Theme.speed);
+                Theme.animations && AppleSettings.smoothScrolling, Theme.speed);
     }
 
     private float scrollSpeed() {
-        return AppleSettings.scrollSpeed / 100f;
+        return AppleSettings.guiScrollMultiplier();
     }
 
     // ------------------------------------------------------------------ drawing
@@ -400,35 +431,41 @@ public final class HudEditorScreen extends AppleScreen {
 
         // The veil and the elements are separate frames. HudManager.renderEditor manages its own GL state.
         UIRender.beginFrame();
-        UIRender.alphaMul = open;
-        UIRender.rect(0f, 0f, width, height, Theme.veil);
-        UIRender.endFrame();
+        try {
+            UIRender.alphaMul = open;
+            UIRender.rect(0f, 0f, width, height, Theme.veil);
+        } finally {
+            UIRender.endFrame();
+        }
 
         ScaledResolution sr = new ScaledResolution(mc);
         HudManager.renderEditor(sr, mx, my);
 
         UIRender.beginFrame();
-        UIRender.alphaMul = open;
-        drawSelection();
-        if (dragging != null && guides != 0) {
-            drawGuides();
+        try {
+            UIRender.alphaMul = open;
+            drawSelection();
+            if (dragging != null && guides != 0) {
+                drawGuides();
+            }
+            drawBar(mx, my);
+            drawCard(mx, my);
+            UIRender.alphaMul = open;
+            drawOpenDropdown(mx, my, 0f, height, width, 0f);
+        } finally {
+            UIRender.alphaMul = 1f;
+            UIRender.endFrame();
         }
-        drawBar(mx, my);
-        drawCard(mx, my);
-        UIRender.alphaMul = open;
-        drawOpenDropdown(mx, my, 0f, height, width, 0f);
-        UIRender.alphaMul = 1f;
-        UIRender.endFrame();
     }
 
-    /** Thin rounded ring around the selected element, with corner handles. */
+    /** Thin rounded ring around the selected HUD target or the dedicated map placement canvas. */
     private void drawSelection() {
-        HudElement e = selected;
-        float x = e.leftFor(width) - 3f;
-        float y = e.topFor(height) - 3f;
-        float w = e.pixelWidth() + 6f;
-        float h = e.pixelHeight() + 6f;
-        UIRender.roundRectRing(x, y, w, h, e.radius * e.scale + 3f, 1f, Theme.accent);
+        HudElement element = selected;
+        float x = element.leftFor(width) - 3f;
+        float y = element.topFor(height) - 3f;
+        float w = element.pixelWidth() + 6f;
+        float h = element.pixelHeight() + 6f;
+        UIRender.roundRectRing(x, y, w, h, element.radius * element.scale + 3f, 1f, Theme.accent);
         int dot = Theme.accent;
         UIRender.circle(x, y, 2.2f, dot);
         UIRender.circle(x + w, y, 2.2f, dot);
@@ -464,20 +501,18 @@ public final class HudEditorScreen extends AppleScreen {
                 Theme.windowTop, Theme.windowBottom, Theme.border);
 
         float cy = barY + BAR_H * 0.5f;
-        // Only close is live here. Collapse and zoom have no meaning for the editor, so they are drawn dimmed and
-        // hovering them says why.
-        WindowDots.draw(barX + 14f, cy, mx, my, 0b001, false);
+        // The compact editor header exposes one explicit Close icon; no fake collapse/zoom controls are drawn.
+        FocusedHeaderCloseButton.draw(barX + 14f, cy, mx, my);
 
         FontRenderer fr = fr();
-        String title = "HUD Editor";
-        if (barW - 180f > fr.getStringWidth(title) + 58f) {
-            UIRender.text(fr, title, barX + 58f, cy - 4.5f, Theme.textSecondary, 1f, false);
-        }
+        // The editor has no sidebar/list: this single line is the persistent selection instruction.
+        String instruction = "Click an on-screen HUD element to select it; drag to move it.";
+        float instructionX = barX + 58f;
+        float instructionW = Math.max(1f, resetAllBtn.x - instructionX - 8f);
+        UIRender.text(fr, fit(fr, instruction, instructionW / .72f), instructionX, cy - 3.2f,
+                Theme.textSecondary, .72f, false);
         doneBtn.draw(mx, my);
-        WindowDots.drawHint(fr, mx, my, barX + 14f, cy, 0b001,
-                "Collapse is not used in the HUD editor", "Zoom is not used in the HUD editor", width);
         resetAllBtn.draw(mx, my);
-        dungeonBtn.draw(mx, my);
     }
 
     private void drawCard(int mx, int my) {
@@ -496,24 +531,26 @@ public final class HudEditorScreen extends AppleScreen {
         float viewH = visibleBottom - visibleTop;
 
         UIRender.scissorBegin(cardX, visibleTop, cardW, viewH, sf);
-        for (Entry e : entries) {
-            Widget c = e.control;
-            if (c.y + c.h < visibleTop || c.y > visibleBottom) {
-                continue;
+        try {
+            for (Entry entry : entries) {
+                Widget control = entry.control;
+                if (control.y + control.h < visibleTop || control.y > visibleBottom) {
+                    continue;
+                }
+                if (entry.label != null && entry.bounds.labelW > 0f) {
+                    String label = fit(fr, entry.label, entry.bounds.labelW);
+                    UIRender.text(fr, label, entry.bounds.labelX, entry.bounds.labelY,
+                            Theme.textSecondary, 0.9f, false);
+                }
+                control.draw(pmx, pmy);
             }
-            if (e.label != null) {
-                UIRender.text(fr, e.label, cardX + CARD_PAD, c.y + (c.h - 9f) * 0.5f + 1f,
-                        Theme.textSecondary, 1f, false);
-            }
-            c.draw(pmx, pmy);
+        } finally {
+            UIRender.scissorEnd();
         }
-        UIRender.scissorEnd();
 
         if (maxScroll > 0f) {
-            float contentH = maxScroll + viewH;
-            float th = Math.max(16f, viewH * viewH / contentH);
-            float ty = visibleTop + (scroll.value() / maxScroll) * (viewH - th);
-            UIRender.roundRect(cardX + cardW - 4f, ty, 2.5f, th, 1.25f,
+            UIRender.roundRect(inspectorLayout.scrollbarX, inspectorLayout.scrollbarY,
+                    inspectorLayout.scrollbarW, inspectorLayout.scrollbarH, inspectorLayout.scrollbarW * 0.5f,
                     Theme.textTertiary, Theme.textTertiary, 1f);
         }
     }
@@ -524,8 +561,11 @@ public final class HudEditorScreen extends AppleScreen {
     public void handleMouseInput() throws IOException {
         int wheel = Mouse.getEventDWheel();
         super.handleMouseInput();
-        if (wheel != 0) {
-            scroll.wheel(wheel / 120f, scrollSpeed());
+        int mx = Mouse.getEventX() * width / Minecraft.getMinecraft().displayWidth;
+        int my = height - Mouse.getEventY() * height / Minecraft.getMinecraft().displayHeight - 1;
+        if (wheel != 0 && openDropdown == null && inCardView(mx, my)) {
+            boolean fine = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+            scroll.wheel(wheel / 120f, fine, scrollSpeed());
         }
     }
 
@@ -537,8 +577,32 @@ public final class HudEditorScreen extends AppleScreen {
         if (handleOpenDropdownClick(mx, my)) {
             return;
         }
+
+        float cy = barY + BAR_H * 0.5f;
+        if (FocusedHeaderCloseButton.contains(mx, my, barX + 14f, cy)) {
+            close();
+            return;
+        }
+        Widget barWidget = barWidgetAt(mx, my);
+        if (barWidget != null) {
+            beginWidgetGesture(barWidget, mx, my);
+            return;
+        }
+
+        // Canvas targets win before inspector hit testing: no sidebar/list is needed to reach a disabled placeholder
+        // or an element stacked underneath another one. Dungeon Map has its dedicated editor.
+        HudElement hit = hitElement(mx, my);
+        if (hit != null) {
+            select(hit);
+            dragging = hit;
+            grabX = mx - hit.leftFor(width);
+            grabY = my - hit.topFor(height);
+            dragTo(mx, my);
+            return;
+        }
+
         if (inCardHeader(mx, my)) {
-            if (inHideButton(mx, my)) {
+                if (inHideButton(mx, my)) {
                 cardHidden = !cardHidden;
                 openDropdown = null;
                 scroll.reset();
@@ -550,28 +614,18 @@ public final class HudEditorScreen extends AppleScreen {
             }
             return;
         }
-
-        if (manualField.contains(mx, my) && inCardView(mx, my)) {
-            manualField.setFocused(true);
-            return;
-        }
-        manualField.setFocused(false);
-
-        float cy = barY + BAR_H * 0.5f;
-        if (WindowDots.hit(mx, my, barX + 14f, cy, 0b001) == WindowDots.CLOSE) {
-            close();
+        if (inScrollbar(mx, my)) {
+            draggingScrollbar = true;
+            boolean thumb = my >= inspectorLayout.scrollbarY
+                    && my < inspectorLayout.scrollbarY + inspectorLayout.scrollbarH;
+            scrollbarGrabOffset = thumb ? my - inspectorLayout.scrollbarY : inspectorLayout.scrollbarH * 0.5f;
+            setScrollbarFromY(my);
             return;
         }
 
         Widget w = widgetAt(mx, my);
         if (w != null) {
-            active = w;
-            sliderEngaged = false;
-            gestureActive = true;
-            gesture.begin(w, mx, my, scroll.value());
-            if (!(w instanceof AppleSlider)) {
-                w.onPress(mx, my);
-            }
+            beginWidgetGesture(w, mx, my);
             return;
         }
         if (inCardView(mx, my)) {
@@ -579,21 +633,15 @@ public final class HudEditorScreen extends AppleScreen {
             gestureActive = true;
             sliderEngaged = false;
             gesture.begin(null, mx, my, scroll.value());
-            return;
-        }
-
-        HudElement h = hitElement(mx, my);
-        if (h != null) {
-            select(h);
-            dragging = h;
-            grabX = mx - h.leftFor(width);
-            grabY = my - h.topFor(height);
-            dragTo(mx, my);
         }
     }
 
     @Override
     protected void mouseClickMove(int mx, int my, int button, long timeSinceLastClick) {
+        if (draggingScrollbar) {
+            setScrollbarFromY(my);
+            return;
+        }
         if (draggingCard) {
             moveCard(mx, my);
             return;
@@ -625,6 +673,10 @@ public final class HudEditorScreen extends AppleScreen {
 
     @Override
     protected void mouseReleased(int mx, int my, int button) {
+        if (draggingScrollbar) {
+            draggingScrollbar = false;
+            return;
+        }
         if (draggingCard) {
             draggingCard = false;
             return;
@@ -635,11 +687,13 @@ public final class HudEditorScreen extends AppleScreen {
             if (dirty) {
                 dirty = false;
                 HudManager.save();
+                AppleSettings.save();
             }
             return;
         }
         if (active != null) {
-            if (active instanceof AppleSlider && gesture.kind == Gesture.PENDING) {
+            if ((active instanceof AppleSlider || active instanceof HorizontalDragWidget)
+                    && gesture.kind == Gesture.PENDING) {
                 // A tap on a slider sets it where the finger lifted.
                 active.onPress((int) gesture.startX, (int) gesture.startY);
             }
@@ -665,6 +719,7 @@ public final class HudEditorScreen extends AppleScreen {
         if (dirty) {
             dirty = false;
             HudManager.save();
+            AppleSettings.save();
         }
     }
 
@@ -673,32 +728,16 @@ public final class HudEditorScreen extends AppleScreen {
         if (code == Keyboard.KEY_ESCAPE) {
             if (openDropdown != null) {
                 openDropdown = null;
-            } else if (manualField.isFocused()) {
-                manualField.setFocused(false);
             } else {
                 close();
             }
             return;
         }
-        if (manualField.isFocused()) {
-            if (code == Keyboard.KEY_RETURN || code == Keyboard.KEY_NUMPADENTER) {
-                applyManual();
-                return;
-            }
-            // Digits only.
-            if (BalanceSource.acceptsKey(c, code)) {
-                manualField.keyTyped(c, code);
-            }
-            return;
-        }
-        // Keyboard: arrows scroll the inspector card, and Tab cycles the element.
+        // Keyboard arrows scroll the inspector card; HUD targets are selected directly on the canvas.
         if (code == Keyboard.KEY_DOWN) {
             scroll.key(ScrollState.KEY_STEP);
         } else if (code == Keyboard.KEY_UP) {
             scroll.key(-ScrollState.KEY_STEP);
-        } else if (code == Keyboard.KEY_TAB) {
-            int next = (indexOf(selected) + 1) % HudManager.ELEMENTS.length;
-            select(HudManager.ELEMENTS[next]);
         }
     }
 }

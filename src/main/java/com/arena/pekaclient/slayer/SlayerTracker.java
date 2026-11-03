@@ -7,13 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -26,15 +20,16 @@ import java.util.Properties;
 /**
  * Slayer drop tracker: rare drops per Slayer type from chat, a boss timer from the boss spawn to the
  * quest completion, and manual prices for profit. Drop history lasts for the session. Prices are saved
- * to {@code skyvelor-slayer-prices.properties}. Ported from RNG Carried Bald; nothing is sent to the server.
+ * to {@code lunaria-slayer-prices.properties}. Existing prior-release prices migrate on a later save. Ported from
+ * RNG Carried Bald; nothing is sent to the server.
  */
 public final class SlayerTracker {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
     static final int MAX_TRACKED_DROPS = 4;
     /** The same drop seen twice within this window counts once (chat can repeat). */
     static final long DUPLICATE_DROP_WINDOW_MS = 750L;
-    static final String PRICE_FILE = "skyvelor-slayer-prices.properties";
+    static final String PRICE_FILE = "lunaria-slayer-prices.properties";
+    static final String PRIOR_RELEASE_LEGACY_PRICE_FILE = "skyvelor-slayer-prices.properties";
     private static final String PRICE_PREFIX = "price.";
 
     /** One tracked drop: the item name and how many. */
@@ -253,7 +248,7 @@ public final class SlayerTracker {
             return;
         }
         pricesLoaded = true;
-        Properties p = ConfigFiles.read(new File(dir(), PRICE_FILE));
+        Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), PRICE_FILE, PRIOR_RELEASE_LEGACY_PRICE_FILE));
         for (String name : p.stringPropertyNames()) {
             if (!name.startsWith(PRICE_PREFIX)) {
                 continue;
@@ -275,11 +270,7 @@ public final class SlayerTracker {
         for (Map.Entry<String, Long> e : PRICES.entrySet()) {
             p.setProperty(PRICE_PREFIX + e.getKey(), Long.toString(e.getValue()));
         }
-        try (OutputStream out = new FileOutputStream(new File(dir(), PRICE_FILE))) {
-            p.store(out, "Sky VeLor Slayer prices");
-        } catch (IOException e) {
-            LOG.warn("Could not save Slayer prices", e);
-        }
+        ConfigFiles.writeAtomic(new File(dir(), PRICE_FILE), p, "Lunaria Slayer prices");
     }
 
     private static File dir() {

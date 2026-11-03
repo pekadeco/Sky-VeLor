@@ -1,11 +1,14 @@
 package com.arena.pekaclient.fishing;
 
+import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.hud.HudElement;
 import com.arena.pekaclient.hud.HudPlacement;
 import com.arena.pekaclient.render.Theme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.IChatComponent;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,9 +26,11 @@ public final class SeaCreatureHud extends HudElement {
     static final int DEFAULT_RANGE = 64;
     static final int MAX_RANGE = 64;
     static final long SCAN_INTERVAL_MS = 500L;
+    /** Keeps the last valid rows briefly while a compatible server replaces its nameplate entities. */
+    static final long DETECTION_GRACE_MS = 1500L;
     static final int MAX_ROWS = 8;
 
-    /** Scan radius in blocks, and how many rows to list. Both are set in the hub. */
+    /** Scan radius in blocks, and how many rows to list. Both are set in the HUD editor. */
     public int range = DEFAULT_RANGE;
     public int maxRows = MAX_ROWS;
     /** Off: scan the default 64 blocks. The Range slider only applies when this is on. */
@@ -36,6 +41,9 @@ public final class SeaCreatureHud extends HudElement {
 
     private List<SeaCreatureParser.Entry> rows = Collections.emptyList();
     private long lastScanAt = Long.MIN_VALUE;
+    private long lastDetectionAt = Long.MIN_VALUE;
+    /** Allocated once per HUD; update itself performs no allocation. */
+    private final EncounterState encounters = new EncounterState();
 
     public SeaCreatureHud() {
         super("seahp", "Sea Creature HP",
@@ -45,11 +53,68 @@ public final class SeaCreatureHud extends HudElement {
     /** The nearby rows, rescanned when the cached scan is older than the interval. */
     List<SeaCreatureParser.Entry> rows() {
         long now = System.currentTimeMillis();
-        if (now - lastScanAt >= SCAN_INTERVAL_MS || now < lastScanAt) {
+        if (shouldScan(now, lastScanAt)) {
             lastScanAt = now;
-            rows = scan(limitRange ? range : DEFAULT_RANGE, limitRows ? maxRows : MAX_ROWS);
+            List<SeaCreatureParser.Entry> detected =
+                    scan(limitRange ? range : DEFAULT_RANGE, limitRows ? maxRows : MAX_ROWS);
+            if (!detected.isEmpty()) {
+                rows = detected;
+                lastDetectionAt = now;
+            } else if (!keepPreviousDetection(now, lastDetectionAt, rows)) {
+                rows = Collections.emptyList();
+            }
+            String enteredTitle = encounters.update(rows);
+            if (enteredTitle != null && AppleSettings.fishingNearbyEncounterAlert) {
+                FishingStats.showCreatureTitle(enteredTitle);
+            }
         }
         return rows;
+    }
+
+    /** Prevents a one-scan nameplate replacement from making the HP HUD flicker or disappear. */
+    static boolean keepPreviousDetection(long now, long previousDetection,
+                                         List<SeaCreatureParser.Entry> previousRows) {
+        return previousRows != null && !previousRows.isEmpty()
+                && previousDetection != Long.MIN_VALUE && now >= previousDetection
+                && now - previousDetection <= DETECTION_GRACE_MS;
+    }
+
+    /** Tracks entry transitions so a stable nearby label produces one visual alert rather than a scan-rate title. */
+    static final class EncounterState {
+        private boolean yetiNearby;
+        private boolean jawbusNearby;
+
+        String update(List<SeaCreatureParser.Entry> detected) {
+            boolean hasYeti = containsCreature(detected, "Yeti");
+            boolean hasJawbus = containsCreature(detected, "Lord Jawbus");
+            boolean yetiEntered = hasYeti && !yetiNearby;
+            boolean jawbusEntered = hasJawbus && !jawbusNearby;
+            yetiNearby = hasYeti;
+            jawbusNearby = hasJawbus;
+            // Jawbus remains the higher-priority title when both labels arrive on the same scan.
+            if (jawbusEntered) {
+                return FishingStats.LORD_JAWBUS_TITLE;
+            }
+            return yetiEntered ? FishingStats.YETI_TITLE : null;
+        }
+    }
+
+    static boolean containsCreature(List<SeaCreatureParser.Entry> detected, String name) {
+        if (detected == null || name == null) {
+            return false;
+        }
+        for (SeaCreatureParser.Entry entry : detected) {
+            if (entry != null && name.equalsIgnoreCase(entry.creatureName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Handles the uninitialised sentinel without overflowing {@code now - Long.MIN_VALUE}. */
+    static boolean shouldScan(long now, long previousScan) {
+        return previousScan == Long.MIN_VALUE || now < previousScan
+                || now - previousScan >= SCAN_INTERVAL_MS;
     }
 
     /** Scans the loaded entities once. Returns at most {@link #MAX_ROWS} nearest creatures. */
@@ -66,15 +131,17 @@ public final class SeaCreatureHud extends HudElement {
                 continue;
             }
             Entity entity = (Entity) o;
-            if (!entity.hasCustomName()) {
+            // Most servers use a custom-name armor stand. Some compatible servers expose that label through a
+            // scoreboard/display component instead, so permit armor stands through the fallback without scanning
+            // arbitrary mobs' display names every interval.
+            if (!entity.hasCustomName() && !(entity instanceof EntityArmorStand)) {
                 continue;
             }
             double distSq = player.getDistanceSqToEntity(entity);
             if (distSq > maxSq) {
                 continue;
             }
-            SeaCreatureParser.Entry entry = SeaCreatureParser.parseLabel(
-                    entity.getDisplayName().getUnformattedText(), entity.getEntityId(), distSq);
+            SeaCreatureParser.Entry entry = parseEntityLabel(entity, distSq);
             if (entry != null) {
                 found.add(entry);
             }
@@ -89,6 +156,37 @@ public final class SeaCreatureHud extends HudElement {
             return new ArrayList<SeaCreatureParser.Entry>(found.subList(0, maxRows));
         }
         return found;
+    }
+
+    /**
+     * Reads custom, formatted, plain and scoreboard-composed text without assuming one server's nameplate
+     * implementation. A health-bearing candidate wins over a name-only custom tag.
+     */
+    private static SeaCreatureParser.Entry parseEntityLabel(Entity entity, double distanceSq) {
+        int id = entity.getEntityId();
+        SeaCreatureParser.Entry best = null;
+        best = betterEntry(best, SeaCreatureParser.parseLabel(entity.getCustomNameTag(), id, distanceSq));
+        IChatComponent displayName = entity.getDisplayName();
+        if (displayName != null) {
+            best = betterEntry(best, SeaCreatureParser.parseLabel(displayName.getFormattedText(), id, distanceSq));
+            best = betterEntry(best, SeaCreatureParser.parseLabel(displayName.getUnformattedText(), id, distanceSq));
+        }
+        // Some compatible Fakepixel nameplates expose their scoreboard-composed value only through getName().
+        return betterEntry(best, SeaCreatureParser.parseLabel(entity.getName(), id, distanceSq));
+    }
+
+    /** Prefers the candidate carrying both health values instead of returning an incomplete custom tag. */
+    static SeaCreatureParser.Entry betterEntry(SeaCreatureParser.Entry current,
+                                                SeaCreatureParser.Entry candidate) {
+        if (candidate == null) {
+            return current;
+        }
+        if (current == null) {
+            return candidate;
+        }
+        boolean currentHasHealth = !current.currentHealth.isEmpty() && !current.maxHealth.isEmpty();
+        boolean candidateHasHealth = !candidate.currentHealth.isEmpty() && !candidate.maxHealth.isEmpty();
+        return candidateHasHealth && !currentHasHealth ? candidate : current;
     }
 
     static String rowText(SeaCreatureParser.Entry e) {

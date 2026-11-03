@@ -1,6 +1,8 @@
 package com.arena.pekaclient.command;
 
-import com.arena.pekaclient.gui.AppleHubScreen;
+import com.arena.pekaclient.gui.AppleSettingsScreen;
+import com.arena.pekaclient.gui.ItemAnimationEditorScreen;
+import com.arena.pekaclient.gui.ChatEditorScreen;
 import com.arena.pekaclient.notes.QuickNoteScreen;
 import com.arena.pekaclient.notes.QuickNotes;
 import net.minecraft.client.Minecraft;
@@ -14,6 +16,9 @@ public final class ClientActions {
 
     private static boolean hubPending;
     private static boolean notesPending;
+    private static boolean itemAnimationPending;
+    private static boolean chatEditorPending;
+    private static boolean terminalSimulatorPending;
 
     private ClientActions() {
     }
@@ -26,11 +31,19 @@ public final class ClientActions {
         notesPending = true;
     }
 
-    private static boolean terminalPending;
+    /** Opens the standalone non-draggable Item Animation panel. */
+    public static void requestItemAnimation() {
+        itemAnimationPending = true;
+    }
 
-    /** Opens the terminal screen on the next tick, after the chat screen has closed. */
-    public static void requestTerminal() {
-        terminalPending = true;
+    /** Opens the retained detailed Chat QoL editor after GuiChat has closed. */
+    public static void requestChatEditor() {
+        chatEditorPending = true;
+    }
+
+    /** Opens the retained local terminal practice screen after GuiChat has closed. */
+    public static void requestTerminalSimulator() {
+        terminalSimulatorPending = true;
     }
 
     /** Called once per client tick, after the chat screen has closed. */
@@ -38,15 +51,24 @@ public final class ClientActions {
         if (mc == null) {
             return;
         }
-        if (hubPending) {
+        if (itemAnimationPending) {
+            itemAnimationPending = false;
             hubPending = false;
-            mc.displayGuiScreen(new AppleHubScreen(null));
-        }
-        if (terminalPending) {
-            terminalPending = false;
-            mc.displayGuiScreen(new com.arena.pekaclient.gui.TerminalScreen());
-        }
-        if (notesPending) {
+            chatEditorPending = false;
+            mc.displayGuiScreen(new ItemAnimationEditorScreen(null));
+        } else if (chatEditorPending) {
+            chatEditorPending = false;
+            hubPending = false;
+            mc.displayGuiScreen(new ChatEditorScreen(null));
+        } else if (terminalSimulatorPending) {
+            terminalSimulatorPending = false;
+            hubPending = false;
+            chatEditorPending = false;
+            mc.displayGuiScreen(new com.arena.pekaclient.dungeon.solver.terminals.TerminalSimulator());
+        } else if (hubPending) {
+            hubPending = false;
+            mc.displayGuiScreen(new AppleSettingsScreen(null));
+        } else if (notesPending) {
             notesPending = false;
             mc.displayGuiScreen(new QuickNoteScreen(QuickNotes.store(), null));
         }

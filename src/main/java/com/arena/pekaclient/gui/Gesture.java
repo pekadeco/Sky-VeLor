@@ -3,6 +3,10 @@ package com.arena.pekaclient.gui;
 import com.arena.pekaclient.widget.AppleSlider;
 import com.arena.pekaclient.widget.Widget;
 
+/** Implemented by a compact composite control whose horizontal drag changes a value instead of scrolling. */
+interface HorizontalDragWidget {
+}
+
 /**
  * Decides what a press-and-drag means on a scrollable list. Used for mouse and touch alike.
  *
@@ -49,7 +53,8 @@ final class Gesture {
             float dx = x - startX;
             float dy = y - startY;
             if (Math.abs(dx) > THRESHOLD || Math.abs(dy) > THRESHOLD) {
-                kind = (target instanceof AppleSlider && Math.abs(dx) >= Math.abs(dy)) ? SLIDER : SCROLL;
+                boolean horizontalControl = target instanceof AppleSlider || target instanceof HorizontalDragWidget;
+                kind = (horizontalControl && Math.abs(dx) >= Math.abs(dy)) ? SLIDER : SCROLL;
             }
         }
         return kind;

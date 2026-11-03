@@ -1,3 +1,4 @@
+/* Merged from the supplied source-base branch; retain applicable upstream attribution in LICENSE and NOTICE.md. */
 package com.arena.pekaclient.feature;
 
 import com.arena.pekaclient.config.AppleSettings;

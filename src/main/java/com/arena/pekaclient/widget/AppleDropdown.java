@@ -1,5 +1,8 @@
 package com.arena.pekaclient.widget;
 
+import com.arena.pekaclient.gui.GuiDebugOverlay;
+import com.arena.pekaclient.render.GuiMotion;
+import com.arena.pekaclient.render.GuiStyle;
 import com.arena.pekaclient.render.Theme;
 import com.arena.pekaclient.render.UIRender;
 
@@ -16,8 +19,15 @@ public final class AppleDropdown extends Widget {
     private float popupY;
     private float popupW;
     private float popupH;
+    private float popupRowHeight = ROW_H;
     private int firstVisible;
     private int visibleCount;
+    /** Optional flow reservation supplied by a screen with a measured dropdown row. */
+    private boolean popupReservation;
+    private float reservationX;
+    private float reservationY;
+    private float reservationW;
+    private float reservationH;
     private final float[] rowHover;
     private long popupOpenedAt;
     private long lastPopupFrame;
@@ -43,30 +53,47 @@ public final class AppleDropdown extends Widget {
     public void draw(int mouseX, int mouseY) {
         beginAnimatedDraw(0.025f, 0.04f, 0.02f);
         float hover = enabled ? hoverAmount : 0f;
-        int fill = UIRender.mix(Theme.buttonFill, Theme.buttonHover, hover * 0.5f);
-        float radius = Math.min(Theme.radius * 0.6f, h * 0.5f);
+        int fill = UIRender.mix(Theme.dropdownTrigger, Theme.dropdownTriggerHover, hover);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_FIELD, Theme.radius, w, h);
         UIRender.roundRect(x, y, w, h, radius, fill, fill, 0.4f);
         String label = options.length == 0 ? "—" : options[selected()];
         if (label == null) label = "";
         float leftPad = dots == null ? 8f : 20f;
-        int textRoom = Math.max(0, (int) (w - leftPad - 22f));
-        if (font().getStringWidth(label) > textRoom) {
-            label = font().trimStringToWidth(label, Math.max(0, textRoom - 4)) + "…";
-        }
+        float textRoom = Math.max(0f, w - leftPad - 22f);
+        label = fitText(label, textRoom);
         if (dots != null && options.length > 0) {
             int index = selected();
             if (index < dots.length) {
                 UIRender.circle(x + 10f, y + h * 0.5f, 3.5f, dots[index]);
             }
         }
-        UIRender.text(font(), label, x + leftPad, y + (h - 8f) * 0.5f + 1f,
+        UIRender.text(font(), label, x + leftPad, y + (h - textHeight()) * 0.5f,
                 Theme.textPrimary, 1f, false);
         float cx = x + w - 10f;
         float cy = y + h * 0.5f;
-        UIRender.line(cx - 3f, cy - 1f, cx, cy + 2f, 1.2f, Theme.textSecondary);
-        UIRender.line(cx, cy + 2f, cx + 3f, cy - 1f, 1.2f, Theme.textSecondary);
-        drawBorder(radius, Theme.border);
+        int arrow = hover > .01f ? Theme.accent : Theme.textSecondary;
+        UIRender.line(cx - 3f, cy - 1f, cx, cy + 2f, 1.2f, arrow);
+        UIRender.line(cx, cy + 2f, cx + 3f, cy - 1f, 1.2f, arrow);
+        drawBorder(radius, Theme.dropdownBorder);
         endAnimatedDraw();
+    }
+
+    /** Maximum reserved editor-flow height when this control is expanded; actual popup is capped to ten options. */
+    public float reservedPopupHeight() {
+        float rowHeight = Math.max(ROW_H, textHeight() + 6f);
+        return Math.min(10, options.length) * rowHeight + (options.length == 0 ? 0f : 3f);
+    }
+
+    /**
+     * Pins the next popup draw to an already-reserved flow area. This prevents an expanded editor dropdown from
+     * overlaying a later row while retaining the regular adaptive placement for every other screen.
+     */
+    public void reservePopup(float x, float y, float width, float height) {
+        popupReservation = true;
+        reservationX = x;
+        reservationY = y;
+        reservationW = Math.max(1f, width);
+        reservationH = Math.max(0f, height);
     }
 
     public void onExpand() {
@@ -85,27 +112,36 @@ public final class AppleDropdown extends Widget {
             return;
         }
         popupW = w;
+        popupRowHeight = Math.max(ROW_H, textHeight() + 6f);
         float maxHeight = Math.max(0f, bottom - top - 8f);
-        visibleCount = Math.max(1, Math.min(options.length, (int) (maxHeight / ROW_H)));
+        visibleCount = Math.max(1, Math.min(options.length, (int) (maxHeight / popupRowHeight)));
         visibleCount = Math.min(visibleCount, 10);
         firstVisible = Math.max(0, Math.min(firstVisible, options.length - visibleCount));
-        popupH = visibleCount * ROW_H;
-        popupX = clamp(x, left + 4f, Math.max(left + 4f, right - popupW - 4f));
-        float belowY = y + h + 3f;
-        float aboveY = y - popupH - 3f;
-        float belowSpace = bottom - belowY;
-        float aboveSpace = y - top;
-        if (belowSpace >= popupH || belowSpace >= aboveSpace) {
-            popupY = clamp(belowY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+        popupH = visibleCount * popupRowHeight;
+        boolean useReservation = popupReservation && reservationH + .01f >= popupH;
+        if (useReservation) {
+            popupW = Math.min(popupW, reservationW);
+            popupX = clamp(reservationX, left + 4f, Math.max(left + 4f, right - popupW - 4f));
+            popupY = clamp(reservationY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
         } else {
-            popupY = clamp(aboveY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+            popupX = clamp(x, left + 4f, Math.max(left + 4f, right - popupW - 4f));
+            float belowY = y + h + 3f;
+            float aboveY = y - popupH - 3f;
+            float belowSpace = bottom - belowY;
+            float aboveSpace = y - top;
+            if (belowSpace >= popupH || belowSpace >= aboveSpace) {
+                popupY = clamp(belowY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+            } else {
+                popupY = clamp(aboveY, top + 4f, Math.max(top + 4f, bottom - popupH - 4f));
+            }
         }
+        popupReservation = false;
 
         long now = System.nanoTime();
         float dt = lastPopupFrame == 0L ? 1f / 60f : Math.min(0.1f, (now - lastPopupFrame) / 1.0e9f);
         lastPopupFrame = now;
         float reveal = 1f;
-        if (Theme.animations && popupOpenedAt != 0L) {
+        if (animationsActive() && popupOpenedAt != 0L) {
             reveal = (now - popupOpenedAt) / 180000000f;
             reveal = UIRender.clamp01(reveal);
             reveal = 1f - (1f - reveal) * (1f - reveal) * (1f - reveal);
@@ -116,54 +152,58 @@ public final class AppleDropdown extends Widget {
             popupOpenedAt = 0L;
         }
         popupY += (1f - reveal) * 5f;
+        GuiDebugOverlay.recordControl("AppleDropdown popup", popupX, popupY, popupW, popupH);
         float previousAlpha = UIRender.alphaMul;
         UIRender.alphaMul = previousAlpha * reveal;
-        float radius = Math.min(Theme.radius * 0.75f, 10f);
+        float radius = GuiStyle.radius(GuiStyle.RADIUS_POPUP, Theme.radius, popupW, popupH);
         UIRender.shadow(popupX, popupY, popupW, popupH, radius);
-        UIRender.roundRect(popupX, popupY, popupW, popupH, radius, Theme.popup, Theme.popup, 0.5f);
-        drawBorderAt(popupX, popupY, popupW, popupH, radius, Theme.border);
+        UIRender.roundRect(popupX, popupY, popupW, popupH, radius,
+                Theme.dropdownPopup, Theme.dropdownPopup, 0.5f);
+        drawBorderAt(popupX, popupY, popupW, popupH, radius, Theme.dropdownBorder);
         int current = selected();
         for (int row = 0; row < visibleCount; row++) {
             int index = firstVisible + row;
-            float rowY = popupY + row * ROW_H;
+            float rowY = popupY + row * popupRowHeight;
+            GuiDebugOverlay.recordRow("AppleDropdown option " + index, popupX, rowY, popupW, popupRowHeight);
             boolean hot = mouseX >= popupX && mouseX < popupX + popupW
-                    && mouseY >= rowY && mouseY < rowY + ROW_H;
+                    && mouseY >= rowY && mouseY < rowY + popupRowHeight;
             float targetHover = hot ? 1f : 0f;
-            if (!Theme.animations) {
+            if (!animationsActive()) {
                 rowHover[index] = targetHover;
             } else {
-                float speed = 1f - (float) Math.exp(-dt * 20f * Math.max(0.1f, Theme.speed));
-                rowHover[index] += (targetHover - rowHover[index]) * speed;
-                if (Math.abs(targetHover - rowHover[index]) < 0.01f) {
-                    rowHover[index] = targetHover;
-                }
+                rowHover[index] = ease(rowHover[index], targetHover, dt, GuiMotion.HOVER_SETTLE_MS);
             }
-            float rowScale = Theme.animations ? 1f + rowHover[index] * 0.012f : 1f;
+            float rowScale = animationsActive() ? 1f + rowHover[index] * 0.012f : 1f;
             boolean rowTransform = Math.abs(rowScale - 1f) > 0.0005f;
             if (rowTransform) {
-                UIRender.pushScaleAt(popupX + popupW * 0.5f, rowY + ROW_H * 0.5f, rowScale);
+                UIRender.pushScaleAt(popupX + popupW * 0.5f, rowY + popupRowHeight * 0.5f, rowScale);
             }
             if (index == current) {
-                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, ROW_H - 2f,
-                        Math.max(1f, radius - 2f), Theme.cardHover, Theme.cardHover, 0.2f);
-                UIRender.roundRect(popupX + 3f, rowY + 4f, 2f, ROW_H - 8f,
+                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, popupRowHeight - 2f,
+                        Math.max(1f, radius - 2f), Theme.dropdownRowSelected, Theme.dropdownRowSelected, 0.2f);
+                UIRender.roundRect(popupX + 3f, rowY + 4f, 2f, popupRowHeight - 8f,
                         1f, Theme.accent, Theme.accent, 0f);
             } else if (rowHover[index] > 0.001f) {
-                int rowFill = UIRender.mix(Theme.popup, Theme.buttonHover, rowHover[index]);
-                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, ROW_H - 2f,
+                int rowFill = scaledAlpha(Theme.dropdownRowHover, rowHover[index]);
+                UIRender.roundRect(popupX + 3f, rowY + 1f, popupW - 6f, popupRowHeight - 2f,
                         Math.max(1f, radius - 2f), rowFill, rowFill, 0.2f);
+            }
+            if (row > 0) {
+                UIRender.line(popupX + 8f, rowY, popupX + popupW - 8f, rowY, 1f, Theme.dropdownDivider);
             }
             String option = options[index] == null ? "" : options[index];
             float pad = dots == null ? 10f : 22f;
-            int maxTextW = Math.max(0, (int) (popupW - pad - 8f));
-            if (font().getStringWidth(option) > maxTextW) {
-                option = font().trimStringToWidth(option, Math.max(0, maxTextW - 4)) + "…";
-            }
+            float checkSpace = index == current ? 19f : 8f;
+            float maxTextW = Math.max(0f, popupW - pad - checkSpace);
+            option = fitText(option, maxTextW);
             if (dots != null && index < dots.length) {
-                UIRender.circle(popupX + 12f, rowY + ROW_H * 0.5f, 3.5f, dots[index]);
+                UIRender.circle(popupX + 12f, rowY + popupRowHeight * 0.5f, 3.5f, dots[index]);
             }
-            UIRender.text(font(), option, popupX + pad, rowY + (ROW_H - 8f) * 0.5f + 1f,
+            UIRender.text(font(), option, popupX + pad, rowY + (popupRowHeight - textHeight()) * 0.5f,
                     index == current ? Theme.textPrimary : Theme.textSecondary, 1f, false);
+            if (index == current) {
+                drawSelectedCheck(popupX + popupW - 12f, rowY + popupRowHeight * 0.5f, Theme.accent);
+            }
             if (rowTransform) {
                 UIRender.popTransform();
             }
@@ -175,12 +215,24 @@ public final class AppleDropdown extends Widget {
         UIRender.roundRectRing(x, y, w, h, radius, 1f, color);
     }
 
+    /** Retains a semantic token's intended opacity while animating its reveal amount. */
+    private static int scaledAlpha(int color, float amount) {
+        float baseAlpha = ((color >>> 24) & 0xFF) / 255f;
+        return UIRender.withAlpha(color, baseAlpha * Math.max(0f, Math.min(1f, amount)));
+    }
+
+    /** Compact selected-state check, drawn without introducing a nested choice control. */
+    private static void drawSelectedCheck(float cx, float cy, int color) {
+        UIRender.line(cx - 4f, cy, cx - 1f, cy + 3f, 1.35f, color);
+        UIRender.line(cx - 1f, cy + 3f, cx + 5f, cy - 4f, 1.35f, color);
+    }
+
     public int optionAt(int mouseX, int mouseY) {
         if (visibleCount <= 0 || mouseX < popupX || mouseX >= popupX + popupW
                 || mouseY < popupY || mouseY >= popupY + popupH) {
             return -1;
         }
-        int row = (int) ((mouseY - popupY) / ROW_H);
+        int row = (int) ((mouseY - popupY) / popupRowHeight);
         int result = firstVisible + row;
         return result >= 0 && result < options.length ? result : -1;
     }

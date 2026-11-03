@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "minVersion": "0.7",
+  "package": "com.arena.pekaclient.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "MixinGuiContainer",
+    "MixinGuiChat",
+    "MixinC01PacketChatMessage",
+    "MixinGuiUtils",
+    "MixinEntityRenderer",
+    "MixinEffectRenderer",
+    "MixinGuiNewChat",
+    "MixinEntityPlayerSP",
+    "MixinChatLine",
+    "MixinRendererLivingEntity"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "mixins.lunaria.refmap.json"
+}

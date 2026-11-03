@@ -11,15 +11,15 @@ import org.apache.logging.log4j.Logger;
 import java.util.Properties;
 
 /**
- * One movable, resizable on-screen element (mining rate, balance, inventory, hotbar).
+ * One movable, resizable on-screen element (mining rate, inventory, player doll).
  *
- * Position is a PekaClient {@link HudPlacement}. Every element shares the same style controls:
+ * Position is a Lunaria {@link HudPlacement}. Every element shares the same style controls:
  * scale, opacity, corner radius, text size, background, border and accent colour. Module-specific
  * options are added by subclasses through the loadExtra, saveExtra and resetExtra hooks.
  */
 public abstract class HudElement {
 
-    private static final Logger LOG = LogManager.getLogger("SkyVeLor");
+    private static final Logger LOG = LogManager.getLogger("Lunaria");
 
     public static final int[] TEXT_SCALE_PERCENT = {80, 100, 130};
     public static final String[] TEXT_SIZE_NAMES = {"S", "M", "L"};
@@ -170,14 +170,20 @@ public abstract class HudElement {
     public final void render(int screenW, int screenH, float extraAlpha) {
         int x = leftFor(screenW);
         int y = topFor(screenH);
+        float priorAlpha = UIRender.alphaMul;
         GlStateManager.pushMatrix();
-        GlStateManager.translate(x, y, 0f);
-        GlStateManager.scale(scale, scale, 1f);
-        UIRender.alphaMul = (opacity / 100f) * extraAlpha;
-        drawContent();
-        UIRender.flush();
-        UIRender.alphaMul = 1f;
-        GlStateManager.popMatrix();
+        try {
+            GlStateManager.translate(x, y, 0f);
+            GlStateManager.scale(scale, scale, 1f);
+            UIRender.alphaMul = priorAlpha * (opacity / 100f) * extraAlpha;
+            drawContent();
+        } finally {
+            // Every element shares the editor's matrix/opacity state. Restore both even if a live item
+            // renderer fails, otherwise following cards and the parent GUI inherit the wrong scale or tint.
+            UIRender.flush();
+            UIRender.alphaMul = priorAlpha;
+            GlStateManager.popMatrix();
+        }
     }
 
     // ---- persistence ----------------------------------------------------------------------
@@ -300,7 +306,7 @@ public abstract class HudElement {
     /** Colour dots for the accent dropdown. The theme entry is neutral grey. */
     public static int[] accentDots() {
         int[] out = new int[AppleSettings.ACCENT_COLORS.length + 1];
-        out[0] = 0xFF8E8E93;
+        out[0] = Theme.NEUTRAL_DOT;
         System.arraycopy(AppleSettings.ACCENT_COLORS, 0, out, 1, AppleSettings.ACCENT_COLORS.length);
         return out;
     }

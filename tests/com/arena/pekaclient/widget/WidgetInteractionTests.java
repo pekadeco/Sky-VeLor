@@ -42,6 +42,7 @@ public final class WidgetInteractionTests {
     private static void toggleChangesOnlyOnAnActivatedPress() {
         final boolean[] value = {false};
         AppleToggle toggle = new AppleToggle(() -> value[0], v -> value[0] = v);
+        check("standard toggle pill is 38 by 20", toggle.preferredWidth() == 38f && toggle.h == 20f);
         toggle.x = 5f;
         toggle.y = 5f;
         toggle.onPress(10, 10);
