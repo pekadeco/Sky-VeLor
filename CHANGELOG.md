@@ -1,5 +1,11 @@
 # Changelog
 
+## Beta-0.10.9.1.7v — The Sky's Lunaria
+
+- Align player-facing title and release artifact names with Lunaria.
+- Keep the existing command aliases and legacy configuration compatibility.
+- The requested editor improvements are not yet included in this stage.
+
 ## Beta-0.10.9.4v — The Sky's Lunaria Mod
 
 ### Added

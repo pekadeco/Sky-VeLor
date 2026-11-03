@@ -1,7 +1,7 @@
 package com.arena.pekaclient;
 
 /**
- * The single source of truth for The Sky's Lunaria Mod release identity.
+ * The single source of truth for The Sky's Lunaria release identity.
  *
  * build.gradle reads NAME from this file, so the JAR name, processed mcmod.info metadata and in-game version
  * label stay aligned. The established Java package remains for binary/source compatibility; public identity and
@@ -10,10 +10,10 @@ package com.arena.pekaclient;
 public final class PekaVersion {
 
     /** User-facing release version. */
-    public static final String NAME = "Beta-0.10.9.4v";
+    public static final String NAME = "Beta-0.10.9.1.7v";
 
     /** User-facing client title. */
-    public static final String DISPLAY_NAME = "The Sky's Lunaria Mod";
+    public static final String DISPLAY_NAME = "The Sky's Lunaria";
 
     private PekaVersion() {
     }

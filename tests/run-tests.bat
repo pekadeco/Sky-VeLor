@@ -23,6 +23,8 @@ if not defined TEST_CP (
     echo Test classpath is empty: %CP_FILE%
     exit /b 1
 )
+python "%ROOT%\tests\visible_branding_test.py"
+if errorlevel 1 exit /b 1
 mkdir "%OUT%" || exit /b 1
 
 for /r "%ROOT%\tests" %%F in (*.java) do echo "%%F" >> "%OUT%\sources.txt"

@@ -1,4 +1,4 @@
-name: Build Lunaria Mod
+name: Build Lunaria
 
 # The ForgeGradle 2.1 / Minecraft 1.8.9 toolchain needs a JDK 8 and network access to the Forge
 # Maven and Mojang's servers. This workflow is that environment: it checks out the revision it was
@@ -71,10 +71,10 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "MCMOD_VERSION=$MCMOD_VERSION" >> "$GITHUB_ENV"
-          echo "JAR_NAME=Lunaria-Mod-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
-          echo "ZIP_NAME=Lunaria-Mod-1.8.9-$VERSION.zip" >> "$GITHUB_ENV"
-          echo "SOURCE_ZIP_NAME=Lunaria-Mod-1.8.9-$VERSION-source.zip" >> "$GITHUB_ENV"
-          echo "SOURCE_ROOT=Lunaria-Mod-1.8.9-$VERSION-source/" >> "$GITHUB_ENV"
+          echo "JAR_NAME=Lunaria-1.8.9-$VERSION.jar" >> "$GITHUB_ENV"
+          echo "ZIP_NAME=Lunaria-1.8.9-$VERSION.zip" >> "$GITHUB_ENV"
+          echo "SOURCE_ZIP_NAME=Lunaria-1.8.9-$VERSION-source.zip" >> "$GITHUB_ENV"
+          echo "SOURCE_ROOT=Lunaria-1.8.9-$VERSION-source/" >> "$GITHUB_ENV"
           {
             echo "revision : $(git rev-parse HEAD)"
             echo "branch   : ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
@@ -196,7 +196,7 @@ jobs:
           JAR="build/libs/$JAR_NAME"
           SOURCE_ZIP="build/delivery/$SOURCE_ZIP_NAME"
           {
-            echo "The Sky’s Lunaria Mod $VERSION build report"
+            echo "The Sky’s Lunaria $VERSION build report"
             echo "================================"
             cat "$RUNNER_TEMP/revision.txt"
             echo "run      : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
@@ -291,7 +291,7 @@ jobs:
         if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-artifacts]')
         uses: actions/upload-artifact@v4
         with:
-          name: Lunaria-Mod-1.8.9-${{ env.VERSION }}
+          name: Lunaria-1.8.9-${{ env.VERSION }}
           path: |
             build/libs/${{ env.JAR_NAME }}
             build/delivery/${{ env.ZIP_NAME }}

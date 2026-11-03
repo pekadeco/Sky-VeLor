@@ -14,6 +14,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.BlockPos;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +35,19 @@ public final class SvCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/lunaria [selftest|dungeon debug|itemanimation|itemdebug|lockdebug|espdebug|espdump|chateditor|chatdebug|layoutdebug]";
+        return "/lunaria (alias /velor) [selftest|dungeon debug|itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|chateditor|chatdebug|layoutdebug]";
+    }
+
+    @Override
+    public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
+        if (args.length == 1) {
+            return getListOfStringsMatchingLastWord(args, "selftest", "dungeon", "itemanimation", "ia",
+                    "itemdebug", "lockdebug", "espdebug", "espdump", "chateditor", "chatdebug", "layoutdebug");
+        }
+        if (args.length == 2 && "dungeon".equalsIgnoreCase(args[0])) {
+            return getListOfStringsMatchingLastWord(args, "debug");
+        }
+        return Collections.emptyList();
     }
 
     @Override

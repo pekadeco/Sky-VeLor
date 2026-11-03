@@ -417,9 +417,11 @@ public class AppleSettingsScreen extends AppleScreen {
         // Keep product identity in the upper-left, entirely inside the existing drag region. The header intentionally
         // still exposes only the Fullscreen and Close hit targets from SettingsShellLayout.
         float wordmarkX = panel.x + GuiStyle.SPACE_12;
-        // The small text initial was replaced with the transparent moon crop from the supplied logo.
-        UIRender.flush();
-        LunariaArtwork.drawMoon(wordmarkX + 9f, y + CHROME_H * .5f, 20f, 1f);
+        // Shape-drawn initial: no texture or additional asset is needed for the header mark.
+        float logoY = y + (CHROME_H - 18f) * .5f;
+        UIRender.roundRect(wordmarkX, logoY, 18f, 18f, 4f, Theme.accent, Theme.accent, 0f);
+        UIRender.rect(wordmarkX + 5f, logoY + 4f, 2f, 10f, 0xFFFFFFFF);
+        UIRender.rect(wordmarkX + 5f, logoY + 12f, 8f, 2f, 0xFFFFFFFF);
         float titleX = wordmarkX + 22f;
         float titleRight = shellHeader.dragRight - GuiStyle.SPACE_4;
         String wordmark = fit(fr(), "Lunaria", Math.max(1f, titleRight - titleX) / Theme.TYPE_TITLE);

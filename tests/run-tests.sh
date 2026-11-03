@@ -24,6 +24,8 @@ else
   CP="$CLASSES:$RESOURCES:$MC_JAR:$LOG4J_JAR:$GSON_JAR"
 fi
 
+python3 "$HERE/tests/visible_branding_test.py"
+
 # Compile every test first, including source-layout contracts. This catches a stale retained-test reference before
 # any individual suite starts. A response file avoids shell argument limits on the deliberately broad merged suite.
 find "$HERE/tests" -name '*.java' -type f | sort > "$OUT/sources.txt"

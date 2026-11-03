@@ -95,7 +95,7 @@ public final class LoadingScreen extends GuiScreen {
             UIRender.roundRect(barX, barY, barW, 7F, 3.5F, Theme.LOADING_PROGRESS_TRACK, Theme.LOADING_PROGRESS_TRACK, 1F);
             float fill = barW * Math.max(0F, Math.min(1F, progressAnim.get()));
             if (fill > 0F) UIRender.roundRect(barX, barY, fill, 7F, 3.5F, Theme.LOADING_PROGRESS_START, Theme.LOADING_PROGRESS_END, 1F);
-            String detail = total > 0 ? completed + " of " + total + " startup tasks" : "Lunaria Mod for Minecraft 1.8.9";
+            String detail = total > 0 ? completed + " of " + total + " startup tasks" : "Lunaria for Minecraft 1.8.9";
             UIRender.text(font, detail, centerX - font.getStringWidth(detail) * .5F, barY + 17F,
                     Theme.LOADING_STARTUP_DETAIL, .70F, false);
         } finally {

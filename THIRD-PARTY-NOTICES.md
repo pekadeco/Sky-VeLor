@@ -1,6 +1,6 @@
 # Third-party notices
 
-The Sky's Lunaria Mod is distributed under the terms in [`LICENSE`](LICENSE). Preserve this notice and the corresponding license text when redistributing source or binaries.
+The Sky's Lunaria is distributed under the terms in [`LICENSE`](LICENSE). Preserve this notice and the corresponding license text when redistributing source or binaries.
 
 ## Dependencies and references
 

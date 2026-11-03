@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify a packaged The Sky's Lunaria Mod Forge 1.8.9 release JAR.
+"""Verify a packaged The Sky's Lunaria Forge 1.8.9 release JAR.
 
 This verifier intentionally checks release identity, safety-critical feature surfaces, packaged assets, and archive
 hygiene without treating internal Java package names as public branding. It is standard-library-only so CI can run it
@@ -93,12 +93,12 @@ def contains_all(raw, values):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("jar", help="reobfuscated release JAR")
-    parser.add_argument("--version", required=True, help="display version, e.g. Beta-0.10.9.4v")
+    parser.add_argument("--version", required=True, help="display version, e.g. Beta-0.10.9.1.7v")
     parser.add_argument("--mcmod-version", default=None, help="numeric Forge metadata version")
     args = parser.parse_args()
 
     result = Results()
-    expected_name = "Lunaria-Mod-1.8.9-" + args.version + ".jar"
+    expected_name = "Lunaria-1.8.9-" + args.version + ".jar"
     result.check(os.path.basename(args.jar) == expected_name,
                  "artifact name is " + expected_name)
     result.check(os.path.isfile(args.jar), "artifact exists")
@@ -162,8 +162,8 @@ def main():
                      "only the Lunaria packaged asset namespace is present")
 
         manifest = manifest_text(archive.read("META-INF/MANIFEST.MF")) if "META-INF/MANIFEST.MF" in name_set else ""
-        result.check("Implementation-Title: The Sky's Lunaria Mod" in manifest,
-                     "manifest identifies The Sky's Lunaria Mod")
+        result.check("Implementation-Title: The Sky's Lunaria" in manifest,
+                     "manifest identifies The Sky's Lunaria")
         result.check("Implementation-Version: " + args.version in manifest,
                      "manifest version matches " + args.version)
         result.check("FMLCorePlugin: com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin" in manifest,
@@ -173,7 +173,7 @@ def main():
 
         numeric = args.mcmod_version or expected_numeric(args.version)
         metadata = archive.read("mcmod.info").decode("utf-8", "replace") if "mcmod.info" in name_set else ""
-        result.check('"modid": "lunaria"' in metadata and '"name": "The Sky\'s Lunaria Mod"' in metadata,
+        result.check('"modid": "lunaria"' in metadata and '"name": "The Sky\'s Lunaria"' in metadata,
                      "mcmod metadata uses Lunaria public identity")
         result.check('"version": "' + numeric + '"' in metadata,
                      "processed mcmod metadata carries numeric version " + numeric)
@@ -185,7 +185,7 @@ def main():
         entry_class = archive.read("com/arena/pekaclient/PekaClientMod.class") if "com/arena/pekaclient/PekaClientMod.class" in name_set else b""
         command_class = archive.read("com/arena/pekaclient/command/SvCommand.class") if "com/arena/pekaclient/command/SvCommand.class" in name_set else b""
         dungeon_command = archive.read("com/arena/pekaclient/command/SvDungeonCommand.class") if "com/arena/pekaclient/command/SvDungeonCommand.class" in name_set else b""
-        result.check(contains_all(version_class, (args.version.encode("utf-8"), b"The Sky's Lunaria Mod")),
+        result.check(contains_all(version_class, (args.version.encode("utf-8"), b"The Sky's Lunaria")),
                      "compiled version constants retain the public title and version")
         result.check(contains_all(entry_class, (b"lunaria", b"LunariaDownloadingTerrainScreen", b"DungeonChestCloser")),
                      "entry point wires Lunaria metadata, terrain overlay, and retained chest feature")

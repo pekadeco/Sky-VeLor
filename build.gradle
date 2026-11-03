@@ -47,16 +47,16 @@ def versionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java')
 def versionMatch = (versionSource.getText('UTF-8') =~ /NAME\s*=\s*"([^"]+)"/)
 if (!versionMatch.find()) throw new GradleException('Could not read PekaVersion.NAME.')
 version = versionMatch.group(1)
-def releaseDisplayVersion = 'Beta-0.10.9.4v'
+def releaseDisplayVersion = 'Beta-0.10.9.1.7v'
 if (version != releaseDisplayVersion) {
-    throw new GradleException('PekaVersion.NAME must match the Beta-0.10.9.4v release contract.')
+    throw new GradleException('PekaVersion.NAME must match the Beta-0.10.9.1.7v release contract.')
 }
 def numericVersionMatch = (version =~ /(?:Beta-)?([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+){0,3})v?$/)
 def mcmodVersion = numericVersionMatch.find() ? numericVersionMatch.group(1) : null
 if (mcmodVersion == null) throw new GradleException('Release version must contain a numeric Forge metadata version.')
 
 group = 'com.arena.pekaclient' // package compatibility; public identity and release metadata use Lunaria.
-archivesBaseName = 'Lunaria-Mod-1.8.9'
+archivesBaseName = 'Lunaria-1.8.9'
 sourceCompatibility = targetCompatibility = '1.8'
 compileJava {
     sourceCompatibility = targetCompatibility = '1.8'
@@ -100,7 +100,7 @@ jar {
     }
     manifest {
         attributes(
-                'Implementation-Title': "The Sky's Lunaria Mod",
+                'Implementation-Title': "The Sky's Lunaria",
                 'Implementation-Version': project.version,
                 'FMLCorePlugin': 'com.arena.pekaclient.render.itemanimation.ItemAnimationLoadingPlugin',
                 'FMLCorePluginContainsFMLMod': 'true',

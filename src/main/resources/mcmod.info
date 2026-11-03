@@ -1,8 +1,8 @@
 [
   {
     "modid": "lunaria",
-    "name": "The Sky's Lunaria Mod",
-    "description": "The Sky's Lunaria Mod ${displayVersion}: client-side HUD, settings, dungeon, fishing and gameplay utilities for Minecraft 1.8.9.",
+    "name": "The Sky's Lunaria",
+    "description": "The Sky's Lunaria ${displayVersion}: client-side HUD, settings, dungeon, fishing and gameplay utilities for Minecraft 1.8.9.",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "authorList": [
