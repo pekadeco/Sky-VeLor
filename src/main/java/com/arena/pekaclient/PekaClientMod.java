@@ -285,7 +285,6 @@ public class PekaClientMod {
         StartupTasks.add("Reading fishing counters", FishingStats::load);
         StartupTasks.add("Loading dungeon map templates", PuzzleRoomDatabase::load);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
-        ClientCommandHandler.instance.registerCommand(new SvDungeonCommand());
         ClientCommandHandler.instance.registerCommand(new ItemDebugCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));
@@ -381,6 +380,30 @@ public class PekaClientMod {
         return conflict;
     }
 
+    /** Updates the actual Controls binding and immediately persists Minecraft's options.txt. */
+    public static String rebindMenuKey(int keyCode) {
+        return com.arena.pekaclient.input.MenuKeyBinding.apply(keyCode,
+                new com.arena.pekaclient.input.MenuKeyBinding.Target() {
+                    public String conflict(int code) {
+                        Minecraft mc = Minecraft.getMinecraft();
+                        if (mc == null || mc.gameSettings == null || mc.gameSettings.keyBindings == null) return null;
+                        for (KeyBinding binding : mc.gameSettings.keyBindings) {
+                            if (binding != null && binding != OPEN_KEY && binding.getKeyCode() == code)
+                                return binding.getKeyDescription();
+                        }
+                        return null;
+                    }
+                    public void set(int code) {
+                        OPEN_KEY.setKeyCode(code);
+                        KeyBinding.resetKeyBindingArrayAndHash();
+                    }
+                    public void save() {
+                        Minecraft mc = Minecraft.getMinecraft();
+                        if (mc != null && mc.gameSettings != null) mc.gameSettings.saveOptions();
+                    }
+                });
+    }
+
     /** Same explicit capture contract as Item Lock: Escape is owned by the UI, and zero is an intentional clear. */
     public static String rebindWardrobeShortcutKey(int keyCode) {
         if (!AssistSettings.validShortcutKeyCode(keyCode) || keyCode == Keyboard.KEY_ESCAPE) return null;
@@ -471,6 +494,10 @@ public class PekaClientMod {
         installPacketBridgeIfReady();
         Minecraft mc = Minecraft.getMinecraft();
         if (event.phase == TickEvent.Phase.START) {
+            // Vanilla Controls can clear or mouse-bind keys; keep the menu reachable with a keyboard key.
+            if (!com.arena.pekaclient.input.MenuKeyBinding.valid(OPEN_KEY.getKeyCode())) {
+                rebindMenuKey(com.arena.pekaclient.input.MenuKeyBinding.DEFAULT_KEY);
+            }
             // Controls can rebind this vanilla KeyBinding outside our hub; mirror it into feature config for next launch.
             if (ItemLockSwapSettings.keyCode != ITEM_LOCK_SWAP_KEY.getKeyCode()) {
                 ItemLockSwapSettings.keyCode = ITEM_LOCK_SWAP_KEY.getKeyCode();
@@ -561,7 +588,7 @@ public class PekaClientMod {
         if (version.endsWith("v")) {
             version = version.substring(0, version.length() - 1);
         }
-        String line = "Lunaria " + version + " | Item Animation: /lunaria itemanimation | "
+        String line = "Lunaria " + version + " | Item Animation: /luna itemanimation | "
                 + ItemAnimationHookStatus.getDisplay();
         System.out.println("[Lunaria] " + line);
         String color = ItemAnimationHookStatus.isActive() ? "\u00a7a" : "\u00a7c";

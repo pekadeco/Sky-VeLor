@@ -40,9 +40,9 @@ public final class InlineOptionPreservationTests {
                 "m7-boss-necron", "m7-boss-storm", "m7-dragon-apex", "m7-dragon-flame", "m7-dragon-ice", "m7-dragon-power",
                 "m7-dragon-soul", "m7-overlay", "m7-relic-areas", "m7-terminal-solver", "mining-ability-alert",
                 "mining-assistant-hud", "mining-bps", "mining-puzzler", "mob-esp-enabled", "nearby-encounters",
-                "no-block-particles", "performance-boost", "pets-shortcut", "qn-command",
+                "no-block-particles", "open-menu-key", "performance-boost", "pets-shortcut", "qn-command",
                 "rarity-highlight", "roman-numerals", "sea-hp-hud-route", "shadows", "slayer-boss-timer", "slayer-pricing",
-                "slayer-tracker", "smooth-scrolling", "spirit-bow-locator", "spirit-leap", "sv-command", "terminal-auto-click",
+                "slayer-tracker", "smooth-scrolling", "spirit-bow-locator", "spirit-leap", "terminal-auto-click",
                 "terminal-hide-wrong", "terminal-hints", "terminal-prevent-clicks", "terminal-scale", "terminal-waypoints",
                 "tooltip-scroll", "wardrobe-shortcut", "wardrobe-number-keys"));
         addStyleOptions(expected, "esp-starred");

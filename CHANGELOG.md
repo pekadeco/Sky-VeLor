@@ -11,7 +11,7 @@
 ### Added
 
 - Lunaria public metadata, `lunaria` resource namespace, centered logo/moon artwork, and canonical `/lunaria` command route.
-- `/lunaria dungeon debug` while preserving `/sv`, `/velor`, and `/svdungeon debug` compatibility routes.
+- Added dungeon diagnostics and compatibility routes.
 - Supplied aspect-fill loading artwork, soft blue-to-purple progress treatment, startup status/percent copy, and a post-draw downloading-terrain overlay.
 - Current-first configuration migration, including current Lunaria HUD, notes, fishing, sync, Slot Lock, external-font, and main-setting write targets with read-only historical fallbacks.
 - Friend-source capabilities not present in the earlier Arena surface: detailed Chat Editor, Chat QoL models, optional bundled/external fonts, dungeon progress/readout support, terminal/puzzle helpers, safety policies, and their retained tests.

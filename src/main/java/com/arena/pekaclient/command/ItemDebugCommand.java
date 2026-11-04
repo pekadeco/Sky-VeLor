@@ -33,7 +33,7 @@ public final class ItemDebugCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/lunaria itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|selftest|chateditor|chatdebug|layoutdebug";
+        return "/luna itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|selftest|chateditor|chatdebug|layoutdebug";
     }
 
     static boolean isFeatureRoute(String route) {
@@ -91,7 +91,7 @@ public final class ItemDebugCommand extends CommandBase {
             return;
         }
         if (args.length != 1 || !"itemdebug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /lunaria itemanimation (or /lunaria ia), /lunaria itemdebug, /lunaria lockdebug, /lunaria espdebug, /lunaria espdump, /lunaria selftest, /lunaria chateditor, /lunaria chatdebug, or /lunaria layoutdebug");
+            say(sender, "Usage: /luna itemanimation (or /luna ia), /luna itemdebug, /luna lockdebug, /luna espdebug, /luna espdump, /luna selftest, /luna chateditor, /luna chatdebug, or /luna layoutdebug");
             return;
         }
 

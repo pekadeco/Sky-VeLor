@@ -582,7 +582,7 @@ public final class DungeonPuzzleSyncManager {
     /** Shows a client-local reminder. This never sends a message to the party or the server. */
     private static void showDisabledSyncReminder(Minecraft mc) {
         if (mc == null || mc.thePlayer == null) return;
-        mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b[Lunaria] \u00a7fFor a better dungeon experience, enable Dungeon Sync in /lunaria > Dungeon > Dungeon Sync to share detected puzzle names with teammates who also enable it. Local puzzle solvers still work when Sync is off."));
+        mc.thePlayer.addChatMessage(new ChatComponentText("\u00a7b[Lunaria] \u00a7fFor a better dungeon experience, enable Dungeon Sync in /luna > Dungeon > Dungeon Sync to share detected puzzle names with teammates who also enable it. Local puzzle solvers still work when Sync is off."));
     }
 
     private boolean diagnosticsEnabled() { return config != null && config.diagnosticsEnabled; }

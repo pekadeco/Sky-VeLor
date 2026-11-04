@@ -204,7 +204,7 @@ public final class SlotLocking {
                         completeBindingGesture();
                     }
                 } else if (clickPress) {
-                    notifyBlocked("slot binding is disabled in /lunaria → QoL");
+                    notifyBlocked("slot binding is disabled in /luna → QoL");
                 }
                 // A successful bind consumes a click-down so the same click cannot move an item.
                 // Mouse-move events are deliberately allowed: Better NEF binds by dragging the cursor.
@@ -215,7 +215,7 @@ public final class SlotLocking {
                 // Do not let an invalid target click pick up/drop an item while the gesture is armed.
                 event.setCanceled(true);
                 if (!AppleSettings.slotBindingEnabled) {
-                    notifyBlocked("slot binding is disabled in /lunaria → QoL");
+                    notifyBlocked("slot binding is disabled in /luna → QoL");
                 }
             }
             return;
@@ -225,7 +225,7 @@ public final class SlotLocking {
         if (storageIsFailed()) {
             if (hovered != null && (hoveredIndex >= 0 || hovered.inventory != MC.thePlayer.inventory)) {
                 event.setCanceled(true);
-                notifyBlocked("slot-lock settings could not be read; use /lunaria slots off to recover access");
+                notifyBlocked("slot-lock settings could not be read; use /luna slots off to recover access");
             }
             return;
         }
@@ -339,7 +339,7 @@ public final class SlotLocking {
         if (storageFailed) {
             if (inventoryIndex >= 0 || mode == 4 || mode == 5 || mode == 6 || mode == 1 || mode == 2) {
                 event.setCanceled(true);
-                notifyBlocked("slot-lock settings could not be read; use /lunaria slots off to recover access");
+                notifyBlocked("slot-lock settings could not be read; use /luna slots off to recover access");
             }
             return;
         }
@@ -614,7 +614,7 @@ public final class SlotLocking {
     public static String getStatusText() {
         ensureLoaded();
         if (STORE.hasFailed()) return "Slot Locking storage error: " + STORE.getFailureReason()
-                + " Use /lunaria slots off to recover inventory access.";
+                + " Use /luna slots off to recover inventory access.";
         return "Slot Locking " + (AppleSettings.slotLockingEnabled ? "ON" : "OFF")
                 + "; " + STORE.lockedCount() + " locked slot(s), " + STORE.bindingCount()
                 + " binding(s). Key: Controls > Lunaria > Lock Slot.";

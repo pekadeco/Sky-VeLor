@@ -87,8 +87,8 @@ public final class ReleaseClaimsTests {
         String command = classText("com.arena.pekaclient.command.SvCommand");
         String dungeon = classText("com.arena.pekaclient.command.SvDungeonCommand");
         String actions = classText("com.arena.pekaclient.command.ClientActions");
-        check("/lunaria is canonical while /sv and /velor remain aliases", command.contains("lunaria")
-                && command.contains("sv") && command.contains("velor"));
+        check("/luna is canonical and old full-name aliases remain", command.contains("luna")
+                && command.contains("lunaria") && command.contains("velor"));
         check("dungeon debug and legacy direct dungeon command stay available", command.contains("dungeon")
                 && command.contains("debug") && dungeon.contains("svdungeon"));
         check("chat command opens the retained detailed editor after chat closes", actions.contains("ChatEditorScreen")

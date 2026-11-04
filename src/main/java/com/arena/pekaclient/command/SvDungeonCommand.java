@@ -30,7 +30,7 @@ public final class SvDungeonCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/lunaria dungeon debug (legacy: /svdungeon debug)";
+        return "/luna dungeon debug";
     }
 
     @Override
@@ -41,7 +41,7 @@ public final class SvDungeonCommand extends CommandBase {
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
         if (args == null || args.length != 1 || !"debug".equalsIgnoreCase(args[0])) {
-            say(sender, "Usage: /lunaria dungeon debug (legacy: /svdungeon debug)");
+            say(sender, "Usage: /luna dungeon debug");
             return;
         }
         writeDebug(sender);

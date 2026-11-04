@@ -835,15 +835,23 @@ public class AppleSettingsScreen extends AppleScreen {
                         TOGGLE_COLUMN_W, mouseX, mouseY);
                 drawEditorButton(setting, actionX, actionY, trailingW, mouseX, mouseY);
             } else if (setting.isKeybind()) {
-                float actionY = keybindControlY(y, baseH);
+                boolean menuKey = "open-menu-key".equals(setting.id);
+                float actionY = keybindControlY(y, baseH - (menuKey ? 14f : 0f));
                 // A distinct full-row key keeps its geometry from mutating the compact button hit in knownHits.
                 // Register it first so the key capsule and optional toggle retain click priority above it.
                 registerHit("keybind-row:" + setting.id, HIT_CONTROL, x + 1f, y + 1f, rowW - 2f, baseH - 1f, setting, "");
                 if (setting.hasMasterToggle()) drawKeybindToggle(setting,
                         Math.max(leftX, shortcutKeyToggleX(x, rowW)), actionY, mouseX, mouseY);
                 drawControl(setting, actionX, actionY, trailingW, mouseX, mouseY);
-                drawKeybindConflictWarning(setting, leftX, y + baseH - KEYBIND_WARNING_H + 1f,
+                drawKeybindConflictWarning(setting, leftX, y + baseH - KEYBIND_WARNING_H + 1f - (menuKey ? 14f : 0f),
                         Math.max(1f, rowW - ROW_PAD_X * 2f));
+                if (menuKey) {
+                    String resetLabel = "Reset to Right Shift";
+                    float resetY = y + baseH - 13f;
+                    UIRender.text(fr(), resetLabel, leftX, resetY, Theme.accent, .65f, false);
+                    registerHit("menu-key-reset", HIT_ACTION, leftX - 2f, resetY - 1f,
+                            fr().getStringWidth(resetLabel) * .65f + 4f, 12f, setting, "reset-menu-key");
+                }
             } else if (setting.control == ReferenceSettingsCatalog.Control.TOGGLE) {
                 float toggleColumnX = "wardrobe-number-keys".equals(setting.id)
                         ? Math.max(leftX, shortcutKeyToggleX(x, rowW)) : toggleX;
@@ -985,6 +993,7 @@ public class AppleSettingsScreen extends AppleScreen {
         // Key rows reserve one quiet line even when there is no conflict, preventing late collision text from changing
         // the row flow or overlapping another control.
         if (setting.isKeybind()) base += KEYBIND_WARNING_H;
+        if ("open-menu-key".equals(setting.id)) base += 14f;
         return Math.max(31f, base);
     }
 
@@ -1775,6 +1784,7 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private int keybindValue(String id) {
+        if ("open-menu-key".equals(id)) return PekaClientMod.OPEN_KEY.getKeyCode();
         if ("item-lock-key".equals(id)) return PekaClientMod.ITEM_LOCK_SWAP_KEY.getKeyCode();
         if ("wardrobe-shortcut".equals(id)) return PekaClientMod.WARDROBE_SHORTCUT_KEY.getKeyCode();
         if ("pets-shortcut".equals(id)) return PekaClientMod.PETS_SHORTCUT_KEY.getKeyCode();
@@ -1816,6 +1826,7 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private static KeyBinding keybindForId(String id) {
+        if ("open-menu-key".equals(id)) return PekaClientMod.OPEN_KEY;
         if ("item-lock-key".equals(id)) return PekaClientMod.ITEM_LOCK_SWAP_KEY;
         if ("wardrobe-shortcut".equals(id)) return PekaClientMod.WARDROBE_SHORTCUT_KEY;
         if ("pets-shortcut".equals(id)) return PekaClientMod.PETS_SHORTCUT_KEY;
@@ -1830,7 +1841,8 @@ public class AppleSettingsScreen extends AppleScreen {
         if (!(widget instanceof AppleKeybindButton)) return;
         keybindCaptureId = id;
         ((AppleKeybindButton) widget).beginCapture();
-        showToast("Press a key. Esc cancels; Backspace clears.");
+        showToast("open-menu-key".equals(id) ? "Press a key. Esc cancels."
+                : "Press a key. Esc cancels; Backspace clears.");
     }
 
     private void cancelKeybindCapture() {
@@ -1848,7 +1860,7 @@ public class AppleSettingsScreen extends AppleScreen {
             showToast("Key capture canceled");
             return;
         }
-        if (keyCode == Keyboard.KEY_BACK) {
+        if (keyCode == Keyboard.KEY_BACK && !"open-menu-key".equals(id)) {
             applyKeybindCapture(id, 0);
             return;
         }
@@ -1858,7 +1870,8 @@ public class AppleSettingsScreen extends AppleScreen {
 
     private void applyKeybindCapture(String id, int keyCode) {
         String conflict = null;
-        if ("item-lock-key".equals(id)) conflict = PekaClientMod.rebindItemLockSwapKey(keyCode);
+        if ("open-menu-key".equals(id)) conflict = PekaClientMod.rebindMenuKey(keyCode);
+        else if ("item-lock-key".equals(id)) conflict = PekaClientMod.rebindItemLockSwapKey(keyCode);
         else if ("wardrobe-shortcut".equals(id)) conflict = PekaClientMod.rebindWardrobeShortcutKey(keyCode);
         else if ("pets-shortcut".equals(id)) conflict = PekaClientMod.rebindPetsShortcutKey(keyCode);
         else return;
@@ -2138,6 +2151,12 @@ public class AppleSettingsScreen extends AppleScreen {
 
     /** Executes a retained value action; named editor destinations are the only actions that open a child screen. */
     private void performInlineAction(String id) {
+        if ("reset-menu-key".equals(id)) {
+            cancelKeybindCapture();
+            String conflict = PekaClientMod.rebindMenuKey(com.arena.pekaclient.input.MenuKeyBinding.DEFAULT_KEY);
+            showToast(conflict == null ? "Open Menu Key reset" : "Key set; also bound to " + conflict);
+            return;
+        }
         if ("open-chat-editor".equals(id)) {
             Minecraft.getMinecraft().displayGuiScreen(new ChatEditorScreen(this));
             return;

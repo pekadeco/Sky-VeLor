@@ -189,8 +189,8 @@ def main():
                      "compiled version constants retain the public title and version")
         result.check(contains_all(entry_class, (b"lunaria", b"LunariaDownloadingTerrainScreen", b"DungeonChestCloser")),
                      "entry point wires Lunaria metadata, terrain overlay, and retained chest feature")
-        result.check(contains_all(command_class, (b"lunaria", b"sv", b"velor", b"dungeon")),
-                     "main command packages /lunaria with /sv and /velor aliases")
+        result.check(contains_all(command_class, (b"luna", b"lunaria", b"velor", b"dungeon")),
+                     "main command packages /luna and compatibility aliases")
         result.check(contains_all(dungeon_command, (b"debug", b"svdungeon", b"Dungeon debug begin", b"raw sidebar")),
                      "dungeon command retains live diagnostics and legacy direct alias support")
 

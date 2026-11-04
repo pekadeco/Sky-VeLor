@@ -9,7 +9,7 @@
 
 ## Detailed editor
 
-Use **Misc → Fonts → Open Chat Editor** or `/lunaria chateditor` for the retained detailed editor. It exposes:
+Use **Misc → Fonts → Open Chat Editor** or `/luna chateditor` for the retained detailed editor. It exposes:
 
 1. Background color, opacity, shape, and width behavior.
 2. Message animation, fade, compact messages, and the **Chat length (256 characters)** switch. Turn it off to keep Minecraft's 100-character limit.
@@ -25,4 +25,4 @@ The context menu captures the selected message state once. Copy-to-chat uses the
 
 ## Diagnostics
 
-`/lunaria chatdebug` and `/lunaria layoutdebug` expose local visual diagnostics. They do not alter saved chat configuration.
+`/luna chatdebug` and `/luna layoutdebug` expose local visual diagnostics. They do not alter saved chat configuration.

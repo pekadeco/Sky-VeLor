@@ -30,7 +30,7 @@ Font settings are stored under `fonts.*`. Earlier chat-font keys are accepted fo
 
 1. Keep existing configuration files in place.
 2. Launch Lunaria normally.
-3. Confirm settings/HUD placement once in `/lunaria`.
+3. Confirm settings/HUD placement once in `/luna`.
 4. Let a normal settings save create the current Lunaria file.
 5. Keep old files as a backup until you have verified the migrated result.
 

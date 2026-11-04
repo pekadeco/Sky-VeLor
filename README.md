@@ -8,7 +8,7 @@
 - **Dungeon tools:** map and interpolated player heads, terminal hints, puzzle/terminal support, Spirit Leap helper, score calculator and diagnostics, Room Clear Alert, exact-title Auto Chest Close, Spirit Bow locator, Floor VII support, and client-side ESP.
 - **Safe gameplay QoL:** Shortcut keys, Item Lock & Swap rules, protected inventory gestures, Auto Sprint, Hide Dead Mobs, Smooth Aspect Teleport, quiet block particles, and held-item animation. Client visual helpers do not send movement or combat packets.
 - **Chat and fonts:** detailed Chat Editor, chat tabs, history, compact messages, click menu, optional bundled/external Lunaria fonts, and a clear native-font fallback.
-- **Compatibility:** canonical `/lunaria` commands plus `/sv` and `/velor` aliases; current settings are written under Lunaria names while prior files remain read-only fallbacks.
+- **Compatibility:** current settings are written under Lunaria names while prior files remain read-only fallbacks.
 
 ## Requirements
 
@@ -22,13 +22,11 @@ ForgeGradle 2.1 and Gradle 2.14.1 are intentionally retained for this legacy Min
 
 | Command | Purpose |
 | --- | --- |
-| `/lunaria` | Open Lunaria settings. |
-| `/lunaria dungeon debug` | Print local dungeon-score diagnostics for support. |
-| `/lunaria itemanimation` | Open the Item Animation editor. |
-| `/lunaria chateditor` | Open the retained detailed Chat Editor. |
-| `/lunaria selftest` | Report local hook status. |
-| `/sv`, `/velor` | Compatibility aliases for `/lunaria`. |
-| `/svdungeon debug` | Compatibility direct alias for dungeon diagnostics. |
+| `/luna` | Open Lunaria settings. |
+| `/luna dungeon debug` | Print local dungeon-score diagnostics for support. |
+| `/luna itemanimation` | Open the Item Animation editor. |
+| `/luna chateditor` | Open the retained detailed Chat Editor. |
+| `/luna selftest` | Report local hook status. |
 
 All commands are client-side. They do not send slash commands to a server.
 
@@ -83,7 +81,7 @@ CI builds, tests, verifies the JAR/source archive, and publishes the three verif
 
 1. Install Forge `11.15.1.2318` for Minecraft 1.8.9.
 2. Put `Lunaria-1.8.9-Beta-0.10.9.1.7v.jar` in the Minecraft `mods` folder.
-3. Launch the Forge profile and open `/lunaria`.
+3. Launch the Forge profile and open `/luna`.
 
 ## Repository note
 

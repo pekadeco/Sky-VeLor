@@ -160,8 +160,9 @@ def main():
         result.check("lunaria.properties" in settings and "skyvelor.properties" in settings
                      and "FontSettings" in settings,
                      "settings source preserves Lunaria writes and legacy-read configuration migration")
-        result.check('"lunaria"' in commands and '"sv"' in commands and '"velor"' in commands,
-                     "command source exposes canonical /lunaria and both compatibility aliases")
+        result.check('"luna"' in commands and '"lunaria"' in commands and '"velor"' in commands
+                     and '"sv"' not in commands,
+                     "command source exposes /luna and both compatibility aliases without /sv")
         result.check("drawScaledCustomSizeModalRect" in artwork and "GL_NEAREST" in artwork,
                      "loading artwork source uses cropped aspect-fill draw and pixel-sharp logo filtering")
         result.check("LunariaDownloadingTerrainScreen" in entry and "DungeonChestCloser" in entry,

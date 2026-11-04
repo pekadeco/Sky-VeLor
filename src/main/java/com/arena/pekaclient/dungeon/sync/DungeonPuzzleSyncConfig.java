@@ -68,7 +68,7 @@ public final class DungeonPuzzleSyncConfig {
             properties.setProperty("endpoint", DEFAULT_ENDPOINT);
             try (OutputStream output = new FileOutputStream(file)) {
                 properties.store(output,
-                        "Lunaria dungeon puzzle sync. Enable or disable from /lunaria > Dungeon > Dungeon Sync. The Worker URL is supplied by the mod. Cloudflare receives a temporary session hash, puzzle labels/room coordinates, and normal connection metadata such as IP address.");
+                        "Lunaria dungeon puzzle sync. Enable or disable from /luna > Dungeon > Dungeon Sync. The Worker URL is supplied by the mod. Cloudflare receives a temporary session hash, puzzle labels/room coordinates, and normal connection metadata such as IP address.");
             } catch (IOException ignored) {
                 // No connection is attempted when the opt-in file cannot be created.
             }
@@ -155,7 +155,7 @@ public final class DungeonPuzzleSyncConfig {
         properties.setProperty("diagnosticsPreferenceVersion", DIAGNOSTICS_PREFERENCE_VERSION);
         properties.setProperty("endpoint", endpoint);
         return ConfigFiles.writeAtomic(file, properties,
-                "Lunaria dungeon puzzle sync. Settings are available from /lunaria > Dungeon > Dungeon Sync.");
+                "Lunaria dungeon puzzle sync. Settings are available from /luna > Dungeon > Dungeon Sync.");
     }
 
     public boolean isUsable() {

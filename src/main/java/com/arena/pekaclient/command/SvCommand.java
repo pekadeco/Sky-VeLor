@@ -1,6 +1,7 @@
 package com.arena.pekaclient.command;
 
-import com.arena.pekaclient.config.AppleSettings;
+import com.arena.pekaclient.PekaClientMod;
+import com.arena.pekaclient.input.MenuKeyBinding;
 import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.visual.VisualAssistHookStatus;
@@ -19,29 +20,29 @@ import net.minecraft.util.BlockPos;
 import java.util.Collections;
 import java.util.List;
 
-/** /lunaria opens the Lunaria hub from chat. Historic /sv and /velor routes remain client-side aliases. */
+/** /luna opens the Lunaria hub; prior full-name and VeLor commands remain compatibility aliases. */
 public final class SvCommand extends CommandBase {
 
     @Override
     public String getCommandName() {
-        return "lunaria";
+        return "luna";
     }
 
     @Override
     public List<String> getCommandAliases() {
         // These old public routes intentionally remain valid through the settings migration period.
-        return java.util.Arrays.asList("sv", "velor");
+        return java.util.Arrays.asList("lunaria", "velor");
     }
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/lunaria (alias /velor) [selftest|dungeon debug|itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|chateditor|chatdebug|layoutdebug]";
+        return "/luna [resetkey|selftest|dungeon debug|itemanimation|ia|itemdebug|lockdebug|espdebug|espdump|chateditor|chatdebug|layoutdebug]";
     }
 
     @Override
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos) {
         if (args.length == 1) {
-            return getListOfStringsMatchingLastWord(args, "selftest", "dungeon", "itemanimation", "ia",
+            return getListOfStringsMatchingLastWord(args, "resetkey", "selftest", "dungeon", "itemanimation", "ia",
                     "itemdebug", "lockdebug", "espdebug", "espdump", "chateditor", "chatdebug", "layoutdebug");
         }
         if (args.length == 2 && "dungeon".equalsIgnoreCase(args[0])) {
@@ -57,6 +58,12 @@ public final class SvCommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) {
+        if (args != null && args.length == 1 && "resetkey".equalsIgnoreCase(args[0])) {
+            String conflict = PekaClientMod.rebindMenuKey(MenuKeyBinding.DEFAULT_KEY);
+            say(sender, conflict == null ? "Open Menu Key reset to Right Shift."
+                    : "Open Menu Key reset to Right Shift; also bound to " + conflict + ".");
+            return;
+        }
         Minecraft mc = Minecraft.getMinecraft();
         if (args != null && args.length == 1 && "selftest".equalsIgnoreCase(args[0])) {
             selfTest(mc);
@@ -67,18 +74,13 @@ public final class SvCommand extends CommandBase {
             SvDungeonCommand.writeDebug(sender);
             return;
         }
-        // Historic /velor feature routes now live under /lunaria too. The existing command class owns their
-        // implementation so the diagnostic behavior stays byte-for-byte aligned with the retained path.
+        // All names share the same command object and existing feature-route implementation.
         if (args != null && args.length == 1 && ItemDebugCommand.isFeatureRoute(args[0])) {
             new ItemDebugCommand().processCommand(sender, args);
             return;
         }
         if (args != null && args.length > 0) {
             say(sender, "Usage: " + getCommandUsage(sender));
-            return;
-        }
-        if (!AppleSettings.svCommand) {
-            say(sender, "/lunaria is off. Turn it on in Settings, System, Diagnostics, Client command routes.");
             return;
         }
         ClientActions.requestHub();

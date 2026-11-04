@@ -427,16 +427,17 @@ public final class ReferenceSettingsCatalog {
                     editor("chat-editor", "Chat Editor", "Open the detailed Chat QoL editor with tab controls.",
                             "chat tabs background messages editor", false, "Open Chat Editor", "open-chat-editor")),
             card("general", "General", "Scrolling and commands.", false, "",
+                    keybind("open-menu-key", "Open Menu Key", "Click the key, then press a keyboard key. Esc cancels.",
+                            "menu key controls bind reset right shift", false),
                     dropdown("system-general", "Interface", "Adjust scrolling preferences.", "scroll settings",
                             slider("global-scroll", "Scroll Speed", "Set settings scroll speed.", "scroll speed", 50, 300, 25, "%"),
                             toggle("smooth-scrolling", "Smooth Scrolling", "Use smooth settings scrolling.", "smooth scrolling"),
                             reset("system-general-reset")),
                     dropdown("system-commands", "Commands", "Chat commands and diagnostics.", "commands selftest debug",
-                            toggle("sv-command", "/lunaria", "Open settings from chat.", "lunaria command"),
                             toggle("qn-command", "/qn", "Open notes from chat.", "qn command"),
-                            info("command-itemdebug", "/lunaria itemdebug", "Show held-item values.", "item debug"),
-                            info("command-lockdebug", "/lunaria lockdebug", "Show lock and swap details.", "lock debug"),
-                            info("command-selftest", "/lunaria selftest", "Show feature details.", "selftest"),
+                            info("command-itemdebug", "/luna itemdebug", "Show held-item values.", "item debug"),
+                            info("command-lockdebug", "/luna lockdebug", "Show lock and swap details.", "lock debug"),
+                            info("command-selftest", "/luna selftest", "Show feature details.", "selftest"),
                             reset("commands-reset")))
     );
 

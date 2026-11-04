@@ -39,7 +39,11 @@ java_root = ROOT / 'src/main/java/com/arena/pekaclient'
 errors = []
 for path in java_root.rglob('*.java'):
     relative = path.relative_to(java_root).as_posix()
-    errors.extend('%s: %s' % (relative, match) for match in violations(relative, path.read_text(encoding='utf-8')))
+    text = path.read_text(encoding='utf-8')
+    errors.extend('%s: %s' % (relative, match) for match in violations(relative, text))
+    for literal in LITERAL.findall(text):
+        if re.search(r'/sv(?:\b|dungeon)|/velor\b', literal, re.I):
+            errors.append('%s: obsolete visible command %s' % (relative, literal))
 for path in (ROOT / 'src/main/resources').rglob('*'):
     if path.is_file() and path.suffix in {'.lang', '.info', '.json', '.txt'}:
         if OLD.search(path.read_text(encoding='utf-8')):

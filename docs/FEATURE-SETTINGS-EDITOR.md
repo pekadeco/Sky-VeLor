@@ -28,7 +28,7 @@ Item Lock & Swap protects configured slots and validates pair swaps locally. It 
 
 The direct-canvas Dungeon HUD Editor lets a player select, drag, resize, reset, and preview its dungeon elements. It is intentionally separate from the ordinary HUD editor.
 
-Dungeon Score uses only locally visible sidebar, public tab-list, and chat observations. It does not call an external score API. A live estimate deliberately does not claim `S+` without a visible qualifying end recap. Use `/lunaria dungeon debug` to collect local diagnostic evidence.
+Dungeon Score uses only locally visible sidebar, public tab-list, and chat observations. It does not call an external score API. A live estimate deliberately does not claim `S+` without a visible qualifying end recap. Use `/luna dungeon debug` to collect local diagnostic evidence.
 
 Auto Chest Close is opt-in and narrowly accepts only exact normal chest titles in a confirmed dungeon. It does not click reward slots, accept rewards, or send movement commands.
 
@@ -51,11 +51,11 @@ The **Fonts** card deliberately retains optional custom fonts:
 
 Put new `.ttf` or `.otf` files in `config/lunaria/fonts`. Files in the prior fallback folder remain readable; the current folder wins when an exact file name exists in both places. No file is copied, renamed, or deleted by font discovery.
 
-The named **Chat Editor** opens the retained detailed Chat QoL editor with background, message, tab, menu/highlight, reset, custom-tab, filter, and send-prefix controls. `/lunaria chateditor` opens the same detailed editor after the chat screen closes.
+The named **Chat Editor** opens the retained detailed Chat QoL editor with background, message, tab, menu/highlight, reset, custom-tab, filter, and send-prefix controls. `/luna chateditor` opens the same detailed editor after the chat screen closes.
 
 ## Command routes
 
-`/lunaria` is canonical. `/sv` and `/velor` remain compatibility aliases. The direct dungeon diagnostic alias `/svdungeon debug` remains valid alongside `/lunaria dungeon debug`.
+`/luna` opens the menu and provides the feature commands.
 
 ## Safety boundary
 

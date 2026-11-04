@@ -7,9 +7,10 @@ public final class LunariaCommandTests {
     }
     public static void main(String[] args) {
         SvCommand command = new SvCommand();
-        check("lunaria".equals(command.getCommandName()), "canonical command");
-        check(command.getCommandAliases().contains("velor"), "legacy alias");
-        check(command.getCommandUsage(null).contains("/velor"), "help mentions alias");
+        check("luna".equals(command.getCommandName()), "canonical command");
+        check(command.getCommandAliases().contains("velor") && command.getCommandAliases().contains("lunaria") && !command.getCommandAliases().contains("sv"), "compatibility aliases and removed sv");
+        check(command.getCommandUsage(null).contains("/luna") && !command.getCommandUsage(null).contains("/velor"), "help hides aliases");
+        check(command.addTabCompletionOptions(null, new String[]{"reset"}, null).contains("resetkey"), "reset completion");
         String[] routes = {"itemanimation", "ia", "itemdebug", "lockdebug", "espdebug", "espdump", "chateditor", "chatdebug", "layoutdebug"};
         for (String route : routes) {
             check(ItemDebugCommand.isFeatureRoute(route), "route dispatch: " + route);
