@@ -285,6 +285,7 @@ public class PekaClientMod {
         StartupTasks.add("Reading fishing counters", FishingStats::load);
         StartupTasks.add("Loading dungeon map templates", PuzzleRoomDatabase::load);
         ClientCommandHandler.instance.registerCommand(new SvCommand());
+        ClientCommandHandler.instance.registerCommand(new SvDungeonCommand());
         ClientCommandHandler.instance.registerCommand(new ItemDebugCommand());
         ClientCommandHandler.instance.registerCommand(new QuickNoteCommand());
         ClientCommandHandler.instance.registerCommand(new PriceSetCommand("setprice"));
