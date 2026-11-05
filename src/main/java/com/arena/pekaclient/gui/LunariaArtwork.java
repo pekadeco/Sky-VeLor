@@ -67,8 +67,10 @@ public final class LunariaArtwork {
         GlStateManager.color(1F, 1F, 1F, clamp(alpha));
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-        Gui.drawModalRectWithCustomSizedTexture(Math.round(x), Math.round(y), 0F, 0F,
-                Math.max(1, Math.round(width)), Math.max(1, Math.round(height)), textureWidth, textureHeight);
+        // Sample the entire source rather than the destination-sized top-left crop.
+        Gui.drawScaledCustomSizeModalRect(Math.round(x), Math.round(y), 0F, 0F,
+                Math.round(textureWidth), Math.round(textureHeight), Math.max(1, Math.round(width)),
+                Math.max(1, Math.round(height)), textureWidth, textureHeight);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
         GlStateManager.color(1F, 1F, 1F, 1F);

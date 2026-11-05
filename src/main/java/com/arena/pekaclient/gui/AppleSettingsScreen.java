@@ -434,7 +434,8 @@ public class AppleSettingsScreen extends AppleScreen {
         float titleRight = shellHeader.dragRight - GuiStyle.SPACE_4;
         String wordmark = fit(fr(), "The Sky's Lunaria Mod", Math.max(1f, titleRight - titleX) / .75f);
         UIRender.text(fr(), wordmark, titleX, y + 5f, Theme.textPrimary, .75f, false);
-        UIRender.text(fr(), "Mod Settings", titleX, y + 16f, Theme.textSecondary, .62f, false);
+        String subtitle = fit(fr(), "Mod Settings", Math.max(0f, titleRight - titleX) / .62f);
+        if (subtitle.length() > 0) UIRender.text(fr(), subtitle, titleX, y + 16f, Theme.textSecondary, .62f, false);
         drawHeaderIconButton(shellHeader.fullscreen, mouseX, mouseY, fullscreenWindow,
                 fullscreenWindow ? "Exit fullscreen" : "Fullscreen", HIT_WINDOW_FULLSCREEN);
         drawHeaderIconButton(shellHeader.close, mouseX, mouseY, false, "Close settings", HIT_WINDOW_CLOSE);
