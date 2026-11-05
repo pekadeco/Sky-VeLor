@@ -1,5 +1,11 @@
 # Changelog
 
+## Beta-0.10.9.1.8v — The Sky's Lunaria
+
+- Renamed and reordered settings channels; moved Dungeon Run HUD to Dungeons without changing its saved settings.
+- Added a menu key picker and recovery command; `/luna` opens settings, with legacy aliases retained.
+- Window-size options and a unified Dungeon HUD Editor are not included in this release.
+
 ## Beta-0.10.9.1.7v — The Sky's Lunaria
 
 - Align player-facing title and release artifact names with Lunaria.

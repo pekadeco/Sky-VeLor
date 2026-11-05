@@ -1,4 +1,4 @@
-# The Sky's Lunaria — Beta-0.10.9.1.7v
+# The Sky's Lunaria — Beta-0.10.9.1.8v
 
 **The Sky's Lunaria** is a client-side Forge mod for Minecraft 1.8.9. It combines the retained Lunaria feature set with the reliable Arena implementation: configurable HUDs, dungeon tools, map player heads, safe inventory rules, shortcut keys, Chat QoL, Item Animation, fishing, Slayer, mining, and privacy-conscious party sync.
 
@@ -62,17 +62,17 @@ The standalone runner compiles every test and runs each test class with a `main`
 Expected release files:
 
 ```text
-Lunaria-1.8.9-Beta-0.10.9.1.7v.jar
-Lunaria-1.8.9-Beta-0.10.9.1.7v-source.zip
-Lunaria-1.8.9-Beta-0.10.9.1.7v.zip
+Lunaria-1.8.9-Beta-0.10.9.1.8v.jar
+Lunaria-1.8.9-Beta-0.10.9.1.8v-source.zip
+Lunaria-1.8.9-Beta-0.10.9.1.8v.zip
 ```
 
 Verify a built JAR with:
 
 ```sh
 python3 tools/verify_release_jar.py \
-  build/libs/Lunaria-1.8.9-Beta-0.10.9.1.7v.jar \
-  --version Beta-0.10.9.1.7v --mcmod-version 0.10.9.1.7
+  build/libs/Lunaria-1.8.9-Beta-0.10.9.1.8v.jar \
+  --version Beta-0.10.9.1.8v --mcmod-version 0.10.9.1.8
 ```
 
 CI builds, tests, verifies the JAR/source archive, and publishes the three verified files to `dist/` only when a branch commit explicitly includes `[publish-artifacts]`. It does **not** create a GitHub Release.
@@ -80,7 +80,7 @@ CI builds, tests, verifies the JAR/source archive, and publishes the three verif
 ## Installation
 
 1. Install Forge `11.15.1.2318` for Minecraft 1.8.9.
-2. Put `Lunaria-1.8.9-Beta-0.10.9.1.7v.jar` in the Minecraft `mods` folder.
+2. Put `Lunaria-1.8.9-Beta-0.10.9.1.8v.jar` in the Minecraft `mods` folder.
 3. Launch the Forge profile and open `/luna`.
 
 ## Repository note

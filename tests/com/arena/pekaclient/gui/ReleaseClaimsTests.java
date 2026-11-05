@@ -24,7 +24,7 @@ public final class ReleaseClaimsTests {
 
     private static void publicReleaseIdentityIsLunaria() {
         check("requested display version remains the single public release version",
-                "Beta-0.10.9.1.7v".equals(PekaVersion.NAME));
+                "Beta-0.10.9.1.8v".equals(PekaVersion.NAME));
         check("requested public title is packaged", "The Sky's Lunaria".equals(PekaVersion.DISPLAY_NAME));
         check("Lunaria metadata entry point is packaged", classExists("com.arena.pekaclient.PekaClientMod")
                 && classText("com.arena.pekaclient.PekaClientMod").contains("lunaria"));
