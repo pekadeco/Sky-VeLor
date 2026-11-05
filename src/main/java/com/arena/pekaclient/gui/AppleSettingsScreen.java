@@ -2164,9 +2164,9 @@ public class AppleSettingsScreen extends AppleScreen {
     /** Executes a retained value action; named editor destinations are the only actions that open a child screen. */
     private void performInlineAction(String id) {
         if ("save-settings".equals(id)) {
-            AppleSettings.save();
-            HudManager.save();
-            showToast("Saved");
+            boolean settingsSaved = AppleSettings.saveChecked();
+            boolean hudSaved = HudManager.saveChecked();
+            showToast(settingsSaved && hudSaved ? "Saved" : "Could not save settings");
             return;
         }
         if ("reset-menu-key".equals(id)) {
