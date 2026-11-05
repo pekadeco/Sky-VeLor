@@ -12,6 +12,8 @@ public final class SearchField extends Widget {
     private final StringBuilder value = new StringBuilder();
     private boolean focused;
     private int version;
+    private int cachedTextVersion = -1;
+    private String cachedText = "";
     private float focusAmount;
 
     public SearchField(String placeholder) {
@@ -20,7 +22,11 @@ public final class SearchField extends Widget {
     }
 
     public String text() {
-        return value.toString();
+        if (cachedTextVersion != version) {
+            cachedText = value.toString();
+            cachedTextVersion = version;
+        }
+        return cachedText;
     }
 
     public void setText(String text) {
@@ -105,7 +111,7 @@ public final class SearchField extends Widget {
         int border = UIRender.mix(Theme.border, Theme.accent, focusAmount);
         UIRender.roundRectRing(x, y, w, h, radius, 1f, border);
 
-        String shown = value.length() == 0 && !focused ? placeholder : value.toString();
+        String shown = value.length() == 0 && !focused ? placeholder : text();
         float available = Math.max(0f, w - 16f);
         while (shown.length() > 0 && textWidth(shown) > available) {
             shown = shown.substring(1);

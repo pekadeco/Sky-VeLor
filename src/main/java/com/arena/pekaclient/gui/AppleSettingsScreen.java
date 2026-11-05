@@ -103,6 +103,16 @@ public class AppleSettingsScreen extends AppleScreen {
 
     private final GuiScreen parent;
     private final SearchField search = new SearchField("Search settings...");
+    private int cachedSearchVersion = -1;
+    private List<ReferenceSettingsCatalog.Match> cachedSearchMatches;
+
+    private List<ReferenceSettingsCatalog.Match> searchMatches() {
+        if (cachedSearchMatches == null || cachedSearchVersion != search.version()) {
+            cachedSearchMatches = ReferenceSettingsCatalog.search(search.text());
+            cachedSearchVersion = search.version();
+        }
+        return cachedSearchMatches;
+    }
     /** Read-only settings-surface telemetry; this is not a HudElement or a second metrics renderer. */
     private final ClientMetrics.Reader clientMetrics = ClientMetrics.liveReader();
     /** Fixed ring history belongs only to this open settings screen; it never becomes an in-game HUD sampler. */
@@ -372,8 +382,8 @@ public class AppleSettingsScreen extends AppleScreen {
             float target = FeatureUiPreferences.dropdownOpen(setting.id) ? 1f : 0f;
             Float prior = dropdownProgress.get(setting.id);
             float current = prior == null ? target : prior.floatValue();
-            dropdownProgress.put(setting.id, GuiMotion.ease(current, target, dt, guiOpen,
-                    GuiMotion.TOGGLE_SETTLE_MS, Theme.speed));
+            float next = GuiMotion.ease(current, target, dt, guiOpen, GuiMotion.TOGGLE_SETTLE_MS, Theme.speed);
+            if (prior != null ? next != current : next != target) dropdownProgress.put(setting.id, next);
         }
         for (ReferenceSettingsCatalog.Setting child : setting.children) updateDropdownAnimation(child, dt, guiOpen);
     }
@@ -1571,7 +1581,7 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float drawSearchResults(float y, int mouseX, int mouseY) {
-        List<ReferenceSettingsCatalog.Match> matches = ReferenceSettingsCatalog.search(search.text());
+        List<ReferenceSettingsCatalog.Match> matches = searchMatches();
         UIRender.text(fr(), "Search", contentX, y + 1f, Theme.textPrimary, 1.26f, false);
         String subtitle = matches.size() + (matches.size() == 1 ? " result for \"" : " results for \"") + search.text() + "\"";
         UIRender.text(fr(), fit(fr(), subtitle, contentW / .68f), contentX, y + 17f, Theme.textSecondary, .68f, false);
@@ -1608,7 +1618,7 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float measureSearchResults() {
-        List<ReferenceSettingsCatalog.Match> matches = ReferenceSettingsCatalog.search(search.text());
+        List<ReferenceSettingsCatalog.Match> matches = searchMatches();
         if (matches.isEmpty()) return 33f + 66f + SettingsShellLayout.FINAL_CARD_PADDING;
         float h = 33f;
         for (ReferenceSettingsCatalog.Match match : matches) h += measureSearchMatch(match) + CARD_GAP;

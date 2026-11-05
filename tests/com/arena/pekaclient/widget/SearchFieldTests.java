@@ -15,8 +15,11 @@ public final class SearchFieldTests {
         field.setFocused(true);
         check("accepts printable character", field.keyTyped('a', 30) && "a".equals(field.text()));
         check("typing updates version", field.version() == 1);
+        String cached = field.text();
+        check("unchanged text is cached", cached == field.text());
         field.keyTyped('b', 48);
         check("appends text", "ab".equals(field.text()) && field.version() == 2);
+        check("editing invalidates cached text", cached != field.text());
         field.keyTyped('\b', Keyboard.KEY_BACK);
         check("backspace removes last character", "a".equals(field.text()) && field.version() == 3);
 
