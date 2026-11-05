@@ -417,22 +417,14 @@ public class AppleSettingsScreen extends AppleScreen {
         // Keep product identity in the upper-left, entirely inside the existing drag region. The header intentionally
         // still exposes only the Fullscreen and Close hit targets from SettingsShellLayout.
         float wordmarkX = panel.x + GuiStyle.SPACE_12;
-        // Shape-drawn initial: no texture or additional asset is needed for the header mark.
-        float logoY = y + (CHROME_H - 18f) * .5f;
-        UIRender.roundRect(wordmarkX, logoY, 18f, 18f, 4f, Theme.accent, Theme.accent, 0f);
-        UIRender.rect(wordmarkX + 5f, logoY + 4f, 2f, 10f, Theme.textPrimary);
-        UIRender.rect(wordmarkX + 5f, logoY + 12f, 8f, 2f, Theme.textPrimary);
+        // Reuse the existing Lunaria logo crop; flush batched geometry before binding its texture.
+        UIRender.flush();
+        LunariaArtwork.drawMoon(wordmarkX + 9f, y + CHROME_H * .5f, 20f, 1f);
         float titleX = wordmarkX + 22f;
         float titleRight = shellHeader.dragRight - GuiStyle.SPACE_4;
-        String wordmark = fit(fr(), "Lunaria", Math.max(1f, titleRight - titleX) / Theme.TYPE_TITLE);
-        UIRender.text(fr(), wordmark, titleX, centeredTextY(y, CHROME_H, Theme.TYPE_TITLE),
-                Theme.textPrimary, Theme.TYPE_TITLE, false);
-        float sectionX = titleX + fr().getStringWidth(wordmark) * Theme.TYPE_TITLE + GuiStyle.SPACE_8;
-        String section = fit(fr(), "Settings", Math.max(0f, titleRight - sectionX) / Theme.TYPE_BODY);
-        if (section.length() > 0) {
-            UIRender.text(fr(), section, sectionX, centeredTextY(y, CHROME_H, Theme.TYPE_BODY),
-                    Theme.textSecondary, Theme.TYPE_BODY, false);
-        }
+        String wordmark = fit(fr(), "The Sky's Lunaria Mod", Math.max(1f, titleRight - titleX) / .75f);
+        UIRender.text(fr(), wordmark, titleX, y + 5f, Theme.textPrimary, .75f, false);
+        UIRender.text(fr(), "Mod Settings", titleX, y + 16f, Theme.textSecondary, .62f, false);
         drawHeaderIconButton(shellHeader.fullscreen, mouseX, mouseY, fullscreenWindow,
                 fullscreenWindow ? "Exit fullscreen" : "Fullscreen", HIT_WINDOW_FULLSCREEN);
         drawHeaderIconButton(shellHeader.close, mouseX, mouseY, false, "Close settings", HIT_WINDOW_CLOSE);
@@ -539,7 +531,7 @@ public class AppleSettingsScreen extends AppleScreen {
             boolean hovered = inside(mouseX, mouseY, x, y, w, h);
             if (selected > .001f || hovered) {
                 int idle = hovered ? Theme.cardHover : Theme.card;
-                int selectedFill = UIRender.withAlpha(Theme.accent, .13f);
+                int selectedFill = UIRender.withAlpha(Theme.accent, .72f);
                 int fill = UIRender.mix(idle, selectedFill, selected);
                 UIRender.roundRect(x, y, w, h,
                         GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, w, h), fill, fill, .25f);
@@ -559,7 +551,7 @@ public class AppleSettingsScreen extends AppleScreen {
                 if (showLabel) labelX = x + 24f;
             }
             float iconY = y + (h - 14f) * .5f;
-            drawRailGlyph(tab, iconX, iconY, active ? Theme.accent : Theme.textTertiary);
+            drawRailGlyph(tab, iconX, iconY, active ? Theme.OPAQUE_WHITE : Theme.textTertiary);
             if (showLabel) {
                 UIRender.text(fr(), visibleLabel, labelX, centeredTextY(y, h, .78f),
                         active ? Theme.textPrimary : Theme.textSecondary, .78f, false);
@@ -613,6 +605,7 @@ public class AppleSettingsScreen extends AppleScreen {
             } else {
                 y = drawTab(y, mouseInView ? mouseX : -10000, mouseInView ? mouseY : -10000, activeTab);
             }
+            drawSaveSettings(y, mouseInView ? mouseX : -10000, mouseInView ? mouseY : -10000);
             drawScrollEdgeFades(total);
         } finally {
             UIRender.scissorEnd();
@@ -636,10 +629,29 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float measuredContentHeight() {
-        if (!search.isEmpty()) return measureSearchResults();
-        if (activeTab == ReferenceSettingsCatalog.Tab.HOME) return measureHome();
-        if (activeTab == ReferenceSettingsCatalog.Tab.FARMING) return fr().FONT_HEIGHT + 2f + SettingsShellLayout.FINAL_CARD_PADDING;
-        return measureTab(activeTab);
+        float content;
+        if (!search.isEmpty()) content = measureSearchResults();
+        else if (activeTab == ReferenceSettingsCatalog.Tab.HOME) content = measureHome();
+        else if (activeTab == ReferenceSettingsCatalog.Tab.FARMING) content = fr().FONT_HEIGHT + 2f + SettingsShellLayout.FINAL_CARD_PADDING;
+        else content = measureTab(activeTab);
+        return content + 30f;
+    }
+
+    /** Explicit save complements the existing automatic save on close. */
+    private void drawSaveSettings(float y, int mouseX, int mouseY) {
+        if (y + 22f <= viewport.y || y >= viewport.bottom()) return;
+        float w = Math.max(1f, contentW);
+        boolean hot = inside(mouseX, mouseY, contentX, y, w, 22f);
+        int bottom = hot ? Theme.HIGHLIGHT : Theme.accent;
+        UIRender.roundRectBorder(contentX, y, w, 22f, 6f, Theme.HIGHLIGHT, bottom, Theme.border);
+        float scale = .75f;
+        String label = fit(fr(), "Save Settings", Math.max(1f, (w - 20f) / scale));
+        float textX = contentX + (w - fr().getStringWidth(label) * scale) * .5f;
+        drawCheckGlyph(Math.max(contentX + 6f, textX - 12f), y + 11f, Theme.OPAQUE_WHITE);
+        UIRender.text(fr(), label, textX, centeredTextY(y, 22f, scale), Theme.OPAQUE_WHITE, scale, false);
+        float hitTop = Math.max(y, viewport.y);
+        float hitBottom = Math.min(y + 22f, viewport.bottom());
+        registerHit("save-settings", HIT_ACTION, contentX, hitTop, w, hitBottom - hitTop, null, "save-settings");
     }
 
     private void drawScrollBar(float total) {
@@ -2151,6 +2163,12 @@ public class AppleSettingsScreen extends AppleScreen {
 
     /** Executes a retained value action; named editor destinations are the only actions that open a child screen. */
     private void performInlineAction(String id) {
+        if ("save-settings".equals(id)) {
+            AppleSettings.save();
+            HudManager.save();
+            showToast("Saved");
+            return;
+        }
         if ("reset-menu-key".equals(id)) {
             cancelKeybindCapture();
             String conflict = PekaClientMod.rebindMenuKey(com.arena.pekaclient.input.MenuKeyBinding.DEFAULT_KEY);
