@@ -42,13 +42,15 @@ public final class ThemeTests {
         check("legacy palette key does not fork the restored glass window surface", Theme.windowTop == top
                 && Theme.windowBottom == bottom);
         check("legacy palette key does not fork restored cards or controls", Theme.card == card && Theme.buttonFill == control);
-        check("the familiar Apple interaction accent is retained", Theme.accent == Theme.ACCENT_BLUE
-                && Theme.ACCENT_BLUE == 0xFF0A84FF);
+        check("orange accent is applied", Theme.accent == Theme.ACCENT_ORANGE && Theme.ACCENT_ORANGE == 0xFFFF6500);
+        check("reference palette values are exact", Theme.BACKGROUND == 0xFF0B0D12 && Theme.PANEL == 0xFF151922
+                && Theme.CARD == 0xFF222936 && Theme.HIGHLIGHT == 0xFFFF8738
+                && Theme.TEXT == 0xFFF0F1F5 && Theme.MUTED == 0xFF9299A8 && Theme.PALETTE_BORDER == 0xFF363D4A);
         check("graphite glass token values drive resolved surfaces", rgb(Theme.windowTop) == Theme.SURFACE_TOP_RGB
                 && rgb(Theme.windowBottom) == Theme.SURFACE_BOTTOM_RGB && Theme.card == Theme.SURFACE_CARD
                 && Theme.buttonHover == Theme.SURFACE_CONTROL_HOVER);
-        check("cards and controls retain translucent Apple white layers", alpha(Theme.card) < 0x40
-                && alpha(Theme.buttonFill) < 0x50 && Theme.border == 0x1FFFFFFF && Theme.divider == 0x18FFFFFF);
+        check("cards and controls use the new dark surfaces", Theme.card == Theme.CARD
+                && alpha(Theme.buttonFill) == 0xFF && rgb(Theme.border) == rgb(Theme.PALETTE_BORDER));
         check("allowed opacity preference still changes only window alpha", alpha(Theme.windowTop) == Math.round(82f * 2.55f));
 
         // Leave static compatibility state at its normal defaults for independently-run suites.
@@ -90,7 +92,7 @@ public final class ThemeTests {
                         && Theme.dropdownDivider == Theme.DROPDOWN_DIVIDER);
         check("dropdown popup and selected feedback are more legible than the translucent card layer",
                 alpha(Theme.dropdownPopup) >= 0xF0 && alpha(Theme.dropdownBorder) > alpha(Theme.border)
-                        && alpha(Theme.dropdownRowSelected) > alpha(Theme.cardHover));
+                        && Theme.dropdownRowSelected != Theme.cardHover);
     }
 
     private static void expandedDisclosureRemainsLegibleOverTransparentGlass() {

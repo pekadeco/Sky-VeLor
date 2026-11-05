@@ -5,8 +5,7 @@ import com.arena.pekaclient.config.AppleSettings;
 /**
  * The one design-token authority for Lunaria GUI surfaces.
  *
- * <p>The settings shell deliberately uses the original Apple-inspired glass system: a graphite gradient window,
- * translucent white cards, thin low-contrast dividers, and one familiar macOS blue interaction accent. Existing
+ * <p>The settings shell uses the Lunaria dark-and-orange palette, with named surfaces and a warm accent. Existing
  * appearance values remain loadable in {@link AppleSettings}; current UI behavior keeps the shell deterministic so
  * an old configuration cannot silently fork the navigation or control hierarchy into a second design system. Keep
  * concrete GUI colours, typography, spacing, radii, shadows and dim layers here; renderers consume these semantic
@@ -26,7 +25,16 @@ public final class Theme {
     public static final int VANILLA_BUTTON_TEXT = 0x00E0E0E0;
     public static final int VANILLA_BUTTON_HOVER_TEXT = 0x00FFFFA0;
 
-    /** The original Apple reference uses this blue as its one positive/action accent. */
+    /** Reference palette. Alpha is opaque; individual surfaces may apply opacity as needed. */
+    public static final int BACKGROUND = 0xFF0B0D12;
+    public static final int PANEL = 0xFF151922;
+    public static final int CARD = 0xFF222936;
+    public static final int ACCENT_ORANGE = 0xFFFF6500;
+    public static final int HIGHLIGHT = 0xFFFF8738;
+    public static final int TEXT = 0xFFF0F1F5;
+    public static final int MUTED = 0xFF9299A8;
+    public static final int PALETTE_BORDER = 0xFF363D4A;
+    /** Kept for binary/source compatibility with legacy callers. */
     public static final int ACCENT_BLUE = 0xFF0A84FF;
     public static final int ACCENT_BLUE_HOVER = 0xFF409CFF;
     public static final int STATUS_WARNING = 0xFFF0B45E;
@@ -36,39 +44,39 @@ public final class Theme {
     public static final int STATUS_UNAVAILABLE = 0xFF8E8E93;
 
     /** Graphite glass, directly restored from the shipped Apple settings visual system. */
-    public static final int SURFACE_TOP_RGB = 0x1E1E21;
-    public static final int SURFACE_BOTTOM_RGB = 0x101012;
-    public static final int SURFACE_CARD = 0x14FFFFFF;
-    public static final int SURFACE_CARD_HOVER = 0x22FFFFFF;
-    public static final int SURFACE_CONTROL = 0x26FFFFFF;
-    public static final int SURFACE_CONTROL_HOVER = 0x3DFFFFFF;
-    public static final int SURFACE_POPUP = 0xF22A2A2E;
+    public static final int SURFACE_TOP_RGB = 0x151922;
+    public static final int SURFACE_BOTTOM_RGB = 0x0B0D12;
+    public static final int SURFACE_CARD = CARD;
+    public static final int SURFACE_CARD_HOVER = 0xFF2C3442;
+    public static final int SURFACE_CONTROL = 0xFF191E29;
+    public static final int SURFACE_CONTROL_HOVER = 0xFF303848;
+    public static final int SURFACE_POPUP = 0xF2151922;
     /** Dropdowns use an opaque-enough graphite popup and explicit state layers for readable one-level choices. */
-    public static final int DROPDOWN_TRIGGER = 0x33FFFFFF;
-    public static final int DROPDOWN_TRIGGER_HOVER = 0x52FFFFFF;
-    public static final int DROPDOWN_POPUP = 0xFA24252B;
-    public static final int DROPDOWN_BORDER = 0x54FFFFFF;
-    public static final int DROPDOWN_ROW_HOVER = 0x24FFFFFF;
-    public static final int DROPDOWN_ROW_SELECTED = 0x4A0A84FF;
-    public static final int DROPDOWN_DIVIDER = 0x1FFFFFFF;
+    public static final int DROPDOWN_TRIGGER = 0xFF151922;
+    public static final int DROPDOWN_TRIGGER_HOVER = 0xFF303848;
+    public static final int DROPDOWN_POPUP = 0xFA151922;
+    public static final int DROPDOWN_BORDER = 0xEA363D4A;
+    public static final int DROPDOWN_ROW_HOVER = 0xFF303848;
+    public static final int DROPDOWN_ROW_SELECTED = 0xA0FF6500;
+    public static final int DROPDOWN_DIVIDER = 0xA0363D4A;
     /** Inset accordion panels stay readable even when the optional window glass is highly transparent. */
-    public static final int EXPANDED_PANEL = 0xE51B1C22;
-    public static final int EXPANDED_BORDER = 0x38FFFFFF;
-    public static final int EXPANDED_HEADER = 0x260A84FF;
-    public static final int EXPANDED_ROW_HOVER = 0x1CFFFFFF;
+    public static final int EXPANDED_PANEL = 0xF0151922;
+    public static final int EXPANDED_BORDER = 0xEA363D4A;
+    public static final int EXPANDED_HEADER = 0x80FF6500;
+    public static final int EXPANDED_ROW_HOVER = 0xFF303848;
     public static final int EXPANDED_DIVIDER = 0x20FFFFFF;
     /** Master-off children remain editable but use muted, still-readable labels rather than a near-invisible veil. */
     public static final int DEPENDENT_TEXT_PRIMARY = 0xFFC4C4CA;
     public static final int DEPENDENT_TEXT_SECONDARY = 0xFF94949C;
     public static final float DEPENDENT_CONTROL_ALPHA = .78f;
     public static final int SURFACE_DISABLED = 0x52000000;
-    public static final int BORDER = 0x1FFFFFFF;
-    public static final int DIVIDER = 0x18FFFFFF;
-    public static final int TRACK = 0xFF3A3A3D;
-    public static final int SEGMENT_SELECTED = 0xFF5A5A5E;
-    public static final int TEXT_PRIMARY = 0xFFF5F5F7;
-    public static final int TEXT_SECONDARY = 0xFFA1A1A8;
-    public static final int TEXT_TERTIARY = 0xFF707078;
+    public static final int BORDER = 0xA0363D4A;
+    public static final int DIVIDER = 0x80363D4A;
+    public static final int TRACK = 0xFF363D4A;
+    public static final int SEGMENT_SELECTED = 0xFF414A5A;
+    public static final int TEXT_PRIMARY = TEXT;
+    public static final int TEXT_SECONDARY = MUTED;
+    public static final int TEXT_TERTIARY = 0xFF7D8595;
     public static final int TEXT_DISABLED = 0xFF626269;
     public static final int CONTROL_KNOB = OPAQUE_WHITE;
     public static final int ICON_INK = TEXT_SECONDARY;
@@ -80,7 +88,7 @@ public final class Theme {
     public static final int DIM = 0x73000000;
     /** Light, transparent canvas veil for direct HUD placement; the game remains readable underneath. */
     public static final int HUD_EDITOR_DIM = 0x30000000;
-    public static final int TOOLTIP = 0xF22A2A2E;
+    public static final int TOOLTIP = 0xF2151922;
     public static final int DEBUG_THIN = 0xC8E85D5D;
     public static final int DEBUG_HOT = 0xFFFF4545;
     public static final int DEBUG_FILL = 0x35FF4545;
@@ -92,7 +100,7 @@ public final class Theme {
     public static final int LOADING_VERSION = LOADING_SUBTITLE;
     public static final int LOADING_STATUS = TEXT_SECONDARY;
     public static final int LOADING_DIM = TEXT_TERTIARY;
-    public static final int LOADING_TRACK = 0x33FFFFFF;
+    public static final int LOADING_TRACK = 0xFF151922;
     public static final int LOADING_ERROR = STATUS_CRITICAL;
     /** Full-bleed supplied-art loading treatment; both screens retain their distinct panel opacity. */
     public static final int LOADING_ART_SCRIM_TOP = 0x33070B22;
@@ -153,8 +161,8 @@ public final class Theme {
     public static final int NOTE_ROW_SELECTED = ACCENT_BLUE;
     public static final int NOTE_ROW_COUNT = 0xFF7F8998;
     /** Standalone Item Animation is intentionally opaque: game/HUD pixels never bleed through its controls. */
-    public static final int ITEM_ANIMATION_PANEL = 0xFF17191F;
-    public static final int ITEM_ANIMATION_PANEL_BORDER = 0xFF454953;
+    public static final int ITEM_ANIMATION_PANEL = PANEL;
+    public static final int ITEM_ANIMATION_PANEL_BORDER = PALETTE_BORDER;
 
     // ------------------------------------------------------------------ typography, geometry and motion tokens
 
@@ -194,12 +202,12 @@ public final class Theme {
 
     // ------------------------------------------------------------------ resolved palette used by existing render call sites
 
-    public static int accent = ACCENT_BLUE;
+    public static int accent = ACCENT_ORANGE;
     public static int textPrimary = TEXT_PRIMARY;
     public static int textSecondary = TEXT_SECONDARY;
     public static int textTertiary = TEXT_TERTIARY;
-    public static int windowTop = 0xF01E1E21;
-    public static int windowBottom = 0xF0101012;
+    public static int windowTop = 0xF0151922;
+    public static int windowBottom = 0xF00B0D12;
     public static int card = SURFACE_CARD;
     public static int cardHover = SURFACE_CARD_HOVER;
     public static int buttonFill = SURFACE_CONTROL;
@@ -239,7 +247,7 @@ public final class Theme {
         return MINECRAFT_FORMATTING_PALETTE.clone();
     }
 
-    /** Applies the restored Apple-glass system while retaining opacity, radius and motion accessibility preferences. */
+    /** Applies the Lunaria palette while retaining opacity, radius and motion accessibility preferences. */
     public static void applyReferenceSettingsPalette() {
         applyAppleGlass();
     }
@@ -254,7 +262,7 @@ public final class Theme {
         radius = AppleSettings.effectiveCornerRadius();
         animations = AppleSettings.animations;
         speed = AppleSettings.effectiveAnimSpeed() / 100f;
-        accent = ACCENT_BLUE;
+        accent = ACCENT_ORANGE;
         windowTop = (glass << 24) | SURFACE_TOP_RGB;
         windowBottom = (glass << 24) | SURFACE_BOTTOM_RGB;
         card = SURFACE_CARD;
