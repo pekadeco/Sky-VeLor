@@ -383,7 +383,7 @@ public class AppleSettingsScreen extends AppleScreen {
             Float prior = dropdownProgress.get(setting.id);
             float current = prior == null ? target : prior.floatValue();
             float next = GuiMotion.ease(current, target, dt, guiOpen, GuiMotion.TOGGLE_SETTLE_MS, Theme.speed);
-            if (prior != null ? next != current : next != target) dropdownProgress.put(setting.id, next);
+            if (prior == null || next != current) dropdownProgress.put(setting.id, next);
         }
         for (ReferenceSettingsCatalog.Setting child : setting.children) updateDropdownAnimation(child, dt, guiOpen);
     }
