@@ -10,7 +10,7 @@ package com.arena.pekaclient;
 public final class PekaVersion {
 
     /** User-facing release version. */
-    public static final String NAME = "Beta-0.10.9.1.8v";
+    public static final String NAME = "Beta-0.10.9.1.9v";
 
     /** User-facing client title. */
     public static final String DISPLAY_NAME = "The Sky's Lunaria";

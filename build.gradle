@@ -47,9 +47,9 @@ def versionSource = file('src/main/java/com/arena/pekaclient/PekaVersion.java')
 def versionMatch = (versionSource.getText('UTF-8') =~ /NAME\s*=\s*"([^"]+)"/)
 if (!versionMatch.find()) throw new GradleException('Could not read PekaVersion.NAME.')
 version = versionMatch.group(1)
-def releaseDisplayVersion = 'Beta-0.10.9.1.8v'
+def releaseDisplayVersion = 'Beta-0.10.9.1.9v'
 if (version != releaseDisplayVersion) {
-    throw new GradleException('PekaVersion.NAME must match the Beta-0.10.9.1.8v release contract.')
+    throw new GradleException('PekaVersion.NAME must match the Beta-0.10.9.1.9v release contract.')
 }
 def numericVersionMatch = (version =~ /(?:Beta-)?([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+){0,3})v?$/)
 def mcmodVersion = numericVersionMatch.find() ? numericVersionMatch.group(1) : null

@@ -1,5 +1,12 @@
 # Changelog
 
+## Beta-0.10.9.1.9v — partial settings visual update
+
+- Centralized the requested dark/orange reference colors in the shared theme, preserving the existing opacity, radius and motion preferences.
+- Updated the settings header artwork and selected navigation color; added a scroll-end Save Settings action with write-failure feedback while retaining autosave.
+- Corrected the source sampling of the existing Lunaria logo artwork. Cached unchanged search text and search matches, and avoided repeated disclosure-state boxing when settled.
+- This is not the complete requested redesign: section tabs, fixed save footer, About rail entry, full glossy/glow component treatment, new font, small-screen/Pojav layout fixes, and the requested pre-baked/culled render-performance work are not included. GUI input, appearance and performance have not been tested in-game.
+
 ## Beta-0.10.9.1.8v — The Sky's Lunaria
 
 - Renamed and reordered settings channels; moved Dungeon Run HUD to Dungeons without changing its saved settings.
