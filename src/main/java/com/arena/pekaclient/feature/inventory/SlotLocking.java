@@ -204,7 +204,7 @@ public final class SlotLocking {
                         completeBindingGesture();
                     }
                 } else if (clickPress) {
-                    notifyBlocked("slot binding is disabled in /luna → QoL");
+                    notifyBlocked("slot binding is disabled in /luna → Quality of Life");
                 }
                 // A successful bind consumes a click-down so the same click cannot move an item.
                 // Mouse-move events are deliberately allowed: Better NEF binds by dragging the cursor.
@@ -215,7 +215,7 @@ public final class SlotLocking {
                 // Do not let an invalid target click pick up/drop an item while the gesture is armed.
                 event.setCanceled(true);
                 if (!AppleSettings.slotBindingEnabled) {
-                    notifyBlocked("slot binding is disabled in /luna → QoL");
+                    notifyBlocked("slot binding is disabled in /luna → Quality of Life");
                 }
             }
             return;

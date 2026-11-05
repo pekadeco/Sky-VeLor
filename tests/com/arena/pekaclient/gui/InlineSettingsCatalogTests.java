@@ -25,13 +25,14 @@ public final class InlineSettingsCatalogTests {
     }
 
     private static void exactNineDestinationOrder() {
-        String[] expected = {"Home", "QoL", "Slayer", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
-        check("sidebar order is Home QoL Slayer Dungeons Farming Mining Fishing HUD & Visuals Misc",
+        String[] expected = {"Home", "Quality of Life", "Dungeons", "Farming", "Mining", "Fishing", "Slayer", "HUD & Visuals", "Settings"};
+        check("sidebar order is Home Quality of Life Dungeons Farming Mining Fishing Slayer HUD & Visuals Settings",
                 Arrays.equals(expected, AppleSettingsScreen.destinationNames()));
         check("catalog tabs use the same nine-tab order", ReferenceSettingsCatalog.TABS.length == expected.length
                 && ReferenceSettingsCatalog.TABS[0] == ReferenceSettingsCatalog.Tab.HOME
                 && ReferenceSettingsCatalog.TABS[1] == ReferenceSettingsCatalog.Tab.GAMEPLAY
-                && ReferenceSettingsCatalog.TABS[2] == ReferenceSettingsCatalog.Tab.SLAYER
+                && ReferenceSettingsCatalog.TABS[2] == ReferenceSettingsCatalog.Tab.DUNGEON
+                && ReferenceSettingsCatalog.TABS[6] == ReferenceSettingsCatalog.Tab.SLAYER
                 && ReferenceSettingsCatalog.TABS[8] == ReferenceSettingsCatalog.Tab.SYSTEM);
         check("Farming remains an explicit empty channel", ReferenceSettingsCatalog.cards(ReferenceSettingsCatalog.Tab.FARMING).isEmpty()
                 && ReferenceSettingsCatalog.search("sprout").size() == 1);
@@ -79,7 +80,7 @@ public final class InlineSettingsCatalogTests {
         check("Slayer owns its existing tracker and HUD/item animation remain in HUD & Visuals",
                 ReferenceSettingsCatalog.ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.SLAYER
                         && ReferenceSettingsCatalog.ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
-                        && ReferenceSettingsCatalog.ownerOf("hud-dungeon-run") == ReferenceSettingsCatalog.Tab.VISUALS
+                        && ReferenceSettingsCatalog.ownerOf("hud-dungeon-run") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
         check("new local dungeon readouts use their single intended owners",
                 ReferenceSettingsCatalog.ownerOf("spirit-bow-locator") == ReferenceSettingsCatalog.Tab.DUNGEON

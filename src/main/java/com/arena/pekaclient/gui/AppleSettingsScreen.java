@@ -55,7 +55,7 @@ import java.util.function.Supplier;
 public class AppleSettingsScreen extends AppleScreen {
 
     /** Visible labels only; routes and catalog enum identities remain intentionally stable. */
-    static final String[] DESTINATION_NAMES = {"Home", "QoL", "Slayer", "Dungeons", "Farming", "Mining", "Fishing", "HUD & Visuals", "Misc"};
+    static final String[] DESTINATION_NAMES = {"Home", "Quality of Life", "Dungeons", "Farming", "Mining", "Fishing", "Slayer", "HUD & Visuals", "Settings"};
     private static final float CHROME_H = SettingsShellLayout.HEADER_HEIGHT;
     /** The title lives in the header; the compact second strip contains only global search. */
     private static final float TOOLBAR_H = 34f;
@@ -1421,7 +1421,7 @@ public class AppleSettingsScreen extends AppleScreen {
         y += GAP;
 
         UIRender.text(fr(), "QUICK CONTROLS", contentX, centeredTextY(y, 12f, .61f), Theme.textTertiary, .61f, false);
-        String allQol = "all QoL ->";
+        String allQol = "All Quality of Life ->";
         float allX = contentX + contentW - fr().getStringWidth(allQol) * .61f;
         UIRender.text(fr(), allQol, allX, centeredTextY(y, 12f, .61f), Theme.accent, .61f, false);
         registerHit("home-gameplay", HIT_HOME_GAMEPLAY, allX - 2f, y - 1f,

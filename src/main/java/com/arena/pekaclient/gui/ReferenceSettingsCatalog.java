@@ -19,15 +19,14 @@ public final class ReferenceSettingsCatalog {
 
     public enum Tab {
         HOME("Home", "Status, quick controls, and performance."),
-        // Keep GAMEPLAY as the stable route identity: only the player-facing label becomes QoL.
-        GAMEPLAY("QoL", "Comfort, inventory, chat, and keybinds."),
-        SLAYER("Slayer", "Drops, prices, and quest timing."),
+        GAMEPLAY("Quality of Life", "Comfort, inventory, chat, and keybinds."),
         DUNGEON("Dungeons", "Maps, terminals, party, and ESP."),
         FARMING("Farming", "No Farming Features Yet."),
         MINING("Mining", "Mining tools, readouts, and helpers."),
         FISHING("Fishing", "Fishing tracker, health, and alerts."),
+        SLAYER("Slayer", "Drops, prices, and quest timing."),
         VISUALS("HUD & Visuals", "HUD layout and held-item visuals."),
-        SYSTEM("Misc", "Appearance, performance, and commands.");
+        SYSTEM("Settings", "Appearance, performance, and commands.");
 
         public final String label;
         public final String caption;
@@ -283,6 +282,8 @@ public final class ReferenceSettingsCatalog {
                             "Draw a client-side line to the nearest Spirit Bow marker.",
                             "spirit bow marker locator render only")),
             card("dungeon-hud", "Dungeon HUD", "Score and room-clear alert controls.", false, "",
+                    toggle("hud-dungeon-run", "Dungeon Run HUD", "Show observed dungeon sidebar values on screen.",
+                            "dungeon run hud sidebar floor time secrets deaths"),
                     masterDropdown("dungeon-score-hud", "Dungeon Score/Stats HUD",
                             "Show score and selected run lines only in dungeons.",
                             "dungeon score skill exploration speed bonus rank crypts deaths time",
@@ -383,8 +384,6 @@ public final class ReferenceSettingsCatalog {
             card("hud", "HUD", "Move and resize on-screen elements.", false, "",
                     editor("hud-editor", "HUD Editor", "Move and resize on-screen elements.", "hud editor", false,
                             "Open HUD Editor", "open-hud-editor"),
-                    toggle("hud-dungeon-run", "Dungeon Run HUD", "Show observed dungeon sidebar values on screen.",
-                            "dungeon run hud sidebar floor time secrets deaths"),
                     toggle("hud-player-doll", "Player Doll", "Show your player model on screen.", "doll armour"),
                     toggle("hud-inventory", "Inventory HUD", "Show inventory slots on screen.", "inventory hud")),
             card("item-animation", "Item Animation", "Change how your held item looks.", false, "",

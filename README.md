@@ -32,11 +32,11 @@ All commands are client-side. They do not send slash commands to a server.
 
 ## Settings routes
 
-- **QoL → Inventory And Chat:** Item Lock And Swap, Inventory Assist, and Chat QoL.
-- **QoL → Shortcut:** Wardrobe, Pets, and custom slash-command keybinds.
+- **Quality of Life → Inventory And Chat:** Item Lock And Swap, Inventory Assist, and Chat QoL.
+- **Quality of Life → Shortcut:** Wardrobe, Pets, and custom slash-command keybinds.
 - **Dungeons:** map/player-head controls, terminals, score, Room Clear Alert, Auto Chest Close, Floor VII, and ESP.
 - **HUD & Visuals:** direct HUD editors and Item Animation.
-- **Misc → Fonts:** optional font enable, discovery/selection, scale, reload, and the detailed Chat Editor. Place new `.ttf` or `.otf` files in `config/lunaria/fonts`.
+- **Settings → Fonts:** optional font enable, discovery/selection, scale, reload, and the detailed Chat Editor. Place new `.ttf` or `.otf` files in `config/lunaria/fonts`.
 
 Read [`docs/FEATURE-SETTINGS-EDITOR.md`](docs/FEATURE-SETTINGS-EDITOR.md) for behavior and safety boundaries, [`docs/CONFIGURATION-MIGRATION.md`](docs/CONFIGURATION-MIGRATION.md) for migration details, and [`docs/LOADING-SCREEN.md`](docs/LOADING-SCREEN.md) for loading-screen behavior.
 
