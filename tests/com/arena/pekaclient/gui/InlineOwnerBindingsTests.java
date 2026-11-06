@@ -26,7 +26,6 @@ public final class InlineOwnerBindingsTests {
         boolean oldMap = AppleSettings.dungeonMap;
         boolean oldChat = ChatQolSettings.enabled;
         boolean oldSpiritBowLocator = AssistSettings.spiritBowLocator;
-        boolean oldDungeonRunHud = HudManager.DUNGEON_RUN.enabled;
         boolean oldDungeonScoreHud = HudManager.DUNGEON_SCORE.enabled;
         boolean oldRoomAlert = HudManager.ROOM_CLEAR_ALERT.enabled;
         boolean oldScoreLine = AppleSettings.dungeonScoreShowScore;
@@ -39,7 +38,6 @@ public final class InlineOwnerBindingsTests {
             InlineSettingsBindings.setBoolean("dungeon-map", !oldMap);
             InlineSettingsBindings.setBoolean("chat-qol", !oldChat);
             InlineSettingsBindings.setBoolean("spirit-bow-locator", !oldSpiritBowLocator);
-            InlineSettingsBindings.setBoolean("hud-dungeon-run", !oldDungeonRunHud);
             InlineSettingsBindings.setBoolean("dungeon-score-hud", !oldDungeonScoreHud);
             InlineSettingsBindings.setBoolean("room-clear-alert", !oldRoomAlert);
             InlineSettingsBindings.setBoolean("dungeon-score-line", !oldScoreLine);
@@ -58,8 +56,6 @@ public final class InlineOwnerBindingsTests {
                     && InlineSettingsBindings.booleanValue("chat-qol") == !oldChat);
             check("Spirit Bow Locator writes its isolated AssistSettings owner", AssistSettings.spiritBowLocator == !oldSpiritBowLocator
                     && InlineSettingsBindings.booleanValue("spirit-bow-locator") == !oldSpiritBowLocator);
-            check("Dungeon Run HUD writes its movable HUD owner", HudManager.DUNGEON_RUN.enabled == !oldDungeonRunHud
-                    && InlineSettingsBindings.booleanValue("hud-dungeon-run") == !oldDungeonRunHud);
             check("Dungeon Score and Room Alert write their movable HUD owners", HudManager.DUNGEON_SCORE.enabled
                     == !oldDungeonScoreHud && HudManager.ROOM_CLEAR_ALERT.enabled == !oldRoomAlert);
             check("Dungeon score line and Auto Chest Close write additive AppleSettings owners",
@@ -73,7 +69,6 @@ public final class InlineOwnerBindingsTests {
             AppleSettings.dungeonMap = oldMap;
             ChatQolSettings.enabled = oldChat;
             AssistSettings.spiritBowLocator = oldSpiritBowLocator;
-            HudManager.DUNGEON_RUN.enabled = oldDungeonRunHud;
             HudManager.DUNGEON_SCORE.enabled = oldDungeonScoreHud;
             HudManager.ROOM_CLEAR_ALERT.enabled = oldRoomAlert;
             AppleSettings.dungeonScoreShowScore = oldScoreLine;

@@ -114,7 +114,6 @@ final class InlineSettingsBindings {
 
         if ("hud-player-doll".equals(id)) return HudManager.DOLL.enabled;
         if ("hud-inventory".equals(id)) return HudManager.INVENTORY.enabled;
-        if ("hud-dungeon-run".equals(id)) return HudManager.DUNGEON_RUN.enabled;
         if ("item-animation".equals(id)) return AppleSettings.itemAnimationEnabled;
 
         if ("font-settings".equals(id)) return FontSettings.enabled;
@@ -221,7 +220,6 @@ final class InlineSettingsBindings {
 
         else if ("hud-player-doll".equals(id)) HudManager.DOLL.enabled = value;
         else if ("hud-inventory".equals(id)) HudManager.INVENTORY.enabled = value;
-        else if ("hud-dungeon-run".equals(id)) HudManager.DUNGEON_RUN.enabled = value;
         else if ("item-animation".equals(id)) AppleSettings.itemAnimationEnabled = value;
 
         else if ("font-settings".equals(id)) FontSettings.enabled = value;

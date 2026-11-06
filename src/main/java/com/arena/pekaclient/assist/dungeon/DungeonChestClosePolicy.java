@@ -10,7 +10,7 @@ public final class DungeonChestClosePolicy {
      * menu intentionally return false, including titles that merely contain the word "Chest".
      */
     public static boolean isNormalSecretChestTitle(String rawTitle) {
-        String title = DungeonRunReadout.normalize(rawTitle);
+        String title = DungeonText.normalize(rawTitle);
         return "chest".equalsIgnoreCase(title) || "large chest".equalsIgnoreCase(title);
     }
 }

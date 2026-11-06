@@ -69,7 +69,7 @@ public final class InlineSettingsCatalogTests {
                 "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "dungeon-score-hud",
                 "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
                 "dungeon-sync-enabled", "mining-bps", "mining-assistant-settings", "catch-counter",
-                "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation", "system-appearance", "system-performance"
+                "fishing-tracker", "hud-editor", "item-animation", "system-appearance", "system-performance"
         };
         for (String id : preserved) check("preserved option owner: " + id, ReferenceSettingsCatalog.find(id) != null);
         check("genuine Mining options moved without a new owner", ReferenceSettingsCatalog.ownerOf("mining-bps") == ReferenceSettingsCatalog.Tab.MINING
@@ -80,7 +80,6 @@ public final class InlineSettingsCatalogTests {
         check("Slayer owns its existing tracker and HUD/item animation remain in HUD & Visuals",
                 ReferenceSettingsCatalog.ownerOf("slayer-tracker") == ReferenceSettingsCatalog.Tab.SLAYER
                         && ReferenceSettingsCatalog.ownerOf("hud-editor") == ReferenceSettingsCatalog.Tab.VISUALS
-                        && ReferenceSettingsCatalog.ownerOf("hud-dungeon-run") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.ownerOf("item-animation") == ReferenceSettingsCatalog.Tab.VISUALS);
         check("new local dungeon readouts use their single intended owners",
                 ReferenceSettingsCatalog.ownerOf("spirit-bow-locator") == ReferenceSettingsCatalog.Tab.DUNGEON
@@ -88,7 +87,7 @@ public final class InlineSettingsCatalogTests {
                         && ReferenceSettingsCatalog.ownerOf("dungeon-score-hud") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.ownerOf("room-clear-alert") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.find("spirit-bow-locator") != null
-                        && ReferenceSettingsCatalog.find("hud-dungeon-run") != null);
+                        && ReferenceSettingsCatalog.find("hud-dungeon-run") == null);
         check("Terminal Helper is a no-master dropdown", ReferenceSettingsCatalog.find("terminal-assist") != null
                 && ReferenceSettingsCatalog.find("terminal-assist").control == ReferenceSettingsCatalog.Control.DROPDOWN);
         check("Starred Mobs and Door ESP keep every flat style control", ReferenceSettingsCatalog.find("esp-starred-color") != null

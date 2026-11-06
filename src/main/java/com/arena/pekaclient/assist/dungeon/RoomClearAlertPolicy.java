@@ -40,7 +40,7 @@ public final class RoomClearAlertPolicy {
      */
     public boolean shouldAlert(boolean inDungeon, String rawMessage, String roomKey, long nowMillis) {
         if (!inDungeon) return false;
-        String message = DungeonRunReadout.normalize(rawMessage).toLowerCase(Locale.ROOT);
+        String message = DungeonText.normalize(rawMessage).toLowerCase(Locale.ROOT);
         if (message.length() == 0 || isExcluded(message) || !CLEAR_MESSAGE.matcher(message).find()) return false;
         return acceptRoom(roomKey, nowMillis);
     }

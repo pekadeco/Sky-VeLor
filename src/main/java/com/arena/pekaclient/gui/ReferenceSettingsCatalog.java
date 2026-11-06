@@ -138,7 +138,7 @@ public final class ReferenceSettingsCatalog {
             "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator",
             "dungeon-score-hud", "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay",
             "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
-            "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "hud-dungeon-run", "item-animation",
+            "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "item-animation",
             "system-appearance", "system-performance", "font-settings", "system-general", "system-commands"
     };
 
@@ -282,8 +282,6 @@ public final class ReferenceSettingsCatalog {
                             "Draw a client-side line to the nearest Spirit Bow marker.",
                             "spirit bow marker locator render only")),
             card("dungeon-hud", "Dungeon HUD", "Score and room-clear alert controls.", false, "",
-                    toggle("hud-dungeon-run", "Dungeon Run HUD", "Show observed dungeon sidebar values on screen.",
-                            "dungeon run hud sidebar floor time secrets deaths"),
                     masterDropdown("dungeon-score-hud", "Dungeon Score/Stats HUD",
                             "Show score and selected run lines only in dungeons.",
                             "dungeon score skill exploration speed bonus rank crypts deaths time",

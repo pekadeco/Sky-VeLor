@@ -9,7 +9,7 @@ public final class CategoryPlacementTests {
     public static void main(String[] args) {
         String[][] expected = {
             {"GAMEPLAY", "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "hide-dead-mobs", "auto-sprint", "item-lock-swap", "inventory-assist", "chat-qol", "wardrobe-shortcut", "wardrobe-number-keys", "pets-shortcut", "command-keybinds"},
-            {"DUNGEON", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "dungeon-score-hud", "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled", "hud-dungeon-run"},
+            {"DUNGEON", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "dungeon-score-hud", "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled"},
             {"MINING", "mining-bps", "mining-assistant-settings"}, {"FISHING", "fishing-tracker"},
             {"SLAYER", "slayer-tracker"}, {"VISUALS", "hud-editor", "hud-player-doll", "hud-inventory", "item-animation"},
             {"SYSTEM", "system-appearance", "system-performance", "font-settings", "chat-editor", "system-general", "system-commands", "open-menu-key"}

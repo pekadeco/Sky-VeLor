@@ -220,7 +220,7 @@ public final class DungeonScoreTelemetry {
     }
 
     private static String clean(String raw) {
-        return DungeonRunReadout.normalize(raw);
+        return DungeonText.normalize(raw);
     }
 
     private static String floorIn(String line) {
