@@ -75,6 +75,7 @@ public final class AssistSettings {
     /** Applies the fresh-install defaults, including only local visual/inventory conveniences. */
     public static void resetDefaults() {
         resetDefaults(true);
+        wardrobeForwardKeyMigrated = true;
     }
 
     /**
