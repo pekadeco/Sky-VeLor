@@ -179,7 +179,7 @@ public final class DungeonProgressTracker {
         if (!secretPercentSeen && secretsRequired > 0) {
             secretsPercent = clamp((int) ((long) secretsFound * 100L / secretsRequired), 0, 100);
         }
-        floor = detectFloor(cachedLines);
+        floor = DungeonFloor.detect(cachedLines);
         paulMayor = AppleSettings.dungeonPaulBonus;
         calculateScoreFromVisibleStats();
     }
@@ -311,18 +311,6 @@ public final class DungeonProgressTracker {
             return "Secrets: " + actual + "% / S+ unreachable / " + secretTargetPercent + "%";
         }
         return "Secrets: " + actual + "% / " + requiredSecretsPercent + "% / " + secretTargetPercent + "%";
-    }
-
-    private static String detectFloor(List<String> lines) {
-        for (String line : lines) {
-            String lower = line.toLowerCase(Locale.ROOT);
-            if (lower.contains("master mode 7") || lower.matches(".*\\bm7\\b.*")) return "M7";
-            if (lower.contains("entrance") || lower.matches(".*\\be0\\b.*")) return "E0";
-            Matcher m = Pattern.compile("(?i)\\bfloor\\s*([0-7])\\b|\\bf([0-7])\\b").matcher(lower);
-            if (m.find()) return "F" + (m.group(1) != null ? m.group(1) : m.group(2));
-            if (lower.contains("catacombs") && lower.contains("(f7)")) return "F7";
-        }
-        return "--";
     }
 
     private static int parseInt(String text, int fallback) {
