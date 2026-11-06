@@ -109,6 +109,11 @@ public final class AssistSettingsTests {
 
     private static void wardrobeForwardKeyMigrationIsOneTime() {
         AssistSettings.load(new Properties());
+        Properties beforeControls = new Properties();
+        AssistSettings.save(beforeControls);
+        check("pre-controls migration save does not invent shortcut bindings",
+                !beforeControls.containsKey("assist.shortcut.wardrobeKey")
+                        && !beforeControls.containsKey("assist.shortcut.petsKey"));
         check("missing feature key records leave existing Controls bindings authoritative", !AssistSettings.wardrobeKeyLoaded && !AssistSettings.petsKeyLoaded);
         check("new Wardrobe and Pets defaults are H and P", AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE == 35
                 && AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE == 25);
