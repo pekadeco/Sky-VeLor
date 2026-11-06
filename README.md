@@ -4,7 +4,7 @@
 
 ## Settings visual update status
 
-The dark/orange theme and explicit save action are a partial visual update, not the complete reference redesign. The save action is at the end of the scrollable page. Header section tabs, a fixed save footer, Pojav/small-scale layout fixes, and comprehensive rendering/performance optimization are still outstanding. The current visuals and input have not been tested in-game.
+The dark/orange theme is a partial visual update, not the complete reference redesign. Settings save automatically. Header section tabs, Pojav/small-scale layout fixes, and comprehensive rendering/performance optimization are still outstanding. The current visuals and input have not been tested in-game.
 
 ## Highlights
 

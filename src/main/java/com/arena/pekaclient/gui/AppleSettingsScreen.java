@@ -616,7 +616,6 @@ public class AppleSettingsScreen extends AppleScreen {
             } else {
                 y = drawTab(y, mouseInView ? mouseX : -10000, mouseInView ? mouseY : -10000, activeTab);
             }
-            drawSaveSettings(y, mouseInView ? mouseX : -10000, mouseInView ? mouseY : -10000);
             drawScrollEdgeFades(total);
         } finally {
             UIRender.scissorEnd();
@@ -645,24 +644,7 @@ public class AppleSettingsScreen extends AppleScreen {
         else if (activeTab == ReferenceSettingsCatalog.Tab.HOME) content = measureHome();
         else if (activeTab == ReferenceSettingsCatalog.Tab.FARMING) content = fr().FONT_HEIGHT + 2f + SettingsShellLayout.FINAL_CARD_PADDING;
         else content = measureTab(activeTab);
-        return content + 30f;
-    }
-
-    /** Explicit save complements the existing automatic save on close. */
-    private void drawSaveSettings(float y, int mouseX, int mouseY) {
-        if (y + 22f <= viewport.y || y >= viewport.bottom()) return;
-        float w = Math.max(1f, contentW);
-        boolean hot = inside(mouseX, mouseY, contentX, y, w, 22f);
-        int bottom = hot ? Theme.HIGHLIGHT : Theme.accent;
-        UIRender.roundRectBorder(contentX, y, w, 22f, 6f, Theme.HIGHLIGHT, bottom, Theme.border);
-        float scale = .75f;
-        String label = fit(fr(), "Save Settings", Math.max(1f, (w - 20f) / scale));
-        float textX = contentX + (w - fr().getStringWidth(label) * scale) * .5f;
-        drawCheckGlyph(Math.max(contentX + 6f, textX - 12f), y + 11f, Theme.OPAQUE_WHITE);
-        UIRender.text(fr(), label, textX, centeredTextY(y, 22f, scale), Theme.OPAQUE_WHITE, scale, false);
-        float hitTop = Math.max(y, viewport.y);
-        float hitBottom = Math.min(y + 22f, viewport.bottom());
-        registerHit("save-settings", HIT_ACTION, contentX, hitTop, w, hitBottom - hitTop, null, "save-settings");
+        return content;
     }
 
     private void drawScrollBar(float total) {
@@ -1728,6 +1710,7 @@ public class AppleSettingsScreen extends AppleScreen {
                 showToast("Fullscreen");
             }
             AppleSettings.settingsWindowFullscreen = fullscreenWindow;
+            AppleSettings.save();
             search.setFocused(false);
             openDropdown = null;
         }
@@ -1922,7 +1905,11 @@ public class AppleSettingsScreen extends AppleScreen {
                 inlineFocused.setFocused(false);
                 return;
             }
-            if (inlineFocused.keyTyped(typedChar, keyCode)) return;
+            if (inlineFocused.keyTyped(typedChar, keyCode)) {
+                commitInlineTextFields();
+                AppleSettings.save();
+                return;
+            }
         }
         if (search.isFocused()) {
             if (keyCode == Keyboard.KEY_ESCAPE) {
@@ -2104,6 +2091,8 @@ public class AppleSettingsScreen extends AppleScreen {
 
     private void afterSettingChanged() {
         refreshReferenceTheme();
+        AppleSettings.save();
+        HudManager.save();
     }
 
     private void showToast(String value) {
@@ -2138,6 +2127,7 @@ public class AppleSettingsScreen extends AppleScreen {
         if ("chat-tab-visible".equals(id)) {
             ChatTabs.Tab tab = currentChatTab();
             if (tab != null) ChatQolSettings.setTabVisible(tab.id(), value);
+            AppleSettings.save();
             return;
         }
         if ("chat-tab-sound".equals(id)) {
@@ -2146,6 +2136,8 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         InlineSettingsBindings.setBoolean(id, value);
         if (("chat-qol".equals(id) || "chat-tabs".equals(id)) && !value) ChatChannelTabs.disableAndRestoreAll();
+        AppleSettings.save();
+        HudManager.save();
     }
 
     private int intValue(String id) {
@@ -2155,6 +2147,8 @@ public class AppleSettingsScreen extends AppleScreen {
     private void setInt(String id, int value) {
         InlineSettingsBindings.setInt(id, value);
         refreshReferenceTheme();
+        AppleSettings.save();
+        HudManager.save();
     }
 
     private int choiceValue(String id) {
@@ -2169,16 +2163,12 @@ public class AppleSettingsScreen extends AppleScreen {
         }
         InlineSettingsBindings.setChoice(id, value);
         refreshReferenceTheme();
+        AppleSettings.save();
+        HudManager.save();
     }
 
     /** Executes a retained value action; named editor destinations are the only actions that open a child screen. */
     private void performInlineAction(String id) {
-        if ("save-settings".equals(id)) {
-            boolean settingsSaved = AppleSettings.saveChecked();
-            boolean hudSaved = HudManager.saveChecked();
-            showToast(settingsSaved && hudSaved ? "Saved" : "Could not save settings");
-            return;
-        }
         if ("reset-menu-key".equals(id)) {
             cancelKeybindCapture();
             String conflict = PekaClientMod.rebindMenuKey(com.arena.pekaclient.input.MenuKeyBinding.DEFAULT_KEY);

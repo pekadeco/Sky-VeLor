@@ -1079,16 +1079,6 @@ public final class AppleSettings {
     }
 
     public static void save() {
-        saveChecked();
-    }
-
-    /** Reports disk-write failure to explicit save controls; existing autosave callers remain compatible. */
-    public static boolean saveChecked() {
-        return saveChecked(dir());
-    }
-
-    /** Same write path with a supplied game directory, for headless persistence verification. */
-    public static boolean saveChecked(File gameDir) {
         // Keep programmatic edits as safe as slider/loader edits before the atomic writer persists them.
         itemAnimationSize = Math.max(ITEM_ANIMATION_SIZE_MIN_PERCENT,
                 Math.min(ITEM_ANIMATION_SIZE_MAX_PERCENT, itemAnimationSize));
@@ -1169,7 +1159,7 @@ public final class AppleSettings {
         M7Settings.save(p);
         // Add only ui.feature.* presentation keys; every gameplay/config key above stays owned by its prior schema.
         FeatureUiPreferences.save(p);
-        return ConfigFiles.writeAtomic(new File(gameDir, FILE_NAME), p, "Lunaria settings");
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Lunaria settings");
     }
 
     /** Scale value in use, matching the regular HUD scale switch. */

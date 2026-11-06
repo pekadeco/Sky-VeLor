@@ -138,7 +138,7 @@ public final class ItemAnimationEditorScreen extends AppleScreen {
         return new AppleSlider(min, max, step, suffix, 1f, new java.util.function.IntSupplier() {
             public int getAsInt() { return value.get(); }
         }, new java.util.function.IntConsumer() {
-            public void accept(int next) { value.set(next); }
+            public void accept(int next) { value.set(next); AppleSettings.save(); }
         }).fineStep(step);
     }
 
@@ -254,7 +254,7 @@ public final class ItemAnimationEditorScreen extends AppleScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int button) throws IOException {
         if (button != 0) return;
-        if (handleOpenDropdownClick(mouseX, mouseY)) return;
+        if (handleOpenDropdownClick(mouseX, mouseY)) { AppleSettings.save(); return; }
         if (inside(mouseX, mouseY, panelX + panelW - 20f, panelY + 5f, 15f, 16f)) {
             close();
             return;
@@ -277,6 +277,7 @@ public final class ItemAnimationEditorScreen extends AppleScreen {
         Widget released = activeWidget;
         activeWidget = null;
         released.onRelease(mouseX, mouseY, released.contains(mouseX, mouseY));
+        AppleSettings.save();
         if (released instanceof AppleDropdown && released.contains(mouseX, mouseY)) {
             AppleDropdown dropdown = (AppleDropdown) released;
             if (openDropdown == dropdown) {

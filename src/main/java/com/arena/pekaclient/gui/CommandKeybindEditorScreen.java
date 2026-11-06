@@ -43,6 +43,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         public void run() {
             if (CommandKeybindSettings.add()) {
                 rebuildRows();
+                AppleSettings.save();
                 notice = "New command keybind added";
             } else {
                 notice = "Maximum of " + CommandKeybindSettings.MAX_ENTRIES + " command keybinds reached";
@@ -52,6 +53,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
     private final AppleButton resetButton = new AppleButton("Reset", 70f, BUTTON_H, false, new Runnable() {
         public void run() {
             CommandKeybindSettings.reset();
+            AppleSettings.save();
             rebuildRows();
             cancelCapture();
             notice = "Command keybinds reset";
@@ -354,6 +356,10 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
             char acceptedChar = keyCode == Keyboard.KEY_SPACE && typedChar == 0 ? ' ' : typedChar;
             String before = row.commandField.text();
             boolean consumed = row.commandField.keyTyped(acceptedChar, keyCode);
+            if (!before.equals(row.commandField.text())) {
+                CommandKeybindSettings.setCommand(row.index, row.commandField.text());
+                AppleSettings.save();
+            }
             if (keyCode == Keyboard.KEY_SPACE || consumed || !before.equals(row.commandField.text())) return;
         }
         if (keyCode == Keyboard.KEY_ESCAPE) {
@@ -376,6 +382,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         }
         if (keyCode == Keyboard.KEY_BACK) {
             CommandKeybindSettings.setKeyCode(row.index, 0);
+            AppleSettings.save();
             row.keyButton.finishCapture();
             captureIndex = -1;
             notice = "Key cleared";
@@ -383,6 +390,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
         }
         if (!CommandKeybindSettings.validKeyCode(keyCode)) return;
         CommandKeybindSettings.setKeyCode(row.index, keyCode);
+        AppleSettings.save();
         row.keyButton.finishCapture();
         captureIndex = -1;
         CommandKeybindSettings.Entry entry = CommandKeybindSettings.entryAt(row.index);
@@ -447,6 +455,7 @@ public final class CommandKeybindEditorScreen extends AppleScreen {
     private void deleteRow(int index) {
         focusCommand(-1);
         if (CommandKeybindSettings.delete(index)) {
+            AppleSettings.save();
             rebuildRows();
             notice = "Command keybind deleted";
         }

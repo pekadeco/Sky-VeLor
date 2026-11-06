@@ -156,6 +156,8 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     public void onGuiClosed() {
         Keyboard.enableRepeatEvents(false);
         persist();
+        HudManager.save();
+        AppleSettings.save();
         UIRender.restoreVanillaGuiState();
         super.onGuiClosed();
     }
@@ -169,6 +171,9 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     private void changed() {
         dirty = true;
+        HudManager.save();
+        AppleSettings.save();
+        dirty = false;
     }
 
     private void select(Target target) {

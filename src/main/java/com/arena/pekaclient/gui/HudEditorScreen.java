@@ -185,6 +185,9 @@ public final class HudEditorScreen extends AppleScreen {
 
     private void changed() {
         dirty = true;
+        HudManager.save();
+        AppleSettings.save();
+        dirty = false;
     }
 
     /** Rebuilds the inspector for an ordinary HUD element. Dungeon Map options live in Dungeon HUD Editor. */

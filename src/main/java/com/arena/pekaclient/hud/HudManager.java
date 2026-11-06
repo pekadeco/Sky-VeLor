@@ -73,19 +73,9 @@ public final class HudManager {
     }
 
     public static void save() {
-        saveChecked();
-    }
-
-    /** Reports disk-write failure to explicit save controls without changing autosave callers. */
-    public static boolean saveChecked() {
-        return saveChecked(dir());
-    }
-
-    /** Same write path with a supplied game directory, for headless persistence verification. */
-    public static boolean saveChecked(File gameDir) {
         Properties p = new Properties();
         for (HudElement e : ELEMENTS) e.save(p);
-        return ConfigFiles.writeAtomic(new File(gameDir, FILE_NAME), p, "Lunaria HUD settings");
+        ConfigFiles.writeAtomic(new File(dir(), FILE_NAME), p, "Lunaria HUD settings");
     }
 
     /** Called once per client tick, before the world moves. */

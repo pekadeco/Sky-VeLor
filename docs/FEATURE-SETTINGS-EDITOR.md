@@ -59,4 +59,4 @@ The named **Chat Editor** opens the retained detailed Chat QoL editor with backg
 
 ## Safety boundary
 
-Lunaria visual and quality-of-life controls are intended to operate on the local client. They do not guarantee server-rule compliance. Optional network features require explicit enablement and are documented separately in [`DUNGEON_SYNC.md`](DUNGEON_SYNC.md).
+Lunaria visual and quality-of-life controls are intended to operate on the local client. They do not guarantee server-rule compliance.

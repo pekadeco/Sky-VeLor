@@ -499,7 +499,7 @@ public final class ChatEditorScreen extends AppleScreen {
     @Override
     protected void mouseClicked(int mx, int my, int button) throws IOException {
         if (button != 0) return;
-        if (handleOpenDropdownClick(mx, my)) return;
+        if (handleOpenDropdownClick(mx, my)) { AppleSettings.save(); return; }
         if (inside(mx, my, x + w - 52f, y, 52f, 34f)) {
             close();
             return;
@@ -518,7 +518,7 @@ public final class ChatEditorScreen extends AppleScreen {
         }
         for (SearchField field : fields) field.setFocused(picked != null && picked.widget == field);
         active = picked == null ? null : picked.widget;
-        if (active != null) active.onPress(mx, my);
+        if (active != null) { active.onPress(mx, my); if (active instanceof AppleSlider) AppleSettings.save(); }
     }
 
     @Override
@@ -534,11 +534,12 @@ public final class ChatEditorScreen extends AppleScreen {
             if (openDropdown != null) openDropdown.onExpand();
         }
         commitColourFields();
+        AppleSettings.save();
     }
 
     @Override
     protected void mouseClickMove(int mx, int my, int button, long elapsed) {
-        if (active != null) active.onDrag(mx, my);
+        if (active != null) { active.onDrag(mx, my); if (active instanceof AppleSlider) AppleSettings.save(); }
         super.mouseClickMove(mx, my, button, elapsed);
     }
 
@@ -557,7 +558,11 @@ public final class ChatEditorScreen extends AppleScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         for (SearchField field : fields) {
-            if (field.isFocused() && field.keyTyped(typedChar, keyCode)) return;
+            if (field.isFocused() && field.keyTyped(typedChar, keyCode)) {
+                commitColourFields();
+                AppleSettings.save();
+                return;
+            }
         }
         if (keyCode == Keyboard.KEY_ESCAPE) {
             if (openDropdown != null) openDropdown = null; else close();
