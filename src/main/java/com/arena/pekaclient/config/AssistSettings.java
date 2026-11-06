@@ -28,7 +28,7 @@ public final class AssistSettings {
     /** Client-side visual cleanup for dead/dying mob and server-NPC body/nameplate renders. */
     public static final boolean DEFAULT_HIDE_DEAD_MOBS = true;
     /** LWJGL 1.8.9 key codes kept as plain constants so this persistence model stays Minecraft-independent. */
-    public static final int DEFAULT_WARDROBE_SHORTCUT_KEY_CODE = 17; // W
+    public static final int DEFAULT_WARDROBE_SHORTCUT_KEY_CODE = 35; // H
     public static final int DEFAULT_PETS_SHORTCUT_KEY_CODE = 25; // P
     public static final boolean DEFAULT_WARDROBE_NUMBER_KEYS = true;
 
@@ -48,6 +48,8 @@ public final class AssistSettings {
     public static boolean wardrobeShortcut;
     /** -1 means preserve an established Minecraft Controls binding until this feature is explicitly captured. */
     public static int wardrobeShortcutKeyCode;
+    /** Persisted marker ensures a player can deliberately choose W again after the one-time migration. */
+    public static boolean wardrobeForwardKeyMigrated;
     /** Direct number-key selection is opt-in at the Wardrobe GUI only and defaults on to preserve .1.9 behavior. */
     public static boolean wardrobeNumberKeys;
     public static boolean petsShortcut;
@@ -93,9 +95,10 @@ public final class AssistSettings {
         smoothAspectTeleport = DEFAULT_SMOOTH_ASPECT_TELEPORT;
         autoSprint = false;
         wardrobeShortcut = false;
-        // Fresh installs and the visible Shortcut reset start with W/P. Established configurations without an explicit
+        // Fresh installs and the visible Shortcut reset start with H/P. Established configurations without an explicit
         // shortcut key retain their existing Controls binding instead of being overwritten by this new default.
         wardrobeShortcutKeyCode = freshInstall ? DEFAULT_WARDROBE_SHORTCUT_KEY_CODE : -1;
+        wardrobeForwardKeyMigrated = false;
         wardrobeNumberKeys = DEFAULT_WARDROBE_NUMBER_KEYS;
         petsShortcut = false;
         petsShortcutKeyCode = freshInstall ? DEFAULT_PETS_SHORTCUT_KEY_CODE : -1;
@@ -133,6 +136,7 @@ public final class AssistSettings {
         // original aliases preserve established choices on their first load before save rewrites them under shortcut.*.
         autoSprint = shortcutBool(p, "shortcut.autoSprint", "keybindCut.autoSprint", "movement.autoSprint", "autoSprintEnabled", false);
         wardrobeShortcut = shortcutBool(p, "shortcut.wardrobe", "keybindCut.wardrobe", "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
+        wardrobeForwardKeyMigrated = bool(p, "shortcut.wardrobeForwardKeyMigrated", null, false);
         int savedWardrobeKey = shortcutKeyCode(p, "shortcut.wardrobeKey", "keybindCut.wardrobeKey");
         if (savedWardrobeKey >= 0) wardrobeShortcutKeyCode = savedWardrobeKey;
         wardrobeNumberKeys = shortcutBool(p, "shortcut.wardrobeNumberKeys", "keybindCut.wardrobeNumberKeys",
@@ -156,6 +160,15 @@ public final class AssistSettings {
         terminalScale = integer(p, "dungeon.terminal.scale", "terminalGuiScale", 100,
                 MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE, true);
         normalize();
+    }
+
+    /** Called after the old feature and Controls values have been resolved, before bindings are activated. */
+    public static int migrateWardrobeForwardKey(int keyCode) {
+        if (!wardrobeForwardKeyMigrated) {
+            wardrobeForwardKeyMigrated = true;
+            if (keyCode == 17) return DEFAULT_WARDROBE_SHORTCUT_KEY_CODE;
+        }
+        return keyCode;
     }
 
     public static void save(Properties p) {
@@ -194,6 +207,7 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "shortcut.autoSprint", Boolean.toString(autoSprint));
         p.setProperty(PREFIX + "shortcut.wardrobe", Boolean.toString(wardrobeShortcut));
         saveShortcutKeyCode(p, "shortcut.wardrobeKey", wardrobeShortcutKeyCode);
+        p.setProperty(PREFIX + "shortcut.wardrobeForwardKeyMigrated", Boolean.toString(wardrobeForwardKeyMigrated));
         p.setProperty(PREFIX + "shortcut.wardrobeNumberKeys", Boolean.toString(wardrobeNumberKeys));
         p.setProperty(PREFIX + "shortcut.pets", Boolean.toString(petsShortcut));
         saveShortcutKeyCode(p, "shortcut.petsKey", petsShortcutKeyCode);

@@ -167,9 +167,9 @@ public class PekaClientMod {
     public static final KeyBinding ITEM_LOCK_SWAP_KEY =
             new KeyBinding("key.lunaria.itemLockSwap", Keyboard.KEY_L, "key.categories.lunaria");
 
-    /** Fresh installs and Shortcut reset use W/P; an already-saved Controls or Shortcut value always wins instead. */
+    /** Fresh installs and Shortcut reset use H/P; the old W default migrates once. */
     public static final KeyBinding WARDROBE_SHORTCUT_KEY =
-            new KeyBinding("key.lunaria.wardrobeShortcut", Keyboard.KEY_W, "key.categories.lunaria");
+            new KeyBinding("key.lunaria.wardrobeShortcut", Keyboard.KEY_H, "key.categories.lunaria");
     public static final KeyBinding PETS_SHORTCUT_KEY =
             new KeyBinding("key.lunaria.petsShortcut", Keyboard.KEY_P, "key.categories.lunaria");
     private boolean loadingShown;
@@ -265,7 +265,7 @@ public class PekaClientMod {
             KeyBinding.resetKeyBindingArrayAndHash();
         }
         // A saved Shortcut value wins. If an older config has no value, retain the Controls binding already loaded by
-        // Minecraft; fresh assist properties explicitly contain the new W/P defaults.
+        // Minecraft; fresh assist properties explicitly contain the new H/P defaults.
         boolean shortcutKeysChanged = false;
         if (AssistSettings.validShortcutKeyCode(AssistSettings.wardrobeShortcutKeyCode)) {
             WARDROBE_SHORTCUT_KEY.setKeyCode(AssistSettings.wardrobeShortcutKeyCode);
@@ -279,7 +279,16 @@ public class PekaClientMod {
         } else {
             AssistSettings.petsShortcutKeyCode = PETS_SHORTCUT_KEY.getKeyCode();
         }
-        if (shortcutKeysChanged) KeyBinding.resetKeyBindingArrayAndHash();
+        boolean migrateWardrobe = !AssistSettings.wardrobeForwardKeyMigrated;
+        int wardrobeKey = AssistSettings.migrateWardrobeForwardKey(WARDROBE_SHORTCUT_KEY.getKeyCode());
+        WARDROBE_SHORTCUT_KEY.setKeyCode(wardrobeKey);
+        AssistSettings.wardrobeShortcutKeyCode = wardrobeKey;
+        if (shortcutKeysChanged || migrateWardrobe) KeyBinding.resetKeyBindingArrayAndHash();
+        if (migrateWardrobe) {
+            // Persist both the authoritative feature key/marker and vanilla's Controls copy.
+            AppleSettings.save();
+            Minecraft.getMinecraft().gameSettings.saveOptions();
+        }
         StartupTasks.add("Reading the HUD layout", HudManager::ensureLoaded);
         StartupTasks.add("Applying the theme", Theme::refresh);
         StartupTasks.add("Reading fishing counters", FishingStats::load);

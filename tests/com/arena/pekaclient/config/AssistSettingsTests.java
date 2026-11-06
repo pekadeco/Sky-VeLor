@@ -12,6 +12,7 @@ public final class AssistSettingsTests {
     public static void main(String[] args) {
         defaultsAreSafeAndVanillaCameraIsFullStrength();
         legacyInputLoadsWithoutRevivingRetiredFeatures();
+        wardrobeForwardKeyMigrationIsOneTime();
         hurtCameraShakePersistsAtZeroIntermediateAndVanilla();
         roundTripAndBounds();
         done();
@@ -28,7 +29,7 @@ public final class AssistSettingsTests {
         check("hurt camera defaults to vanilla 100 percent", AssistSettings.hurtCameraShake == 100
                 && Math.abs(AssistSettings.hurtCameraShakeMultiplier() - 1f) < .00001f);
         check("endpoint default is usable", AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
-        check("fresh Shortcut defaults reserve W/P and keep Wardrobe number keys on", AssistSettings.wardrobeShortcutKeyCode
+        check("fresh Shortcut defaults reserve H/P and keep Wardrobe number keys on", AssistSettings.wardrobeShortcutKeyCode
                 == AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE && AssistSettings.petsShortcutKeyCode
                 == AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE && AssistSettings.wardrobeNumberKeys);
     }
@@ -102,9 +103,26 @@ public final class AssistSettingsTests {
                 AssistSettings.wardrobeShortcutKeyCode == 20 && AssistSettings.petsShortcutKeyCode == 25
                         && !AssistSettings.wardrobeNumberKeys);
         AssistSettings.resetDefaults();
-        check("explicit defaults restore W/P and enabled Wardrobe digits", AssistSettings.wardrobeShortcutKeyCode
+        check("explicit defaults restore H/P and enabled Wardrobe digits", AssistSettings.wardrobeShortcutKeyCode
                 == AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE && AssistSettings.petsShortcutKeyCode
                 == AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE && AssistSettings.wardrobeNumberKeys);
+    }
+
+    private static void wardrobeForwardKeyMigrationIsOneTime() {
+        AssistSettings.load(new Properties());
+        check("new Wardrobe and Pets defaults are H and P", AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE == 35
+                && AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE == 25);
+        check("old W migrates to H", AssistSettings.migrateWardrobeForwardKey(17) == 35);
+        Properties persisted = new Properties();
+        AssistSettings.save(persisted);
+        AssistSettings.load(persisted);
+        check("a deliberate later W survives restart", AssistSettings.migrateWardrobeForwardKey(17) == 17);
+        Properties older = new Properties();
+        older.setProperty("other", "true");
+        AssistSettings.load(older);
+        check("a different existing Controls key survives migration", AssistSettings.migrateWardrobeForwardKey(20) == 20);
+        AssistSettings.load(older);
+        check("an explicitly cleared key survives migration", AssistSettings.migrateWardrobeForwardKey(0) == 0);
     }
 
     private static void hurtCameraShakePersistsAtZeroIntermediateAndVanilla() {
