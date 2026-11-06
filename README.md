@@ -8,7 +8,7 @@ The dark/orange theme is a partial visual update, not the complete reference red
 
 ## Highlights
 
-- **Settings and HUD:** native Lunaria settings shell, Home performance cards, direct-canvas Dungeon HUD Editor, normal HUD Editor, movable Dungeon Score/Stats, Room Clear Alert, Dungeon Run, secrets, boss, fishing, mining, and inventory surfaces.
+- **Settings and HUD:** native Lunaria settings shell, Home performance cards, direct-canvas Dungeon HUD Editor, normal HUD Editor, movable Dungeon Score/Stats, Room Clear Alert, secrets, boss, fishing, mining, and inventory surfaces.
 - **Dungeon tools:** map and interpolated player heads, terminal hints, puzzle/terminal support, Spirit Leap helper, score calculator and diagnostics, Room Clear Alert, exact-title Auto Chest Close, Spirit Bow locator, Floor VII support, and client-side ESP.
 - **Safe gameplay QoL:** Shortcut keys, Item Lock & Swap rules, protected inventory gestures, Auto Sprint, Hide Dead Mobs, Smooth Aspect Teleport, quiet block particles, and held-item animation. Client visual helpers do not send movement or combat packets.
 - **Chat and fonts:** detailed Chat Editor, chat tabs, history, compact messages, click menu, optional bundled/external Lunaria fonts, and a clear native-font fallback.

@@ -264,13 +264,13 @@ public class PekaClientMod {
         // A saved Shortcut value wins. If an older config has no value, retain the Controls binding already loaded by
         // Minecraft; fresh assist properties explicitly contain the new H/P defaults.
         boolean shortcutKeysChanged = false;
-        if (AssistSettings.validShortcutKeyCode(AssistSettings.wardrobeShortcutKeyCode)) {
+        if (AssistSettings.wardrobeKeyLoaded && AssistSettings.validShortcutKeyCode(AssistSettings.wardrobeShortcutKeyCode)) {
             WARDROBE_SHORTCUT_KEY.setKeyCode(AssistSettings.wardrobeShortcutKeyCode);
             shortcutKeysChanged = true;
         } else {
             AssistSettings.wardrobeShortcutKeyCode = WARDROBE_SHORTCUT_KEY.getKeyCode();
         }
-        if (AssistSettings.validShortcutKeyCode(AssistSettings.petsShortcutKeyCode)) {
+        if (AssistSettings.petsKeyLoaded && AssistSettings.validShortcutKeyCode(AssistSettings.petsShortcutKeyCode)) {
             PETS_SHORTCUT_KEY.setKeyCode(AssistSettings.petsShortcutKeyCode);
             shortcutKeysChanged = true;
         } else {
@@ -424,7 +424,7 @@ public class PekaClientMod {
         return conflict;
     }
 
-    /** Applies the documented W/P defaults only after the player explicitly chooses Shortcut reset. */
+    /** Applies the documented H/P defaults only after the player explicitly chooses Shortcut reset. */
     public static void resetShortcutKeysToDefaults() {
         rebindWardrobeShortcutKey(AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE);
         rebindPetsShortcutKey(AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE);

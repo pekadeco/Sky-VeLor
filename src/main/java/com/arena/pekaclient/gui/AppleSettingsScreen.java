@@ -1464,7 +1464,7 @@ public class AppleSettingsScreen extends AppleScreen {
         UIRender.roundRectBorder(contentX, y, contentW, noticeH,
                 GuiStyle.radius(GuiStyle.RADIUS_CARD, Theme.radius, contentW, noticeH), Theme.card, Theme.card, Theme.border);
         drawShieldGlyph(contentX + 10f, y + 9f, Theme.accent);
-        String safety = "Safe by default — network sync and opt-in assists stay off until you choose them.";
+        String safety = "Safe by default — opt-in assists stay off until you choose them.";
         UIRender.text(fr(), fit(fr(), safety, Math.max(1f, (contentW - 31f) / .68f)), contentX + 26f,
                 centeredTextY(y, noticeH, .68f), Theme.textSecondary, .68f, false);
         return y + noticeH + GAP + SettingsShellLayout.FINAL_CARD_PADDING;

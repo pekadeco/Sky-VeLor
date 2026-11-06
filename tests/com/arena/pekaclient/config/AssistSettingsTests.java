@@ -109,6 +109,7 @@ public final class AssistSettingsTests {
 
     private static void wardrobeForwardKeyMigrationIsOneTime() {
         AssistSettings.load(new Properties());
+        check("missing feature key records leave existing Controls bindings authoritative", !AssistSettings.wardrobeKeyLoaded && !AssistSettings.petsKeyLoaded);
         check("new Wardrobe and Pets defaults are H and P", AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE == 35
                 && AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE == 25);
         check("old W migrates to H", AssistSettings.migrateWardrobeForwardKey(17) == 35);

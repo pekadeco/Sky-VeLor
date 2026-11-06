@@ -47,6 +47,7 @@ public final class AssistSettings {
     public static boolean wardrobeShortcut;
     /** -1 means preserve an established Minecraft Controls binding until this feature is explicitly captured. */
     public static int wardrobeShortcutKeyCode;
+    public static boolean wardrobeKeyLoaded;
     /** Persisted marker ensures a player can deliberately choose W again after the one-time migration. */
     public static boolean wardrobeForwardKeyMigrated;
     /** Direct number-key selection is opt-in at the Wardrobe GUI only and defaults on to preserve .1.9 behavior. */
@@ -54,6 +55,7 @@ public final class AssistSettings {
     public static boolean petsShortcut;
     /** -1 has the same preserve-existing-controls meaning as the Wardrobe key. */
     public static int petsShortcutKeyCode;
+    public static boolean petsKeyLoaded;
     /** QoL visual owner for render-only dead mob/server-NPC body and nameplate cleanup. */
     public static boolean hideDeadMobs;
 
@@ -95,6 +97,8 @@ public final class AssistSettings {
         // shortcut key retain their existing Controls binding instead of being overwritten by this new default.
         wardrobeShortcutKeyCode = freshInstall ? DEFAULT_WARDROBE_SHORTCUT_KEY_CODE : -1;
         wardrobeForwardKeyMigrated = false;
+        wardrobeKeyLoaded = false;
+        petsKeyLoaded = false;
         wardrobeNumberKeys = DEFAULT_WARDROBE_NUMBER_KEYS;
         petsShortcut = false;
         petsShortcutKeyCode = freshInstall ? DEFAULT_PETS_SHORTCUT_KEY_CODE : -1;
@@ -131,12 +135,14 @@ public final class AssistSettings {
         wardrobeShortcut = shortcutBool(p, "shortcut.wardrobe", "keybindCut.wardrobe", "shortcuts.wardrobe", "wardrobeShortcutEnabled", false);
         wardrobeForwardKeyMigrated = bool(p, "shortcut.wardrobeForwardKeyMigrated", null, false);
         int savedWardrobeKey = shortcutKeyCode(p, "shortcut.wardrobeKey", "keybindCut.wardrobeKey");
-        if (savedWardrobeKey >= 0) wardrobeShortcutKeyCode = savedWardrobeKey;
+        wardrobeKeyLoaded = savedWardrobeKey >= 0;
+        if (wardrobeKeyLoaded) wardrobeShortcutKeyCode = savedWardrobeKey;
         wardrobeNumberKeys = shortcutBool(p, "shortcut.wardrobeNumberKeys", "keybindCut.wardrobeNumberKeys",
                 "shortcuts.wardrobeNumberKeys", null, DEFAULT_WARDROBE_NUMBER_KEYS);
         petsShortcut = shortcutBool(p, "shortcut.pets", "keybindCut.pets", "shortcuts.pets", "petsShortcutEnabled", false);
         int savedPetsKey = shortcutKeyCode(p, "shortcut.petsKey", "keybindCut.petsKey");
-        if (savedPetsKey >= 0) petsShortcutKeyCode = savedPetsKey;
+        petsKeyLoaded = savedPetsKey >= 0;
+        if (petsKeyLoaded) petsShortcutKeyCode = savedPetsKey;
         CommandKeybindSettings.load(p);
         // The Comfort key wins. The former ESP-local zero-health flag migrates once so an explicit OFF choice is
         // preserved, while absent keys use the new default and include deathTime animation frames.
