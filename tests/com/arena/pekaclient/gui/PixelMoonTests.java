@@ -6,7 +6,7 @@ public final class PixelMoonTests {
         int[] p = PixelMoon.bake();
         if (p.length != 32 * 32 || p[0] != 0 || p[31] != 0 || p[31 * 32] != 0)
             throw new AssertionError("moon must have a transparent background");
-        if ((p[8 * 32 + 25] >>> 24) != 255 || (p[19 * 32 + 23] >>> 24) != 255)
+        if ((p[8 * 32 + 25] >>> 24) != 255 || (p[14 * 32 + 23] >>> 24) != 255)
             throw new AssertionError("both sparkles must be visible");
         boolean halo = false, color = false;
         for (int pixel : p) {

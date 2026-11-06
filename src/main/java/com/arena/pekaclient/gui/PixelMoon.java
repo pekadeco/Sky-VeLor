@@ -15,7 +15,7 @@ public final class PixelMoon {
         crescent = dx * dx + dy * dy <= 120 && !crescent;
         // Two deliberately square-pixel sparkles, in the open side of the crescent.
         boolean star1 = (Math.abs(x - 25) <= 1 && y == 8) || (x == 25 && Math.abs(y - 8) <= 2);
-        boolean star2 = (Math.abs(x - 23) <= 1 && y == 19) || (x == 23 && Math.abs(y - 19) <= 1);
+        boolean star2 = (Math.abs(x - 23) <= 1 && y == 14) || (x == 23 && Math.abs(y - 14) <= 1);
         return crescent || star1 || star2;
     }
 
