@@ -209,11 +209,13 @@ public final class AssistSettings {
         p.setProperty(PREFIX + "visual.smoothAspectTeleport", Boolean.toString(smoothAspectTeleport));
         p.setProperty(PREFIX + "shortcut.autoSprint", Boolean.toString(autoSprint));
         p.setProperty(PREFIX + "shortcut.wardrobe", Boolean.toString(wardrobeShortcut));
-        saveShortcutKeyCode(p, "shortcut.wardrobeKey", wardrobeShortcutKeyCode);
+        if (wardrobeKeyLoaded || wardrobeForwardKeyMigrated)
+            saveShortcutKeyCode(p, "shortcut.wardrobeKey", wardrobeShortcutKeyCode);
         p.setProperty(PREFIX + "shortcut.wardrobeForwardKeyMigrated", Boolean.toString(wardrobeForwardKeyMigrated));
         p.setProperty(PREFIX + "shortcut.wardrobeNumberKeys", Boolean.toString(wardrobeNumberKeys));
         p.setProperty(PREFIX + "shortcut.pets", Boolean.toString(petsShortcut));
-        saveShortcutKeyCode(p, "shortcut.petsKey", petsShortcutKeyCode);
+        if (petsKeyLoaded || wardrobeForwardKeyMigrated)
+            saveShortcutKeyCode(p, "shortcut.petsKey", petsShortcutKeyCode);
         CommandKeybindSettings.save(p);
         p.setProperty(PREFIX + "comfort.hideDeadMobs", Boolean.toString(hideDeadMobs));
         p.setProperty(PREFIX + "dungeon.spiritBowLocator", Boolean.toString(spiritBowLocator));
