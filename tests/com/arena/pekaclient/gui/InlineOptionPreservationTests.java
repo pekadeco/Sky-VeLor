@@ -29,7 +29,7 @@ public final class InlineOptionPreservationTests {
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
                 "dungeon-map", "dungeon-score-hud", "dungeon-score-line", "dungeon-crypts-line",
                 "dungeon-deaths-line", "dungeon-run-time-line", "room-clear-alert", "room-clear-duration", "room-clear-sound",
-                "dungeon-auto-chest-close", "dungeon-sync-debug", "dungeon-sync-enabled", "esp-distance-text",
+                "dungeon-auto-chest-close", "esp-distance-text",
                 "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
                 "esp-miniboss", "esp-mob-labels", "esp-special", "esp-starred",
                 "esp-update-interval", "fishing-festival", "font-lunaria-only", "font-scale", "font-settings",

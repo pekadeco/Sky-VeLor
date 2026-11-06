@@ -137,7 +137,7 @@ public final class ReferenceSettingsCatalog {
             "item-lock-swap", "inventory-assist", "chat-qol", "wardrobe-shortcut", "wardrobe-number-keys", "pets-shortcut", "command-keybinds", "slayer-tracker",
             "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator",
             "dungeon-score-hud", "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay",
-            "mob-esp-enabled", "door-esp-enabled", "dungeon-sync-enabled",
+            "mob-esp-enabled", "door-esp-enabled",
             "mining-bps", "mining-assistant-settings", "fishing-tracker", "hud-editor", "item-animation",
             "system-appearance", "system-performance", "font-settings", "system-general", "system-commands"
     };
@@ -350,11 +350,7 @@ public final class ReferenceSettingsCatalog {
                                             toggle("door-blood", "Blood Doors", "Show Blood doors.", "blood door"),
                                             choice("door-blood-color", "Blood Door Color", "Choose a Blood door color.", "blood color",
                                                     new String[]{"Cyan", "Gold", "Purple", "Green", "Orange", "Teal", "Red", "Pink"}),
-                                            reset("door-reset")}))),
-            card("party-sync", "Party Sync", "Share puzzle information with your party.", false, "",
-                    masterDropdown("dungeon-sync-enabled", "Dungeon Sync", "Share puzzle labels and room positions.",
-                            "sync privacy network", toggle("dungeon-sync-debug", "Sync Details", "Show connection details.", "sync debug"),
-                            info("dungeon-sync-endpoint", "Server", "Use the configured secure server.", "sync endpoint")))
+                                            reset("door-reset")})))
     );
 
     private static final List<Card> MINING = cards(

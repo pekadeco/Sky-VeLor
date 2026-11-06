@@ -11,7 +11,6 @@ import com.arena.pekaclient.assist.dungeon.RoomClearAlertController;
 import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonWaypointController;
 import com.arena.pekaclient.assist.dungeon.SpiritBowLocator;
-import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.movement.AutoSprintController;
 import com.arena.pekaclient.assist.visual.AspectTeleportTransitionRenderer;
 import com.arena.pekaclient.assist.visual.DeadMobRenderFilter;
@@ -179,7 +178,6 @@ public class PekaClientMod {
     private Object itemAnimationReportedWorld;
     private final M7OverlayRenderer m7Overlay = new M7OverlayRenderer();
     private final DungeonMapOverlay dungeonMapOverlay = new DungeonMapOverlay();
-    private final DungeonSyncManager dungeonSyncManager = new DungeonSyncManager(dungeonMapOverlay);
     private final DungeonEspController dungeonEspController = new DungeonEspController();
     private final AspectTeleportTransitionRenderer aspectTeleportTransition = new AspectTeleportTransitionRenderer();
     private final DeadMobRenderFilter deadMobRenderFilter = new DeadMobRenderFilter();
@@ -306,7 +304,6 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(new GuiDebugOverlay());
         MinecraftForge.EVENT_BUS.register(m7Overlay);
         MinecraftForge.EVENT_BUS.register(dungeonMapOverlay);
-        MinecraftForge.EVENT_BUS.register(dungeonSyncManager);
         MinecraftForge.EVENT_BUS.register(dungeonEspController);
         MinecraftForge.EVENT_BUS.register(deadMobRenderFilter);
         MinecraftForge.EVENT_BUS.register(terminalSolver);

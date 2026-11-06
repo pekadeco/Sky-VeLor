@@ -10,7 +10,7 @@ import java.util.Map;
  * Room identity is based on world block coordinates, not the player's current cell or map pixel.
  */
 public final class PuzzleRoomMemory {
-    /** A full dungeon has far fewer puzzle rooms; this also bounds hostile/buggy sync input for one world session. */
+    /** A full dungeon has far fewer puzzle rooms; this bounds local observations for one world session. */
     private static final int MAX_ROOMS = 64;
     private final Map<RoomKey, RoomLabel> rooms = new LinkedHashMap<RoomKey, RoomLabel>();
 

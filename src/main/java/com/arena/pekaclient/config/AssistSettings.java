@@ -13,7 +13,6 @@ import java.util.Properties;
 public final class AssistSettings {
 
     public static final String PREFIX = "assist.";
-    public static final String DEFAULT_SYNC_ENDPOINT = "wss://skyvelor-dungeon-sync.bombadzalge.workers.dev/ws";
     public static final int MIN_TERMINAL_SCALE = 70;
     public static final int MAX_TERMINAL_SCALE = 250;
     public static final int MIN_HURT_CAMERA_SHAKE = 0;
@@ -58,9 +57,6 @@ public final class AssistSettings {
     /** QoL visual owner for render-only dead mob/server-NPC body and nameplate cleanup. */
     public static boolean hideDeadMobs;
 
-    public static boolean dungeonSync;
-    public static boolean dungeonSyncDebug;
-    public static String dungeonSyncEndpoint;
     /** Read-only client-world locator for nearby Spirit Bow marker stands. */
     public static boolean spiritBowLocator;
 
@@ -105,9 +101,6 @@ public final class AssistSettings {
         CommandKeybindSettings.reset();
         // This is a visual cleanup, not combat automation: it is deliberately useful on new and established configs.
         hideDeadMobs = DEFAULT_HIDE_DEAD_MOBS;
-        dungeonSync = false;
-        dungeonSyncDebug = false;
-        dungeonSyncEndpoint = DEFAULT_SYNC_ENDPOINT;
         spiritBowLocator = false;
         terminalHints = false;
         terminalAutoClick = false;
@@ -148,9 +141,6 @@ public final class AssistSettings {
         // The Comfort key wins. The former ESP-local zero-health flag migrates once so an explicit OFF choice is
         // preserved, while absent keys use the new default and include deathTime animation frames.
         hideDeadMobs = hideDeadMobs(p);
-        dungeonSync = bool(p, "dungeon.sync.enabled", "dungeonSyncEnabled", false);
-        dungeonSyncDebug = bool(p, "dungeon.sync.debug", "dungeonSyncDebug", false);
-        dungeonSyncEndpoint = endpoint(value(p, "dungeon.sync.endpoint", "dungeonSyncEndpoint", DEFAULT_SYNC_ENDPOINT));
         spiritBowLocator = bool(p, "dungeon.spiritBowLocator", null, false);
         terminalHints = bool(p, "dungeon.terminal.hints", "terminalVisualHints", false);
         terminalAutoClick = bool(p, "dungeon.terminal.autoClick", "terminalAutoClick", false);
@@ -174,6 +164,13 @@ public final class AssistSettings {
     public static void save(Properties p) {
         if (p == null) return;
         normalize();
+        // Retired Party Sync keys are ignored on load and removed from an in-place save.
+        p.remove(PREFIX + "dungeon.sync.enabled");
+        p.remove(PREFIX + "dungeon.sync.debug");
+        p.remove(PREFIX + "dungeon.sync.endpoint");
+        p.remove("dungeonSyncEnabled");
+        p.remove("dungeonSyncDebug");
+        p.remove("dungeonSyncEndpoint");
         // Do not carry retired controls forward when callers save into a pre-existing Properties object.
         p.remove(PREFIX + "inventory.search");
         p.remove("inventorySearchEnabled");
@@ -213,9 +210,6 @@ public final class AssistSettings {
         saveShortcutKeyCode(p, "shortcut.petsKey", petsShortcutKeyCode);
         CommandKeybindSettings.save(p);
         p.setProperty(PREFIX + "comfort.hideDeadMobs", Boolean.toString(hideDeadMobs));
-        p.setProperty(PREFIX + "dungeon.sync.enabled", Boolean.toString(dungeonSync));
-        p.setProperty(PREFIX + "dungeon.sync.debug", Boolean.toString(dungeonSyncDebug));
-        p.setProperty(PREFIX + "dungeon.sync.endpoint", dungeonSyncEndpoint);
         p.setProperty(PREFIX + "dungeon.spiritBowLocator", Boolean.toString(spiritBowLocator));
         p.setProperty(PREFIX + "dungeon.terminal.hints", Boolean.toString(terminalHints));
         p.setProperty(PREFIX + "dungeon.terminal.autoClick", Boolean.toString(terminalAutoClick));
@@ -235,19 +229,7 @@ public final class AssistSettings {
         return terminalHints && terminalAutoClick;
     }
 
-    public static boolean validSecureEndpoint(String candidate) {
-        if (candidate == null || candidate.length() > 240) return false;
-        String value = candidate.trim().toLowerCase(Locale.ROOT);
-        if (!value.startsWith("wss://") || value.indexOf('@') >= 0 || value.indexOf('#') >= 0 || value.indexOf('?') >= 0) return false;
-        int slash = value.indexOf('/', "wss://".length());
-        String host = slash < 0 ? value.substring("wss://".length()) : value.substring("wss://".length(), slash);
-        String path = slash < 0 ? "" : value.substring(slash).replaceAll("/+$", "");
-        // The transport appends only a local SHA-256 session path below the Worker websocket route.
-        return host.length() > 0 && host.indexOf(' ') < 0 && host.indexOf(':') < 0 && "/ws".equals(path);
-    }
-
     private static void normalize() {
-        dungeonSyncEndpoint = endpoint(dungeonSyncEndpoint);
         terminalScale = clamp(terminalScale, MIN_TERMINAL_SCALE, MAX_TERMINAL_SCALE);
         hurtCameraShake = clamp(hurtCameraShake, MIN_HURT_CAMERA_SHAKE, MAX_HURT_CAMERA_SHAKE);
         if (!validShortcutKeyCode(wardrobeShortcutKeyCode)) wardrobeShortcutKeyCode = -1;
@@ -283,10 +265,6 @@ public final class AssistSettings {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
-    }
-
-    private static String endpoint(String candidate) {
-        return validSecureEndpoint(candidate) ? candidate.trim() : DEFAULT_SYNC_ENDPOINT;
     }
 
     /** A captured keyboard code includes zero for an intentional Backspace-cleared binding. */

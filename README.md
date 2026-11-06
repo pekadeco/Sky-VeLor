@@ -1,6 +1,6 @@
 # The Sky's Lunaria — Beta-0.10.9.1.9v
 
-**The Sky's Lunaria** is a client-side Forge mod for Minecraft 1.8.9. It combines the retained Lunaria feature set with the reliable Arena implementation: configurable HUDs, dungeon tools, map player heads, safe inventory rules, shortcut keys, Chat QoL, Item Animation, fishing, Slayer, mining, and privacy-conscious party sync.
+**The Sky's Lunaria** is a client-side Forge mod for Minecraft 1.8.9. It combines the retained Lunaria feature set with the reliable Arena implementation: configurable HUDs, dungeon tools, map player heads, safe inventory rules, shortcut keys, Chat QoL, Item Animation, fishing, Slayer, mining.
 
 ## Settings visual update status
 

@@ -24,7 +24,7 @@ Item Lock & Swap protects configured slots and validates pair swaps locally. It 
 
 - **Run Tools:** Dungeon Map, player heads, terminal assistance, Spirit Leap, and boss/readout support.
 - **Dungeon HUD:** direct-canvas editor, Score/Stats, Room Clear Alert, and Auto Chest Close.
-- **Floor VII / ESP / Party Sync:** retained dungeon overlays, puzzle/party support, and optional sync.
+- **Floor VII / ESP:** retained dungeon overlays and local puzzle support.
 
 The direct-canvas Dungeon HUD Editor lets a player select, drag, resize, reset, and preview its dungeon elements. It is intentionally separate from the ordinary HUD editor.
 

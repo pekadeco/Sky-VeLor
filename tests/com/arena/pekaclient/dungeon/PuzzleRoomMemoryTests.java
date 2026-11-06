@@ -1,6 +1,6 @@
 package com.arena.pekaclient.dungeon;
 
-/** Keeps current-run local/synced puzzle labels bounded even if a worker repeatedly sends new coordinates. */
+/** Keeps current-run local puzzle labels bounded when repeatedly observing new coordinates. */
 public final class PuzzleRoomMemoryTests {
     private static int passed;
     private static int failed;

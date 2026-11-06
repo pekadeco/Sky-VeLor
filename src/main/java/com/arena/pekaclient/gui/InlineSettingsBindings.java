@@ -98,8 +98,6 @@ final class InlineSettingsBindings {
         if ("door-distance-text".equals(id)) return DungeonEspSettings.doorDistanceText;
         if ("door-blood".equals(id)) return DungeonEspSettings.showBloodDoors;
         if ("door-wither-style".equals(id)) return DungeonEspSettings.doors.enabled;
-        if ("dungeon-sync-enabled".equals(id)) return AssistSettings.dungeonSync;
-        if ("dungeon-sync-debug".equals(id)) return AssistSettings.dungeonSyncDebug;
 
         if ("mining-bps".equals(id)) return HudManager.MINING.enabled;
         if ("mining-ability-alert".equals(id)) return AssistSettings.miningAbilityAlert;
@@ -205,8 +203,6 @@ final class InlineSettingsBindings {
         else if ("door-distance-text".equals(id)) DungeonEspSettings.doorDistanceText = value;
         else if ("door-blood".equals(id)) DungeonEspSettings.showBloodDoors = value;
         else if ("door-wither-style".equals(id)) DungeonEspSettings.doors.enabled = value;
-        else if ("dungeon-sync-enabled".equals(id)) AssistSettings.dungeonSync = value;
-        else if ("dungeon-sync-debug".equals(id)) AssistSettings.dungeonSyncDebug = value;
 
         else if ("mining-bps".equals(id)) HudManager.MINING.enabled = value;
         else if ("mining-ability-alert".equals(id)) AssistSettings.miningAbilityAlert = value;

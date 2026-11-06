@@ -3,7 +3,6 @@ package com.arena.pekaclient.command;
 import com.arena.pekaclient.PekaClientMod;
 import com.arena.pekaclient.input.MenuKeyBinding;
 import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
-import com.arena.pekaclient.assist.sync.DungeonSyncManager;
 import com.arena.pekaclient.assist.visual.VisualAssistHookStatus;
 import com.arena.pekaclient.chat.ChatClipboard;
 import com.arena.pekaclient.feature.ChatChannelTabs;
@@ -105,7 +104,6 @@ public final class SvCommand extends CommandBase {
         say(mc.thePlayer, "§7inventory tooltip hook: §f" + VisualAssistHookStatus.tooltipStatus());
         say(mc.thePlayer, "§7hurt camera shake: §f" + VisualAssistHookStatus.hurtCameraStatus());
         say(mc.thePlayer, "§7terminal assist: §f" + DungeonTerminalAssistController.selfTestStatus());
-        say(mc.thePlayer, "§7dungeon sync: §f" + DungeonSyncManager.selfTestStatus());
     }
 
     private static void say(ICommandSender sender, String text) {

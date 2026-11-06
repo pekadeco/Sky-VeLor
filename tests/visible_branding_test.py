@@ -12,9 +12,6 @@ OLD = re.compile(r'sky[ -]?velor', re.I)
 LITERAL = re.compile(r'"((?:\\.|[^"\\])*)"')
 ALLOW = {
     'config/AppleSettings.java': {'skyvelor.properties'},
-    'config/AssistSettings.java': {'wss://skyvelor-dungeon-sync.bombadzalge.workers.dev/ws'},
-    'dungeon/sync/DungeonPuzzleSyncConfig.java': {'wss://skyvelor-dungeon-sync.bombadzalge.workers.dev/ws', 'skyvelor-dungeon-sync.properties'},
-    'dungeon/sync/DungeonSyncIdentity.java': {r'skyvelor-dungeon-sync-v3\n'},
     'feature/LeapDiagnostics.java': {'skyvelor.debug.leap'},
     'feature/inventory/SlotLockStore.java': {'skyvelor/slot-locks.properties'},
     'feature/inventory/SlotLocking.java': {'skyvelor/slot-locks.properties'},

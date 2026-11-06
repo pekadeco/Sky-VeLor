@@ -68,7 +68,7 @@ public final class InlineSettingsCatalogTests {
                 "item-lock-swap", "item-lock-key", "chat-qol", "wardrobe-shortcut", "wardrobe-number-keys", "pets-shortcut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
                 "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "dungeon-score-hud",
                 "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
-                "dungeon-sync-enabled", "mining-bps", "mining-assistant-settings", "catch-counter",
+                "mining-bps", "mining-assistant-settings", "catch-counter",
                 "fishing-tracker", "hud-editor", "item-animation", "system-appearance", "system-performance"
         };
         for (String id : preserved) check("preserved option owner: " + id, ReferenceSettingsCatalog.find(id) != null);

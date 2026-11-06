@@ -14,7 +14,6 @@ For each migrated store, Lunaria prefers its current target. If no current targe
 | HUD layout | `.minecraft/lunaria-hud.properties` | prior HUD names, then earliest legacy HUD name |
 | Notes | Lunaria notes file | prior notes file |
 | Fishing counters | Lunaria fishing properties | prior fishing properties |
-| Dungeon Sync | Lunaria sync properties | prior sync properties |
 | Slot Lock data | `config/lunaria/slot-locks.properties` | `config/skyvelor/slot-locks.properties` |
 | External fonts | `config/lunaria/fonts` | `config/skyvelor/fonts` |
 

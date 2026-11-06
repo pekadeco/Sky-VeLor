@@ -179,8 +179,7 @@ public final class DungeonProgressTracker {
         if (!secretPercentSeen && secretsRequired > 0) {
             secretsPercent = clamp((int) ((long) secretsFound * 100L / secretsRequired), 0, 100);
         }
-        String tabFloor = DungeonPuzzleSyncEnvironment.currentFloor(mc);
-        floor = tabFloor != null && !tabFloor.isEmpty() ? tabFloor : detectFloor(cachedLines);
+        floor = detectFloor(cachedLines);
         paulMayor = AppleSettings.dungeonPaulBonus;
         calculateScoreFromVisibleStats();
     }

@@ -20,7 +20,7 @@ public final class AssistSettingsTests {
 
     private static void defaultsAreSafeAndVanillaCameraIsFullStrength() {
         AssistSettings.load(new Properties());
-        check("intrusive controls and opt-in locator default off", !AssistSettings.autoSprint && !AssistSettings.dungeonSync
+        check("intrusive controls and opt-in locator default off", !AssistSettings.autoSprint
                 && !AssistSettings.terminalAutoClick && !AssistSettings.miningAbilityAlert && !AssistSettings.spiritBowLocator);
         check("fresh local inventory presentation is useful by default", AssistSettings.romanNumerals
                 && AssistSettings.tooltipScroll && AssistSettings.rarityHighlight && !AssistSettings.hidePotionEffects);
@@ -28,7 +28,6 @@ public final class AssistSettingsTests {
         check("Aspect teleport visual transition defaults on", AssistSettings.smoothAspectTeleport);
         check("hurt camera defaults to vanilla 100 percent", AssistSettings.hurtCameraShake == 100
                 && Math.abs(AssistSettings.hurtCameraShakeMultiplier() - 1f) < .00001f);
-        check("endpoint default is usable", AssistSettings.validSecureEndpoint(AssistSettings.dungeonSyncEndpoint));
         check("fresh Shortcut defaults reserve H/P and keep Wardrobe number keys on", AssistSettings.wardrobeShortcutKeyCode
                 == AssistSettings.DEFAULT_WARDROBE_SHORTCUT_KEY_CODE && AssistSettings.petsShortcutKeyCode
                 == AssistSettings.DEFAULT_PETS_SHORTCUT_KEY_CODE && AssistSettings.wardrobeNumberKeys);
@@ -181,8 +180,6 @@ public final class AssistSettingsTests {
         AssistSettings.wardrobeNumberKeys = false;
         AssistSettings.petsShortcutKeyCode = 25;
         AssistSettings.hideDeadMobs = false;
-        AssistSettings.dungeonSync = true;
-        AssistSettings.dungeonSyncEndpoint = "wss://sync.example.org/ws";
         AssistSettings.spiritBowLocator = true;
         AssistSettings.terminalHints = true;
         AssistSettings.terminalAutoClick = true;
@@ -199,15 +196,14 @@ public final class AssistSettingsTests {
                 && saved.containsKey("assist.shortcut.commandKeybinds") && "19".equals(saved.getProperty("assist.shortcut.wardrobeKey"))
                 && "false".equals(saved.getProperty("assist.shortcut.wardrobeNumberKeys"))
                 && "25".equals(saved.getProperty("assist.shortcut.petsKey"))
-                && saved.containsKey("assist.comfort.hideDeadMobs") && saved.containsKey("assist.dungeon.sync.enabled")
+                && saved.containsKey("assist.comfort.hideDeadMobs")
                 && saved.containsKey("assist.dungeon.spiritBowLocator") && saved.containsKey("assist.dungeon.terminal.autoClick")
                 && !saved.containsKey("assist.itemGuard.enabled") && !saved.containsKey("assist.itemGuard.notifications"));
         AssistSettings.load(saved);
         check("round trip retains settings", AssistSettings.tooltipScroll && AssistSettings.hurtCameraShake == 44
                 && !AssistSettings.smoothAspectTeleport && AssistSettings.autoSprint
                 && AssistSettings.wardrobeShortcutKeyCode == 19 && !AssistSettings.wardrobeNumberKeys
-                && AssistSettings.petsShortcutKeyCode == 25 && !AssistSettings.hideDeadMobs && AssistSettings.dungeonSync
-                && "wss://sync.example.org/ws".equals(AssistSettings.dungeonSyncEndpoint) && AssistSettings.spiritBowLocator
+                && AssistSettings.petsShortcutKeyCode == 25 && !AssistSettings.hideDeadMobs && AssistSettings.spiritBowLocator
                 && AssistSettings.terminalAutoClickActive() && AssistSettings.terminalScale == 222
                 && CommandKeybindSettings.enabled && CommandKeybindSettings.count() == 1
                 && "/wardrobe".equals(CommandKeybindSettings.entryAt(0).command()));
@@ -215,12 +211,13 @@ public final class AssistSettingsTests {
         AssistSettings.load(saved);
         check("explicit Aspect transition preference loads", AssistSettings.smoothAspectTeleport);
         saved.setProperty("assist.dungeon.sync.endpoint", "http://not-secure.invalid");
+        saved.setProperty("assist.dungeon.sync.enabled", "true");
         saved.setProperty("assist.dungeon.terminal.scale", "9999");
         AssistSettings.load(saved);
-        check("invalid endpoint and scale clamp", AssistSettings.DEFAULT_SYNC_ENDPOINT.equals(AssistSettings.dungeonSyncEndpoint)
-                && AssistSettings.terminalScale == AssistSettings.MAX_TERMINAL_SCALE);
-        check("sync endpoint requires the fixed secure worker route", !AssistSettings.validSecureEndpoint("wss://sync.example.org/other")
-                && !AssistSettings.validSecureEndpoint("wss://sync.example.org/ws?x=1"));
+        check("terminal scale clamps while retired sync settings load safely", AssistSettings.terminalScale == AssistSettings.MAX_TERMINAL_SCALE);
+        AssistSettings.save(saved);
+        check("retired sync keys are dropped on save", !saved.containsKey("assist.dungeon.sync.enabled")
+                && !saved.containsKey("assist.dungeon.sync.endpoint"));
     }
 
     private static void check(String name, boolean ok) {
