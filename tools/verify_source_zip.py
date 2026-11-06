@@ -114,7 +114,7 @@ def main():
             "src/main/resources/mcmod.info", "src/main/resources/mixins.lunaria.json",
             "src/main/resources/assets/lunaria/lang/en_US.lang",
             "src/main/resources/assets/lunaria/textures/gui/lunaria_loading_background.jpg",
-            "src/main/resources/assets/lunaria/textures/gui/lunaria_logo.png",
+            "src/main/java/com/arena/pekaclient/gui/PixelMoon.java",
             "tests/run-tests.sh", "tests/run-tests.bat",
             "tests/com/arena/pekaclient/config/AppleSettingsTests.java",
             "tests/com/arena/pekaclient/config/KeybindMigrationTests.java",

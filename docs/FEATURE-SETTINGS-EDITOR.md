@@ -6,7 +6,7 @@ The native Minecraft 1.8.9 settings shell is the main player-facing configuratio
 
 **Home → QoL → Slayer → Dungeons → Farming → Mining → Fishing → HUD & Visuals → Misc**
 
-Home shows the supplied Lunaria logo above live FPS, memory, and ping cards. The small header mark uses the logo-derived moon asset. The settings window has only Fullscreen and Close controls; it does not use browser code or an external GUI framework.
+Home shows a code-baked transparent pixel moon above live FPS, memory, and ping cards. The header uses the same moon. The settings window has only Fullscreen and Close controls; it does not use browser code or an external GUI framework.
 
 Each feature keeps one established configuration owner. The catalog supplies labels, search, accordion state, and controls; it does not replace a feature's persistence schema.
 

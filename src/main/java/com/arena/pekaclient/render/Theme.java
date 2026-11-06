@@ -35,6 +35,8 @@ public final class Theme {
     public static final int MUTED = 0xFF9299A8;
     public static final int PALETTE_BORDER = 0xFF363D4A;
     /** Kept for binary/source compatibility with legacy callers. */
+    public static final int MOON_BLUE = 0xFF3ACFFF;
+    public static final int MOON_VIOLET = 0xFF704BFF;
     public static final int ACCENT_BLUE = 0xFF0A84FF;
     public static final int ACCENT_BLUE_HOVER = 0xFF409CFF;
     public static final int STATUS_WARNING = 0xFFF0B45E;

@@ -132,9 +132,8 @@ task verifyLunariaLayout {
     doLast {
         def required = [
                 'src/main/resources/assets/lunaria/textures/gui/lunaria_loading_background.jpg',
-                'src/main/resources/assets/lunaria/textures/gui/lunaria_logo.png',
-                'src/main/resources/assets/lunaria/textures/gui/lunaria_moon.png',
                 'src/main/java/com/arena/pekaclient/gui/LunariaArtwork.java',
+                'src/main/java/com/arena/pekaclient/gui/PixelMoon.java',
                 'src/main/java/com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.java',
                 'src/main/java/com/arena/pekaclient/gui/DungeonHudEditorScreen.java',
                 'src/main/java/com/arena/pekaclient/itemlockswap/ItemLockSwapController.java',

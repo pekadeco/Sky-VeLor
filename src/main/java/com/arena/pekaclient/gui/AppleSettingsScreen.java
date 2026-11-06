@@ -1429,11 +1429,10 @@ public class AppleSettingsScreen extends AppleScreen {
      * while this open Home page is drawing, so samples remain capped at one per 500 ms with no render-frame growth.
      */
     private float drawHome(float y, int mouseX, int mouseY) {
-        // The full supplied logo is centred above the FPS, memory and ping cards. Nearest filtering in
-        // LunariaArtwork keeps its intended pixel edges crisp at every GUI scale.
+        // The shared baked pixel moon is centred above the performance cards.
         float logoW = homeLogoWidth();
         UIRender.flush();
-        LunariaArtwork.drawLogo(contentX + contentW * .5f, y - logoW * .17f, logoW, 1f);
+        LunariaArtwork.drawLogo(contentX + contentW * .5f, y, logoW, 1f);
         y += homeLogoFootprint();
         String subtitle = "Live local performance and quick controls.";
         UIRender.text(fr(), subtitle, contentX + (contentW - fr().getStringWidth(subtitle) * .72f) * .5f, y,
@@ -1565,12 +1564,12 @@ public class AppleSettingsScreen extends AppleScreen {
     }
 
     private float homeLogoWidth() {
-        return Math.min(220f, Math.max(126f, contentW * .62f));
+        return Math.min(80f, Math.max(36f, contentW * .35f));
     }
 
-    /** The transparent source image has generous glow padding, so reserve only its visible composition footprint. */
+    /** Reserve the baked moon's square footprint. */
     private float homeLogoFootprint() {
-        return homeLogoWidth() * .78f;
+        return homeLogoWidth();
     }
 
     private float measureHome() {

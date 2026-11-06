@@ -3,20 +3,16 @@ package com.arena.pekaclient.gui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 /** Shared Lunaria artwork renderer. Loading art is cover-fit; pixel logo art deliberately uses nearest filtering. */
 public final class LunariaArtwork {
     private static final ResourceLocation LOADING = new ResourceLocation("lunaria", "textures/gui/lunaria_loading_background.jpg");
-    private static final ResourceLocation LOGO = new ResourceLocation("lunaria", "textures/gui/lunaria_logo.png");
-    private static final ResourceLocation MOON = new ResourceLocation("lunaria", "textures/gui/lunaria_moon.png");
+    private static ResourceLocation moonTexture;
     private static final float LOADING_W = 1408F;
     private static final float LOADING_H = 768F;
-    private static final float LOGO_W = 744F;
-    private static final float LOGO_H = 744F;
-    private static final float MOON_W = 360F;
-    private static final float MOON_H = 289F;
 
     private LunariaArtwork() {
     }
@@ -47,33 +43,40 @@ public final class LunariaArtwork {
         GlStateManager.color(1F, 1F, 1F, 1F);
     }
 
-    /** Draws the full supplied logo with crisp, nearest-neighbour pixels and its retained transparent glow. */
+    /** Draws the same baked transparent pixel moon at Home and on loading screens. */
     public static void drawLogo(float centerX, float topY, float width, float alpha) {
-        if (width <= 0F) return;
-        drawNearest(LOGO, centerX - width * .5F, topY, width, width * LOGO_H / LOGO_W, alpha, LOGO_W, LOGO_H);
+        drawPixelMoon(centerX - width * .5F, topY, width, alpha);
     }
 
-    /** Draws the moon crop used instead of a text initial in the settings header. */
+    /** Draws the same baked moon centred in the header. */
     public static void drawMoon(float centerX, float centerY, float size, float alpha) {
-        if (size <= 0F) return;
-        float h = size * MOON_H / MOON_W;
-        drawNearest(MOON, centerX - size * .5F, centerY - h * .5F, size, h, alpha, MOON_W, MOON_H);
+        drawPixelMoon(centerX - size * .5F, centerY - size * .5F, size, alpha);
     }
 
-    private static void drawNearest(ResourceLocation texture, float x, float y, float width, float height,
-                                    float alpha, float textureWidth, float textureHeight) {
-        Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
+    private static void drawPixelMoon(float x, float y, float size, float alpha) {
+        if (size <= 0F) return;
+        boolean textureWasEnabled = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
+        GlStateManager.enableTexture2D();
+        if (moonTexture == null) {
+            DynamicTexture texture = new DynamicTexture(PixelMoon.SIZE, PixelMoon.SIZE);
+            int[] baked = PixelMoon.bake();
+            System.arraycopy(baked, 0, texture.getTextureData(), 0, baked.length);
+            texture.updateDynamicTexture();
+            moonTexture = Minecraft.getMinecraft().getTextureManager().getDynamicTextureLocation("lunaria_pixel_moon", texture);
+            Minecraft.getMinecraft().getTextureManager().bindTexture(moonTexture);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+        } else {
+            Minecraft.getMinecraft().getTextureManager().bindTexture(moonTexture);
+        }
         GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         GlStateManager.color(1F, 1F, 1F, clamp(alpha));
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-        // Sample the entire source rather than the destination-sized top-left crop.
         Gui.drawScaledCustomSizeModalRect(Math.round(x), Math.round(y), 0F, 0F,
-                Math.round(textureWidth), Math.round(textureHeight), Math.max(1, Math.round(width)),
-                Math.max(1, Math.round(height)), textureWidth, textureHeight);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
-        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+                PixelMoon.SIZE, PixelMoon.SIZE, Math.max(1, Math.round(size)), Math.max(1, Math.round(size)),
+                PixelMoon.SIZE, PixelMoon.SIZE);
         GlStateManager.color(1F, 1F, 1F, 1F);
+        if (!textureWasEnabled) GlStateManager.disableTexture2D();
     }
 
     private static float clamp(float value) {

@@ -151,8 +151,7 @@ def main():
             "assets/lunaria/lang/en_US.lang",
             "assets/lunaria/dungeons/rooms.json",
             "assets/lunaria/textures/gui/lunaria_loading_background.jpg",
-            "assets/lunaria/textures/gui/lunaria_logo.png",
-            "assets/lunaria/textures/gui/lunaria_moon.png",
+            "com/arena/pekaclient/gui/PixelMoon.class",
         )
         missing = [name for name in required if name not in name_set]
         result.check(not missing, "required Lunaria runtime classes and resources are packaged"
@@ -200,13 +199,10 @@ def main():
 
         loading = archive.read("assets/lunaria/textures/gui/lunaria_loading_background.jpg") \
             if "assets/lunaria/textures/gui/lunaria_loading_background.jpg" in name_set else b""
-        logo = archive.read("assets/lunaria/textures/gui/lunaria_logo.png") \
-            if "assets/lunaria/textures/gui/lunaria_logo.png" in name_set else b""
-        moon = archive.read("assets/lunaria/textures/gui/lunaria_moon.png") \
-            if "assets/lunaria/textures/gui/lunaria_moon.png" in name_set else b""
         result.check(jpeg_size(loading) == (1408, 768), "supplied loading illustration is packaged at 1408 by 768")
-        result.check(png_size(logo) == (744, 744), "supplied transparent logo is packaged at 744 by 744")
-        result.check(png_size(moon) == (360, 289), "logo-derived moon header asset is packaged at 360 by 289")
+        result.check("assets/lunaria/textures/gui/lunaria_logo.png" not in name_set
+                     and "assets/lunaria/textures/gui/lunaria_moon.png" not in name_set,
+                     "retired logo image files are absent")
 
         artwork = archive.read("com/arena/pekaclient/gui/LunariaArtwork.class") \
             if "com/arena/pekaclient/gui/LunariaArtwork.class" in name_set else b""
@@ -214,8 +210,8 @@ def main():
             if "com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.class" in name_set else b""
         # ForgeGradle remaps Gui draw-method names in reobfuscated bytecode. The source archive verifier checks the
         # cover-fit call itself; this packaged check relies on stable resource identifiers instead.
-        result.check(contains_all(artwork, (b"lunaria_loading_background", b"lunaria_logo", b"lunaria_moon")),
-                     "Lunaria artwork renderer links the supplied loading, logo, and moon assets")
+        result.check(contains_all(artwork, (b"lunaria_loading_background", b"lunaria_pixel_moon", b"PixelMoon")),
+                     "Lunaria artwork renderer uses the code-baked pixel moon")
         result.check(contains_all(terrain, (b"Downloading terrain", b"Terrain progress is not exposed", b"--%")),
                      "terrain overlay truthfully reports indeterminate Forge terrain progress")
     except (KeyError, IOError, OSError, zipfile.BadZipfile) as error:
