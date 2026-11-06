@@ -1,5 +1,14 @@
 # Changelog
 
+## Beta-0.10.9.1.10v — partial Phase 1 cleanup
+
+- Replaced the old white-box-prone logo assets with a pre-baked pixel crescent and sparkles for the Home and header artwork.
+- Removed the Dungeon Run status HUD and both Dungeon/Party Sync implementations and settings; local dungeon progress and map support remain.
+- Removed the manual Save Settings action and added autosave on changes and editor closure.
+- Default Wardrobe to H and migrate the old W default once, while retaining other saved bindings; Pets stays P.
+- Dungeon Score removal is **not included**: its raw room-clear telemetry is shared with Room Clear Alert, and its diagnostics and HUD remain. The unified-editor and earlier visual redesign requests remain incomplete.
+- Automated Java 8 Forge build, standalone tests, and artifact verifiers do not replace an in-game Forge/Fakepixel/Pojav check; appearance, shortcuts, autosave, map, alerts, and other retained functionality have not been tested in-game.
+
 ## Beta-0.10.9.1.9v — partial settings visual update
 
 - Centralized the requested dark/orange reference colors in the shared theme, preserving the existing opacity, radius and motion preferences.
