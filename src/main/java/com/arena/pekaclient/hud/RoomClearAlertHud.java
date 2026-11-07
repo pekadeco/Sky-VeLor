@@ -3,6 +3,7 @@ package com.arena.pekaclient.hud;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.render.Theme;
+import com.arena.pekaclient.render.GlobalFontManager;
 import com.arena.pekaclient.render.UIRender;
 import net.minecraft.client.renderer.GlStateManager;
 
@@ -54,12 +55,21 @@ public final class RoomClearAlertHud extends HudElement {
 
     @Override public float maxScale() { return MAX_ALERT_SCALE; }
 
-    @Override public void prepareViewport(int screenW, int screenH) {
-        viewportFit = RoomAlertViewport.fit(textWidth(LABEL), 10F * textScale(), scale, screenW, screenH);
+    private float labelWidth() {
+        float custom = GlobalFontManager.width(LABEL, GlobalFontManager.Area.UI);
+        return Math.max(fr().getStringWidth(LABEL), custom) * textScale() + 1F;
+    }
+    private float labelHeight() {
+        float custom = GlobalFontManager.height(GlobalFontManager.Area.UI);
+        return Math.max(10F, custom) * textScale() + 1F;
     }
 
-    @Override public float width() { return textWidth(LABEL) * viewportFit; }
-    @Override public float height() { return 10F * textScale() * viewportFit; }
+    @Override public void prepareViewport(int screenW, int screenH) {
+        viewportFit = RoomAlertViewport.fit(labelWidth(), labelHeight(), scale, screenW, screenH);
+    }
+
+    @Override public float width() { return labelWidth() * viewportFit; }
+    @Override public float height() { return labelHeight() * viewportFit; }
 
     /** A missing marker represents a pre-migration config, including old default-off installs. */
     public static boolean requiresDefaultMigration(Properties p) {
