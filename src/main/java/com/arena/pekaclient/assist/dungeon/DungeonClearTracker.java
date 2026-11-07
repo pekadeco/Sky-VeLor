@@ -52,7 +52,7 @@ public final class DungeonClearTracker {
         } else {
             clear();
         }
-        return new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, parser.percent());
+        return new DebugSnapshot(context, sidebar.title, parser.percent());
     }
 
     @SubscribeEvent
@@ -153,20 +153,15 @@ public final class DungeonClearTracker {
         }
     }
 
-    /** Immutable command-facing raw capture and parsed readout. */
+    /** Immutable command-facing detection and raw parsed percentage. */
     public static final class DebugSnapshot {
         public final DungeonContext.Result context;
         public final String sidebarTitle;
-        public final List<String> sidebarLines;
-        public final List<String> tabLines;
         public final int clearedPercent;
 
-        private DebugSnapshot(DungeonContext.Result context, String sidebarTitle, List<String> sidebarLines,
-                              List<String> tabLines, int clearedPercent) {
+        private DebugSnapshot(DungeonContext.Result context, String sidebarTitle, int clearedPercent) {
             this.context = context;
             this.sidebarTitle = sidebarTitle == null ? "" : sidebarTitle;
-            this.sidebarLines = Collections.unmodifiableList(new ArrayList<String>(sidebarLines));
-            this.tabLines = Collections.unmodifiableList(new ArrayList<String>(tabLines));
             this.clearedPercent = clearedPercent;
         }
 
