@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  * Client-only dungeon diagnostics. It is deliberately independent of the hub toggle so a player can paste live
- * Fakepixel sidebar/tab formatting to support without opening any GUI or sending a server command.
+ * dungeon detection and cleared-percent evidence without opening any GUI or sending a server command.
  */
 public final class SvDungeonCommand extends CommandBase {
     private static final String PREFIX = "\u00a7b[Lunaria] \u00a77";
@@ -57,21 +57,8 @@ public final class SvDungeonCommand extends CommandBase {
         say(sender, "detector reason=" + value(context.reason) + ", evidence="
                 + value(context.matchedScoreboardLine));
         say(sender, "raw sidebar title: " + raw(snapshot.sidebarTitle));
-        sayRawList(sender, "raw sidebar", snapshot.sidebarLines);
-        sayRawList(sender, "raw tab", snapshot.tabLines);
         say(sender, "raw sidebar cleared=" + number(snapshot.clearedPercent) + "%");
         say(sender, "Dungeon debug end");
-    }
-
-    private static void sayRawList(ICommandSender sender, String label, List<String> lines) {
-        if (lines == null || lines.isEmpty()) {
-            say(sender, label + ": <none>");
-            return;
-        }
-        say(sender, label + " lines (" + lines.size() + "):");
-        for (int i = 0; i < lines.size(); i++) {
-            say(sender, label + "[" + i + "]: " + raw(lines.get(i)));
-        }
     }
 
     private static String value(String text) {

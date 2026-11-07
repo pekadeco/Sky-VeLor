@@ -28,7 +28,7 @@ Item Lock & Swap protects configured slots and validates pair swaps locally. It 
 
 The direct-canvas Dungeon HUD Editor lets a player select, drag, resize, reset, and preview its dungeon elements. It is intentionally separate from the ordinary HUD editor.
 
-`/luna dungeon debug` reports local dungeon detection and raw sidebar/tab evidence for the retained parser.
+`/luna dungeon debug` reports local dungeon detection and the matched detection evidence and raw cleared percentage for the retained parser.
 
 Auto Chest Close is opt-in and narrowly accepts only exact normal chest titles in a confirmed dungeon. It does not click reward slots, accept rewards, or send movement commands.
 

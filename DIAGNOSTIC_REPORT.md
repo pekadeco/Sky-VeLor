@@ -3,7 +3,7 @@
 Use the following client-side routes when collecting support evidence:
 
 - `/lunaria selftest` — local hook and feature status.
-- `/lunaria dungeon debug` — observed dungeon detection and sidebar/tab parser evidence.
+- `/lunaria dungeon debug` — observed dungeon detection and raw cleared percentage.
 - `/lunaria itemdebug` — held-item animation/debug values.
 - `/lunaria lockdebug` — Item Lock & Swap state.
 - `/lunaria chatdebug` — local Chat QoL geometry/state.
