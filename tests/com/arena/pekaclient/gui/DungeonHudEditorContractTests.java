@@ -22,6 +22,16 @@ public final class DungeonHudEditorContractTests {
         check("Dungeon Map keeps its master toggle with an explicit Dungeon HUD Editor route", row != null && row.isEditor()
                 && row.hasMasterToggle() && "open-dungeon-hud-editor".equals(row.editorActionId)
                 && "Open Dungeon HUD Editor".equals(row.actionLabel));
+        int mapRows = 0;
+        for (ReferenceSettingsCatalog.Tab tab : ReferenceSettingsCatalog.TABS)
+            for (ReferenceSettingsCatalog.Card card : ReferenceSettingsCatalog.cards(tab))
+                for (ReferenceSettingsCatalog.Setting setting : card.settings)
+                    if ("dungeon-map".equals(setting.id)) {
+                        mapRows++;
+                        check("map is in Dungeon HUD only", tab == ReferenceSettingsCatalog.Tab.DUNGEON
+                                && "dungeon-hud".equals(card.id));
+                    }
+        check("exactly one map row exists", mapRows == 1);
         check("dedicated editor class is available", DungeonHudEditorScreen.class != null);
     }
 

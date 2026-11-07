@@ -262,8 +262,6 @@ public final class ReferenceSettingsCatalog {
 
     private static final List<Card> DUNGEON = cards(
             card("run-tools", "Run Tools", "Map, terminals, leaps, and boss health.", false, "",
-                    editor("dungeon-map", "Dungeon Map", "Toggle map; configure options in Dungeon HUD Editor.",
-                            "map rooms party editor", true, "Open Dungeon HUD Editor", "open-dungeon-hud-editor"),
                     dropdown("terminal-assist", "Terminal Helper", "Helpers and click safeguards for terminals.",
                             "terminal f7 m7 status",
                             toggle("terminal-hints", "Visual Helpers", "Show helpful terminal choices.", "terminal hint"),
@@ -281,7 +279,9 @@ public final class ReferenceSettingsCatalog {
                     toggle("spirit-bow-locator", "Spirit Bow Locator",
                             "Draw a client-side line to the nearest Spirit Bow marker.",
                             "spirit bow marker locator render only")),
-            card("dungeon-hud", "Dungeon HUD", "Room-clear alert controls.", false, "",
+            card("dungeon-hud", "Dungeon HUD", "Map and room-clear alert controls.", false, "",
+                    editor("dungeon-map", "Dungeon Map", "Toggle map; configure options in Dungeon HUD Editor.",
+                            "map rooms party editor", true, "Open Dungeon HUD Editor", "open-dungeon-hud-editor"),
                     masterDropdown("room-clear-alert", "Room Clear Alert",
                             "Safe chat or Cleared-percent progress alerts.",
                             "room clear alert sidebar chat blood fairy entrance safe test",
