@@ -339,10 +339,23 @@ public final class AppleSettingsTests {
             values.setProperty("dungeonHud.crypts", "false");
             values.setProperty("dungeonHud.deaths", "true");
             values.setProperty("dungeonHud.runTime", "true");
+            values.setProperty("dungeon.sPlusReminder", "true");
+            values.setProperty("dungeon.sNotifier", "true");
+            values.setProperty("dungeon.sPlusPartyMessage", "true");
+            values.setProperty("dungeon.sPlusCustomMessage", "legacy");
+            values.setProperty("dungeon.scoreSimple", "true");
+            values.setProperty("dungeon.paulBonus", "true");
             values.setProperty("dungeonHud.roomClearSound", "true");
             values.setProperty("dungeonHud.roomClearDurationMillis", "99999");
             values.setProperty("dungeonHud.autoChestClose", "true");
             AppleSettings.loadDungeonHudSettings(values);
+            AppleSettings.loadFriendFeatureSettings(values);
+            Properties retained = new Properties();
+            AppleSettings.saveFriendFeatureSettings(retained);
+            check("legacy rating keys are ignored and not rewritten", !retained.containsKey("dungeon.sPlusReminder")
+                    && !retained.containsKey("dungeon.sNotifier") && !retained.containsKey("dungeon.sPlusPartyMessage")
+                    && !retained.containsKey("dungeon.sPlusCustomMessage") && !retained.containsKey("dungeon.scoreSimple")
+                    && !retained.containsKey("dungeon.paulBonus"));
             check("legacy HUD keys do not prevent alert settings loading", AppleSettings.dungeonRoomClearSound);
             check("Dungeon room-clear duration is bounded on load", AppleSettings.dungeonRoomClearDurationMillis
                     == AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS);

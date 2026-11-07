@@ -49,6 +49,8 @@ public final class DungeonClearTracker {
         if (context.inDungeon && mc != null && mc.theWorld != null) {
             beginWorld(mc.theWorld);
             observe(sidebar);
+        } else {
+            clear();
         }
         return new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, parser.percent());
     }

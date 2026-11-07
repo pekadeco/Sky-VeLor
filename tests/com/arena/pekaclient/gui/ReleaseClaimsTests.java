@@ -19,6 +19,7 @@ public final class ReleaseClaimsTests {
         commandsKeepTheCanonicalAndCompatibilityRoutes();
         compatibilityPersistenceAndLoadingArtworkRemainPackaged();
         obsoleteDuplicateRenderersStayAbsent();
+        removedDungeonRatingDoesNotOwnAlert();
         done();
     }
 
@@ -118,6 +119,21 @@ public final class ReleaseClaimsTests {
         check("obsolete duplicate first-person renderer ownership remains removed",
                 !classExists("com.arena.pekaclient.render.CustomItemRenderer")
                         && !classExists("com.arena.pekaclient.render.FirstPersonItemSetup"));
+    }
+
+    private static void removedDungeonRatingDoesNotOwnAlert() {
+        String alert = classText("com.arena.pekaclient.assist.dungeon.RoomClearAlertController");
+        String progress = classText("com.arena.pekaclient.dungeon.DungeonProgressTracker");
+        String command = classText("com.arena.pekaclient.command.SvDungeonCommand");
+        check("alert uses the retained raw parser", alert.contains("DungeonClearTracker")
+                && !alert.contains("DungeonScore"));
+        check("progress tracker has no rating party messages", !progress.contains("sendChatMessage")
+                && progress.contains("DungeonSecrets"));
+        check("debug uses the retained local parser", command.contains("DungeonClearTracker")
+                && command.contains("clearedPercent") && !command.contains("DungeonScore"));
+        check("retired rating classes are absent", !classExists("com.arena.pekaclient.dungeon.DungeonScoreMath")
+                && !classExists("com.arena.pekaclient.assist.dungeon.DungeonScoreCalculator")
+                && !classExists("com.arena.pekaclient.hud.DungeonScoreHud"));
     }
 
     private static boolean allExist(String[] names) {
