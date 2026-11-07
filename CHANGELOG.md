@@ -1,5 +1,13 @@
 # Changelog
 
+## Beta-0.10.9.1.11v — Phase 1B dungeon cleanup
+
+- Removed both dungeon rating calculators, rank and notification logic, party messages, score/Stats HUD, settings, editor target, old configuration outputs, score-only tests and score diagnostics.
+- Room Clear Alert now reads the same raw sidebar percentage from a neutral parser; its chat, baseline and de-duplication policy remain. The map and chest-close policy retain their existing independent context and parsing paths.
+- Dungeon Secrets HUD now displays observed secrets or percentage without rating-derived targets. `/luna dungeon debug` and `/svdungeon debug` retain concise local detector and clear-percentage diagnostics.
+- Legacy rating settings are ignored on load and omitted on the next save. Attribution and licenses for retained NotEnoughFakepixel-origin components remain.
+- Build, standalone tests and artifact verifiers cannot replace in-game Forge/Fakepixel/Pojav checks; this release has not been tested in-game.
+
 ## Beta-0.10.9.1.10v — partial Phase 1 cleanup
 
 - Replaced the old white-box-prone logo assets with a pre-baked pixel crescent and sparkles for the Home and header artwork.
