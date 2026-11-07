@@ -190,7 +190,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         if (selected == Target.ALERT) {
             heading("Display");
             toggle("alert-enabled", "Show alert");
-            slider("element-scale", "Size", 50, 200, 5);
+            slider("element-scale", "Size", 50, Math.round(HudManager.ROOM_CLEAR_ALERT.maxScale() * 100F), 5);
             heading("Alert");
             slider("alert-duration", "Duration", AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
                     AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS, 250);
@@ -722,13 +722,14 @@ public final class DungeonHudEditorScreen extends AppleScreen {
             AppleSettings.dungeonMapScale = clamp(Math.round(resizeStartScale * factor * 100F),
                     AppleSettings.DUNGEON_MAP_SCALE_MIN, AppleSettings.DUNGEON_MAP_SCALE_MAX);
         } else {
-            dragTarget.element.scale = clamp(resizeStartScale * factor, HudElement.MIN_SCALE, HudElement.MAX_SCALE);
+            dragTarget.element.scale = clamp(resizeStartScale * factor, HudElement.MIN_SCALE, dragTarget.element.maxScale());
             dragTarget.element.scaleOn = true;
         }
         changed();
     }
 
     private void setSelectedBounds(GuiLayoutToolkit.Rect out, Target target) {
+        if (target.element != null) target.element.prepareViewport(width, height);
         int targetWidth = targetWidth(target);
         int targetHeight = targetHeight(target);
         out.set(targetLeft(target), targetTop(target), targetWidth, targetHeight);
@@ -803,7 +804,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     private void setInt(String id, int value) {
         if ("element-scale".equals(id) && selected.element != null) {
-            selected.element.scale = clamp(value / 100F, HudElement.MIN_SCALE, HudElement.MAX_SCALE);
+            selected.element.scale = clamp(value / 100F, HudElement.MIN_SCALE, selected.element.maxScale());
             selected.element.scaleOn = true;
         } else if ("alert-duration".equals(id)) AppleSettings.dungeonRoomClearDurationMillis = value;
         else if ("map-scale".equals(id)) {

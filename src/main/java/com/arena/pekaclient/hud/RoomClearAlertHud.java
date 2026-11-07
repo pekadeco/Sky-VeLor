@@ -3,19 +3,24 @@ package com.arena.pekaclient.hud;
 import com.arena.pekaclient.config.AppleSettings;
 import com.arena.pekaclient.feature.DungeonContext;
 import com.arena.pekaclient.render.Theme;
+import com.arena.pekaclient.render.UIRender;
+import net.minecraft.client.renderer.GlStateManager;
 
 import java.util.Properties;
 
 /** Borderless transient room-clear alert with a persistent HUD placement and scale. */
 public final class RoomClearAlertHud extends HudElement {
     private static final String LABEL = "ROOM CLEARED";
+    public static final float MAX_ALERT_SCALE = 8F;
+    private static final String MIGRATION_KEY = "roomClearAlert.defaultOnV1";
+    private float viewportFit = 1F;
     private long visibleUntilMillis;
     /** A settings-only local preview may render briefly even when the user intentionally has the alert disabled. */
     private long testVisibleUntilMillis;
 
     public RoomClearAlertHud() {
         super("roomClearAlert", "Room Clear Alert", new HudPlacement(HudPlacement.Anchor.CENTER, 0,
-                HudPlacement.Anchor.START, 34), false);
+                HudPlacement.Anchor.START, 34), true);
         forceBorderless();
     }
 
@@ -47,14 +52,18 @@ public final class RoomClearAlertHud extends HudElement {
         return testVisibleUntilMillis > nowMillis;
     }
 
-    @Override
-    public float width() {
-        return textWidth(LABEL);
+    @Override public float maxScale() { return MAX_ALERT_SCALE; }
+
+    @Override public void prepareViewport(int screenW, int screenH) {
+        viewportFit = RoomAlertViewport.fit(textWidth(LABEL), 10F * textScale(), scale, screenW, screenH);
     }
 
-    @Override
-    public float height() {
-        return 10F * textScale();
+    @Override public float width() { return textWidth(LABEL) * viewportFit; }
+    @Override public float height() { return 10F * textScale() * viewportFit; }
+
+    /** A missing marker represents a pre-migration config, including old default-off installs. */
+    public static boolean requiresDefaultMigration(Properties p) {
+        return p == null || !"true".equalsIgnoreCase(p.getProperty(MIGRATION_KEY));
     }
 
     @Override
@@ -63,17 +72,26 @@ public final class RoomClearAlertHud extends HudElement {
         boolean test = testPreviewActive(now);
         if (!DungeonContext.inDungeon() && !backgroundOnHoverOnly && !test) return;
         if (!active(now) && !backgroundOnHoverOnly) return;
-        text(LABEL, 0F, 0F, backgroundOnHoverOnly && !active(now)
-                ? Theme.textSecondary : accentColor());
+        GlStateManager.pushMatrix();
+        try {
+            GlStateManager.scale(viewportFit, viewportFit, 1F);
+            text(LABEL, 0F, 0F, backgroundOnHoverOnly && !active(now)
+                    ? Theme.textSecondary : accentColor());
+            UIRender.flush();
+        } finally {
+            GlStateManager.popMatrix();
+        }
     }
 
     @Override
     protected void loadExtra(Properties p, String key) {
+        if (requiresDefaultMigration(p)) enabled = true;
         forceBorderless();
     }
 
     @Override
     protected void saveExtra(Properties p, String key) {
+        p.setProperty(MIGRATION_KEY, "true");
         p.setProperty(key + "bg", "false");
         p.setProperty(key + "border", "false");
     }

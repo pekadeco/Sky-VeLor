@@ -71,7 +71,23 @@ public final class ConfigTests {
 
     private static void roomAlertStaysBorderlessAndPersistent() throws IOException {
         RoomClearAlertHud alert = new RoomClearAlertHud();
-        check("Room Clear Alert defaults off", !alert.enabled, "enabled=" + alert.enabled);
+        check("Room Clear Alert defaults on", alert.enabled, "enabled=" + alert.enabled);
+        check("room alert offers eightfold maximum scale", alert.maxScale() == 8F, "max=" + alert.maxScale());
+        alert.load(parse("roomClearAlert.enabled=false\nroomClearAlert.scale=800\n"));
+        check("old off setting migrates on and large size loads", alert.enabled && alert.scale == 8F, "scale=" + alert.scale);
+        Properties migrated = new Properties();
+        alert.save(migrated);
+        alert.enabled = false;
+        alert.save(migrated);
+        RoomClearAlertHud reloaded = new RoomClearAlertHud();
+        reloaded.load(migrated);
+        check("explicit off after migration persists", !reloaded.enabled && reloaded.scale == 8F, "enabled=" + reloaded.enabled);
+        reloaded.resetAll();
+        check("reset enables alert and restores size", reloaded.enabled && reloaded.scale == 1F, "enabled=" + reloaded.enabled);
+        float fit = RoomAlertViewport.fit(100F, 10F, 8F, 320, 240);
+        check("oversized text fits viewport with matching geometry", fit < 1F && 100F * fit * 8F <= 318F
+                && 10F * fit * 8F <= 238F, "fit=" + fit);
+        check("ordinary text retains full configured size", RoomAlertViewport.fit(100F, 10F, 1F, 320, 240) == 1F, "fit");
         alert.load(parse("dungeonScore.enabled=true\nroomClearAlert.enabled=true\nroomClearAlert.bg=true\nroomClearAlert.border=true\nroomClearAlert.scale=130\n"));
         check("legacy HUD keys do not interfere with the room alert", alert.enabled
                 && Math.abs(alert.scale - 1.3F) < 1e-6 && !alert.background && !alert.border, "scale=" + alert.scale);

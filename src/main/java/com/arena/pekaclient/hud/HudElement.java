@@ -54,6 +54,12 @@ public abstract class HudElement {
         this.enabled = defaultEnabled;
     }
 
+    /** Maximum persistent scale for this element. */
+    public float maxScale() { return MAX_SCALE; }
+
+    /** Updates viewport-dependent geometry before measuring or drawing. */
+    public void prepareViewport(int screenW, int screenH) { }
+
     /** Unscaled width in GUI pixels. */
     public abstract float width();
 
@@ -168,6 +174,7 @@ public abstract class HudElement {
      * Must be called inside UIRender.beginFrame / endFrame.
      */
     public final void render(int screenW, int screenH, float extraAlpha) {
+        prepareViewport(screenW, screenH);
         int x = leftFor(screenW);
         int y = topFor(screenH);
         float priorAlpha = UIRender.alphaMul;
@@ -192,7 +199,7 @@ public abstract class HudElement {
         String k = id + ".";
         enabled = bool(p, k + "enabled", defaultEnabled);
         readPlacement(p, k);
-        scale = clampFloat(intOf(p, k + "scale", 100) / 100f, MIN_SCALE, MAX_SCALE);
+        scale = clampFloat(intOf(p, k + "scale", 100) / 100f, MIN_SCALE, maxScale());
         opacity = clamp(intOf(p, k + "opacity", 100), 20, 100);
         radius = clamp(intOf(p, k + "radius", 10), 0, 16);
         scaleOn = bool(p, k + "scaleOn", true);

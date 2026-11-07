@@ -357,6 +357,7 @@ public final class HudEditorScreen extends AppleScreen {
         boolean[] hits = new boolean[HudManager.ELEMENTS.length];
         for (int i = 0; i < HudManager.ELEMENTS.length; i++) {
             HudElement h = HudManager.ELEMENTS[i];
+            h.prepareViewport(width, height);
             float w = h.pixelWidth();
             float hh = h.pixelHeight();
             float padX = Math.max(6f, (TOUCH_MIN - w) * 0.5f);
@@ -464,6 +465,7 @@ public final class HudEditorScreen extends AppleScreen {
     /** Thin rounded ring around the selected HUD target or the dedicated map placement canvas. */
     private void drawSelection() {
         HudElement element = selected;
+        element.prepareViewport(width, height);
         float x = element.leftFor(width) - 3f;
         float y = element.topFor(height) - 3f;
         float w = element.pixelWidth() + 6f;

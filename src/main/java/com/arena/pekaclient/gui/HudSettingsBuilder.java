@@ -111,7 +111,7 @@ final class HudSettingsBuilder {
                 e.scale = 1f;
             }
         });
-        gatedSlider("Scale", 50, 200, 5, "%", () -> Math.round(e.scale * 100f), v -> e.scale = v / 100f, () -> e.scaleOn);
+        gatedSlider("Scale", 50, Math.round(e.maxScale() * 100F), 5, "%", () -> Math.round(e.scale * 100f), v -> e.scale = v / 100f, () -> e.scaleOn);
         toggle("Use opacity", () -> e.opacityOn, v -> {
             e.opacityOn = v;
             if (!v) {

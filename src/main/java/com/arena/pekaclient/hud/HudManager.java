@@ -62,13 +62,17 @@ public final class HudManager {
     }
 
     public static void load() {
-        Properties p = ConfigFiles.read(ConfigFiles.resolveRead(dir(), FILE_NAME, PRIOR_RELEASE_LEGACY_FILE_NAME, PEKA_LEGACY_FILE_NAME));
+        File source = ConfigFiles.resolveRead(dir(), FILE_NAME, PRIOR_RELEASE_LEGACY_FILE_NAME, PEKA_LEGACY_FILE_NAME);
+        Properties p = ConfigFiles.read(source);
         // All legacy metric HUD keys, including the former consolidated stats.* group, are intentionally ignored.
         HudConfigCompatibility.ignoreRetiredMetricKeys(p);
         HudConfigCompatibility.ignoreRetiredPlayerDollarsKeys(p);
+        boolean migrateRoomAlert = RoomClearAlertHud.requiresDefaultMigration(p);
         for (HudElement e : ELEMENTS) e.load(p);
         MiningTracker.setWindowSeconds(MINING.windowSeconds());
         loaded = true;
+        // Do not overwrite an unreadable or empty existing file solely to persist the migration.
+        if (migrateRoomAlert && (!source.isFile() || !p.isEmpty())) save();
     }
 
     public static void save() {
@@ -121,6 +125,7 @@ public final class HudManager {
         int sh = sr.getScaledHeight();
         HudElement under = null;
         for (HudElement e : elements) {
+            e.prepareViewport(sw, sh);
             int x = e.leftFor(sw);
             int y = e.topFor(sh);
             if (mx >= x && mx < x + e.pixelWidth() && my >= y && my < y + e.pixelHeight()) under = e;
