@@ -9,6 +9,7 @@ public final class DungeonSafetyPolicyTests {
         onlyExactNormalChestTitlesAreAllowed();
         roomAlertRejectsSpecialAndRepeatedRooms();
         roomAlertAcceptsVisibleSidebarProgressWithoutChat();
+        rawSidebarParserFeedsAlert();
         done();
     }
 
@@ -56,6 +57,23 @@ public final class DungeonSafetyPolicyTests {
                 17, 60, "3:1", 9000L));
         check("sidebar progress outside a dungeon is rejected", !policy.shouldAlertClearedProgress(false,
                 17, 20, "4:1", 12000L));
+    }
+
+    private static void rawSidebarParserFeedsAlert() {
+        DungeonClearParser parser = new DungeonClearParser();
+        RoomClearAlertPolicy policy = new RoomClearAlertPolicy();
+        parser.observeSidebar("§aDungeon Cleared: 12.5%");
+        int baseline = parser.percent();
+        check("raw formatted sidebar parsed", baseline == 12);
+        parser.observeSidebar("Secrets Found: 80%");
+        check("tab-like data cannot update cleared percent", parser.percent() == 12);
+        parser.observeSidebar("Dungeon Cleared: 101%");
+        check("invalid percent cannot update cleared percent", parser.percent() == 12);
+        parser.observeSidebar("Cleared: 17%");
+        check("parsed increase feeds room alert", policy.shouldAlertClearedProgress(true, baseline,
+                parser.percent(), "1:1", 3000L));
+        parser.reset();
+        check("new run resets raw percentage", parser.percent() == -1);
     }
 
     private static void check(String name, boolean okay) {

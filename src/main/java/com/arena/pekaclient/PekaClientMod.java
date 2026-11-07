@@ -6,6 +6,7 @@ import com.arena.pekaclient.assist.WardrobeShortcutController;
 import com.arena.pekaclient.assist.inventory.InventoryAssistController;
 import com.arena.pekaclient.assist.dungeon.DungeonBossTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonScoreTracker;
+import com.arena.pekaclient.assist.dungeon.DungeonClearTracker;
 import com.arena.pekaclient.assist.dungeon.DungeonChestCloser;
 import com.arena.pekaclient.assist.dungeon.RoomClearAlertController;
 import com.arena.pekaclient.assist.dungeon.DungeonTerminalAssistController;
@@ -316,6 +317,7 @@ public class PekaClientMod {
         MinecraftForge.EVENT_BUS.register(dungeonTerminalAssistController);
         MinecraftForge.EVENT_BUS.register(dungeonWaypointController);
         MinecraftForge.EVENT_BUS.register(DungeonScoreTracker.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(DungeonClearTracker.INSTANCE);
         MinecraftForge.EVENT_BUS.register(roomClearAlertController);
         MinecraftForge.EVENT_BUS.register(dungeonChestCloser);
         MinecraftForge.EVENT_BUS.register(spiritBowLocator);
