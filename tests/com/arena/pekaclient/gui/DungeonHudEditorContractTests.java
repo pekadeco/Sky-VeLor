@@ -66,6 +66,9 @@ public final class DungeonHudEditorContractTests {
                         && editor.contains("Background") && editor.contains("AppleToggle") && editor.contains("AppleSlider"));
         check("direct editor keeps direct element selection rather than restoring a large background panel",
                 editor.contains("drawSelection") && !editor.contains("drawDefaultBackground"));
+        check("alert sizing uses its element maximum and prepares viewport before measuring selection",
+                editor.contains("maxScale") && editor.contains("prepareViewport")
+                        && editor.contains("pixelWidth") && editor.contains("pixelHeight"));
     }
 
     private static void responsiveEditorLayoutAvoidsTheSelectedElement() {
