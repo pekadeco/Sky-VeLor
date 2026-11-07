@@ -215,14 +215,6 @@ public final class AppleSettings {
 
     // Dungeon HUD settings. The HUD elements themselves persist position/scale/enable state in the prior-release HUD file;
     // these additive keys retain only their visible-line and alert behaviour choices in the established main file.
-    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_SCORE = true;
-    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS = true;
-    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_DEATHS = true;
-    public static final boolean DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME = true;
-    public static boolean dungeonScoreShowScore = DEFAULT_DUNGEON_SCORE_SHOW_SCORE;
-    public static boolean dungeonScoreShowCrypts = DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS;
-    public static boolean dungeonScoreShowDeaths = DEFAULT_DUNGEON_SCORE_SHOW_DEATHS;
-    public static boolean dungeonScoreShowRunTime = DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME;
     public static final boolean DEFAULT_DUNGEON_ROOM_CLEAR_SOUND = false;
     public static boolean dungeonRoomClearSound = DEFAULT_DUNGEON_ROOM_CLEAR_SOUND;
     public static final int DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS = 500;
@@ -289,12 +281,6 @@ public final class AppleSettings {
     public static boolean dungeonWitherDoorsHighlight = true;
     public static boolean dungeonHideUnableToLocateSign = true;
     public static boolean dungeonSpiritBowTracer = true;
-    public static boolean dungeonSPlusReminder = true;
-    public static boolean dungeonSNotifier = true;
-    public static boolean dungeonSPlusPartyMessage = true;
-    public static String dungeonSPlusCustomMessage = "";
-    public static boolean dungeonScoreSimple = true;
-    public static boolean dungeonPaulBonus;
     public static boolean dungeonBloodReadyTitle = true;
     public static boolean equipmentOverlayEnabled = true;
     public static boolean showCurrentPet = true;
@@ -575,10 +561,6 @@ public final class AppleSettings {
      */
     static void loadDungeonHudSettings(Properties settings) {
         Properties p = settings == null ? new Properties() : settings;
-        dungeonScoreShowScore = readBool(p, "dungeonHud.score", DEFAULT_DUNGEON_SCORE_SHOW_SCORE);
-        dungeonScoreShowCrypts = readBool(p, "dungeonHud.crypts", DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS);
-        dungeonScoreShowDeaths = readBool(p, "dungeonHud.deaths", DEFAULT_DUNGEON_SCORE_SHOW_DEATHS);
-        dungeonScoreShowRunTime = readBool(p, "dungeonHud.runTime", DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME);
         dungeonRoomClearSound = readBool(p, "dungeonHud.roomClearSound", DEFAULT_DUNGEON_ROOM_CLEAR_SOUND);
         dungeonRoomClearDurationMillis = readInt(p, "dungeonHud.roomClearDurationMillis",
                 DEFAULT_DUNGEON_ROOM_CLEAR_DURATION_MILLIS, DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
@@ -591,10 +573,6 @@ public final class AppleSettings {
         if (p == null) return;
         dungeonRoomClearDurationMillis = Math.max(DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS,
                 Math.min(DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS, dungeonRoomClearDurationMillis));
-        p.setProperty("dungeonHud.score", Boolean.toString(dungeonScoreShowScore));
-        p.setProperty("dungeonHud.crypts", Boolean.toString(dungeonScoreShowCrypts));
-        p.setProperty("dungeonHud.deaths", Boolean.toString(dungeonScoreShowDeaths));
-        p.setProperty("dungeonHud.runTime", Boolean.toString(dungeonScoreShowRunTime));
         p.setProperty("dungeonHud.roomClearSound", Boolean.toString(dungeonRoomClearSound));
         p.setProperty("dungeonHud.roomClearDurationMillis", Integer.toString(dungeonRoomClearDurationMillis));
         p.setProperty("dungeonHud.autoChestClose", Boolean.toString(dungeonAutoChestClose));
@@ -801,12 +779,6 @@ public final class AppleSettings {
         dungeonWitherDoorsHighlight = readBool(p, "dungeon.witherDoorsHighlight", dungeonWitherDoorsHighlight);
         dungeonHideUnableToLocateSign = readBool(p, "dungeon.hideUnableToLocateSign", dungeonHideUnableToLocateSign);
         dungeonSpiritBowTracer = readBool(p, "dungeon.spiritBowTracer", dungeonSpiritBowTracer);
-        dungeonSPlusReminder = readBool(p, "dungeon.sPlusReminder", dungeonSPlusReminder);
-        dungeonSNotifier = readBool(p, "dungeon.sNotifier", dungeonSNotifier);
-        dungeonSPlusPartyMessage = readBool(p, "dungeon.sPlusPartyMessage", dungeonSPlusPartyMessage);
-        dungeonSPlusCustomMessage = text(p, "dungeon.sPlusCustomMessage", dungeonSPlusCustomMessage, 100);
-        dungeonScoreSimple = readBool(p, "dungeon.scoreSimple", dungeonScoreSimple);
-        dungeonPaulBonus = readBool(p, "dungeon.paulBonus", dungeonPaulBonus);
         dungeonBloodReadyTitle = readBool(p, "dungeon.bloodReadyTitle", dungeonBloodReadyTitle);
         equipmentOverlayEnabled = readBool(p, "qol.equipmentOverlay", equipmentOverlayEnabled);
         showCurrentPet = readBool(p, "qol.showCurrentPet", showCurrentPet);
@@ -904,7 +876,6 @@ public final class AppleSettings {
         terminalGuiScale = clampFloat(terminalGuiScale, 1.0F, 5.0F);
         terminalTrackerX = Math.max(-1000, Math.min(4000, terminalTrackerX));
         terminalTrackerY = Math.max(-1000, Math.min(4000, terminalTrackerY));
-        dungeonSPlusCustomMessage = text(dungeonSPlusCustomMessage, "", 100);
         // Current owners are canonical on the three intentional overlap paths.
         dungeonAutoCloseSecretChests = dungeonAutoChestClose;
         hideBlockBreakingParticles = noBlockParticles;
@@ -929,12 +900,6 @@ public final class AppleSettings {
         p.setProperty("dungeon.witherDoorsHighlight", Boolean.toString(dungeonWitherDoorsHighlight));
         p.setProperty("dungeon.hideUnableToLocateSign", Boolean.toString(dungeonHideUnableToLocateSign));
         p.setProperty("dungeon.spiritBowTracer", Boolean.toString(dungeonSpiritBowTracer));
-        p.setProperty("dungeon.sPlusReminder", Boolean.toString(dungeonSPlusReminder));
-        p.setProperty("dungeon.sNotifier", Boolean.toString(dungeonSNotifier));
-        p.setProperty("dungeon.sPlusPartyMessage", Boolean.toString(dungeonSPlusPartyMessage));
-        p.setProperty("dungeon.sPlusCustomMessage", dungeonSPlusCustomMessage);
-        p.setProperty("dungeon.scoreSimple", Boolean.toString(dungeonScoreSimple));
-        p.setProperty("dungeon.paulBonus", Boolean.toString(dungeonPaulBonus));
         p.setProperty("dungeon.bloodReadyTitle", Boolean.toString(dungeonBloodReadyTitle));
         p.setProperty("qol.equipmentOverlay", Boolean.toString(equipmentOverlayEnabled));
         p.setProperty("qol.showCurrentPet", Boolean.toString(showCurrentPet));

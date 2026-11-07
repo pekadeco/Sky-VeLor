@@ -66,7 +66,7 @@ public final class InlineSettingsCatalogTests {
         String[] preserved = {
                 "no-block-particles", "disable-hotbar-scrolling", "hurt-camera-shake", "smooth-aspect-teleport", "auto-sprint",
                 "item-lock-swap", "item-lock-key", "chat-qol", "wardrobe-shortcut", "wardrobe-number-keys", "pets-shortcut", "command-keybinds", "slayer-tracker", "dungeon-map", "terminal-assist",
-                "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator", "dungeon-score-hud",
+                "spirit-leap", "dungeon-boss-hud", "spirit-bow-locator",
                 "room-clear-alert", "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled",
                 "mining-bps", "mining-assistant-settings", "catch-counter",
                 "fishing-tracker", "hud-editor", "item-animation", "system-appearance", "system-performance"
@@ -84,7 +84,6 @@ public final class InlineSettingsCatalogTests {
         check("new local dungeon readouts use their single intended owners",
                 ReferenceSettingsCatalog.ownerOf("spirit-bow-locator") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.ownerOf("dungeon-map") == ReferenceSettingsCatalog.Tab.DUNGEON
-                        && ReferenceSettingsCatalog.ownerOf("dungeon-score-hud") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.ownerOf("room-clear-alert") == ReferenceSettingsCatalog.Tab.DUNGEON
                         && ReferenceSettingsCatalog.find("spirit-bow-locator") != null
                         && ReferenceSettingsCatalog.find("hud-dungeon-run") == null);

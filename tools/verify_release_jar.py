@@ -127,6 +127,8 @@ def main():
         result.check(len(mod_classes) >= 120,
                      "contains a substantial compiled Lunaria implementation ({0} classes)".format(len(mod_classes)))
 
+        result.check(not any("DungeonScore" in name for name in names),
+                     "removed dungeon rating implementation is absent from JAR")
         required = (
             "com/arena/pekaclient/PekaClientMod.class",
             "com/arena/pekaclient/PekaVersion.class",
@@ -136,7 +138,7 @@ def main():
             "com/arena/pekaclient/itemlockswap/ItemLockSwapController.class",
             "com/arena/pekaclient/dungeon/DungeonMapOverlay.class",
             "com/arena/pekaclient/gui/DungeonHudEditorScreen.class",
-            "com/arena/pekaclient/assist/dungeon/DungeonScoreTracker.class",
+            "com/arena/pekaclient/assist/dungeon/DungeonClearTracker.class",
             "com/arena/pekaclient/assist/dungeon/RoomClearAlertController.class",
             "com/arena/pekaclient/assist/dungeon/DungeonChestCloser.class",
             "com/arena/pekaclient/assist/visual/DeadMobRenderFilter.class",

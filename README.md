@@ -8,8 +8,8 @@ The dark/orange theme is a partial visual update, not the complete reference red
 
 ## Highlights
 
-- **Settings and HUD:** native Lunaria settings shell, Home performance cards, direct-canvas Dungeon HUD Editor, normal HUD Editor, movable Dungeon Score/Stats, Room Clear Alert, secrets, boss, fishing, mining, and inventory surfaces.
-- **Dungeon tools:** map and interpolated player heads, terminal hints, puzzle/terminal support, Spirit Leap helper, score calculator and diagnostics, Room Clear Alert, exact-title Auto Chest Close, Spirit Bow locator, Floor VII support, and client-side ESP.
+- **Settings and HUD:** native Lunaria settings shell, Home performance cards, direct-canvas Dungeon HUD Editor, normal HUD Editor, Room Clear Alert, secrets, boss, fishing, mining, and inventory surfaces.
+- **Dungeon tools:** map and interpolated player heads, terminal hints, puzzle/terminal support, Spirit Leap helper, Room Clear Alert, exact-title Auto Chest Close, Spirit Bow locator, Floor VII support, and client-side ESP.
 - **Safe gameplay QoL:** Shortcut keys, Item Lock & Swap rules, protected inventory gestures, Auto Sprint, Hide Dead Mobs, Smooth Aspect Teleport, quiet block particles, and held-item animation. Client visual helpers do not send movement or combat packets.
 - **Chat and fonts:** detailed Chat Editor, chat tabs, history, compact messages, click menu, optional bundled/external Lunaria fonts, and a clear native-font fallback.
 - **Compatibility:** current settings are written under Lunaria names while prior files remain read-only fallbacks.
@@ -27,7 +27,7 @@ ForgeGradle 2.1 and Gradle 2.14.1 are intentionally retained for this legacy Min
 | Command | Purpose |
 | --- | --- |
 | `/luna` | Open Lunaria settings. |
-| `/luna dungeon debug` | Print local dungeon-score diagnostics for support. |
+| `/luna dungeon debug` | Print local dungeon parser diagnostics for support. |
 | `/luna itemanimation` | Open the Item Animation editor. |
 | `/luna chateditor` | Open the retained detailed Chat Editor. |
 | `/luna selftest` | Report local hook status. |
@@ -38,7 +38,7 @@ All commands are client-side. They do not send slash commands to a server.
 
 - **Quality of Life → Inventory And Chat:** Item Lock And Swap, Inventory Assist, and Chat QoL.
 - **Quality of Life → Shortcut:** Wardrobe, Pets, and custom slash-command keybinds.
-- **Dungeons:** map/player-head controls, terminals, score, Room Clear Alert, Auto Chest Close, Floor VII, and ESP.
+- **Dungeons:** map/player-head controls, terminals, Room Clear Alert, Auto Chest Close, Floor VII, and ESP.
 - **HUD & Visuals:** direct HUD editors and Item Animation.
 - **Settings → Fonts:** optional font enable, discovery/selection, scale, reload, and the detailed Chat Editor. Place new `.ttf` or `.otf` files in `config/lunaria/fonts`.
 

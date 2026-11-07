@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  *
  * <p>Fakepixel presents complementary evidence in two visible surfaces: Catacombs/Dungeon Cleared in the sidebar and
  * a public {@code Dungeon:} row in the player tab list. Both are evaluated in the same bounded decision so a valid
- * tab-led dungeon does not get discarded before score/map/alert consumers can see it. It never inspects private tab
+ * tab-led dungeon does not get discarded before map/alert consumers can see it. It never inspects private tab
  * headers/footers, packets, or server data.</p>
  */
 public final class DungeonContext {
@@ -119,7 +119,7 @@ public final class DungeonContext {
     }
 
     /**
-     * Evaluates a just-captured set of rows and updates the shared cache. The score tracker uses this overload so
+     * Evaluates a just-captured set of rows and updates the shared cache. The clear tracker uses this overload so
      * /lunaria dungeon debug, detection, and parser ingestion all describe exactly the same visible snapshot.
      */
     public static Result evaluateNow(Minecraft mc, String rawSidebarTitle, Iterable<String> rawSidebarLines,
@@ -299,7 +299,7 @@ public final class DungeonContext {
         Matcher explicit = FLOOR_ID.matcher(raw);
         if (explicit.find()) {
             String floor = explicit.group(1).toUpperCase(Locale.ROOT) + explicit.group(2);
-            // E0/F0 are valid calculator keys; no unrelated single-letter digits are accepted.
+            // E0/F0 are valid floor identifiers; no unrelated single-letter digits are accepted.
             if ("E0".equals(floor) || "F0".equals(floor) || (floor.charAt(1) >= '1' && floor.charAt(1) <= '7')) {
                 return floor;
             }

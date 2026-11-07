@@ -24,7 +24,6 @@ public final class HudManager {
     public static final MiningHud MINING = new MiningHud();
     public static final MiningAssistantHud MINING_ASSIST = new MiningAssistantHud();
     public static final DungeonBossHud DUNGEON_BOSS_HP = new DungeonBossHud();
-    public static final DungeonScoreHud DUNGEON_SCORE = new DungeonScoreHud();
     public static final RoomClearAlertHud ROOM_CLEAR_ALERT = new RoomClearAlertHud();
     /** Friend-source dungeon progress reader is an event listener; its HUD stays independently movable. */
     public static final DungeonProgressTracker DUNGEON_PROGRESS = new DungeonProgressTracker();
@@ -38,11 +37,11 @@ public final class HudManager {
     /** Elements shown in the normal HUD editor, in draw order. Metrics deliberately do not register here: FPS,
      * memory and ping exist only in Settings Home. */
     public static final HudElement[] ELEMENTS = {MINING, MINING_ASSIST, DUNGEON_BOSS_HP,
-            DUNGEON_SCORE, ROOM_CLEAR_ALERT, DUNGEON_SECRETS, INVENTORY, DOLL, FISHING, SEA_HP, SLAYER};
+            ROOM_CLEAR_ALERT, DUNGEON_SECRETS, INVENTORY, DOLL, FISHING, SEA_HP, SLAYER};
 
     /** Targets owned by the dedicated Dungeon HUD Editor; the map keeps its established AppleSettings placement.
      * Dungeon Secrets remains an ordinary movable HUD element because the direct editor has no Secrets target/options. */
-    public static final HudElement[] DUNGEON_EDITOR_ELEMENTS = {DUNGEON_SCORE, ROOM_CLEAR_ALERT};
+    public static final HudElement[] DUNGEON_EDITOR_ELEMENTS = {ROOM_CLEAR_ALERT};
 
     public static final String FILE_NAME = "lunaria-hud.properties";
     public static final String PRIOR_RELEASE_LEGACY_FILE_NAME = "skyvelor-hud.properties";

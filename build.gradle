@@ -138,13 +138,13 @@ task verifyLunariaLayout {
                 'src/main/java/com/arena/pekaclient/gui/DungeonHudEditorScreen.java',
                 'src/main/java/com/arena/pekaclient/itemlockswap/ItemLockSwapController.java',
                 'src/main/java/com/arena/pekaclient/dungeon/DungeonMapOverlay.java',
-                'src/main/java/com/arena/pekaclient/assist/dungeon/DungeonScoreTracker.java',
+                'src/main/java/com/arena/pekaclient/assist/dungeon/DungeonClearTracker.java',
                 'src/main/java/com/arena/pekaclient/assist/visual/DeadMobRenderFilter.java'
         ]
         def missing = required.findAll { !file(it).isFile() }
         if (!missing.isEmpty()) throw new GradleException('Missing required Lunaria sources/resources: ' + missing.join(', '))
         def entry = file('src/main/java/com/arena/pekaclient/PekaClientMod.java').getText('UTF-8')
-        ['DungeonHudEditorScreen', 'DungeonScoreTracker', 'DungeonChestCloser', 'LunariaDownloadingTerrainScreen',
+        ['DungeonHudEditorScreen', 'DungeonClearTracker', 'DungeonChestCloser', 'LunariaDownloadingTerrainScreen',
          'mobHighlight', 'removeIrritatingMessages'].each { token ->
             if (!entry.contains(token)) throw new GradleException('Entrypoint is missing retained feature wiring: ' + token)
         }

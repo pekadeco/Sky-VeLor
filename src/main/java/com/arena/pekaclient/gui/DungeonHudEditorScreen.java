@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 /**
  * Direct-manipulation editor for dungeon-only overlay elements.
  *
- * <p>It keeps the game visible beneath a light dim layer and renders the actual Score/Stats, Room Alert and Dungeon
+ * <p>It keeps the game visible beneath a light dim layer and renders the actual Room Alert and Dungeon
  * Map samples on the same full-screen canvas where they are used. Select an element directly, drag it, or pull its
  * lower-right handle; the one compact options dock moves away from that selection instead of reserving a permanent
  * obstructive side panel.</p>
@@ -50,7 +50,6 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     private static final int ACTION = 4;
 
     private enum Target {
-        SCORE("Score", HudManager.DUNGEON_SCORE),
         ALERT("Alert", HudManager.ROOM_CLEAR_ALERT),
         MAP("Map", null);
 
@@ -63,7 +62,6 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         }
 
         String panelTitle() {
-            if (this == SCORE) return "Score / Stats";
             if (this == ALERT) return "Room Alert";
             return "Dungeon Map";
         }
@@ -98,14 +96,14 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     private final List<Option> options = new ArrayList<Option>();
     private final GuiLayoutToolkit.Rect selectedBounds = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect[] targetChips = {
-            new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect()
+            new GuiLayoutToolkit.Rect(), new GuiLayoutToolkit.Rect()
     };
     private final GuiLayoutToolkit.Rect optionsChip = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect resetSelectedChip = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect resetAllChip = new GuiLayoutToolkit.Rect();
     private final GuiLayoutToolkit.Rect doneChip = new GuiLayoutToolkit.Rect();
 
-    private Target selected = Target.SCORE;
+    private Target selected = Target.ALERT;
     private DungeonHudEditorLayout layout;
     private float optionScroll;
     private float maxOptionScroll;
@@ -189,16 +187,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     private void rebuildOptions() {
         options.clear();
-        if (selected == Target.SCORE) {
-            heading("Display");
-            toggle("score-enabled", "Show HUD");
-            toggle("score-line", "Score and rank");
-            toggle("score-crypts", "Crypts");
-            toggle("score-deaths", "Deaths");
-            toggle("score-time", "Run time");
-            heading("Placement");
-            slider("element-scale", "Size", 50, 200, 5);
-        } else if (selected == Target.ALERT) {
+        if (selected == Target.ALERT) {
             heading("Display");
             toggle("alert-enabled", "Show alert");
             slider("element-scale", "Size", 50, 200, 5);
@@ -337,7 +326,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
         float allW = compact ? 24F : 58F;
         float doneW = compact ? 32F : 44F;
         float gap = 3F;
-        float total = chipW * Target.values().length + optionsW + selectedW + allW + doneW + gap * 6F;
+        float total = chipW * Target.values().length + optionsW + selectedW + allW + doneW + gap * (Target.values().length + 3F);
         // Preserve all controls at very low GUI scales without letting the strip enter the launcher reserve.
         if (total > layout.topBar.w - 4F) {
             float scale = Math.max(.55F, (layout.topBar.w - 4F) / total);
@@ -774,11 +763,6 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     }
 
     private boolean boolValue(String id) {
-        if ("score-enabled".equals(id)) return HudManager.DUNGEON_SCORE.enabled;
-        if ("score-line".equals(id)) return AppleSettings.dungeonScoreShowScore;
-        if ("score-crypts".equals(id)) return AppleSettings.dungeonScoreShowCrypts;
-        if ("score-deaths".equals(id)) return AppleSettings.dungeonScoreShowDeaths;
-        if ("score-time".equals(id)) return AppleSettings.dungeonScoreShowRunTime;
         if ("alert-enabled".equals(id)) return HudManager.ROOM_CLEAR_ALERT.enabled;
         if ("alert-sound".equals(id)) return AppleSettings.dungeonRoomClearSound;
         if ("map-enabled".equals(id)) return AppleSettings.dungeonMap;
@@ -794,12 +778,7 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     }
 
     private void setBool(String id, boolean value) {
-        if ("score-enabled".equals(id)) HudManager.DUNGEON_SCORE.enabled = value;
-        else if ("score-line".equals(id)) AppleSettings.dungeonScoreShowScore = value;
-        else if ("score-crypts".equals(id)) AppleSettings.dungeonScoreShowCrypts = value;
-        else if ("score-deaths".equals(id)) AppleSettings.dungeonScoreShowDeaths = value;
-        else if ("score-time".equals(id)) AppleSettings.dungeonScoreShowRunTime = value;
-        else if ("alert-enabled".equals(id)) HudManager.ROOM_CLEAR_ALERT.enabled = value;
+        if ("alert-enabled".equals(id)) HudManager.ROOM_CLEAR_ALERT.enabled = value;
         else if ("alert-sound".equals(id)) AppleSettings.dungeonRoomClearSound = value;
         else if ("map-enabled".equals(id)) AppleSettings.dungeonMap = value;
         else if ("map-scale-on".equals(id)) AppleSettings.dungeonMapScaleOn = value;
@@ -875,7 +854,6 @@ public final class DungeonHudEditorScreen extends AppleScreen {
 
     private void resetSelected() {
         if (selected == Target.MAP) resetMap();
-        else if (selected == Target.SCORE) resetScore();
         else resetAlert();
         optionScroll = 0F;
         rebuildOptions();
@@ -883,20 +861,11 @@ public final class DungeonHudEditorScreen extends AppleScreen {
     }
 
     private void resetAll() {
-        resetScore();
         resetAlert();
         resetMap();
         optionScroll = 0F;
         rebuildOptions();
         changed();
-    }
-
-    private void resetScore() {
-        HudManager.DUNGEON_SCORE.resetAll();
-        AppleSettings.dungeonScoreShowScore = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_SCORE;
-        AppleSettings.dungeonScoreShowCrypts = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_CRYPTS;
-        AppleSettings.dungeonScoreShowDeaths = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_DEATHS;
-        AppleSettings.dungeonScoreShowRunTime = AppleSettings.DEFAULT_DUNGEON_SCORE_SHOW_RUN_TIME;
     }
 
     private void resetAlert() {

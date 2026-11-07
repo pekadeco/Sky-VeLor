@@ -26,25 +26,14 @@ public final class DungeonHudEditorContractTests {
     }
 
     private static void pickerOwnsOnlyDungeonSpecificHudTargets() {
-        boolean score = false;
-        boolean alert = false;
-        for (HudElement element : HudManager.DUNGEON_EDITOR_ELEMENTS) {
-            if (element == HudManager.DUNGEON_SCORE) score = true;
-            if (element == HudManager.ROOM_CLEAR_ALERT) alert = true;
-        }
-        check("Dungeon editor owns Score/Stats and Room Alert targets", score && alert
-                && HudManager.DUNGEON_EDITOR_ELEMENTS.length == 2);
+        check("Dungeon editor owns the Room Alert target", HudManager.DUNGEON_EDITOR_ELEMENTS.length == 1
+                && HudManager.DUNGEON_EDITOR_ELEMENTS[0] == HudManager.ROOM_CLEAR_ALERT);
     }
 
     private static void dungeonControlsExposeSafeDefaultsAndPlacementRoute() {
-        ReferenceSettingsCatalog.Setting score = ReferenceSettingsCatalog.find("dungeon-score-hud");
         ReferenceSettingsCatalog.Setting alert = ReferenceSettingsCatalog.find("room-clear-alert");
         ReferenceSettingsCatalog.Setting close = ReferenceSettingsCatalog.find("dungeon-auto-chest-close");
-        check("score HUD exposes independently configurable score, crypts, deaths, and run time lines",
-                score != null && score.children.size() == 4 && ReferenceSettingsCatalog.find("dungeon-score-line") != null
-                        && ReferenceSettingsCatalog.find("dungeon-crypts-line") != null
-                        && ReferenceSettingsCatalog.find("dungeon-deaths-line") != null
-                        && ReferenceSettingsCatalog.find("dungeon-run-time-line") != null);
+        check("retired HUD has no settings route", ReferenceSettingsCatalog.find("dungeon-score-hud") == null);
         check("Room Alert exposes duration, optional sound, and an out-of-dungeon Test Alert", alert != null
                 && alert.children.size() == 3 && ReferenceSettingsCatalog.find("room-clear-duration") != null
                 && ReferenceSettingsCatalog.find("room-clear-sound") != null

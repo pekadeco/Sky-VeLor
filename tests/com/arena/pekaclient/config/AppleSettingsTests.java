@@ -330,10 +330,6 @@ public final class AppleSettingsTests {
     }
 
     private static void dungeonHudPreferencePersistence() {
-        boolean oldScore = AppleSettings.dungeonScoreShowScore;
-        boolean oldCrypts = AppleSettings.dungeonScoreShowCrypts;
-        boolean oldDeaths = AppleSettings.dungeonScoreShowDeaths;
-        boolean oldTime = AppleSettings.dungeonScoreShowRunTime;
         boolean oldSound = AppleSettings.dungeonRoomClearSound;
         int oldDuration = AppleSettings.dungeonRoomClearDurationMillis;
         boolean oldClose = AppleSettings.dungeonAutoChestClose;
@@ -347,9 +343,7 @@ public final class AppleSettingsTests {
             values.setProperty("dungeonHud.roomClearDurationMillis", "99999");
             values.setProperty("dungeonHud.autoChestClose", "true");
             AppleSettings.loadDungeonHudSettings(values);
-            check("Dungeon HUD line and sound choices load from additive keys", !AppleSettings.dungeonScoreShowScore
-                    && !AppleSettings.dungeonScoreShowCrypts && AppleSettings.dungeonScoreShowDeaths
-                    && AppleSettings.dungeonScoreShowRunTime && AppleSettings.dungeonRoomClearSound);
+            check("legacy HUD keys do not prevent alert settings loading", AppleSettings.dungeonRoomClearSound);
             check("Dungeon room-clear duration is bounded on load", AppleSettings.dungeonRoomClearDurationMillis
                     == AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MAX_MILLIS);
             check("Auto Chest Close explicit saved opt-in loads", AppleSettings.dungeonAutoChestClose);
@@ -358,21 +352,15 @@ public final class AppleSettingsTests {
                     == AppleSettings.DUNGEON_ROOM_CLEAR_DURATION_MIN_MILLIS);
             Properties saved = new Properties();
             AppleSettings.saveDungeonHudSettings(saved);
-            check("Dungeon HUD keys save without a map/HUD placement rewrite", saved.size() == 7
-                    && "false".equals(saved.getProperty("dungeonHud.score"))
+            check("Dungeon HUD keys save without a map/HUD placement rewrite", saved.size() == 3
+                    && !saved.containsKey("dungeonHud.score")
                     && "500".equals(saved.getProperty("dungeonHud.roomClearDurationMillis"))
                     && "true".equals(saved.getProperty("dungeonHud.autoChestClose")));
             AppleSettings.loadDungeonHudSettings(new Properties());
-            check("missing Dungeon HUD keys restore documented safe defaults", AppleSettings.dungeonScoreShowScore
-                    && AppleSettings.dungeonScoreShowCrypts && AppleSettings.dungeonScoreShowDeaths
-                    && AppleSettings.dungeonScoreShowRunTime && !AppleSettings.dungeonRoomClearSound
+            check("missing Dungeon HUD keys restore documented safe defaults", !AppleSettings.dungeonRoomClearSound
                     && AppleSettings.dungeonRoomClearDurationMillis == AppleSettings.DEFAULT_DUNGEON_ROOM_CLEAR_DURATION_MILLIS
                     && !AppleSettings.dungeonAutoChestClose);
         } finally {
-            AppleSettings.dungeonScoreShowScore = oldScore;
-            AppleSettings.dungeonScoreShowCrypts = oldCrypts;
-            AppleSettings.dungeonScoreShowDeaths = oldDeaths;
-            AppleSettings.dungeonScoreShowRunTime = oldTime;
             AppleSettings.dungeonRoomClearSound = oldSound;
             AppleSettings.dungeonRoomClearDurationMillis = oldDuration;
             AppleSettings.dungeonAutoChestClose = oldClose;

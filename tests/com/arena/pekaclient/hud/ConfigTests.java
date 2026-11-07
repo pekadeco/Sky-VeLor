@@ -20,7 +20,7 @@ public final class ConfigTests {
     public static void main(String[] args) throws IOException {
         validValuesLoad();
         removedRunHudIsNotRegistered();
-        dungeonScoreAndRoomAlertStayBorderlessAndPersistent();
+        roomAlertStaysBorderlessAndPersistent();
         invalidValuesFallBack();
         outOfRangeIsClamped();
         legacyPlacementLoadsForActiveHud();
@@ -69,39 +69,16 @@ public final class ConfigTests {
             check("retired Dungeon Run HUD is absent", !"dungeonRun".equals(element.id), element.id);
     }
 
-    private static void dungeonScoreAndRoomAlertStayBorderlessAndPersistent() throws IOException {
-        DungeonScoreHud score = new DungeonScoreHud();
+    private static void roomAlertStaysBorderlessAndPersistent() throws IOException {
         RoomClearAlertHud alert = new RoomClearAlertHud();
-        check("Dungeon Score HUD defaults on so a detected dungeon cannot start with a missing readout", score.enabled,
-                "enabled=" + score.enabled);
-        DungeonScoreHud migratedScore = new DungeonScoreHud();
-        migratedScore.load(parse("dungeonScore.enabled=false\n"));
-        check("old accidental score-HUD default is migrated on once", migratedScore.enabled,
-                "enabled=" + migratedScore.enabled);
-        DungeonScoreHud explicitOffScore = new DungeonScoreHud();
-        explicitOffScore.load(parse("dungeonScore.enabled=false\ndungeonScore.visibleDefaultV2=true\n"));
-        check("post-migration explicit score-HUD off choice is preserved", !explicitOffScore.enabled,
-                "enabled=" + explicitOffScore.enabled);
         check("Room Clear Alert defaults off", !alert.enabled, "enabled=" + alert.enabled);
-        score.load(parse("dungeonScore.enabled=true\ndungeonScore.visibleDefaultV2=true\ndungeonScore.bg=true\ndungeonScore.border=true\n"
-                + "dungeonScore.ax=CENTER\ndungeonScore.ox=12\n"));
-        alert.load(parse("roomClearAlert.enabled=true\nroomClearAlert.bg=true\nroomClearAlert.border=true\n"
-                + "roomClearAlert.scale=130\n"));
-        check("Dungeon Score HUD persists normal placement and enable state", score.enabled
-                && score.place.anchorX == Anchor.CENTER && score.place.offsetX == 12, score.place.toString());
-        check("Dungeon Score HUD forces no background or border", !score.background && !score.border,
-                "bg=" + score.background + " border=" + score.border);
-        check("Room Clear Alert keeps size while forcing no background or border", alert.enabled
-                && Math.abs(alert.scale - 1.3F) < 1e-6 && !alert.background && !alert.border,
-                "scale=" + alert.scale + " bg=" + alert.background + " border=" + alert.border);
-        boolean scoreRegistered = false;
-        boolean alertRegistered = false;
-        for (HudElement element : HudManager.DUNGEON_EDITOR_ELEMENTS) {
-            if (element == HudManager.DUNGEON_SCORE) scoreRegistered = true;
-            if (element == HudManager.ROOM_CLEAR_ALERT) alertRegistered = true;
-        }
-        check("dedicated Dungeon HUD Editor owns score and alert targets", scoreRegistered && alertRegistered,
-                "score=" + scoreRegistered + " alert=" + alertRegistered);
+        alert.load(parse("dungeonScore.enabled=true\nroomClearAlert.enabled=true\nroomClearAlert.bg=true\nroomClearAlert.border=true\nroomClearAlert.scale=130\n"));
+        check("legacy HUD keys do not interfere with the room alert", alert.enabled
+                && Math.abs(alert.scale - 1.3F) < 1e-6 && !alert.background && !alert.border, "scale=" + alert.scale);
+        check("dedicated Dungeon HUD Editor retains the alert", HudManager.DUNGEON_EDITOR_ELEMENTS.length == 1
+                && HudManager.DUNGEON_EDITOR_ELEMENTS[0] == HudManager.ROOM_CLEAR_ALERT, "editor targets");
+        for (HudElement element : HudManager.ELEMENTS)
+            check("retired HUD is not registered", !"dungeonScore".equals(element.id), element.id);
     }
 
     private static void invalidValuesFallBack() throws IOException {

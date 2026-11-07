@@ -27,8 +27,8 @@ public final class InlineOptionPreservationTests {
                 "chat-tab-selected-color", "chat-tab-send-prefix", "chat-tab-sound", "chat-tab-visible", "chat-tabs",
                 "curve-quality", "disable-hotbar-scrolling", "hide-dead-mobs", "smooth-aspect-teleport", "door-blood", "door-blood-color", "door-distance-text",
                 "door-esp-enabled", "door-only-key", "door-scope", "door-wither-style", "dragon-alerts", "dungeon-boss-hud",
-                "dungeon-map", "dungeon-score-hud", "dungeon-score-line", "dungeon-crypts-line",
-                "dungeon-deaths-line", "dungeon-run-time-line", "room-clear-alert", "room-clear-duration", "room-clear-sound",
+                "dungeon-map",
+                "room-clear-alert", "room-clear-duration", "room-clear-sound",
                 "dungeon-auto-chest-close", "esp-distance-text",
                 "esp-enderman", "esp-max-boxes", "esp-max-distance", "esp-max-mob-labels",
                 "esp-miniboss", "esp-mob-labels", "esp-special", "esp-starred",
@@ -60,7 +60,7 @@ public final class InlineOptionPreservationTests {
         assertPresent("chat-background-group", "chat-messages-group", "chat-tabs-group", "chat-menu-group",
                 "m7-bosses", "m7-dragons", "esp-starred-caption", "door-wither-style-caption");
         assertPresent("item-lock-swap", "dungeon-map", "terminal-assist", "spirit-leap", "dungeon-boss-hud",
-                "spirit-bow-locator", "dungeon-score-hud", "room-clear-alert",
+                "spirit-bow-locator", "room-clear-alert",
                 "dungeon-auto-chest-close", "m7-overlay", "mob-esp-enabled", "door-esp-enabled", "fishing-tracker",
                 "item-animation", "command-keybinds", "item-lock-key");
         check("Chat captions are not nested dropdowns", !ReferenceSettingsCatalog.find("chat-background-group").isDropdown()

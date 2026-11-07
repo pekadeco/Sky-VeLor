@@ -6,7 +6,7 @@
 - Removed the Dungeon Run status HUD and both Dungeon/Party Sync implementations and settings; local dungeon progress and map support remain.
 - Removed the manual Save Settings action and added autosave on changes and editor closure.
 - Default Wardrobe to H and migrate the old W default once, while retaining other saved bindings; Pets stays P.
-- Dungeon Score removal is **not included**: its raw room-clear telemetry is shared with Room Clear Alert, and its diagnostics and HUD remain. The unified-editor and earlier visual redesign requests remain incomplete.
+- Dungeon Score removal was not included in this historical release; see the newer release above. The unified-editor and earlier visual redesign requests remain incomplete.
 - Automated Java 8 Forge build, standalone tests, and artifact verifiers do not replace an in-game Forge/Fakepixel/Pojav check; appearance, shortcuts, autosave, map, alerts, and other retained functionality have not been tested in-game.
 
 ## Beta-0.10.9.1.9v — partial settings visual update
@@ -44,7 +44,7 @@
 ### Changed
 
 - Merged the friend ZIP feature set with the latest Arena feature set using current implementations where ownership overlaps.
-- Retained Shortcut keys; Item Lock & Swap; dungeon map/player heads; direct-canvas Dungeon HUD Editor; Dungeon Score calculator/debug path; Room Clear Alert; Auto Chest Close; Hide Dead Mobs; Smooth Aspect Teleport; Item Animation; Chat QoL; and existing HUD, fishing, Slayer, mining, ESP, and sync surfaces.
+- Retained Shortcut keys; Item Lock & Swap; dungeon map/player heads; direct-canvas Dungeon HUD Editor; Room Clear Alert; Auto Chest Close; Hide Dead Mobs; Smooth Aspect Teleport; Item Animation; Chat QoL; and existing HUD, fishing, Slayer, mining, ESP, and sync surfaces.
 - Rebranded player-facing GUI labels, chat/log prefixes, resource packaging, artifact names, CI, source/JAR verifiers, documentation, and notices for Lunaria.
 - Switched release delivery names to `Lunaria-Mod-1.8.9-Beta-0.10.9.4v` and removed automatic GitHub Release creation from CI. Verified branch artifacts remain the three-file `dist/` delivery surface.
 - Expanded the standalone test runners to compile and run every retained test class rather than maintaining a partial handwritten list.

@@ -106,7 +106,7 @@ def main():
             "src/main/java/com/arena/pekaclient/gui/LunariaArtwork.java",
             "src/main/java/com/arena/pekaclient/gui/LunariaDownloadingTerrainScreen.java",
             "src/main/java/com/arena/pekaclient/render/ExternalFontLocations.java",
-            "src/main/java/com/arena/pekaclient/assist/dungeon/DungeonScoreTracker.java",
+            "src/main/java/com/arena/pekaclient/assist/dungeon/DungeonClearTracker.java",
             "src/main/java/com/arena/pekaclient/assist/dungeon/RoomClearAlertController.java",
             "src/main/java/com/arena/pekaclient/assist/dungeon/DungeonChestCloser.java",
             "src/main/java/com/arena/pekaclient/assist/visual/DeadMobRenderFilter.java",
@@ -124,6 +124,8 @@ def main():
             "tests/com/arena/pekaclient/gui/ReleaseClaimsTests.java",
             "tools/verify_release_jar.py", "tools/verify_source_zip.py",
         )
+        result.check(not any("DungeonScore" in name for name in relative),
+                     "removed dungeon rating sources and tests are absent")
         missing = [name for name in required if name not in available]
         result.check(not missing, "required source, tests, resources, documentation, CI and verifiers are present"
                      + ("" if not missing else ": " + ", ".join(missing)))

@@ -30,18 +30,12 @@ public final class DungeonClearTracker {
     private final DungeonClearParser parser = new DungeonClearParser();
     private World activeWorld;
     private int scanTicks;
-    private volatile DebugSnapshot latestDebug = DebugSnapshot.empty();
 
     private DungeonClearTracker() {
     }
 
     public int clearedPercent() {
         return parser.percent();
-    }
-
-    /** Last normal sampling snapshot, useful to commands without provoking an extra scan. */
-    public DebugSnapshot latestDebugSnapshot() {
-        return latestDebug;
     }
 
     /**
@@ -54,11 +48,9 @@ public final class DungeonClearTracker {
         DungeonContext.Result context = DungeonContext.evaluateNow(mc, sidebar.title, sidebar.lines, tab);
         if (context.inDungeon && mc != null && mc.theWorld != null) {
             beginWorld(mc.theWorld);
-            observe(sidebar, tab);
+            observe(sidebar);
         }
-        DebugSnapshot snapshot = new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, parser.percent());
-        latestDebug = snapshot;
-        return snapshot;
+        return new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, parser.percent());
     }
 
     @SubscribeEvent
@@ -83,12 +75,10 @@ public final class DungeonClearTracker {
         DungeonContext.Result context = DungeonContext.evaluateNow(mc, sidebar.title, sidebar.lines, tab);
         if (!context.inDungeon) {
             clear();
-            latestDebug = new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, parser.percent());
             return;
         }
         beginWorld(mc.theWorld);
-        observe(sidebar, tab);
-        latestDebug = new DebugSnapshot(context, sidebar.title, sidebar.lines, tab, parser.percent());
+        observe(sidebar);
     }
 
     private void beginWorld(World world) {
@@ -102,10 +92,9 @@ public final class DungeonClearTracker {
         if (activeWorld != null || parser.percent() >= 0) parser.reset();
         activeWorld = null;
         scanTicks = 0;
-        latestDebug = DebugSnapshot.empty();
     }
 
-    private void observe(RawSidebar sidebar, List<String> tab) {
+    private void observe(RawSidebar sidebar) {
         if (sidebar.title.length() > 0) parser.observeSidebar(sidebar.title);
         for (String line : sidebar.lines) parser.observeSidebar(line);
     }
@@ -179,9 +168,5 @@ public final class DungeonClearTracker {
             this.clearedPercent = clearedPercent;
         }
 
-        private static DebugSnapshot empty() {
-            return new DebugSnapshot(DungeonContext.cachedResult(), "", Collections.<String>emptyList(),
-                    Collections.<String>emptyList(), -1);
-        }
     }
 }

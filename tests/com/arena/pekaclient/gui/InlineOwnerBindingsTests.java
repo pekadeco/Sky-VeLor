@@ -26,9 +26,7 @@ public final class InlineOwnerBindingsTests {
         boolean oldMap = AppleSettings.dungeonMap;
         boolean oldChat = ChatQolSettings.enabled;
         boolean oldSpiritBowLocator = AssistSettings.spiritBowLocator;
-        boolean oldDungeonScoreHud = HudManager.DUNGEON_SCORE.enabled;
         boolean oldRoomAlert = HudManager.ROOM_CLEAR_ALERT.enabled;
-        boolean oldScoreLine = AppleSettings.dungeonScoreShowScore;
         boolean oldChestClose = AppleSettings.dungeonAutoChestClose;
         try {
             InlineSettingsBindings.setBoolean("no-block-particles", !oldParticles);
@@ -38,9 +36,7 @@ public final class InlineOwnerBindingsTests {
             InlineSettingsBindings.setBoolean("dungeon-map", !oldMap);
             InlineSettingsBindings.setBoolean("chat-qol", !oldChat);
             InlineSettingsBindings.setBoolean("spirit-bow-locator", !oldSpiritBowLocator);
-            InlineSettingsBindings.setBoolean("dungeon-score-hud", !oldDungeonScoreHud);
             InlineSettingsBindings.setBoolean("room-clear-alert", !oldRoomAlert);
-            InlineSettingsBindings.setBoolean("dungeon-score-line", !oldScoreLine);
             InlineSettingsBindings.setBoolean("dungeon-auto-chest-close", !oldChestClose);
             check("particle row writes AppleSettings owner", AppleSettings.noBlockParticles == !oldParticles
                     && InlineSettingsBindings.booleanValue("no-block-particles") == !oldParticles);
@@ -56,11 +52,8 @@ public final class InlineOwnerBindingsTests {
                     && InlineSettingsBindings.booleanValue("chat-qol") == !oldChat);
             check("Spirit Bow Locator writes its isolated AssistSettings owner", AssistSettings.spiritBowLocator == !oldSpiritBowLocator
                     && InlineSettingsBindings.booleanValue("spirit-bow-locator") == !oldSpiritBowLocator);
-            check("Dungeon Score and Room Alert write their movable HUD owners", HudManager.DUNGEON_SCORE.enabled
-                    == !oldDungeonScoreHud && HudManager.ROOM_CLEAR_ALERT.enabled == !oldRoomAlert);
-            check("Dungeon score line and Auto Chest Close write additive AppleSettings owners",
-                    AppleSettings.dungeonScoreShowScore == !oldScoreLine
-                            && AppleSettings.dungeonAutoChestClose == !oldChestClose);
+            check("Room Alert writes its movable HUD owner", HudManager.ROOM_CLEAR_ALERT.enabled == !oldRoomAlert);
+            check("Auto Chest Close writes its settings owner", AppleSettings.dungeonAutoChestClose == !oldChestClose);
         } finally {
             AppleSettings.noBlockParticles = oldParticles;
             AssistSettings.autoSprint = oldSprint;
@@ -69,9 +62,7 @@ public final class InlineOwnerBindingsTests {
             AppleSettings.dungeonMap = oldMap;
             ChatQolSettings.enabled = oldChat;
             AssistSettings.spiritBowLocator = oldSpiritBowLocator;
-            HudManager.DUNGEON_SCORE.enabled = oldDungeonScoreHud;
             HudManager.ROOM_CLEAR_ALERT.enabled = oldRoomAlert;
-            AppleSettings.dungeonScoreShowScore = oldScoreLine;
             AppleSettings.dungeonAutoChestClose = oldChestClose;
         }
     }

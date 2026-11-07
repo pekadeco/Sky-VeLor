@@ -1,6 +1,6 @@
 package com.arena.pekaclient.assist.dungeon;
 
-/** Shared formatting cleanup retained by room-alert, chest and score telemetry. */
+/** Shared formatting cleanup retained by room-alert and chest parsing. */
 final class DungeonText {
     private DungeonText() { }
     static String normalize(String raw) {

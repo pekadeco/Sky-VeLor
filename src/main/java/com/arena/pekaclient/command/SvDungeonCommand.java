@@ -1,7 +1,6 @@
 package com.arena.pekaclient.command;
 
-import com.arena.pekaclient.assist.dungeon.DungeonScoreReadout;
-import com.arena.pekaclient.assist.dungeon.DungeonScoreTracker;
+import com.arena.pekaclient.assist.dungeon.DungeonClearTracker;
 import com.arena.pekaclient.feature.DungeonContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
@@ -49,10 +48,9 @@ public final class SvDungeonCommand extends CommandBase {
 
     /** Shared by the Lunaria root command so diagnostic output cannot drift between aliases. */
     static void writeDebug(ICommandSender sender) {
-        DungeonScoreTracker.DebugSnapshot snapshot = DungeonScoreTracker.INSTANCE.captureDebugSnapshot(
+        DungeonClearTracker.DebugSnapshot snapshot = DungeonClearTracker.INSTANCE.captureDebugSnapshot(
                 Minecraft.getMinecraft());
         DungeonContext.Result context = snapshot.context;
-        DungeonScoreReadout readout = snapshot.readout;
         say(sender, "Dungeon debug begin -- copy all lines below");
         say(sender, "detected dungeon=" + value(context.dungeon) + ", floor=" + value(context.floor)
                 + ", inDungeon=" + context.inDungeon);
@@ -61,24 +59,7 @@ public final class SvDungeonCommand extends CommandBase {
         say(sender, "raw sidebar title: " + raw(snapshot.sidebarTitle));
         sayRawList(sender, "raw sidebar", snapshot.sidebarLines);
         sayRawList(sender, "raw tab", snapshot.tabLines);
-        say(sender, "parsed sidebar/tab floor=" + value(readout.floor) + ", cleared raw="
-                + number(readout.clearedPercent) + "%, cleared score input="
-                + number(readout.calculated.adjustedClearedPercent) + "%, secrets=" + number(readout.secretsPercent)
-                + "%, deaths=" + number(readout.deaths) + ", crypts=" + number(readout.crypts)
-                + ", time=" + time(readout));
-        say(sender, "parsed chat puzzles=" + readout.failedPuzzles + ", Spirit reductions="
-                + readout.spiritDeathPenaltyReductions + ", Blood Door=" + readout.bloodDoorOpened
-                + ", Mimic seen=" + readout.mimicKilled + ", Paul=" + readout.paulActive);
-        say(sender, "calculated skill=" + number(readout.calculated.skill) + ", clear="
-                + number(readout.calculated.clear) + ", secret=" + number(readout.calculated.secret)
-                + ", exploration=" + number(readout.calculated.exploration) + ", speed="
-                + number(readout.calculated.speed) + ", bonus=" + number(readout.calculated.bonus));
-        say(sender, "parsed score=" + number(readout.displayScore()) + ", rank=" + value(readout.displayRank())
-                + ", source=" + readout.calculationStatus());
-        say(sender, "official recap total=" + number(readout.officialTotal) + ", rank="
-                + value(readout.officialRank) + ", skill=" + number(readout.officialSkill) + ", exploration="
-                + number(readout.officialExploration) + ", speed=" + number(readout.officialSpeed)
-                + ", bonus=" + number(readout.officialBonus));
+        say(sender, "raw sidebar cleared=" + number(snapshot.clearedPercent) + "%");
         say(sender, "Dungeon debug end");
     }
 
@@ -99,10 +80,6 @@ public final class SvDungeonCommand extends CommandBase {
 
     private static String number(int value) {
         return value < 0 ? "--" : Integer.toString(value);
-    }
-
-    private static String time(DungeonScoreReadout readout) {
-        return readout == null || readout.elapsedSeconds < 0 ? "--" : DungeonScoreReadout.timeText(readout.elapsedSeconds);
     }
 
     /** Keep formatting codes visible/pasteable rather than allowing a captured sidebar line to recolour chat. */

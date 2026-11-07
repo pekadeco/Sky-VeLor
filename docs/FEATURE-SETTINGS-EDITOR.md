@@ -23,12 +23,12 @@ Item Lock & Swap protects configured slots and validates pair swaps locally. It 
 ### Dungeons
 
 - **Run Tools:** Dungeon Map, player heads, terminal assistance, Spirit Leap, and boss/readout support.
-- **Dungeon HUD:** direct-canvas editor, Score/Stats, Room Clear Alert, and Auto Chest Close.
+- **Dungeon HUD:** direct-canvas editor, Room Clear Alert, and Auto Chest Close.
 - **Floor VII / ESP:** retained dungeon overlays and local puzzle support.
 
 The direct-canvas Dungeon HUD Editor lets a player select, drag, resize, reset, and preview its dungeon elements. It is intentionally separate from the ordinary HUD editor.
 
-Dungeon Score uses only locally visible sidebar, public tab-list, and chat observations. It does not call an external score API. A live estimate deliberately does not claim `S+` without a visible qualifying end recap. Use `/luna dungeon debug` to collect local diagnostic evidence.
+`/luna dungeon debug` reports local dungeon detection and raw sidebar/tab evidence for the retained parser.
 
 Auto Chest Close is opt-in and narrowly accepts only exact normal chest titles in a confirmed dungeon. It does not click reward slots, accept rewards, or send movement commands.
 

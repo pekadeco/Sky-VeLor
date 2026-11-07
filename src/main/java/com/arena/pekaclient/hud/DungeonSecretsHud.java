@@ -13,11 +13,7 @@ public final class DungeonSecretsHud extends HudElement {
 
     private String countText() {
         DungeonProgressTracker t = HudManager.DUNGEON_PROGRESS;
-        if (t.totalScore() < 0) return "Secrets: waiting for dungeon data";
-        if (t.secretsPercent() >= 0 && t.secretTargetPercent() > 0) return t.secretDisplayText();
-        if (t.secretsRequired() >= 0 && t.secretsFound() >= 0) return "Secrets: " + t.secretsFound() + "/" + t.secretsRequired();
-        if (t.secretsFound() >= 0) return "Secrets: " + t.secretsFound() + " found";
-        return "Secrets: waiting for dungeon data";
+        return t.secretDisplayText();
     }
 
     @Override public float width() { return Math.max(100f, textWidth(countText()) + 20f); }

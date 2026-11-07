@@ -65,11 +65,6 @@ final class InlineSettingsBindings {
         if ("spirit-leap".equals(id)) return AppleSettings.leapMenu;
         if ("leap-key".equals(id)) return AppleSettings.leapKey;
         if ("dungeon-boss-hud".equals(id)) return HudManager.DUNGEON_BOSS_HP.enabled;
-        if ("dungeon-score-hud".equals(id)) return HudManager.DUNGEON_SCORE.enabled;
-        if ("dungeon-score-line".equals(id)) return AppleSettings.dungeonScoreShowScore;
-        if ("dungeon-crypts-line".equals(id)) return AppleSettings.dungeonScoreShowCrypts;
-        if ("dungeon-deaths-line".equals(id)) return AppleSettings.dungeonScoreShowDeaths;
-        if ("dungeon-run-time-line".equals(id)) return AppleSettings.dungeonScoreShowRunTime;
         if ("room-clear-alert".equals(id)) return HudManager.ROOM_CLEAR_ALERT.enabled;
         if ("room-clear-sound".equals(id)) return AppleSettings.dungeonRoomClearSound;
         if ("dungeon-auto-chest-close".equals(id)) return AppleSettings.dungeonAutoChestClose;
@@ -171,11 +166,6 @@ final class InlineSettingsBindings {
         else if ("spirit-leap".equals(id)) AppleSettings.leapMenu = value;
         else if ("leap-key".equals(id)) AppleSettings.leapKey = value;
         else if ("dungeon-boss-hud".equals(id)) HudManager.DUNGEON_BOSS_HP.enabled = value;
-        else if ("dungeon-score-hud".equals(id)) HudManager.DUNGEON_SCORE.enabled = value;
-        else if ("dungeon-score-line".equals(id)) AppleSettings.dungeonScoreShowScore = value;
-        else if ("dungeon-crypts-line".equals(id)) AppleSettings.dungeonScoreShowCrypts = value;
-        else if ("dungeon-deaths-line".equals(id)) AppleSettings.dungeonScoreShowDeaths = value;
-        else if ("dungeon-run-time-line".equals(id)) AppleSettings.dungeonScoreShowRunTime = value;
         else if ("room-clear-alert".equals(id)) HudManager.ROOM_CLEAR_ALERT.enabled = value;
         else if ("room-clear-sound".equals(id)) AppleSettings.dungeonRoomClearSound = value;
         else if ("dungeon-auto-chest-close".equals(id)) AppleSettings.dungeonAutoChestClose = value;
