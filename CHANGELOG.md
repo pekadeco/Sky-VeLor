@@ -1,5 +1,12 @@
 # Changelog
 
+## Beta-0.10.9.1.12v — partial Phase 2 Dungeon HUD update
+
+- Moved the single Dungeon Map row into the Dungeon HUD category; its controls remain in the Dungeon HUD Editor and saved map settings retain their existing keys.
+- Increased Room Clear Alert size to 800%, with viewport fitting and selection geometry, and enabled it by default. Old settings are migrated on once; later explicit off choices are preserved.
+- The requested Boss Health Bar upgrade is **not included**. The existing Boss HP text HUD and F7/M7 name/health tracker remain unchanged; the requested rendering, controls, vanilla-bar hiding, and performance work remain outstanding.
+- Automated build and tests do not launch Minecraft. Map, editor, large text, autosave, migration and the retained boss tracker have not been tested in-game.
+
 ## Beta-0.10.9.1.11v — Phase 1B dungeon cleanup
 
 - Removed both dungeon rating calculators, rank and notification logic, party messages, score/Stats HUD, settings, editor target, old configuration outputs, score-only tests and score diagnostics.
